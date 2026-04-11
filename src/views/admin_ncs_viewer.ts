@@ -138,7 +138,8 @@ export function adminNcsViewerHtml(): string {
                         </div>
                         <p class="text-[11px] text-slate-400 mt-3 px-1">
                             ※ 분류번호(능력단위) 형식: 10자리 숫자_개발연도2자리v버전 (예: 1903110201_15v1)<br>
-                            ※ 직무 펼침 시 요소명·수행준거·평가준거는 기준정보 API(NCS006·NCS008)로 조합하며, 서버에 NCS_API_KEY가 있어야 합니다.
+                            ※ 직무 펼침 시 요소명·수행준거·평가준거는 기준정보 API(NCS006·NCS008)로 조합하며, 서버에 NCS_API_KEY가 있어야 합니다.<br>
+                            ※ 관리자: 수행준거가 비거나 문서와 다를 때 원인 조사용 <code class="text-[10px] bg-slate-100 px-1 rounded">GET /api/ncs/approved/debug/unit-criteria?unitCode=능력단위코드</code> (로그인·Bearer 토큰)
                         </p>
                     </div>
                 </div>
@@ -381,6 +382,23 @@ export function adminNcsViewerHtml(): string {
                 return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
             }
 
+            /** 수행준거 칸: 수행 텍스트 우선, 없으면 API가 내려준 기술·태도·지식(일부 응답은 수행 필드 대신 여기만 채움) */
+            function ncsElementPerformBlock(el) {
+                var c = String(el.criteriaText || '').trim();
+                if (c) return c;
+                var bits = [];
+                if (String(el.skillText || '').trim()) bits.push('[기술] ' + String(el.skillText).trim());
+                if (String(el.attitudeText || '').trim()) bits.push('[태도] ' + String(el.attitudeText).trim());
+                if (String(el.knowledgeText || '').trim()) bits.push('[지식] ' + String(el.knowledgeText).trim());
+                return bits.join(String.fromCharCode(10));
+            }
+
+            function ncsElementEvalBlock(el) {
+                var ev = String(el.evaluationCriteriaText || el.evaluation_criteria_text || '').trim();
+                if (ev) return ev;
+                return '';
+            }
+
             function moduleYearFromCode(code) {
                 var m = String(code || '').match(/_([0-9]{2})v/i);
                 if (!m) return '-';
@@ -556,12 +574,11 @@ export function adminNcsViewerHtml(): string {
                                 '<th class="w-[18%]">요소명</th><th class="w-[41%]">수행준거</th><th class="w-[41%]">평가준거</th></tr></thead><tbody>';
                             els.forEach(function(el) {
                                 var ename = (el.name && String(el.name).trim()) ? String(el.name) : (el.code ? String(el.code) : '—');
-                                var crit = (el.criteriaText && String(el.criteriaText).trim()) ? String(el.criteriaText) : '';
-                                var eva = (el.evaluationCriteriaText || el.evaluation_criteria_text || '');
-                                eva = String(eva).trim();
+                                var crit = ncsElementPerformBlock(el);
+                                var eva = ncsElementEvalBlock(el);
                                 inner += '<tr><td class="align-top font-medium text-slate-800">' + esc(ename) + '</td>' +
-                                    '<td class="align-top text-slate-700 leading-relaxed">' + (crit ? esc(crit) : '<span class="text-slate-400">—</span>') + '</td>' +
-                                    '<td class="align-top text-slate-700 leading-relaxed">' + (eva ? esc(eva) : '<span class="text-slate-400">—</span>') + '</td></tr>';
+                                    '<td class="align-top text-slate-700 leading-relaxed whitespace-pre-wrap">' + (crit ? esc(crit) : '<span class="text-slate-400">—</span>') + '</td>' +
+                                    '<td class="align-top text-slate-700 leading-relaxed whitespace-pre-wrap">' + (eva ? esc(eva) : '<span class="text-slate-400">—</span>') + '</td></tr>';
                             });
                             inner += '</tbody></table></td></tr>';
                         }
@@ -638,8 +655,8 @@ export function adminNcsViewerHtml(): string {
                             } else {
                                 els.forEach(function(el) {
                                     var ename = (el.name && String(el.name).trim()) ? String(el.name) : String(el.code || '');
-                                    var crit = String(el.criteriaText || '').trim();
-                                    var eva = String(el.evaluationCriteriaText || el.evaluation_criteria_text || '').trim();
+                                    var crit = ncsElementPerformBlock(el);
+                                    var eva = ncsElementEvalBlock(el);
                                     rows.push([lN, mN, sN, j.code, j.name, u.code || '', u.name || '', String(u.level != null ? u.level : ''), moduleYearFromCode(u.code), ename, crit, eva]);
                                 });
                             }

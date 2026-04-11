@@ -1131,6 +1131,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </select>
                             <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>NCS 평가준거 불러오기</button>
                           </div>
+                          <p class="mt-2 text-[11px] text-slate-500 leading-snug">표에서 요소명·평가 내용을 직접 수정할 수 있습니다. <strong class="text-slate-600">저장</strong> 시 이 과정·교과목·평가회차별로 서버에 보관되며, 이후 「NCS 평가준거 불러오기」·교수계획서 연동 시 저장된 문구가 우선 반영됩니다.</p>
                         </td>
                       </tr>
                       <tr>
@@ -3711,6 +3712,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (!Number.isFinite(ln) || ln < 0 || !toolsCriteriaGroupsState[g].lines[ln]) return;
         toolsCriteriaGroupsState[g].lines[ln].text = String(t.textContent || '').trim();
       });
+      document.addEventListener('blur', function(ev) {
+        var t = ev.target;
+        if (!t || !t.getAttribute || t.getAttribute('data-role') !== 'element-title') return;
+        var g = parseInt(t.getAttribute('data-g') || '-1', 10);
+        if (!Number.isFinite(g) || g < 0 || !toolsCriteriaGroupsState[g]) return;
+        toolsCriteriaGroupsState[g].element_title = String(t.textContent || '').trim() || '-';
+      }, true);
     }
 
     function renderToolsCriteriaBody(groups) {
@@ -3734,7 +3742,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           var isFirst = ln === 0;
           html += '<tr>';
           if (isFirst) {
-            html += '<td rowspan="' + rs + '" class="border border-black px-2 py-2 align-top text-sm font-semibold text-slate-900 whitespace-pre-wrap" data-role="element" data-title="' + escapeHtml(title) + '">' + escapeHtml(title) + '</td>';
+            html += '<td rowspan="' + rs + '" class="border border-black px-2 py-2 align-top text-sm font-semibold text-slate-900 whitespace-pre-wrap outline-none focus:ring-2 focus:ring-indigo-200 rounded" data-role="element-title" data-g="' + g + '" contenteditable="true" title="능력단위 요소명(직접 수정 가능)">' + escapeHtml(title) + '</td>';
           }
           html += '<td class="border border-black px-2 py-2 align-top text-sm text-slate-800">';
           html += '<span class="text-slate-500 font-mono text-[11px] mr-1">' + escapeHtml(String(line.label || '')) + '</span>';
@@ -3759,7 +3767,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return;
       }
       try {
-        var res = await authFetch('/api/ncs/approved/curriculum/' + encodeURIComponent(cid) + '/evaluation-tool-form?course_id=' + encodeURIComponent(String(courseId)));
+        var roundQ = (typeof selectedRound === 'number' && selectedRound >= 1 && selectedRound <= 3) ? selectedRound : 1;
+        var res = await authFetch('/api/ncs/approved/curriculum/' + encodeURIComponent(cid) + '/evaluation-tool-form?course_id=' + encodeURIComponent(String(courseId)) + '&evaluation_round=' + encodeURIComponent(String(roundQ)));
         var json = await res.json();
         if (!json || !json.success) {
           alert((json && json.error) ? String(json.error) : '불러오기에 실패했습니다.');

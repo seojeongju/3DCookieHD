@@ -494,9 +494,17 @@ async function fetchNcsPerformanceCriteria(
         evaluationCriteriaText: string;
         criteriaText: string;
         knowledgeText: string;
+        skillText?: string;
+        attitudeText?: string;
     }) =>
         !!e.elemCode &&
-        !!(e.evaluationCriteriaText || e.criteriaText || e.knowledgeText);
+        !!(
+            e.evaluationCriteriaText ||
+            e.criteriaText ||
+            e.knowledgeText ||
+            (e.skillText || '').trim() ||
+            (e.attitudeText || '').trim()
+        );
 
     const baseCode = ncsClCd.split('_')[0];
     const ops = ['NCS008', 'getNcsCompeUnitElemDtlList', 'getNcsCompeUnitElemList']; // 008 is standard for details
@@ -530,10 +538,161 @@ async function fetchNcsPerformanceCriteria(
     return [];
 }
 
-function elementHasViewerCriteria(e: { criteriaText?: string; evaluationCriteriaText?: string; evaluation_criteria_text?: string }): boolean {
-    const c = (e?.criteriaText || '').trim();
-    const ev = (e?.evaluationCriteriaText || e?.evaluation_criteria_text || '').trim();
-    return !!(c || ev);
+/** 디버그: NCS008 원시 행·매핑·production keepRow 탈락 이유 (수행준거 열이 비는 원인 조사용) */
+async function debugNcs008Inspection(
+    apiKey: string,
+    ncsClCd: string,
+    baseUrl?: string
+): Promise<{
+    foundRaw: boolean;
+    winningCall: { op: string; paramName: string; paramValue: string } | null;
+    rowCount: number;
+    sampleRows: Array<{
+        rawKeys: string[];
+        rawPreview: Record<string, string>;
+        mapped: {
+            elemCode: string;
+            evaluationCriteriaText: string;
+            criteriaText: string;
+            knowledgeText: string;
+            skillText: string;
+            attitudeText: string;
+        };
+        passesProductionKeepRow: boolean;
+        noteIfDropped: string | null;
+    }>;
+}> {
+    const key = decodeServiceKey(apiKey);
+    const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+
+    const getVal = (r: any, ...keys: string[]) => {
+        for (const k of keys) {
+            const v = r[k];
+            if (v != null && String(v).trim() !== '') return String(v).trim();
+        }
+        return '';
+    };
+
+    const mapRow = (r: any) => ({
+        elemCode: getVal(r, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD'),
+        evaluationCriteriaText: getVal(
+            r,
+            'EVALUAT_CRIT_CONT',
+            'EVAL_CRITERIA_CONT',
+            'EVAL_CRIT_CONT',
+            'EVALUATION_CRIT_CONT',
+            'EVALUATION_CRITERIA_CONT',
+            'EVAL_CRITERIA',
+            'EVALUAT_CRITERIA',
+            'EVL_CRIT_CONT',
+            'EVL_CRITERIA_CONT'
+        ),
+        criteriaText: getVal(r, 'PERFORMAN_CRIT_CONT', 'PERFORM_CRITERIA', 'CRITERIA_CONT', 'CRITERIA'),
+        knowledgeText: getVal(r, 'KNOWLEDGE_CONT', 'KNOWLEDGE', 'KNOW_CONT'),
+        skillText: getVal(r, 'SKILL_CONT', 'SKILL', 'SKILL_CONT'),
+        attitudeText: getVal(r, 'ATTITUDE_CONT', 'ATTITUDE', 'ATTIT_CONT')
+    });
+
+    const keepProd = (e: {
+        elemCode: string;
+        evaluationCriteriaText: string;
+        criteriaText: string;
+        knowledgeText: string;
+        skillText: string;
+        attitudeText: string;
+    }) =>
+        !!e.elemCode &&
+        !!(
+            e.evaluationCriteriaText ||
+            e.criteriaText ||
+            e.knowledgeText ||
+            (e.skillText || '').trim() ||
+            (e.attitudeText || '').trim()
+        );
+
+    const baseCode = ncsClCd.split('_')[0];
+    const ops = ['NCS008', 'getNcsCompeUnitElemDtlList', 'getNcsCompeUnitElemList'];
+    const paramNames = ['ncsClCd', 'NCS_CL_CD', 'COMPE_UNIT_CD'];
+
+    let winningCall: { op: string; paramName: string; paramValue: string } | null = null;
+    let list: any[] = [];
+
+    outer: for (const op of ops) {
+        for (const pName of paramNames) {
+            try {
+                const L = await fetchClassificationAllPages(base, key, op, { [pName]: ncsClCd });
+                if (L.length > 0) {
+                    winningCall = { op, paramName: pName, paramValue: ncsClCd };
+                    list = L;
+                    break outer;
+                }
+            } catch {
+                /* try next */
+            }
+        }
+    }
+
+    if (!winningCall && baseCode !== ncsClCd) {
+        for (const op of ops) {
+            try {
+                const L = await fetchClassificationAllPages(base, key, op, { [paramNames[0]]: baseCode });
+                if (L.length > 0) {
+                    winningCall = { op, paramName: paramNames[0], paramValue: baseCode };
+                    list = L;
+                    break;
+                }
+            } catch {
+                /* */
+            }
+        }
+    }
+
+    const sampleRows = list.slice(0, 8).map((r) => {
+        const mapped = mapRow(r);
+        const passes = keepProd(mapped);
+        let note: string | null = null;
+        if (!passes) {
+            note = mapped.elemCode
+                ? '평가·수행·지식·기술·태도 텍스트가 모두 비어 keepRow에서 제외됨'
+                : 'elemCode 없음';
+        }
+
+        const rawKeys = r && typeof r === 'object' ? Object.keys(r as object) : [];
+        const rawPreview: Record<string, string> = {};
+        for (const k of rawKeys.slice(0, 30)) {
+            const v = (r as Record<string, unknown>)[k];
+            const s = v == null ? '' : String(v);
+            rawPreview[k] = s.length > 160 ? `${s.slice(0, 160)}…` : s;
+        }
+
+        return {
+            rawKeys,
+            rawPreview,
+            mapped,
+            passesProductionKeepRow: passes,
+            noteIfDropped: passes ? null : note
+        };
+    });
+
+    return {
+        foundRaw: list.length > 0,
+        winningCall,
+        rowCount: list.length,
+        sampleRows
+    };
+}
+
+function elementHasViewerCriteria(e: {
+    criteriaText?: string;
+    evaluationCriteriaText?: string;
+    evaluation_criteria_text?: string;
+    knowledgeText?: string;
+    skillText?: string;
+    attitudeText?: string;
+}): boolean {
+    if ((e?.criteriaText || '').trim() || (e?.evaluationCriteriaText || e?.evaluation_criteria_text || '').trim()) return true;
+    if ((e?.knowledgeText || '').trim() || (e?.skillText || '').trim() || (e?.attitudeText || '').trim()) return true;
+    return false;
 }
 
 /** 분류보기용: 능력단위에 요소(NCS006)+수행·평가준거(NCS008)를 메모리에 병합(DB 미저장) */
@@ -1391,6 +1550,82 @@ app.get('/approved/search-units', async (c) => {
     } catch (e) {
         console.error('NCS search-units error:', e);
         return c.json({ success: false, error: '능력단위 검색 실패' }, 500);
+    }
+});
+
+/** 관리자 전용: 능력단위 코드별 NCS006·NCS008·keepRow·DB·병합 결과 비교 (수행준거 불일치 조사) */
+app.get('/approved/debug/unit-criteria', authMiddleware, requireAdmin, async (c) => {
+    try {
+        const unitCode = (c.req.query('unitCode') || '').trim();
+        if (!unitCode) {
+            return c.json({ success: false, error: 'unitCode 쿼리 파라미터가 필요합니다. 예: ?unitCode=1903110208_23v3' }, 400);
+        }
+        const rawKey = c.env.NCS_API_KEY?.trim();
+        if (!rawKey) {
+            return c.json({ success: false, error: 'NCS_API_KEY가 설정되어 있지 않습니다.' }, 400);
+        }
+        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+
+        let dbSnapshot: {
+            code?: string;
+            name?: string;
+            has_elements_json: boolean;
+            elements_json_length: number;
+        } | null = null;
+        try {
+            const row = await c.env.DB.prepare('SELECT code, name, elements_json FROM ncs_units WHERE code = ?')
+                .bind(unitCode)
+                .first() as { code?: string; name?: string; elements_json?: string | null } | null;
+            if (row) {
+                const ej = row.elements_json || '';
+                dbSnapshot = {
+                    code: row.code,
+                    name: row.name,
+                    has_elements_json: !!ej,
+                    elements_json_length: ej.length
+                };
+            }
+        } catch (e) {
+            console.warn('debug unit-criteria db:', e);
+        }
+
+        const ncs006 = await fetchNcsUnitElements(rawKey, unitCode, classificationBase);
+        const ncs008Production = await fetchNcsPerformanceCriteria(rawKey, unitCode, classificationBase);
+        const ncs008Debug = await debugNcs008Inspection(rawKey, unitCode, classificationBase);
+
+        const unitForEnrich: { code: string; elements?: unknown[] } = { code: unitCode, elements: [] };
+        try {
+            const row = await c.env.DB.prepare('SELECT elements_json FROM ncs_units WHERE code = ?')
+                .bind(unitCode)
+                .first() as { elements_json?: string | null } | null;
+            if (row?.elements_json) {
+                unitForEnrich.elements = JSON.parse(row.elements_json);
+            }
+        } catch {
+            /* */
+        }
+
+        await enrichNcsUnitForViewer(unitForEnrich, rawKey, classificationBase);
+
+        return c.json({
+            success: true,
+            _meta: {
+                description:
+                    '분류보기와 문서(훈련편성표) 수행준거 문구 차이·빈 열 원인 조사용. production fetchNcsPerformanceCriteria는 평가/수행/지식 중 하나 이상 있을 때만 행을 유지합니다.',
+                unitCode,
+                classificationApiBase: classificationBase || '(env 미설정 시 기본 URL)'
+            },
+            database: dbSnapshot,
+            ncs006_element_count: ncs006.length,
+            ncs006_elements: ncs006,
+            ncs008_production_row_count: ncs008Production.length,
+            ncs008_production: ncs008Production,
+            ncs008_raw_inspection: ncs008Debug,
+            enriched_elements_after_viewer_merge: unitForEnrich.elements || []
+        });
+    } catch (e) {
+        console.error('debug unit-criteria:', e);
+        return c.json({ success: false, error: '디버그 조회 실패' }, 500);
     }
 });
 
@@ -3246,7 +3481,7 @@ app.get('/approved/syllabus/session/:sessionId/subjects', authMiddleware, requir
         const sessionId = parseInt(c.req.param('sessionId'), 10);
         if (isNaN(sessionId)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
         const { DB } = c.env;
-        const sql = `SELECT s.id, s.approved_course_id, s.session_number, s.instructor_name, s.training_start_date, s.training_end_date,
+        const sql = `SELECT s.id, s.approved_course_id, s.lms_course_id, s.session_number, s.instructor_name, s.training_start_date, s.training_end_date,
               a.name as course_name, a.total_hours, a.daily_hours, a.training_time_start, a.training_time_end
          FROM course_sessions s
          LEFT JOIN approved_courses a ON a.id = s.approved_course_id
@@ -3274,12 +3509,36 @@ app.get('/approved/syllabus/session/:sessionId/subjects', authMiddleware, requir
     }
 });
 
-/** 교수계획서: NCS 능력단위 기반 학습목표·평가기준 — curriculum_id 또는 unit_codes 로 조회 */
+/** 교수계획서: NCS 능력단위 기반 학습목표·평가기준 — curriculum_id 또는 unit_codes 로 조회. course_id+evaluation_round+curriculum_id 시 저장된 평가도구제작 내용 우선 */
 app.get('/approved/syllabus/objectives', authMiddleware, requireAdmin, async (c) => {
     try {
         const curriculumId = c.req.query('curriculum_id');
         const unitCodesParam = c.req.query('unit_codes');
+        const courseIdOv = c.req.query('course_id');
+        const roundOv = c.req.query('evaluation_round');
         const { DB } = c.env;
+
+        const cidNum = curriculumId ? parseInt(String(curriculumId), 10) : NaN;
+        const courseOvNum =
+            courseIdOv != null && String(courseIdOv).trim() !== '' ? parseInt(String(courseIdOv), 10) : NaN;
+        let evalROv = roundOv != null && String(roundOv).trim() !== '' ? parseInt(String(roundOv), 10) : 1;
+        if (!Number.isFinite(evalROv) || evalROv < 1 || evalROv > 3) evalROv = 1;
+
+        if (Number.isFinite(cidNum) && cidNum > 0 && Number.isFinite(courseOvNum) && courseOvNum > 0) {
+            const overlay = await getEvaluationCriteriaOverlay(DB, courseOvNum, cidNum, evalROv);
+            if (overlay && overlay.length) {
+                const built = buildObjectivesFromCriteriaGroups(overlay);
+                return c.json({
+                    success: true,
+                    data: {
+                        ...built,
+                        source: 'evaluation_overlay',
+                        evaluation_round: evalROv
+                    },
+                });
+            }
+        }
+
         let unitCodes: string[] = [];
         if (curriculumId) {
             const row = await DB.prepare('SELECT ability_units_json FROM ncs_approved_curriculum WHERE id = ?').bind(curriculumId).first() as { ability_units_json?: string } | null;
@@ -3323,6 +3582,112 @@ app.get('/approved/syllabus/objectives', authMiddleware, requireAdmin, async (c)
         return c.json({ success: false, error: '학습목표/평가기준 조회 실패' }, 500);
     }
 });
+
+function normalizeEvalElementTitle(t: string): string {
+    return String(t || '')
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
+/** NCS 기준 그룹 + 저장된 평가도구제작 그룹 병합(능력단위 요소명 기준 매칭) */
+function mergeCriteriaGroupsFromOverlay(ncsGroups: any[], savedGroups: any[] | null | undefined): any[] {
+    if (!savedGroups || !Array.isArray(savedGroups) || savedGroups.length === 0) return ncsGroups;
+    const savedByTitle = new Map<string, any>();
+    savedGroups.forEach((g) => {
+        const k = normalizeEvalElementTitle(String(g?.element_title ?? ''));
+        if (k) savedByTitle.set(k, g);
+    });
+    const usedSaved = new Set<string>();
+    const out: any[] = [];
+    for (const ncs of ncsGroups) {
+        const key = normalizeEvalElementTitle(String(ncs?.element_title ?? ''));
+        const ovr = key ? savedByTitle.get(key) : null;
+        if (ovr && Array.isArray(ovr.lines) && ovr.lines.length > 0) {
+            out.push({
+                element_title: ncs.element_title,
+                lines: JSON.parse(JSON.stringify(ovr.lines))
+            });
+            if (key) usedSaved.add(key);
+        } else {
+            out.push(ncs);
+        }
+    }
+    for (const s of savedGroups) {
+        const key = normalizeEvalElementTitle(String(s?.element_title ?? ''));
+        if (!key || usedSaved.has(key)) continue;
+        if (ncsGroups.some((n) => normalizeEvalElementTitle(String(n?.element_title ?? '')) === key)) continue;
+        out.push(JSON.parse(JSON.stringify(s)));
+    }
+    return out.length ? out : ncsGroups;
+}
+
+async function getEvaluationCriteriaOverlay(
+    DB: D1Database,
+    courseId: number,
+    curriculumId: number,
+    evaluationRound: number
+): Promise<any[] | null> {
+    try {
+        const row = (await DB.prepare(
+            `SELECT criteria_groups_json FROM ncs_curriculum_evaluation_overlay
+             WHERE course_id = ? AND curriculum_id = ? AND evaluation_round = ? LIMIT 1`
+        )
+            .bind(courseId, curriculumId, evaluationRound)
+            .first()) as { criteria_groups_json?: string } | null;
+        if (!row?.criteria_groups_json) return null;
+        const p = JSON.parse(row.criteria_groups_json) as unknown;
+        return Array.isArray(p) && p.length ? p : null;
+    } catch {
+        return null;
+    }
+}
+
+async function upsertEvaluationCriteriaOverlay(
+    DB: D1Database,
+    courseId: number,
+    curriculumId: number,
+    evaluationRound: number,
+    criteriaGroups: unknown[],
+    userId: number | null
+): Promise<void> {
+    if (!Array.isArray(criteriaGroups) || criteriaGroups.length === 0) return;
+    const json = JSON.stringify(criteriaGroups);
+    await DB.prepare(
+        `INSERT INTO ncs_curriculum_evaluation_overlay (course_id, curriculum_id, evaluation_round, criteria_groups_json, updated_by, updated_at)
+         VALUES (?, ?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(course_id, curriculum_id, evaluation_round) DO UPDATE SET
+           criteria_groups_json = excluded.criteria_groups_json,
+           updated_by = excluded.updated_by,
+           updated_at = datetime('now')`
+    )
+        .bind(courseId, curriculumId, evaluationRound, json, userId)
+        .run();
+}
+
+function buildObjectivesFromCriteriaGroups(groups: any[]): { learning_objectives: string; evaluation_criteria: string } {
+    const learnLines: string[] = [];
+    const critLines: string[] = [];
+    for (const g of groups) {
+        const et = String(g?.element_title || '').trim();
+        const lines = Array.isArray(g?.lines) ? g.lines : [];
+        const sub: string[] = [];
+        lines.forEach((ln: any) => {
+            const label = String(ln?.label || '').trim();
+            const text = String(ln?.text || '').trim();
+            const one = [label, text].filter(Boolean).join(' ').trim();
+            if (one) {
+                critLines.push(one);
+                sub.push(one);
+            }
+        });
+        if (et || sub.length) {
+            learnLines.push([et || '능력단위 요소', ...sub].join('\n'));
+        }
+    }
+    const learning_objectives = learnLines.join('\n\n');
+    const evaluation_criteria = critLines.length ? critLines.join('\n') : learning_objectives;
+    return { learning_objectives, evaluation_criteria };
+}
 
 /** 평가도구 제작: 교과목별 NCS 평가준거(우선)·수행준거(능력단위요소·평가내용) — 양식 자동 채움 */
 app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddleware, async (c) => {
@@ -3403,7 +3768,7 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             return [];
         };
 
-        const groups: CriteriaGroup[] = [];
+        let groups: CriteriaGroup[] = [];
         let primaryUnitName = '';
         let primaryLevel: string | number | null = null;
 
@@ -3436,6 +3801,22 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             }
         }
 
+        const roundQ = c.req.query('evaluation_round');
+        let evalRound = roundQ != null && String(roundQ).trim() !== '' ? parseInt(String(roundQ), 10) : 1;
+        if (!Number.isFinite(evalRound) || evalRound < 1 || evalRound > 3) evalRound = 1;
+        const skipOverlay = c.req.query('refresh') === '1';
+
+        if (!skipOverlay) {
+            const savedOv = await getEvaluationCriteriaOverlay(c.env.DB, courseId, curriculumId, evalRound);
+            if (savedOv && savedOv.length) {
+                if (groups.length) {
+                    groups = mergeCriteriaGroupsFromOverlay(groups, savedOv) as CriteriaGroup[];
+                } else {
+                    groups = savedOv.map((g: CriteriaGroup) => JSON.parse(JSON.stringify(g)));
+                }
+            }
+        }
+
         const subjectName = String(link.name || '').trim();
         const unitNameLevel =
             primaryUnitName && primaryLevel !== null && primaryLevel !== ''
@@ -3454,6 +3835,8 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                 unit_name_level: unitNameLevel,
                 ability_unit_codes: unitCodes,
                 criteria_groups: groups,
+                evaluation_round: evalRound,
+                overlay_merged: !skipOverlay
             },
         });
     } catch (e) {
@@ -4140,6 +4523,29 @@ app.post('/plan-documents', authMiddleware, async (c) => {
             INSERT INTO ncs_plan_documents (course_id, evaluation_round, doc_type, title, payload_json, created_by, updated_by)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `).bind(courseId, round, docType, title || null, payloadJson, user.userId ?? null, user.userId ?? null).run();
+
+        if (docType === 'tools') {
+            const pl = payload as Record<string, unknown>;
+            const cidRaw = pl.curriculum_id;
+            const curriculumIdOv =
+                typeof cidRaw === 'number' ? cidRaw : parseInt(String(cidRaw ?? ''), 10);
+            const cg = pl.criteria_groups;
+            if (Number.isFinite(curriculumIdOv) && curriculumIdOv > 0 && Array.isArray(cg) && cg.length > 0) {
+                try {
+                    await upsertEvaluationCriteriaOverlay(
+                        c.env.DB,
+                        courseId,
+                        curriculumIdOv,
+                        round,
+                        cg,
+                        user.userId ?? null
+                    );
+                } catch (ovErr) {
+                    console.warn('evaluation overlay upsert (plan POST):', ovErr);
+                }
+            }
+        }
+
         return c.json({ success: true, data: { id: result.meta.last_row_id, mode: 'created' } });
     } catch (e) {
         console.error('Failed to save NCS plan document:', e);
@@ -4199,6 +4605,28 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
             SET title = ?, payload_json = ?, updated_by = ?, updated_at = datetime('now')
             WHERE id = ?
         `).bind(title || null, payloadJson, user.userId ?? null, docId).run();
+
+        if (docType === 'tools') {
+            const pl = payload as Record<string, unknown>;
+            const cidRaw = pl.curriculum_id;
+            const curriculumIdOv =
+                typeof cidRaw === 'number' ? cidRaw : parseInt(String(cidRaw ?? ''), 10);
+            const cg = pl.criteria_groups;
+            if (Number.isFinite(curriculumIdOv) && curriculumIdOv > 0 && Array.isArray(cg) && cg.length > 0) {
+                try {
+                    await upsertEvaluationCriteriaOverlay(
+                        c.env.DB,
+                        courseId,
+                        curriculumIdOv,
+                        round,
+                        cg,
+                        user.userId ?? null
+                    );
+                } catch (ovErr) {
+                    console.warn('evaluation overlay upsert (plan PUT):', ovErr);
+                }
+            }
+        }
 
         return c.json({ success: true, data: { id: docId, mode: 'updated' } });
     } catch (e) {

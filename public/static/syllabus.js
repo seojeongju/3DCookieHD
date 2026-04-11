@@ -352,7 +352,10 @@
         var critArea = el('syllabusEvaluationCriteria');
         if (objArea) objArea.value = 'NCS에서 불러오는 중...';
         if (critArea) critArea.value = '';
-        fetch('/api/ncs/approved/syllabus/objectives?curriculum_id=' + encodeURIComponent(currentCurriculumId), { headers: headers })
+        var lmsCid = sessionData && sessionData.lms_course_id != null ? String(sessionData.lms_course_id) : '';
+        var objUrl = '/api/ncs/approved/syllabus/objectives?curriculum_id=' + encodeURIComponent(currentCurriculumId);
+        if (lmsCid) objUrl += '&course_id=' + encodeURIComponent(lmsCid) + '&evaluation_round=1';
+        fetch(objUrl, { headers: headers })
             .then(function(r) { return r.json(); })
             .then(function(res) {
                 if (res.success && res.data) {
