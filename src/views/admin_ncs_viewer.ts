@@ -1,5 +1,9 @@
 import { hrdSidebar } from './components/hrd_sidebar';
 
+/**
+ * NCS 분류보기 — 국가직무능력표준(ncs.go.kr) NCS 정보 보기·분류보기 UI에 맞춘 조회 화면
+ * 좌측: 정보 유형 메뉴 / 우측: 대·중·소 선택 → 검색 → 직무별 rowspan 표, 펼침 시 능력단위(분류번호·명)
+ */
 export function adminNcsViewerHtml(): string {
     return `
 <!DOCTYPE html>
@@ -7,453 +11,454 @@ export function adminNcsViewerHtml(): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NCS 분류 및 능력단위 조회 — WOW3D</title>
+    <title>NCS 분류보기 — WOW3D</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-        .select-item.active { background-color: #eff6ff; color: #2563eb; font-weight: 700; border-right: 3px solid #2563eb; }
+        body { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        .ncs-portal-nav a.active { background: #2563eb; color: #fff; }
+        .ncs-portal-nav a:not(.active):hover { background: #eff6ff; color: #1d4ed8; }
+        .ncs-table-wrap { border: 1px solid #c5d4e5; }
+        .ncs-thead { background: linear-gradient(180deg, #1e4a6e 0%, #163a58 100%); color: #fff; }
+        .ncs-thead th { font-weight: 700; font-size: 13px; padding: 12px 10px; border-right: 1px solid rgba(255,255,255,.15); }
+        .ncs-thead th:last-child { border-right: none; }
+        .ncs-tbody td { border: 1px solid #e2e8f0; font-size: 13px; vertical-align: middle; }
+        .ncs-tbody tr:hover:not(.ncs-detail-row) { background: #f8fafc; }
+        .ncs-detail-row td { background: #f1f5f9; padding: 0 !important; }
+        .ncs-inner-table th { background: #e8f0f8; color: #1e3a5f; font-size: 12px; padding: 8px 10px; border: 1px solid #cbd5e1; }
+        .ncs-inner-table td { border: 1px solid #e2e8f0; padding: 8px 10px; font-size: 12px; }
+        .ncs-badge { font-family: ui-monospace, monospace; font-size: 11px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased overflow-hidden">
+<body class="bg-slate-100 text-slate-900 overflow-hidden">
     <div class="flex h-screen overflow-hidden">
         ${hrdSidebar('ncs-viewer')}
 
-        <main class="flex-1 flex flex-col overflow-hidden relative">
-            <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
-            
-            <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20 px-8 py-5 flex justify-between items-center whitespace-nowrap">
-                <div class="flex items-center gap-4">
-                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">NCS 분류보기</h1>
-                    <span id="user-badge" class="px-2.5 py-0.5 bg-blue-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest">NAVIGATOR</span>
+        <div class="flex flex-1 min-w-0 min-h-0 flex-col md:flex-row">
+            <!-- 국가표준 스타일: 좌측 NCS 정보 유형 메뉴 -->
+            <aside class="w-full md:w-[220px] shrink-0 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col">
+                <div class="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">NCS 정보 보기</p>
                 </div>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                        <input type="text" id="ncsViewerSearch" placeholder="대·중·소·직종 이름 또는 코드 검색" class="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm w-64 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <nav class="ncs-portal-nav flex md:flex-col gap-1 p-2 overflow-x-auto md:overflow-y-auto custom-scrollbar text-sm">
+                    <a href="/admin/ncs/viewer" class="active whitespace-nowrap rounded-lg px-3 py-2.5 font-bold transition">NCS 분류보기</a>
+                    <a href="/admin/ncs/viewer#keyword" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="추후 연동">키워드</a>
+                    <a href="/admin/ncs/viewer#code" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="추후 연동">코드</a>
+                    <a href="/admin/ncs/viewer#print" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="추후 연동">직무기술서 출력</a>
+                </nav>
+                <div class="hidden md:block mt-auto p-3 border-t border-slate-100 text-[10px] text-slate-400 leading-relaxed">
+                    출처: <a href="https://www.ncs.go.kr" target="_blank" rel="noopener" class="text-blue-600 hover:underline">국가직무능력표준 ncs.go.kr</a>
+                </div>
+            </aside>
+
+            <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+                <header class="bg-white border-b border-slate-200 shadow-sm px-4 md:px-6 py-3 md:py-4 shrink-0">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h1 class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight">NCS 분류보기</h1>
+                        <p class="text-[11px] text-slate-500">
+                            내부 DB·분류 API · <a href="https://www.ncs.go.kr/index.do" target="_blank" rel="noopener" class="text-blue-600 hover:underline">ncs.go.kr</a> 체계
+                        </p>
                     </div>
-                    <button type="button" id="ncsViewerRefresh" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-xl text-sm font-bold transition-colors">
-                        <i class="fas fa-sync-alt" id="ncsViewerRefreshIcon"></i> 새로고침
-                    </button>
-                    <span class="text-sm text-slate-500 font-medium hidden sm:inline">NCS 포털 실시간 데이터 연동</span>
+                </header>
+
+                <!-- 필터: 대·중·소 + 직무 필터 + 검색 + 엑셀 -->
+                <div class="bg-white border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 shrink-0">
+                    <div class="flex flex-col xl:flex-row xl:items-end gap-3 md:gap-4 flex-wrap">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 min-w-0">
+                            <label class="block">
+                                <span class="block text-[11px] font-bold text-slate-600 mb-1">대분류</span>
+                                <select id="ncsSelLarge" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                    <option value="">선택</option>
+                                </select>
+                            </label>
+                            <label class="block">
+                                <span class="block text-[11px] font-bold text-slate-600 mb-1">중분류</span>
+                                <select id="ncsSelMid" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" disabled>
+                                    <option value="">대분류 선택</option>
+                                </select>
+                            </label>
+                            <label class="block">
+                                <span class="block text-[11px] font-bold text-slate-600 mb-1">소분류</span>
+                                <select id="ncsSelSmall" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" disabled>
+                                    <option value="">중분류 선택</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input type="text" id="ncsFilterKeyword" placeholder="직무명·코드 필터" class="pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm w-44 md:w-48 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <button type="button" id="ncsBtnSearch" class="inline-flex items-center justify-center gap-2 px-4 md:px-5 py-2 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition">
+                                <i class="fas fa-search"></i> 검색하기
+                            </button>
+                            <button type="button" id="ncsBtnExcel" class="inline-flex items-center justify-center gap-2 px-4 md:px-5 py-2 rounded-lg text-sm font-bold text-white bg-[#163a58] hover:bg-[#0f2d44] shadow-sm transition">
+                                <i class="fas fa-file-excel"></i> 엑셀 다운로드
+                            </button>
+                            <button type="button" id="ncsBtnRefresh" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
+                                <i class="fas fa-sync-alt" id="ncsRefreshIcon"></i> 새로고침
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </header>
 
-            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar relative z-10">
-                <div class="max-w-[1400px] mx-auto space-y-8">
-                    
-                    <!-- 분류 선택 섹션 (전체 과정 보기: 높이 확대) -->
-                    <section class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
-                        <div class="grid grid-cols-1 md:grid-cols-4 divide-x divide-slate-100">
-                            <!-- 대분류 -->
-                            <div class="flex flex-col min-h-[380px] max-h-[55vh] md:h-[55vh]">
-                                <div class="px-5 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-                                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">대분류</span>
-                                    <span id="cntLarge" class="text-[10px] font-bold text-slate-400">0</span>
-                                </div>
-                                <div id="listLarge" class="flex-1 overflow-y-auto custom-scrollbar p-1 space-y-0.5">
-                                    <div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>
-                                </div>
-                            </div>
-                            <!-- 중분류 -->
-                            <div class="flex flex-col min-h-[380px] max-h-[55vh] md:h-[55vh]">
-                                <div class="px-5 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-                                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">중분류</span>
-                                    <span id="cntMid" class="text-[10px] font-bold text-slate-400">0</span>
-                                </div>
-                                <div id="listMid" class="flex-1 overflow-y-auto custom-scrollbar p-1 space-y-0.5">
-                                    <div class="p-10 text-center text-slate-300 text-xs font-medium">대분류를 선택하세요</div>
-                                </div>
-                            </div>
-                            <!-- 소분류 -->
-                            <div class="flex flex-col min-h-[380px] max-h-[55vh] md:h-[55vh]">
-                                <div class="px-5 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-                                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">소분류</span>
-                                    <span id="cntSmall" class="text-[10px] font-bold text-slate-400">0</span>
-                                </div>
-                                <div id="listSmall" class="flex-1 overflow-y-auto custom-scrollbar p-1 space-y-0.5">
-                                    <div class="p-10 text-center text-slate-300 text-xs font-medium">중분류를 선택하세요</div>
-                                </div>
-                            </div>
-                            <!-- 세분류(직종) -->
-                            <div class="flex flex-col min-h-[380px] max-h-[55vh] md:h-[55vh]">
-                                <div class="px-5 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-                                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">세분류(직종)</span>
-                                    <span id="cntJob" class="text-[10px] font-bold text-slate-400">0</span>
-                                </div>
-                                <div id="listJob" class="flex-1 overflow-y-auto custom-scrollbar p-1 space-y-0.5">
-                                    <div class="p-10 text-center text-slate-300 text-xs font-medium">소분류를 선택하세요</div>
-                                </div>
+                <!-- 통합 표 -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-6">
+                    <div class="max-w-[1600px] mx-auto">
+                        <div class="bg-white rounded-lg shadow-sm ncs-table-wrap overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full border-collapse min-w-[900px]">
+                                    <thead class="ncs-thead">
+                                        <tr>
+                                            <th class="text-left w-[14%]">대분류</th>
+                                            <th class="text-left w-[14%]">중분류</th>
+                                            <th class="text-left w-[14%]">소분류</th>
+                                            <th class="text-left w-[22%]">소분류(직무)</th>
+                                            <th class="text-center w-[10%]">NCS</th>
+                                            <th class="text-center w-[12%]">학습모듈</th>
+                                            <th class="text-center w-[14%] w-min">펼침</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ncsMainTbody" class="ncs-tbody text-slate-800">
+                                        <tr>
+                                            <td colspan="7" class="px-6 py-16 text-center text-slate-400">
+                                                <i class="fas fa-layer-group text-3xl mb-3 block text-slate-300"></i>
+                                                <p class="text-sm">대·중·소분류를 선택한 뒤 <strong class="text-slate-600">검색하기</strong>를 눌러 주세요.</p>
+                                                <p class="text-xs mt-2 text-slate-400">직무 행의 <i class="fas fa-plus text-blue-500"></i> 로 능력단위(분류번호·능력단위명)를 확인할 수 있습니다.</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    </section>
-
-                    <!-- 능력단위 목록 테이블 -->
-                    <section class="space-y-4">
-                        <div class="flex items-center justify-between px-2">
-                            <h2 class="text-lg font-black text-slate-800 flex items-center gap-2 tracking-tight">
-                                <i class="fas fa-list-ul text-blue-600"></i>
-                                능력단위 목록 <span id="selectedJobName" class="text-blue-500 ml-2"></span>
-                            </h2>
-                            <div id="unitTotalCount" class="text-xs font-bold text-slate-400 uppercase tracking-widest">총 0개</div>
-                        </div>
-
-                        <div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden">
-                            <table class="w-full text-left border-collapse">
-                                <thead class="bg-slate-50/80 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-100">
-                                    <tr>
-                                        <th class="px-6 py-4 w-16 text-center">No</th>
-                                        <th class="px-6 py-4 w-48">분류번호</th>
-                                        <th class="px-6 py-4">능력단위명</th>
-                                        <th class="px-6 py-4 w-24 text-center">수준</th>
-                                        <th class="px-6 py-4 w-48">소분류(직종)</th>
-                                        <th class="px-6 py-4 w-52">과정명</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="unitTableBody" class="divide-y divide-slate-50">
-                                    <tr>
-                                        <td colspan="6" class="px-6 py-20 text-center">
-                                            <div class="text-slate-300 mb-2 italic">세분류(직종)를 선택하여 상시 능력단위 목록을 조회하세요.</div>
-                                            <i class="fas fa-search text-slate-200 text-4xl"></i>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
+                        <p class="text-[11px] text-slate-400 mt-3 px-1">
+                            ※ 분류번호(능력단위) 형식: 10자리 숫자_개발연도2자리v버전 (예: 1903110201_15v1)
+                        </p>
+                    </div>
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
 
     <script>
         (function() {
-            let state = {
-                large: null, largeName: '',
-                mid: null, midName: '',
-                small: null, smallName: '',
-                job: null, jobName: ''
+            var selL = document.getElementById('ncsSelLarge');
+            var selM = document.getElementById('ncsSelMid');
+            var selS = document.getElementById('ncsSelSmall');
+            var tbody = document.getElementById('ncsMainTbody');
+            var keywordEl = document.getElementById('ncsFilterKeyword');
+
+            var state = {
+                large: '', largeName: '',
+                mid: '', midName: '',
+                small: '', smallName: '',
+                jobs: [],
+                jobsFull: [],
+                unitsCache: {},
+                classRes: null
             };
 
-            const listLarge = document.getElementById('listLarge');
-            const listMid = document.getElementById('listMid');
-            const listSmall = document.getElementById('listSmall');
-            const listJob = document.getElementById('listJob');
-            const unitTableBody = document.getElementById('unitTableBody');
-
-            async function api(path, method = 'GET', body = null) {
-                const token = localStorage.getItem('token');
-                const options = {
-                    method,
-                    headers: {
-                        ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
-                        ...(body ? { 'Content-Type': 'application/json' } : {})
-                    }
-                };
-                if (body) options.body = JSON.stringify(body);
-                
-                const res = await fetch('/api/ncs' + path, { ...options });
-                return await res.json();
+            function api(path, method, body) {
+                var token = localStorage.getItem('token');
+                var opt = { method: method || 'GET', headers: {} };
+                if (token) opt.headers['Authorization'] = 'Bearer ' + token;
+                if (body) {
+                    opt.headers['Content-Type'] = 'application/json';
+                    opt.body = JSON.stringify(body);
+                }
+                return fetch('/api/ncs' + path, opt).then(function(r) { return r.json(); });
             }
 
-            let _midCache = [];
-            let _smallCache = [];
-            let _jobCache = [];
-            let ncsSearchQuery = '';
+            function esc(s) {
+                if (s == null) return '';
+                return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
 
-            function filterBySearch(items, idKey, nameKey) {
-                if (!ncsSearchQuery || !items) return items;
-                const q = ncsSearchQuery.trim().toLowerCase();
-                if (!q) return items;
-                return items.filter(it => {
-                    const id = String(it[idKey] || '').toLowerCase();
-                    const name = String(it[nameKey] || '').toLowerCase();
-                    return id.indexOf(q) >= 0 || name.indexOf(q) >= 0;
+            function moduleYearFromCode(code) {
+                var m = String(code || '').match(/_([0-9]{2})v/i);
+                if (!m) return '-';
+                var yy = parseInt(m[1], 10);
+                if (isNaN(yy)) return '-';
+                return (yy > 50 ? '19' : '20') + String(yy).padStart(2, '0');
+            }
+
+            function fillSelect(sel, items, placeholder, valueKey, labelFn) {
+                var v = sel.value;
+                sel.innerHTML = '<option value="">' + esc(placeholder) + '</option>';
+                (items || []).forEach(function(it) {
+                    var val = it[valueKey];
+                    var opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = labelFn(it);
+                    sel.appendChild(opt);
                 });
+                sel.value = v;
             }
-            function applyNcsFilter() {
-                if (window._largeCache) {
-                    const filtered = filterBySearch(window._largeCache, 'code', 'name');
-                    renderList(listLarge, filtered, 'code', 'name', null, state.large);
-                }
-                if (_midCache.length) {
-                    const filtered = filterBySearch(_midCache, 'code', 'name');
-                    renderList(listMid, filtered, 'code', 'name', null, state.mid);
-                }
-                if (_smallCache.length) {
-                    const filtered = filterBySearch(_smallCache, 'code', 'name');
-                    renderList(listSmall, filtered, 'code', 'name', null, state.small);
-                }
-                if (_jobCache.length) {
-                    const filtered = filterBySearch(_jobCache, 'code', 'name');
-                    renderList(listJob, filtered, 'code', 'name', null, state.job);
+
+            async function loadLarge() {
+                var res = await api('/approved/large-classes');
+                if (res.success && res.data) {
+                    fillSelect(selL, res.data, '선택', 'code', function(it) {
+                        return it.code + '. ' + (it.name || '');
+                    });
                 }
             }
 
-            function renderList(el, items, idKey, nameKey, onClick, currentId) {
-                if (!items || items.length === 0) {
-                    el.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">데이터가 없습니다</div>';
-                    document.getElementById('cnt' + el.id.replace('list', '')).textContent = '0';
+            async function loadMidLarge(ncsLclasCd) {
+                selM.innerHTML = '<option value="">불러오는 중…</option>';
+                selM.disabled = true;
+                var res = await api('/approved/classification?ncsLclasCd=' + encodeURIComponent(ncsLclasCd));
+                state.classRes = res.success ? res.data : null;
+                selM.disabled = false;
+                if (!res.success || !res.data) {
+                    selM.innerHTML = '<option value="">오류</option>';
                     return;
                 }
-                document.getElementById('cnt' + el.id.replace('list', '')).textContent = items.length;
-                
-                const isJob = el.id === 'listJob';
-
-                el.innerHTML = items.map(it => {
-                    const isActive = it[idKey] === currentId;
-                    const synced = it.isSynced;
-                    var nameVal = (it[nameKey] != null && it[nameKey] !== '') ? String(it[nameKey]).trim() : '';
-                    var codeStr = it[idKey] != null ? String(it[idKey]) : '';
-                    var nameEsc = (nameVal || codeStr).replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'");
-                    var displayName = (nameVal && nameVal !== codeStr) ? (codeStr + ' ' + nameVal) : (codeStr || '-');
-                    return \`
-                    <div onclick="window._ncsClick('\${el.id}', '\${String(it[idKey] || '').replace(/'/g, "\\\\'")}', '\${nameEsc}')" 
-                         class="select-item px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer rounded-lg transition-all flex justify-between items-center group \${isActive ? 'active' : ''}">
-                        <div class="flex flex-col min-w-0 flex-1">
-                            <div class="flex items-center gap-1.5 mb-1">
-                                <span class="text-[9px] font-black text-slate-400 group-hover:text-blue-400 leading-none">\${it[idKey]}</span>
-                                \${isJob && synced ? '<span class="px-1 py-0.5 bg-green-100 text-green-600 text-[8px] font-black rounded uppercase">SYNCED</span>' : ''}
-                            </div>
-                            <span class="truncate font-medium">\${displayName}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                             <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-blue-400"></i>
-                        </div>
-                    </div>
-                \`;}).join('');
+                var mids = [];
+                var seen = {};
+                res.data.forEach(function(d) {
+                    if (d.midCode && !seen[d.midCode]) {
+                        seen[d.midCode] = true;
+                        var mn = (d.midName && String(d.midName).trim() && String(d.midName).trim() !== String(d.midCode)) ? d.midName : ('중분류 ' + d.midCode);
+                        mids.push({ code: d.midCode, name: mn });
+                    }
+                });
+                fillSelect(selM, mids, '선택', 'code', function(it) { return it.code + '. ' + it.name; });
             }
 
-
-
-            window._ncsClick = async function(listId, id, name) {
-                if (listId === 'listLarge') {
-                    state.large = id; state.largeName = name;
-                    state.mid = null; state.midName = '';
-                    state.small = null; state.smallName = '';
-                    state.job = null; state.jobName = '';
-                    listMid.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
-                    listSmall.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">중분류를 선택하세요</div>';
-                    listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs text-center">소분류를 선택하세요</div>';
-                    
-                    const res = await api('/approved/classification?ncsLclasCd=' + id);
-                    if (res.success) {
-                        const mids = [];
-                        const seen = new Set();
-                        res.data.forEach(d => {
-                            if (d.midCode && !seen.has(d.midCode)) {
-                                seen.add(d.midCode);
-                                var midName = (d.midName && String(d.midName).trim() !== '' && String(d.midName).trim() !== String(d.midCode)) ? d.midName : ('중분류 ' + d.midCode);
-                                mids.push({ code: d.midCode, name: midName });
-                            }
-                        });
-                        _midCache = mids;
-                        const largeFiltered = filterBySearch(window._largeCache, 'code', 'name');
-                        renderList(listLarge, largeFiltered, 'code', 'name', null, state.large);
-                        renderList(listMid, filterBySearch(mids, 'code', 'name'), 'code', 'name', null, state.mid);
+            function loadSmallForMid(midCode) {
+                if (!state.classRes) return;
+                var smalls = [];
+                var seen = {};
+                state.classRes.filter(function(d) { return d.midCode === midCode; }).forEach(function(d) {
+                    if (d.smallCode && !seen[d.smallCode]) {
+                        seen[d.smallCode] = true;
+                        var sn = (d.smallName && String(d.smallName).trim() && String(d.smallName).trim() !== String(d.smallCode)) ? d.smallName : ('소분류 ' + d.smallCode);
+                        smalls.push({ code: d.smallCode, name: sn });
                     }
-                } else if (listId === 'listMid') {
-                    state.mid = id; state.midName = name;
-                    state.small = null; state.smallName = '';
-                    state.job = null; state.jobName = '';
-                    listSmall.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
-                    listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">소분류를 선택하세요</div>';
+                });
+                selS.disabled = false;
+                fillSelect(selS, smalls, '선택', 'code', function(it) { return it.code + '. ' + it.name; });
+            }
 
-                    const res = await api('/approved/classification?ncsLclasCd=' + state.large);
-                    if (res.success) {
-                        const smalls = [];
-                        const seen = new Set();
-                        res.data.filter(d => d.midCode === id).forEach(d => {
-                            if (d.smallCode && !seen.has(d.smallCode)) {
-                                seen.add(d.smallCode);
-                                var smallName = (d.smallName && String(d.smallName).trim() !== '' && String(d.smallName).trim() !== String(d.smallCode)) ? d.smallName : ('소분류 ' + d.smallCode);
-                                smalls.push({ code: d.smallCode, name: smallName });
-                            }
-                        });
-                        _smallCache = smalls;
-                        const mids = [];
-                        const seen2 = new Set();
-                        res.data.forEach(d => {
-                            if (d.midCode && !seen2.has(d.midCode)) {
-                                seen2.add(d.midCode);
-                                var midName = (d.midName && String(d.midName).trim() !== '' && String(d.midName).trim() !== String(d.midCode)) ? d.midName : ('중분류 ' + d.midCode);
-                                mids.push({ code: d.midCode, name: midName });
-                            }
-                        });
-                        _midCache = mids;
-                        renderList(listSmall, filterBySearch(smalls, 'code', 'name'), 'code', 'name', null, state.small);
-                        renderList(listMid, filterBySearch(mids, 'code', 'name'), 'code', 'name', null, state.mid);
-                    }
-                } else if (listId === 'listSmall') {
-                    state.small = id; state.smallName = name;
-                    state.job = null; state.jobName = '';
-                    listJob.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
-
-                    const res = await api('/approved/jobs?l=' + state.large + '&m=' + state.mid + '&s=' + id);
-                    if (res.success) {
-                        _jobCache = res.data;
-                        renderList(listJob, filterBySearch(res.data, 'code', 'name'), 'code', 'name', null, state.job);
-                        const resC = await api('/approved/classification?ncsLclasCd=' + state.large);
-                        const smalls = [];
-                        const seen = new Set();
-                        resC.data.filter(d => d.midCode === state.mid).forEach(d => {
-                            if (d.smallCode && !seen.has(d.smallCode)) {
-                                seen.add(d.smallCode);
-                                var smallName = (d.smallName && String(d.smallName).trim() !== '' && String(d.smallName).trim() !== String(d.smallCode)) ? d.smallName : ('소분류 ' + d.smallCode);
-                                smalls.push({ code: d.smallCode, name: smallName });
-                            }
-                        });
-                        _smallCache = smalls;
-                        renderList(listSmall, filterBySearch(smalls, 'code', 'name'), 'code', 'name', null, state.small);
-                    }
-                } else if (listId === 'listJob') {
-                    state.job = id; state.jobName = name;
-                    const fullJobCode = state.large + state.mid + state.small + id;
-                    loadUnits(fullJobCode, name);
-                    const resJ = await api('/approved/jobs?l=' + state.large + '&m=' + state.mid + '&s=' + state.small);
-                    _jobCache = resJ.data || [];
-                    renderList(listJob, filterBySearch(_jobCache, 'code', 'name'), 'code', 'name', null, state.job);
+            selL.addEventListener('change', function() {
+                state.mid = ''; state.small = ''; state.classRes = null;
+                selS.innerHTML = '<option value="">중분류 선택</option>';
+                selS.disabled = true;
+                if (!selL.value) {
+                    selM.innerHTML = '<option value="">대분류 선택</option>';
+                    selM.disabled = true;
+                    return;
                 }
-            };
+                selM.disabled = false;
+                loadMidLarge(selL.value);
+            });
 
-            async function loadUnits(jobCode, jobName) {
-                document.getElementById('selectedJobName').textContent = ' > ' + jobName;
-                unitTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-20 text-center"><i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-2"></i><br><span class="text-slate-400">능력단위를 불러오는 중...</span></td></tr>';
-                
-                const res = await api('/approved/units-by-job?jobCode=' + jobCode);
-                if (res.success) {
-                    const units = res.data;
-                    document.getElementById('unitTotalCount').textContent = '총 ' + units.length + '개';
-                    if (units.length === 0) {
-                        unitTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-20 text-center text-slate-400 italic">조회된 능력단위가 없습니다. 직접 등록이 필요할 수 있습니다.</td></tr>';
+            selM.addEventListener('change', function() {
+                state.small = '';
+                if (!selM.value) {
+                    selS.innerHTML = '<option value="">중분류 선택</option>';
+                    selS.disabled = true;
+                    return;
+                }
+                loadSmallForMid(selM.value);
+            });
+
+            function filterJobs(jobs) {
+                var q = (keywordEl.value || '').trim().toLowerCase();
+                if (!q) return jobs.slice();
+                return jobs.filter(function(j) {
+                    var c = String(j.code || '').toLowerCase();
+                    var n = String(j.name || '').toLowerCase();
+                    return c.indexOf(q) >= 0 || n.indexOf(q) >= 0;
+                });
+            }
+
+            function renderEmpty(msg) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-14 text-center text-slate-400 text-sm">' + esc(msg) + '</td></tr>';
+            }
+
+            function renderJobTable() {
+                state.jobs = filterJobs(state.jobsFull);
+                if (state.jobs.length === 0) {
+                    renderEmpty(state.jobsFull.length ? '필터에 맞는 직무가 없습니다.' : '조건에 맞는 직무가 없습니다.');
+                    return;
+                }
+                var n = state.jobs.length;
+                var lHtml = '<td rowspan="' + n + '" class="px-3 py-3 align-top bg-white font-semibold text-slate-800">' + esc(state.largeName) + '</td>';
+                var mHtml = '<td rowspan="' + n + '" class="px-3 py-3 align-top bg-white font-semibold text-slate-800">' + esc(state.midName) + '</td>';
+                var sHtml = '<td rowspan="' + n + '" class="px-3 py-3 align-top bg-white font-semibold text-slate-800">' + esc(state.smallName) + '</td>';
+                var html = '';
+                state.jobs.forEach(function(j, idx) {
+                    var jobLabel = esc(j.code) + '. ' + esc(j.name);
+                    html += '<tr>';
+                    if (idx === 0) html += lHtml + mHtml + sHtml;
+                    html += '<td class="px-3 py-3"><span class="font-medium text-slate-800">' + jobLabel + '</span></td>';
+                    html += '<td class="px-2 py-3 text-center"><span class="text-slate-500 text-xs">—</span></td>';
+                    html += '<td class="px-2 py-3 text-center text-sm text-slate-600"><span class="text-slate-400">펼침 참조</span></td>';
+                    html += '<td class="px-2 py-3 text-center"><button type="button" id="ncs-exp-' + idx + '" onclick="window._ncsToggle(' + idx + ')" class="w-9 h-9 rounded border border-slate-200 bg-white hover:bg-blue-50" title="능력단위 보기"><i class="fas fa-plus text-blue-600"></i></button></td>';
+                    html += '</tr>';
+                    html += '<tr id="ncs-detail-' + idx + '" class="ncs-detail-row hidden" data-open="0"><td colspan="7" class="border-t-0"><div class="ncs-inner-wrap px-4 py-3"></div></td></tr>';
+                });
+                tbody.innerHTML = html;
+            }
+
+            window._ncsToggle = async function(jobIdx) {
+                var j = state.jobs[jobIdx];
+                if (!j) return;
+                var fullCode = j.fullJobCode;
+                var rowDetail = document.getElementById('ncs-detail-' + jobIdx);
+                var btn = document.getElementById('ncs-exp-' + jobIdx);
+                if (!rowDetail || !btn) return;
+
+                var open = rowDetail.getAttribute('data-open') === '1';
+                if (open) {
+                    rowDetail.setAttribute('data-open', '0');
+                    rowDetail.classList.add('hidden');
+                    btn.innerHTML = '<i class="fas fa-plus text-blue-600"></i>';
+                    return;
+                }
+
+                if (!state.unitsCache[fullCode]) {
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin text-slate-500"></i>';
+                    var res = await api('/approved/units-by-job?jobCode=' + encodeURIComponent(fullCode));
+                    if (!res.success) {
+                        btn.innerHTML = '<i class="fas fa-plus text-blue-600"></i>';
+                        rowDetail.querySelector('.ncs-inner-wrap').innerHTML = '<p class="p-4 text-red-500 text-sm">불러오기 실패</p>';
+                        rowDetail.classList.remove('hidden');
+                        rowDetail.setAttribute('data-open', '1');
                         return;
                     }
-                    unitTableBody.innerHTML = units.map((u, idx) => {
-                        const courseTitles = (u.course_titles && Array.isArray(u.course_titles)) ? u.course_titles : [];
-                        const courseNamesText = courseTitles.length > 0 ? courseTitles.join(', ') : '-';
-                        return \`
-                        <tr class="hover:bg-slate-50 transition-colors group">
-                            <td class="px-6 py-4 text-center text-slate-400 font-bold">\${idx + 1}</td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[10px] font-black uppercase tracking-tight font-mono">\${u.code}</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-slate-800">\${u.name}</div>
-                                \${u.elements ? \`<div class="mt-2 flex flex-wrap gap-1">\${u.elements.slice(0, 3).map(e => \`<span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-medium">\${e.name}</span>\`).join('')}\${u.elements.length > 3 ? '<span class="text-[9px] text-slate-300">...</span>' : ''}</div>\` : ''}
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black">\${u.level}수준</span>
-                            </td>
-                            <td class="px-6 py-4 text-slate-500 text-sm font-medium">\${jobName}</td>
-                            <td class="px-6 py-4 text-slate-600 text-sm">\${courseNamesText}</td>
-                        </tr>
-                    \`;}).join('');
+                    state.unitsCache[fullCode] = res.data || [];
+                }
+
+                var units = state.unitsCache[fullCode];
+                var inner = '<table class="w-full ncs-inner-table border-collapse"><thead><tr>' +
+                    '<th class="w-[38%]">분류번호</th><th class="w-[42%]">능력단위명</th><th class="w-[10%]">수준</th><th class="w-[10%]">학습모듈</th></tr></thead><tbody>';
+                if (units.length === 0) {
+                    inner += '<tr><td colspan="4" class="text-center text-slate-400 py-6">등록된 능력단위가 없습니다.</td></tr>';
                 } else {
-                    unitTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-20 text-center text-red-400">오류가 발생했습니다: ' + res.error + '</td></tr>';
+                    units.forEach(function(u) {
+                        inner += '<tr><td class="ncs-badge text-slate-700">' + esc(u.code) + '</td><td class="font-medium">' + esc(u.name) + '</td>' +
+                            '<td class="text-center">' + esc(u.level) + '</td><td class="text-center">' + esc(moduleYearFromCode(u.code)) + '</td></tr>';
+                    });
                 }
+                inner += '</tbody></table>';
+                rowDetail.querySelector('.ncs-inner-wrap').innerHTML = inner;
+                rowDetail.classList.remove('hidden');
+                rowDetail.setAttribute('data-open', '1');
+                btn.innerHTML = '<i class="fas fa-minus text-blue-600"></i>';
+            };
+
+            async function runSearch() {
+                var l = selL.value;
+                var m = selM.value;
+                var s = selS.value;
+                if (!l || !m || !s) {
+                    alert('대분류·중분류·소분류를 모두 선택해 주세요.');
+                    return;
+                }
+
+                state.large = l;
+                state.mid = m;
+                state.small = s;
+                state.largeName = selL.options[selL.selectedIndex] ? selL.options[selL.selectedIndex].text : '';
+                state.midName = selM.options[selM.selectedIndex] ? selM.options[selM.selectedIndex].text : '';
+                state.smallName = selS.options[selS.selectedIndex] ? selS.options[selS.selectedIndex].text : '';
+
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500"><i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i><p class="mt-2 text-sm">직무 목록을 불러오는 중…</p></td></tr>';
+
+                var res = await api('/approved/jobs?l=' + encodeURIComponent(l) + '&m=' + encodeURIComponent(m) + '&s=' + encodeURIComponent(s));
+                if (!res.success || !res.data) {
+                    renderEmpty('직무 목록을 불러오지 못했습니다.');
+                    state.jobs = [];
+                    state.jobsFull = [];
+                    return;
+                }
+
+                state.jobsFull = res.data.map(function(j) {
+                    return {
+                        code: j.code,
+                        name: j.name || '',
+                        fullJobCode: l + m + s + j.code
+                    };
+                });
+                state.unitsCache = {};
+                renderJobTable();
             }
 
-            async function init() {
-                const res = await api('/approved/large-classes');
-                if (res.success) {
-                    window._largeCache = res.data;
-                    renderList(listLarge, filterBySearch(res.data, 'code', 'name'), 'code', 'name', null, state.large);
+            async function exportExcel() {
+                if (!state.jobsFull || state.jobsFull.length === 0) {
+                    alert('먼저 검색하여 직무 목록을 불러오세요.');
+                    return;
                 }
+                var rows = [];
+                rows.push(['대분류', '중분류', '소분류', '직종코드', '직종명(세분류)', '분류번호', '능력단위명', '수준', '학습모듈(연도)']);
+                var lN = state.largeName, mN = state.midName, sN = state.smallName;
+
+                for (var i = 0; i < state.jobsFull.length; i++) {
+                    var j = state.jobsFull[i];
+                    var fc = j.fullJobCode;
+                    if (!state.unitsCache[fc]) {
+                        var res = await api('/approved/units-by-job?jobCode=' + encodeURIComponent(fc));
+                        state.unitsCache[fc] = res.success ? (res.data || []) : [];
+                    }
+                    var units = state.unitsCache[fc];
+                    if (units.length === 0) {
+                        rows.push([lN, mN, sN, j.code, j.name, '', '', '', '']);
+                    } else {
+                        units.forEach(function(u) {
+                            rows.push([lN, mN, sN, j.code, j.name, u.code || '', u.name || '', String(u.level != null ? u.level : ''), moduleYearFromCode(u.code)]);
+                        });
+                    }
+                }
+
+                var csv = rows.map(function(r) {
+                    return r.map(function(cell) {
+                        var t = String(cell == null ? '' : cell).replace(/"/g, '""');
+                        if (/[",\\n\\r]/.test(t)) return '"' + t + '"';
+                        return t;
+                    }).join(',');
+                }).join('\\r\\n');
+                var blob = new Blob([String.fromCharCode(0xfeff) + csv], { type: 'text/csv;charset=utf-8;' });
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'ncs_classification_' + (state.large || 'export') + '_' + Date.now() + '.csv';
+                a.click();
+                URL.revokeObjectURL(a.href);
             }
 
-            /** 새로고침: 대분류부터 다시 불러온 뒤, 기존 선택 경로가 있으면 복원 */
-            async function refresh() {
-                const btn = document.getElementById('ncsViewerRefresh');
-                const icon = document.getElementById('ncsViewerRefreshIcon');
-                if (btn.disabled) return;
-                const saved = { ...state };
+            document.getElementById('ncsBtnSearch').addEventListener('click', runSearch);
+            document.getElementById('ncsBtnExcel').addEventListener('click', exportExcel);
+            document.getElementById('ncsBtnRefresh').addEventListener('click', async function() {
+                var icon = document.getElementById('ncsRefreshIcon');
+                var btn = document.getElementById('ncsBtnRefresh');
                 btn.disabled = true;
                 if (icon) icon.classList.add('fa-spin');
-
-                try {
-                    await init();
-                    if (saved.large) {
-                        listMid.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
-                        const res = await api('/approved/classification?ncsLclasCd=' + saved.large);
-                        if (res.success) {
-                            const mids = [];
-                            const seen = new Set();
-                            res.data.forEach(d => {
-                                if (d.midCode && !seen.has(d.midCode)) {
-                                    seen.add(d.midCode);
-                                    var midName = (d.midName && String(d.midName).trim() !== '' && String(d.midName).trim() !== String(d.midCode)) ? d.midName : ('중분류 ' + d.midCode);
-                                    mids.push({ code: d.midCode, name: midName });
-                                }
-                            });
-                            _midCache = mids;
-                            renderList(listMid, filterBySearch(mids, 'code', 'name'), 'code', 'name', null, saved.mid);
-                            if (saved.mid) {
-                                listSmall.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
-                                const smalls = [];
-                                const seenS = new Set();
-                                res.data.filter(d => d.midCode === saved.mid).forEach(d => {
-                                    if (d.smallCode && !seenS.has(d.smallCode)) {
-                                        seenS.add(d.smallCode);
-                                        var smallName = (d.smallName && String(d.smallName).trim() !== '' && String(d.smallName).trim() !== String(d.smallCode)) ? d.smallName : ('소분류 ' + d.smallCode);
-                                        smalls.push({ code: d.smallCode, name: smallName });
-                                    }
-                                });
-                                _smallCache = smalls;
-                                renderList(listSmall, filterBySearch(smalls, 'code', 'name'), 'code', 'name', null, saved.small);
-                                if (saved.small) {
-                                    listJob.innerHTML = '<div class="p-8 text-center text-slate-300"><i class="fas fa-spinner fa-spin"></i></div>';
-                                    const resJ = await api('/approved/jobs?l=' + saved.large + '&m=' + saved.mid + '&s=' + saved.small);
-                                    if (resJ.success) {
-                                        _jobCache = resJ.data || [];
-                                        renderList(listJob, filterBySearch(_jobCache, 'code', 'name'), 'code', 'name', null, saved.job);
-                                        if (saved.job && saved.jobName) {
-                                            const fullJobCode = saved.large + saved.mid + saved.small + saved.job;
-                                            await loadUnits(fullJobCode, saved.jobName);
-                                        } else {
-                                            listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">소분류를 선택하세요</div>';
-                                            document.getElementById('cntJob').textContent = '0';
-                                        }
-                                    }
-                                } else {
-                                    listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">소분류를 선택하세요</div>';
-                                    document.getElementById('cntJob').textContent = '0';
-                                }
-                            } else {
-                                listSmall.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">중분류를 선택하세요</div>';
-                                listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">소분류를 선택하세요</div>';
-                                document.getElementById('cntSmall').textContent = '0';
-                                document.getElementById('cntJob').textContent = '0';
-                            }
-                        }
-                    } else {
-                        listMid.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">대분류를 선택하세요</div>';
-                        listSmall.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">중분류를 선택하세요</div>';
-                        listJob.innerHTML = '<div class="p-10 text-center text-slate-300 text-xs">소분류를 선택하세요</div>';
-                        document.getElementById('cntMid').textContent = '0';
-                        document.getElementById('cntSmall').textContent = '0';
-                        document.getElementById('cntJob').textContent = '0';
-                        unitTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-20 text-center"><div class="text-slate-300 mb-2 italic">세분류(직종)를 선택하여 상시 능력단위 목록을 조회하세요.</div><i class="fas fa-search text-slate-200 text-4xl"></i></td></tr>';
-                        document.getElementById('selectedJobName').textContent = '';
-                        document.getElementById('unitTotalCount').textContent = '총 0개';
-                    }
-                } finally {
-                    btn.disabled = false;
-                    if (icon) icon.classList.remove('fa-spin');
-                }
-            }
-
-            init();
-
-            document.getElementById('ncsViewerRefresh').addEventListener('click', refresh);
-            document.getElementById('ncsViewerSearch').addEventListener('input', function() {
-                ncsSearchQuery = this.value;
-                applyNcsFilter();
+                await loadLarge();
+                selM.innerHTML = '<option value="">대분류 선택</option>';
+                selM.disabled = true;
+                selS.innerHTML = '<option value="">중분류 선택</option>';
+                selS.disabled = true;
+                state.jobs = [];
+                state.jobsFull = [];
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-16 text-center text-slate-400"><p class="text-sm">대·중·소분류를 선택한 뒤 검색하기를 눌러 주세요.</p></td></tr>';
+                btn.disabled = false;
+                if (icon) icon.classList.remove('fa-spin');
             });
+
+            var _kwTimer;
+            keywordEl.addEventListener('input', function() {
+                clearTimeout(_kwTimer);
+                _kwTimer = setTimeout(function() {
+                    if (state.jobsFull && state.jobsFull.length) renderJobTable();
+                }, 200);
+            });
+
+            loadLarge();
         })();
     </script>
 </body>
