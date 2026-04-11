@@ -105,21 +105,26 @@ export async function resolveNcsPlanDocumentCourseIdsForLmsCourse(
 }
 
 /**
- * LMS 개설 과정 ID로 평가계획 문서를 찾을 때 `course_id IN (...)` 만 쓰면
- * `courses.id` 와 `course_sessions.id` 가 같은 숫자일 때 엉뚱한 행이 섞인다.
- * - 회차 PK 로 저장: 해당 회차의 `lms_course_id` 가 요청 LMS 와 일치
- *   + 단, `course_id` 가 대상 LMS ID와 다른 별개 courses.id 이면 제외 (타 과정 문서 혼입 방지)
- * - LMS id 로만 저장: `course_id` 가 어느 회차 PK 와도 겹치지 않을 때(순수 LMS 키)
+ * LMS 개설 과정 ID로 평가계획 문서 소속 여부 판정.
  *
- * bind: effectiveCid × 3 (lms_course_id 매칭, courses.id 충돌 제외, 직접 course_id 매칭)
+ * 판정 경로:
+ * 1) course_id = 대상 LMS course PK 직접 매칭 (항상 소속)
+ * 2) course_id 가 session PK 이고 해당 session 의 lms_course_id 가 대상과 일치
+ *    — 단, 그 숫자가 대상과 다른 별개 courses.id 이면 타 과정 문서이므로 제외
+ *
+ * bind: effectiveCid × 3
  */
 export function sqlNcsPlanDocBelongsToLmsCourse(nAlias: string): string {
     return `(
-      EXISTS (
-        SELECT 1 FROM course_sessions s
-        WHERE s.id = ${nAlias}.course_id AND s.lms_course_id = ?
-          AND NOT EXISTS (SELECT 1 FROM courses c WHERE c.id = ${nAlias}.course_id AND c.id != ?)
+      ${nAlias}.course_id = ?
+      OR (
+        EXISTS (
+          SELECT 1 FROM course_sessions s
+          WHERE s.id = ${nAlias}.course_id AND s.lms_course_id = ?
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM courses c WHERE c.id = ${nAlias}.course_id AND c.id != ?
+        )
       )
-      OR (${nAlias}.course_id = ? AND NOT EXISTS (SELECT 1 FROM course_sessions s2 WHERE s2.id = ${nAlias}.course_id))
     )`;
 }
