@@ -4592,6 +4592,9 @@ app.get('/plan-documents', authMiddleware, async (c) => {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
         const curriculumId = cidRaw ? parseInt(cidRaw, 10) : null;
+        const hasCurriculumFilter = curriculumId != null && Number.isFinite(curriculumId) && curriculumId > 0;
+        const cidFilterSql = hasCurriculumFilter ? 'AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)' : '';
+        const cidFilterSqlPlain = hasCurriculumFilter ? 'AND (curriculum_id = ? OR curriculum_id IS NULL)' : '';
 
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
@@ -4618,12 +4621,12 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                     SELECT n.id, n.course_id, n.evaluation_round, n.doc_type, n.title, n.payload_json, n.updated_at
                     FROM ncs_plan_documents n
                     WHERE n.id = ? AND n.evaluation_round = ? AND n.doc_type = ?
-                      AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)
+                      ${cidFilterSql}
                       AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                     LIMIT 1
                 `
                     )
-                    .bind(docId, round, docType, curriculumId, effectiveCid, effectiveCid)
+                    .bind(docId, round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid, effectiveCid)
                     .first();
             } else {
                 row = await db
@@ -4632,11 +4635,11 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                     SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
                     FROM ncs_plan_documents
                     WHERE id = ? AND course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
-                      AND (curriculum_id = ? OR curriculum_id IS NULL)
+                      ${cidFilterSqlPlain}
                     LIMIT 1
                 `
                     )
-                    .bind(docId, ...inList, round, docType, curriculumId)
+                    .bind(docId, ...inList, round, docType, ...(hasCurriculumFilter ? [curriculumId] : []))
                     .first();
             }
         } else if (useLmsStrict) {
@@ -4646,7 +4649,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 SELECT n.id, n.course_id, n.evaluation_round, n.doc_type, n.title, n.payload_json, n.updated_at
                 FROM ncs_plan_documents n
                 WHERE n.evaluation_round = ? AND n.doc_type = ?
-                  AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)
+                  ${cidFilterSql}
                   AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                 ORDER BY
                   CASE
@@ -4658,7 +4661,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(round, docType, curriculumId, effectiveCid, effectiveCid, effectiveCid)
+                .bind(round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid, effectiveCid, effectiveCid)
                 .first();
         } else {
             row = await db
@@ -4667,12 +4670,12 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
                 FROM ncs_plan_documents
                 WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
-                  AND (curriculum_id = ? OR curriculum_id IS NULL)
+                  ${cidFilterSqlPlain}
                 ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
                 LIMIT 1
             `
                 )
-                .bind(...inList, round, docType, curriculumId, effectiveCid)
+                .bind(...inList, round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid)
                 .first();
         }
 
@@ -4725,6 +4728,9 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
         const curriculumId = cidRaw ? parseInt(cidRaw, 10) : null;
+        const hasCidFilter = curriculumId != null && Number.isFinite(curriculumId) && curriculumId > 0;
+        const cidSql = hasCidFilter ? 'AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)' : '';
+        const cidSqlPlain = hasCidFilter ? 'AND (curriculum_id = ? OR curriculum_id IS NULL)' : '';
 
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
@@ -4741,7 +4747,7 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                 SELECT n.id, n.title, n.updated_at
                 FROM ncs_plan_documents n
                 WHERE n.evaluation_round = ? AND n.doc_type = ?
-                  AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)
+                  ${cidSql}
                   AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                 ORDER BY
                   CASE
@@ -4752,7 +4758,7 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                   n.id DESC
             `
                 )
-                .bind(round, docType, curriculumId, effectiveCidList, effectiveCidList, effectiveCidList)
+                .bind(round, docType, ...(hasCidFilter ? [curriculumId] : []), effectiveCidList, effectiveCidList, effectiveCidList)
                 .all();
             results = Array.isArray(q?.results) ? q.results : [];
         } else {
@@ -4765,11 +4771,11 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                 SELECT id, title, updated_at
                 FROM ncs_plan_documents
                 WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
-                  AND (curriculum_id = ? OR curriculum_id IS NULL)
+                  ${cidSqlPlain}
                 ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
             `
                 )
-                .bind(...inList, round, docType, curriculumId, effectiveCidList)
+                .bind(...inList, round, docType, ...(hasCidFilter ? [curriculumId] : []), effectiveCidList)
                 .all();
             results = Array.isArray(q?.results) ? q.results : [];
         }
