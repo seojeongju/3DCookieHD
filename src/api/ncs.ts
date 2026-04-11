@@ -4551,6 +4551,29 @@ async function resolveNcsPlanDocumentCourseIds(db: any, courseId: number): Promi
     return [...ids];
 }
 
+/** `courses` 테이블에 있는 LMS 개설 과정 ID인지 */
+async function isRegisteredLmsCourseId(db: any, courseId: number): Promise<boolean> {
+    try {
+        const r = await db.prepare('SELECT 1 AS o FROM courses WHERE id = ?').bind(courseId).first();
+        return !!(r && (r as { o?: number }).o);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * LMS 개설 과정 ID로 평가계획 문서를 찾을 때 `course_id IN (...)` 만 쓰면
+ * courses.id 와 course_sessions.id 가 같은 숫자일 때 엉뚱한 행이 섞인다.
+ * - 회차 PK 로 저장: 해당 회차의 lms_course_id 가 요청 LMS 와 일치
+ * - LMS id 로만 저장: course_id 가 어느 회차 PK 와도 겹치지 않을 때(순수 LMS 키)
+ */
+function sqlNcsPlanDocBelongsToLmsCourse(nAlias: string): string {
+    return `(
+      EXISTS (SELECT 1 FROM course_sessions s WHERE s.id = ${nAlias}.course_id AND s.lms_course_id = ?)
+      OR (${nAlias}.course_id = ? AND NOT EXISTS (SELECT 1 FROM course_sessions s2 WHERE s2.id = ${nAlias}.course_id))
+    )`;
+}
+
 // NCS 평가계획 문서 단건 조회
 app.get('/plan-documents', authMiddleware, async (c) => {
     try {
@@ -4573,7 +4596,9 @@ app.get('/plan-documents', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        const courseIds = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
+        const db = c.env.DB;
+        const useLmsStrict = await isRegisteredLmsCourseId(db, courseId);
+        const courseIds = useLmsStrict ? [] : await resolveNcsPlanDocumentCourseIds(db, courseId);
         const inList = courseIds.length ? courseIds : [courseId];
         const inPh = inList.map(() => '?').join(', ');
 
@@ -4583,20 +4608,65 @@ app.get('/plan-documents', authMiddleware, async (c) => {
             if (!Number.isFinite(docId) || docId < 1) {
                 return c.json({ success: false, error: 'Invalid doc_id' }, 400);
             }
-            row = await c.env.DB.prepare(`
-                SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
-                FROM ncs_plan_documents
-                WHERE id = ? AND course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
+            if (useLmsStrict) {
+                row = await db
+                    .prepare(
+                        `
+                    SELECT n.id, n.course_id, n.evaluation_round, n.doc_type, n.title, n.payload_json, n.updated_at
+                    FROM ncs_plan_documents n
+                    WHERE n.id = ? AND n.evaluation_round = ? AND n.doc_type = ?
+                      AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
+                    LIMIT 1
+                `
+                    )
+                    .bind(docId, round, docType, courseId, courseId)
+                    .first();
+            } else {
+                row = await db
+                    .prepare(
+                        `
+                    SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
+                    FROM ncs_plan_documents
+                    WHERE id = ? AND course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
+                    LIMIT 1
+                `
+                    )
+                    .bind(docId, ...inList, round, docType)
+                    .first();
+            }
+        } else if (useLmsStrict) {
+            row = await db
+                .prepare(
+                    `
+                SELECT n.id, n.course_id, n.evaluation_round, n.doc_type, n.title, n.payload_json, n.updated_at
+                FROM ncs_plan_documents n
+                WHERE n.evaluation_round = ? AND n.doc_type = ?
+                  AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
+                ORDER BY
+                  CASE
+                    WHEN n.course_id = ? AND NOT EXISTS (SELECT 1 FROM course_sessions s3 WHERE s3.id = n.course_id)
+                    THEN 0 ELSE 1
+                  END,
+                  n.updated_at DESC,
+                  n.id DESC
                 LIMIT 1
-            `).bind(docId, ...inList, round, docType).first();
+            `
+                )
+                .bind(round, docType, courseId, courseId, courseId)
+                .first();
         } else {
-            row = await c.env.DB.prepare(`
+            row = await db
+                .prepare(
+                    `
                 SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
                 FROM ncs_plan_documents
                 WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
                 ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
                 LIMIT 1
-            `).bind(...inList, round, docType, courseId).first();
+            `
+                )
+                .bind(...inList, round, docType, courseId)
+                .first();
         }
 
         if (!row) {
@@ -4649,18 +4719,48 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        const courseIds = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
-        const inList = courseIds.length ? courseIds : [courseId];
-        const inPh = inList.map(() => '?').join(', ');
+        const db = c.env.DB;
+        const useLmsStrict = await isRegisteredLmsCourseId(db, courseId);
+        let results: any[] = [];
+        if (useLmsStrict) {
+            const q = await db
+                .prepare(
+                    `
+                SELECT n.id, n.title, n.updated_at
+                FROM ncs_plan_documents n
+                WHERE n.evaluation_round = ? AND n.doc_type = ?
+                  AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
+                ORDER BY
+                  CASE
+                    WHEN n.course_id = ? AND NOT EXISTS (SELECT 1 FROM course_sessions s3 WHERE s3.id = n.course_id)
+                    THEN 0 ELSE 1
+                  END,
+                  n.updated_at DESC,
+                  n.id DESC
+            `
+                )
+                .bind(round, docType, courseId, courseId, courseId)
+                .all();
+            results = Array.isArray(q?.results) ? q.results : [];
+        } else {
+            const courseIds = await resolveNcsPlanDocumentCourseIds(db, courseId);
+            const inList = courseIds.length ? courseIds : [courseId];
+            const inPh = inList.map(() => '?').join(', ');
+            const q = await db
+                .prepare(
+                    `
+                SELECT id, title, updated_at
+                FROM ncs_plan_documents
+                WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
+                ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
+            `
+                )
+                .bind(...inList, round, docType, courseId)
+                .all();
+            results = Array.isArray(q?.results) ? q.results : [];
+        }
 
-        const { results } = await c.env.DB.prepare(`
-            SELECT id, title, updated_at
-            FROM ncs_plan_documents
-            WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
-            ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
-        `).bind(...inList, round, docType, courseId).all();
-
-        return c.json({ success: true, data: Array.isArray(results) ? results : [] });
+        return c.json({ success: true, data: results });
     } catch (e) {
         console.error('Failed to fetch NCS plan document list:', e);
         return c.json({ success: false, error: 'Failed to fetch plan document list' }, 500);
@@ -4765,14 +4865,36 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        const courseIdsPut = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
-        const inListPut = courseIdsPut.length ? courseIdsPut : [courseId];
-        const inPhPut = inListPut.map(() => '?').join(', ');
-        const existing: any = await c.env.DB.prepare(`
-            SELECT id FROM ncs_plan_documents
-            WHERE id = ? AND course_id IN (${inPhPut}) AND evaluation_round = ? AND doc_type = ?
-            LIMIT 1
-        `).bind(docId, ...inListPut, round, docType).first();
+        const dbPut = c.env.DB;
+        const useLmsStrictPut = await isRegisteredLmsCourseId(dbPut, courseId);
+        let existing: any = null;
+        if (useLmsStrictPut) {
+            existing = await dbPut
+                .prepare(
+                    `
+                SELECT n.id FROM ncs_plan_documents n
+                WHERE n.id = ? AND n.evaluation_round = ? AND n.doc_type = ?
+                  AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
+                LIMIT 1
+            `
+                )
+                .bind(docId, round, docType, courseId, courseId)
+                .first();
+        } else {
+            const courseIdsPut = await resolveNcsPlanDocumentCourseIds(dbPut, courseId);
+            const inListPut = courseIdsPut.length ? courseIdsPut : [courseId];
+            const inPhPut = inListPut.map(() => '?').join(', ');
+            existing = await dbPut
+                .prepare(
+                    `
+                SELECT id FROM ncs_plan_documents
+                WHERE id = ? AND course_id IN (${inPhPut}) AND evaluation_round = ? AND doc_type = ?
+                LIMIT 1
+            `
+                )
+                .bind(docId, ...inListPut, round, docType)
+                .first();
+        }
         if (!existing) {
             return c.json({ success: false, error: 'Document not found' }, 404);
         }
@@ -4843,15 +4965,37 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        const courseIdsDel = await resolveNcsPlanDocumentCourseIds(c.env.DB, courseId);
-        const inListDel = courseIdsDel.length ? courseIdsDel : [courseId];
-        const inPhDel = inListDel.map(() => '?').join(', ');
-        const existing: any = await c.env.DB.prepare(`
-            SELECT id FROM ncs_plan_documents
-            WHERE id = ? AND course_id IN (${inPhDel}) AND evaluation_round = ? AND doc_type = ?
-            LIMIT 1
-        `).bind(docId, ...inListDel, round, docType).first();
-        if (!existing) {
+        const dbDel = c.env.DB;
+        const useLmsStrictDel = await isRegisteredLmsCourseId(dbDel, courseId);
+        let existingDel: any = null;
+        if (useLmsStrictDel) {
+            existingDel = await dbDel
+                .prepare(
+                    `
+                SELECT n.id FROM ncs_plan_documents n
+                WHERE n.id = ? AND n.evaluation_round = ? AND n.doc_type = ?
+                  AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
+                LIMIT 1
+            `
+                )
+                .bind(docId, round, docType, courseId, courseId)
+                .first();
+        } else {
+            const courseIdsDel = await resolveNcsPlanDocumentCourseIds(dbDel, courseId);
+            const inListDel = courseIdsDel.length ? courseIdsDel : [courseId];
+            const inPhDel = inListDel.map(() => '?').join(', ');
+            existingDel = await dbDel
+                .prepare(
+                    `
+                SELECT id FROM ncs_plan_documents
+                WHERE id = ? AND course_id IN (${inPhDel}) AND evaluation_round = ? AND doc_type = ?
+                LIMIT 1
+            `
+                )
+                .bind(docId, ...inListDel, round, docType)
+                .first();
+        }
+        if (!existingDel) {
             return c.json({ success: false, error: 'Document not found' }, 404);
         }
 
