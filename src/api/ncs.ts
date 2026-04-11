@@ -3609,7 +3609,9 @@ function getAbilityUnitEntryForCode(parsed: AbilityUnitJsonEntry[], unitCode: st
                           ? (au as { code?: string }).code
                           : ''
                   ).trim();
+        if (!uc) continue;
         if (uc === want) return au;
+        if (uc.endsWith(want) || want.endsWith(uc)) return au;
     }
     return undefined;
 }
@@ -3793,19 +3795,37 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
+        /** 회차 INNER JOIN 실패( lms_course_id 미연결 등 )로 404 나는 경우 방지: 교과목만 조회 후 회차 강사명은 서브쿼리 */
         const link: any = await c.env.DB.prepare(
-            `SELECT c.id, c.name, c.job_name, c.ability_units_json, c.registration_id, c.main_instructor_ids_json,
-                    s.instructor_name AS session_instructor_name
+            `SELECT c.id, c.name, c.type, c.job_name, c.ability_units_json, c.registration_id, c.main_instructor_ids_json,
+                    (SELECT s.instructor_name FROM course_sessions s
+                     INNER JOIN ncs_approved_registrations r0 ON r0.approved_course_id = s.approved_course_id AND r0.id = c.registration_id
+                     WHERE (s.lms_course_id = ? OR s.id = ?)
+                     ORDER BY s.session_number ASC, s.id ASC
+                     LIMIT 1) AS session_instructor_name
              FROM ncs_approved_curriculum c
-             INNER JOIN ncs_approved_registrations r ON r.id = c.registration_id
-             INNER JOIN course_sessions s ON s.approved_course_id = r.approved_course_id
-             WHERE c.id = ? AND (s.lms_course_id = ? OR s.id = ?)
-             LIMIT 1`
+             WHERE c.id = ?`
         )
-            .bind(curriculumId, courseId, courseId)
+            .bind(courseId, courseId, curriculumId)
             .first();
         if (!link) {
-            return c.json({ success: false, error: '해당 과정에 연결된 교과목이 아닙니다.' }, 404);
+            return c.json({ success: false, error: '교과목 정보를 찾을 수 없습니다.' }, 404);
+        }
+
+        let sessionLinked = false;
+        try {
+            const chk = await c.env.DB.prepare(
+                `SELECT 1 AS ok FROM ncs_approved_curriculum c2
+                 INNER JOIN ncs_approved_registrations r2 ON r2.id = c2.registration_id
+                 INNER JOIN course_sessions s2 ON s2.approved_course_id = r2.approved_course_id
+                 WHERE c2.id = ? AND (s2.lms_course_id = ? OR s2.id = ?)
+                 LIMIT 1`
+            )
+                .bind(curriculumId, courseId, courseId)
+                .first();
+            sessionLinked = !!(chk && (chk as { ok?: number }).ok);
+        } catch {
+            sessionLinked = false;
         }
 
         const courseRow: any = await c.env.DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(courseId).first();
@@ -3876,11 +3896,21 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
 
         let majorCounter = 0;
         for (const code of unitCodes) {
-            const u: any = await c.env.DB.prepare(
+            let u: any = await c.env.DB.prepare(
                 'SELECT code, name, level, elements_json FROM ncs_units WHERE code = ? LIMIT 1'
             )
                 .bind(code)
                 .first();
+            if (!u) {
+                const compact = String(code).replace(/\s/g, '');
+                if (compact) {
+                    u = await c.env.DB.prepare(
+                        `SELECT code, name, level, elements_json FROM ncs_units WHERE replace(replace(code, char(9), ''), ' ', '') = ? LIMIT 1`
+                    )
+                        .bind(compact)
+                        .first();
+                }
+            }
             if (!u) continue;
             if (!primaryUnitName) {
                 primaryUnitName = String(u.name || '').trim();
@@ -3905,6 +3935,17 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                 configuredEls = auEntry.elements;
             }
             elements = filterNcsElementsByCourseConfig(elements, configuredEls);
+            if (elements.length === 0 && configuredEls && configuredEls.length > 0) {
+                elements = configuredEls.map((cfg: { code?: string; name?: string }) => ({
+                    code: cfg?.code,
+                    name:
+                        (cfg?.name && String(cfg.name).trim()) ||
+                        String(cfg?.code || '').trim() ||
+                        '-',
+                    criteria_text: '',
+                    evaluation_criteria_text: ''
+                }));
+            }
             for (let ei = 0; ei < elements.length; ei++) {
                 majorCounter += 1;
                 const el = elements[ei];
@@ -3944,6 +3985,19 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                 ? `${primaryUnitName} / ${primaryLevel}수준`
                 : primaryUnitName || subjectName;
 
+        const curriculumType = String(link.type || 'ncs').trim().toLowerCase();
+        let loadHint = '';
+        if (curriculumType === 'non_ncs' || curriculumType === 'basic') {
+            loadHint =
+                '비NCS·직업기초 교과목은 NCS 평가준거 자동 생성이 없습니다. 표에서 수동으로 평가내용을 작성하세요.';
+        } else if (!unitCodes.length) {
+            loadHint =
+                '이 교과목에 능력단위 코드가 없습니다. HRD 교과목 편성에서 능력단위를 저장했는지 확인하세요.';
+        } else if (!groups.length) {
+            loadHint =
+                '평가준거가 비었습니다. ncs_units·개설 시 선택 요소·능력단위 코드 일치 여부를 확인하거나 수동 입력하세요.';
+        }
+
         return c.json({
             success: true,
             data: {
@@ -3958,7 +4012,10 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                 criteria_groups: groups,
                 evaluation_round: evalRound,
                 overlay_merged: !skipOverlay,
-                default_tools_instructor: defaultToolsInstructor
+                default_tools_instructor: defaultToolsInstructor,
+                session_linked: sessionLinked,
+                curriculum_type: curriculumType,
+                load_hint: loadHint
             },
         });
     } catch (e) {

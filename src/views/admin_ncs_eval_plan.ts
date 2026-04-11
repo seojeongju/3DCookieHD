@@ -1144,7 +1144,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <td class="border border-black text-center bg-slate-50 font-bold leading-tight">능력단위명<br/>/ 수준</td>
                         <td class="border border-black px-2 py-1.5"><div id="tools_unit_name_level" contenteditable="true" class="outline-none min-h-[1.25rem] text-sm"></div></td>
                         <td class="border border-black text-center bg-slate-50 font-bold">훈련교사</td>
-                        <td class="border border-black px-2 py-1.5"><input type="text" id="tools_instructor" class="w-full border-0 outline-none bg-transparent text-sm" autocomplete="off" /></td>
+                        <td class="border border-black px-2 py-1.5"><select id="tools_instructor" class="w-full border-0 outline-none bg-transparent text-sm max-w-full" autocomplete="off" disabled><option value="">훈련교사 선택</option></select></td>
                       </tr>
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold leading-tight">능력단위<br/>요소명</td>
@@ -1633,6 +1633,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     /** 평가도구 제작: NCS 평가준거 그리드 상태 */
     var toolsCriteriaGroupsState = [];
     var toolsCriteriaInputBound = false;
+    var toolsCriteriaDeleteBound = false;
     var TOOLS_ACHIEVEMENT_DEFAULT = '5점(매우 우수), 4점(우수), 3점(보통), 2점(부족), 1점(매우부족) - 채점기준표 참고';
     /** NCS 평가문항 유형 기본값 (과정심사 참고 평가방법 목록과 동일) */
     var NCS_QUESTION_TYPE_DEFAULT = '포트폴리오';
@@ -2762,7 +2763,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setMinutesPrintText('toolsPrintEvalDatetime', getToolsFieldValue('tools_eval_datetime') || '-');
       setMinutesPrintText('toolsPrintTrainee', getToolsFieldValue('tools_trainee') || '-');
       setMinutesPrintText('toolsPrintUnitLevel', getToolsFieldValue('tools_unit_name_level') || '-');
-      setMinutesPrintText('toolsPrintInstructor', getToolsFieldValue('tools_instructor') || '-');
+      setMinutesPrintText('toolsPrintInstructor', getToolsInstructorPayloadValue() || '-');
       setMinutesPrintText('toolsPrintElementFocus', getToolsFieldValue('tools_element_focus') || '-');
       setMinutesPrintText('toolsPrintEvalDuration', getToolsFieldValue('tools_eval_duration') || '-');
       setMinutesPrintText('toolsPrintAchievement', getToolsFieldValue('tools_achievement_note') || TOOLS_ACHIEVEMENT_DEFAULT);
@@ -3146,7 +3147,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             criteria_groups: JSON.parse(JSON.stringify(toolsCriteriaGroupsState || [])),
             tools_eval_datetime: getToolsFieldValue('tools_eval_datetime'),
             tools_trainee: getToolsFieldValue('tools_trainee'),
-            tools_instructor: getToolsFieldValue('tools_instructor'),
+            tools_instructor: getToolsInstructorPayloadValue(),
             tools_unit_name_level: getToolsFieldValue('tools_unit_name_level'),
             tools_element_focus: getToolsFieldValue('tools_element_focus'),
             tools_eval_duration: getToolsFieldValue('tools_eval_duration'),
@@ -3281,6 +3282,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       el.innerHTML = '<option value="">강사 선택</option>';
       el.disabled = true;
       scheduleInstructorOptions = [];
+      var toolsIns = document.getElementById('tools_instructor');
+      if (toolsIns && String(toolsIns.tagName).toUpperCase() === 'SELECT') {
+        toolsIns.innerHTML = '<option value="">훈련교사 선택</option>';
+        toolsIns.disabled = true;
+      }
     }
 
     function applyScheduleInstructorSelectValue(instructorIdRaw, instructorNameRaw) {
@@ -3365,6 +3371,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           el.appendChild(opt);
         });
         el.disabled = false;
+        fillToolsInstructorSelectOptions();
       } catch (e) {
         console.error(e);
         resetScheduleInstructorSelect();
@@ -3781,6 +3788,59 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       });
     }
 
+    function renumberToolsCriteriaLabels() {
+      for (var g = 0; g < toolsCriteriaGroupsState.length; g++) {
+        var lines = toolsCriteriaGroupsState[g].lines;
+        if (!Array.isArray(lines)) continue;
+        for (var ln = 0; ln < lines.length; ln++) {
+          if (lines[ln]) lines[ln].label = (g + 1) + '.' + (ln + 1);
+        }
+      }
+    }
+
+    function deleteToolsCriteriaLine(g, ln) {
+      syncToolsCriteriaStateFromDom();
+      var grp = toolsCriteriaGroupsState[g];
+      if (!grp || !Array.isArray(grp.lines) || !grp.lines[ln]) return;
+      grp.lines.splice(ln, 1);
+      if (grp.lines.length === 0) {
+        toolsCriteriaGroupsState.splice(g, 1);
+      }
+      renumberToolsCriteriaLabels();
+      renderToolsCriteriaBody(toolsCriteriaGroupsState);
+    }
+
+    function deleteToolsCriteriaGroup(g) {
+      syncToolsCriteriaStateFromDom();
+      if (toolsCriteriaGroupsState[g] == null) return;
+      toolsCriteriaGroupsState.splice(g, 1);
+      renumberToolsCriteriaLabels();
+      renderToolsCriteriaBody(toolsCriteriaGroupsState);
+    }
+
+    function wireToolsCriteriaDeleteDelegation() {
+      if (toolsCriteriaDeleteBound) return;
+      toolsCriteriaDeleteBound = true;
+      document.addEventListener('click', function(ev) {
+        var tgt = ev.target;
+        if (!tgt || !tgt.closest) return;
+        var lineBtn = tgt.closest('[data-tools-crit-del-line]');
+        if (lineBtn) {
+          ev.preventDefault();
+          var g = parseInt(lineBtn.getAttribute('data-g') || '-1', 10);
+          var ln = parseInt(lineBtn.getAttribute('data-ln') || '-1', 10);
+          if (Number.isFinite(g) && Number.isFinite(ln)) deleteToolsCriteriaLine(g, ln);
+          return;
+        }
+        var grpBtn = tgt.closest('[data-tools-crit-del-group]');
+        if (grpBtn) {
+          ev.preventDefault();
+          var g2 = parseInt(grpBtn.getAttribute('data-g') || '-1', 10);
+          if (Number.isFinite(g2)) deleteToolsCriteriaGroup(g2);
+        }
+      });
+    }
+
     function addToolsCriteriaContentLine() {
       syncToolsCriteriaStateFromDom();
       if (!toolsCriteriaGroupsState.length) {
@@ -3793,6 +3853,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var nextMinor = grp.lines.length + 1;
         grp.lines.push({ label: major + '.' + nextMinor, text: '' });
       }
+      renumberToolsCriteriaLabels();
       renderToolsCriteriaBody(toolsCriteriaGroupsState);
     }
 
@@ -3803,11 +3864,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         element_title: '능력단위 요소',
         lines: [{ label: nextMajor + '.1', text: '' }]
       });
+      renumberToolsCriteriaLabels();
       renderToolsCriteriaBody(toolsCriteriaGroupsState);
     }
 
     function renderToolsCriteriaBody(groups) {
       wireToolsCriteriaEditDelegation();
+      wireToolsCriteriaDeleteDelegation();
       toolsCriteriaGroupsState = Array.isArray(groups) ? JSON.parse(JSON.stringify(groups)) : [];
       var tbody = document.getElementById('toolsCriteriaBody');
       if (!tbody) return;
@@ -3828,12 +3891,40 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           var isFirst = ln === 0;
           html += '<tr>';
           if (isFirst) {
-            html += '<td rowspan="' + rs + '" class="border border-black px-2 py-2 align-top text-sm font-semibold text-slate-900 whitespace-pre-wrap outline-none focus:ring-2 focus:ring-indigo-200 rounded" data-role="element-title" data-g="' + g + '" contenteditable="true" title="능력단위 요소명(직접 수정 가능)">' + escapeHtml(title) + '</td>';
+            html += '<td rowspan="' + rs + '" class="border border-black px-2 py-2 align-top text-sm text-slate-900">';
+            html += '<div class="flex flex-col gap-1.5 min-h-[2rem]">';
+            html +=
+              '<div class="font-semibold whitespace-pre-wrap outline-none focus:ring-2 focus:ring-indigo-200 rounded" data-role="element-title" data-g="' +
+              g +
+              '" contenteditable="true" title="능력단위 요소명(직접 수정 가능)">' +
+              escapeHtml(title) +
+              '</div>';
+            html +=
+              '<button type="button" class="self-start text-[11px] px-2 py-0.5 rounded border border-rose-200 bg-rose-50 text-rose-700 font-bold hover:bg-rose-100" data-tools-crit-del-group data-g="' +
+              g +
+              '">요소 삭제</button>';
+            html += '</div></td>';
           }
           html += '<td class="border border-black px-2 py-2 align-top text-sm text-slate-800">';
+          html += '<div class="flex items-start gap-2 justify-between min-w-0">';
+          html += '<div class="flex-1 min-w-0">';
           html += '<span class="text-slate-500 font-mono text-[11px] mr-1">' + escapeHtml(String(line.label || '')) + '</span>';
-          html += '<span class="data-tools-crit-text inline-block min-w-[180px] outline-none align-top" contenteditable="true" data-g="' + g + '" data-ln="' + ln + '">' + escapeHtml(String(line.text || '')) + '</span>';
-          html += '</td>';
+          html +=
+            '<span class="data-tools-crit-text inline-block min-w-[120px] outline-none align-top" contenteditable="true" data-g="' +
+            g +
+            '" data-ln="' +
+            ln +
+            '">' +
+            escapeHtml(String(line.text || '')) +
+            '</span>';
+          html += '</div>';
+          html +=
+            '<button type="button" class="shrink-0 mt-0.5 px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-[11px] font-black leading-none" data-tools-crit-del-line data-g="' +
+            g +
+            '" data-ln="' +
+            ln +
+            '" title="이 평가내용 행 삭제"><i class="fas fa-trash-alt"></i></button>';
+          html += '</div></td>';
           html += '<td class="border border-black px-1 py-1 align-middle w-24 text-center bg-white"><div class="h-12 min-h-[3rem] border border-black bg-white mx-auto max-w-[5.5rem] rounded-sm" title="성취수준 기입"></div></td>';
           html += '</tr>';
         }
@@ -3846,9 +3937,63 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       tbody.innerHTML = html;
     }
 
+    function getToolsInstructorPayloadValue() {
+      var el = document.getElementById('tools_instructor');
+      if (!el) return '';
+      if (String(el.tagName).toUpperCase() === 'SELECT') {
+        var opt = el.options[el.selectedIndex];
+        if (!opt) return '';
+        var v = String(opt.value || '').trim();
+        if (v === '') return '';
+        return String(opt.textContent || '').trim();
+      }
+      return String(el.value || '').trim();
+    }
+
+    function fillToolsInstructorSelectOptions() {
+      var el = document.getElementById('tools_instructor');
+      if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return;
+      el.innerHTML = '<option value="">훈련교사 선택</option>';
+      (scheduleInstructorOptions || []).forEach(function(inst) {
+        var o = document.createElement('option');
+        o.value = String(inst.id);
+        o.textContent = inst.name;
+        el.appendChild(o);
+      });
+      el.disabled = (scheduleInstructorOptions || []).length === 0;
+    }
+
+    function syncToolsInstructorSelectToSavedName(savedRaw) {
+      var el = document.getElementById('tools_instructor');
+      if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return;
+      fillToolsInstructorSelectOptions();
+      var saved = String(savedRaw || '').trim();
+      if (!saved) {
+        el.value = '';
+        return;
+      }
+      for (var i = 0; i < el.options.length; i++) {
+        if (String(el.options[i].textContent || '').trim() === saved) {
+          el.selectedIndex = i;
+          return;
+        }
+      }
+      var lit = document.createElement('option');
+      lit.value = '__literal__';
+      lit.textContent = saved;
+      el.appendChild(lit);
+      el.value = '__literal__';
+    }
+
     function getToolsInstructorFieldTrimmed() {
       var el = document.getElementById('tools_instructor');
-      return el ? String(el.value || '').trim() : '';
+      if (!el) return '';
+      if (String(el.tagName).toUpperCase() === 'SELECT') {
+        var opt = el.options[el.selectedIndex];
+        if (!opt || !String(opt.value || '').trim()) return '';
+        return String(opt.textContent || '').trim();
+      }
+      return String(el.value || '').trim();
     }
 
     /** 배정 강사명 — 입력란이 비어 있을 때만 채움 (과정·교과목·회차 기준) */
@@ -3871,7 +4016,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var json = await res.json();
         if (!json || !json.success) return;
         var ins = String((json.data && json.data.default_tools_instructor) || '').trim();
-        if (ins) setToolsFieldValue('tools_instructor', ins);
+        if (ins) syncToolsInstructorSelectToSavedName(ins);
       } catch (e) {
         console.error(e);
       }
@@ -3898,7 +4043,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setToolsFieldValue('tools_unit_name_level', d.unit_name_level || '');
         var insDefault = String(d.default_tools_instructor || '').trim();
         if (insDefault && !getToolsInstructorFieldTrimmed()) {
-          setToolsFieldValue('tools_instructor', insDefault);
+          syncToolsInstructorSelectToSavedName(insDefault);
+        }
+        var loadHint = String(d.load_hint || '').trim();
+        if (loadHint && !(Array.isArray(d.criteria_groups) && d.criteria_groups.length)) {
+          console.warn('[평가도구]', loadHint);
         }
         var groups = Array.isArray(d.criteria_groups) ? d.criteria_groups : [];
         if (groups.length && groups[0] && groups[0].element_title) {
@@ -4268,7 +4417,6 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setToolsFieldValue('tools_notes', payload.notes || '');
         setToolsFieldValue('tools_eval_datetime', payload.tools_eval_datetime || '');
         setToolsFieldValue('tools_trainee', payload.tools_trainee || '');
-        setToolsFieldValue('tools_instructor', payload.tools_instructor || '');
         setToolsFieldValue('tools_unit_name_level', payload.tools_unit_name_level || '');
         setToolsFieldValue('tools_element_focus', payload.tools_element_focus || '');
         setToolsFieldValue('tools_eval_duration', payload.tools_eval_duration || '');
@@ -4300,7 +4448,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           applyNcsSubjectSelectValue('toolsSubjectSelect', payload.curriculum_id, payload.subject_name);
           syncToolsSubjectDisplay();
           updateToolsLoadButtonState();
-          if (!String(getToolsFieldValue('tools_instructor') || '').trim()) {
+          syncToolsInstructorSelectToSavedName(payload.tools_instructor || '');
+          if (!getToolsInstructorFieldTrimmed()) {
             void applyDefaultToolsInstructorFromEvalFormApi();
           }
         })();
