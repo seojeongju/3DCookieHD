@@ -3844,7 +3844,7 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                     (SELECT s.instructor_name FROM course_sessions s
                      INNER JOIN ncs_approved_registrations r0 ON r0.approved_course_id = s.approved_course_id AND r0.id = c.registration_id
                      WHERE (s.lms_course_id = ? OR s.id = ?)
-                     ORDER BY s.session_number ASC, s.id ASC
+                     ORDER BY COALESCE(s.session_number, 999999) ASC, s.id ASC
                      LIMIT 1) AS session_instructor_name
              FROM ncs_approved_curriculum c
              WHERE c.id = ?`
@@ -5264,7 +5264,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                 `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
                  FROM course_sessions
                  WHERE approved_course_id = ?
-                 ORDER BY session_number ASC, id ASC
+                 ORDER BY COALESCE(session_number, 999999) ASC, id ASC
                  LIMIT 1`
             ).bind(rawId).first();
             if (byApproved) return byApproved;
@@ -5273,7 +5273,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                 `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
                  FROM course_sessions
                  WHERE lms_course_id = ?
-                 ORDER BY session_number ASC, id ASC
+                 ORDER BY COALESCE(session_number, 999999) ASC, id ASC
                  LIMIT 1`
             ).bind(rawId).first();
 

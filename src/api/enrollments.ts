@@ -143,7 +143,7 @@ app.get('/', authMiddleware, async (c) => {
           asSession = await DB.prepare(
             `SELECT id, approved_course_id FROM course_sessions
              WHERE lms_course_id = ?
-             ORDER BY session_number ASC, id ASC
+             ORDER BY COALESCE(session_number, 999999) ASC, id ASC
              LIMIT 1`
           )
             .bind(courseIdNum)

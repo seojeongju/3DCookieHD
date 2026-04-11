@@ -36,7 +36,7 @@ export async function getLatestCourseSessionRowForLmsCourseId(
                 `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
                  FROM course_sessions
                  WHERE lms_course_id = ?
-                 ORDER BY session_number ASC, id ASC
+                 ORDER BY COALESCE(session_number, 999999) ASC, id ASC
                  LIMIT 1`
             )
             .bind(lmsCourseId)
@@ -66,7 +66,7 @@ export async function getCourseSessionTimetableHeaderByLmsCourseId(
             .prepare(
                 `SELECT id, approved_course_id, instructor_name FROM course_sessions
                  WHERE lms_course_id = ?
-                 ORDER BY session_number ASC, id ASC
+                 ORDER BY COALESCE(session_number, 999999) ASC, id ASC
                  LIMIT 1`
             )
             .bind(lmsCourseId)
