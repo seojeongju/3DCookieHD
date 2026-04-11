@@ -116,7 +116,7 @@ export const adminLmsNcsStudentReportHtml = `
     <script>
         const pathParts = window.location.pathname.split('/');
         const studentId = pathParts[pathParts.length - 1];
-        const courseId = pathParts[3];
+        const courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[3];
 
         document.addEventListener('DOMContentLoaded', async () => {
             const now = new Date();

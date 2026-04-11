@@ -59,7 +59,7 @@ export const adminLmsNcsReportHtml = `
     </div>
 
     <script>
-        const courseId = window.location.pathname.split('/')[3];
+        const courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
         
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('printDate').textContent = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });

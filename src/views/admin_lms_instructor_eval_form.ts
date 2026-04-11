@@ -104,7 +104,7 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
     <script>
         (function(){
             var pathParts = window.location.pathname.split('/');
-            var courseId = pathParts[pathParts.indexOf('courses')+1];
+            var courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[pathParts.indexOf('courses')+1];
             var params = new URLSearchParams(window.location.search);
             var subject = params.get('subject') ? decodeURIComponent(params.get('subject')) : '';
             var evaluator = params.get('evaluator') || 'self';

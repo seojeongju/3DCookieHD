@@ -103,7 +103,9 @@ export const adminLmsQrAttendanceHtml = (sidebar: string = hrdSidebar('courses')
         document.addEventListener('DOMContentLoaded', () => {
             const pathParts = window.location.pathname.split('/');
             const courseIndex = pathParts.indexOf('courses');
-            if (courseIndex !== -1) courseId = pathParts[courseIndex + 1];
+            const _sidQ = new URLSearchParams(window.location.search).get('session_id');
+            if (_sidQ) courseId = _sidQ;
+            else if (courseIndex !== -1) courseId = pathParts[courseIndex + 1];
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(() => {}, () => {});

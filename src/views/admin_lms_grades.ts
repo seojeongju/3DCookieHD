@@ -69,7 +69,7 @@ export const adminLmsGradesHtml = (sidebar: string = hrdSidebar('courses')) => `
 
     <script>
         const pathParts = window.location.pathname.split('/');
-        const courseId = pathParts[pathParts.indexOf('courses') + 1];
+        const courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[pathParts.indexOf('courses') + 1];
         const courseType = (new URLSearchParams(window.location.search).get('type') || '').toLowerCase();
         let currentData = null;
 

@@ -137,7 +137,7 @@ export const adminLmsEmploymentHtml = (sidebar: string = hrdSidebar('courses')) 
     </div>
 
     <script>
-        const courseId = window.location.pathname.split('/')[3];
+        const courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
         let students = [];
 
         document.addEventListener('DOMContentLoaded', () => {

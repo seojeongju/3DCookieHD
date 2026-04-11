@@ -144,7 +144,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const pathParts = window.location.pathname.split('/');
-        const courseId = pathParts[3];
+        const courseId = urlParams.get('session_id') || pathParts[3];
         const courseType = urlParams.get('type') || '';
         let students = [];
 

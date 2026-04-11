@@ -94,7 +94,7 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
             var pathParts = window.location.pathname.split('/');
             var courseIdx = pathParts.indexOf('courses');
             var surveyIdx = pathParts.indexOf('surveys');
-            var courseId = courseIdx >= 0 ? pathParts[courseIdx + 1] : '';
+            var courseId = new URLSearchParams(window.location.search).get('session_id') || (courseIdx >= 0 ? pathParts[courseIdx + 1] : '');
             var surveyId = surveyIdx >= 0 ? pathParts[surveyIdx + 1] : '';
             var isTeacher = pathParts.indexOf('teacher') >= 0;
             var basePath = isTeacher ? '/teacher/courses/' + courseId + '/lms/surveys' : '/admin/courses/' + courseId + '/lms/surveys';

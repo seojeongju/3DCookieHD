@@ -123,7 +123,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
   </div>
 
   <script>
-    const courseId = window.location.pathname.split('/')[3];
+    const courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
     const isTeacherPath = window.location.pathname.startsWith('/teacher/');
     const basePrefix = isTeacherPath ? '/teacher' : '/admin';
     let activeRound = 1;

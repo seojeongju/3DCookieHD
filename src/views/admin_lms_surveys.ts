@@ -272,7 +272,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
 
     <script>
         const pathParts = window.location.pathname.split('/');
-        const courseId = pathParts[pathParts.indexOf('courses') + 1];
+        const courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[pathParts.indexOf('courses') + 1];
         const urlParams = new URLSearchParams(window.location.search);
         const isHrd = (urlParams.get('type') || '').toLowerCase().startsWith('hrd') || window.location.pathname.indexOf('/lms') !== -1;
         let surveys = [];

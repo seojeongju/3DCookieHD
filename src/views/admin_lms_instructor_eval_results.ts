@@ -85,7 +85,7 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
     <script>
         (function(){
             var pathParts = window.location.pathname.split('/');
-            var courseId = pathParts[pathParts.indexOf('courses')+1];
+            var courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[pathParts.indexOf('courses')+1];
             var token = localStorage.getItem('token');
             var isTeacher = window.location.pathname.indexOf('/teacher') >= 0;
             var basePath = (isTeacher ? '/teacher/courses/' : '/admin/courses/') + courseId + '/lms';

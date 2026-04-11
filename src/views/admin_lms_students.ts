@@ -140,7 +140,7 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
         (function() {
             const pathParts = window.location.pathname.split('/');
             const courseIdIndex = pathParts.indexOf('courses') + 1;
-            const courseId = pathParts[courseIdIndex];
+            const courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[courseIdIndex];
             let allStudents = [];
             let currentPage = 1;
             let limit = 20;

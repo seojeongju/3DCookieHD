@@ -69,7 +69,7 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
 
   <script>
   (function() {
-    var courseId = window.location.pathname.split('/')[3];
+    var courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
     var isTeacherPath = window.location.pathname.indexOf('/teacher/') === 0;
     var basePrefix = isTeacherPath ? '/teacher' : '/admin';
     var lmsBase = basePrefix + '/courses/' + courseId + '/lms/';

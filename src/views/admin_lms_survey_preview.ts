@@ -61,7 +61,7 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
     <script>
         (function() {
             var pathParts = window.location.pathname.split('/');
-            var courseId = pathParts[pathParts.indexOf('courses') + 1];
+            var courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[pathParts.indexOf('courses') + 1];
             var surveyId = pathParts[pathParts.indexOf('surveys') + 1];
             var token = localStorage.getItem('token');
             var backUrl = '/admin/courses/' + courseId + '/lms/surveys' + (window.location.search || '');

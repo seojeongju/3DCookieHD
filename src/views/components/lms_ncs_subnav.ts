@@ -44,8 +44,11 @@ export function lmsNcsSubnavTabsHtml(active: 'dashboard' | 'plan' | 'exec' | 're
         var courseId = pathParts[ix + 1];
         if (!courseId) return;
         var isAdmin = window.location.pathname.indexOf('/admin') === 0;
-        var base = (isAdmin ? '/admin/courses/' : '/teacher/courses/') + courseId + '/lms/';
+        var pathBase = (isAdmin ? '/admin/courses/' : '/teacher/courses/') + courseId + '/lms/';
         var q = lmsNcsSubnavQuery();
+        var sidQ = new URLSearchParams(window.location.search).get('session_id');
+        if (sidQ && q.indexOf('session_id') === -1) q += (q ? '&' : '?') + 'session_id=' + encodeURIComponent(sidQ);
+        var base = pathBase;
         var ids = ['dashboard', 'plan', 'exec', 'result'];
         var paths = ['ncs-eval-dashboard', 'ncs-eval-plan', 'ncs-eval-exec', 'ncs-eval-result'];
         for (var i = 0; i < ids.length; i++) {
