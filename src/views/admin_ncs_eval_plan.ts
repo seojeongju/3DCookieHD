@@ -4807,13 +4807,31 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (deleteBtn) deleteBtn.disabled = !hasSelected;
     }
 
+    function getCurriculumIdForPlanTab(tabId) {
+      const selectIdByTab = {
+        schedule: 'scheduleSubjectSelect',
+        questions: 'questionsSubjectSelect',
+        tools: 'toolsSubjectSelect',
+        rubric: 'rubric_subject_name',
+        achievement: 'achievement_subject_name',
+        review: 'review_subject_name'
+      };
+      const sid = selectIdByTab[tabId];
+      if (!sid) return '';
+      const el = document.getElementById(sid);
+      return el ? String(el.value || '').trim() : '';
+    }
+
     async function loadDocumentList(tabId, selectedId) {
       if (!selectedCourseId) {
         setPlanDocSelectOptions(tabId, [], '');
         return [];
       }
       try {
-        var res = await authFetch('/api/ncs/plan-documents/list?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId));
+        var listUrl = '/api/ncs/plan-documents/list?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId);
+        var cid = getCurriculumIdForPlanTab(tabId);
+        if (cid) listUrl += '&curriculum_id=' + encodeURIComponent(cid);
+        var res = await authFetch(listUrl);
         var json = await res.json();
         if (!json || !json.success) throw new Error((json && json.error) || 'list load failed');
         var list = Array.isArray(json.data) ? json.data : [];
@@ -4842,6 +4860,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var currentSelectedId = requestedDocId || selectedDocIdByTab[tabId] || '';
         await loadDocumentList(tabId, currentSelectedId);
         var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId);
+        var cid = getCurriculumIdForPlanTab(tabId);
+        if (cid) url += '&curriculum_id=' + encodeURIComponent(cid);
         if (requestedDocId) url += '&doc_id=' + encodeURIComponent(requestedDocId);
         const res = await authFetch(url);
         const json = await res.json();
@@ -4892,6 +4912,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           },
           body: JSON.stringify({
             course_id: Number(selectedCourseId),
+            curriculum_id: getCurriculumIdForPlanTab(tabId) || undefined,
             evaluation_round: Number(selectedRound),
             doc_type: tabId,
             title: form.title,
@@ -4953,6 +4974,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           },
           body: JSON.stringify({
             course_id: Number(selectedCourseId),
+            curriculum_id: getCurriculumIdForPlanTab(tabId) || undefined,
             evaluation_round: Number(selectedRound),
             doc_type: tabId,
             title: form.title,
@@ -4990,10 +5012,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!confirm('선택한 저장문서를 삭제할까요?\\n삭제 후 복구할 수 없습니다.')) return;
       setStatus(tabId, '문서 삭제 중...', false);
       try {
-        const url = '/api/ncs/plan-documents/' + encodeURIComponent(docId) +
+        var url = '/api/ncs/plan-documents/' + encodeURIComponent(docId) +
           '?course_id=' + encodeURIComponent(String(selectedCourseId)) +
           '&evaluation_round=' + encodeURIComponent(String(selectedRound)) +
           '&doc_type=' + encodeURIComponent(tabId);
+        var cid = getCurriculumIdForPlanTab(tabId);
+        if (cid) url += '&curriculum_id=' + encodeURIComponent(cid);
         const res = await authFetch(url, {
           method: 'DELETE',
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
