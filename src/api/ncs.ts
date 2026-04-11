@@ -4626,7 +4626,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                     LIMIT 1
                 `
                     )
-                    .bind(docId, round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid, effectiveCid)
+                    .bind(docId, round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid, effectiveCid, effectiveCid)
                     .first();
             } else {
                 row = await db
@@ -4661,7 +4661,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid, effectiveCid, effectiveCid)
+                .bind(round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid, effectiveCid, effectiveCid, effectiveCid)
                 .first();
         } else {
             row = await db
@@ -4758,7 +4758,7 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                   n.id DESC
             `
                 )
-                .bind(round, docType, ...(hasCidFilter ? [curriculumId] : []), effectiveCidList, effectiveCidList, effectiveCidList)
+                .bind(round, docType, ...(hasCidFilter ? [curriculumId] : []), effectiveCidList, effectiveCidList, effectiveCidList, effectiveCidList)
                 .all();
             results = Array.isArray(q?.results) ? q.results : [];
         } else {
@@ -4905,7 +4905,7 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(docId, round, docType, curriculumId, effectiveCidPut, effectiveCidPut)
+                .bind(docId, round, docType, curriculumId, effectiveCidPut, effectiveCidPut, effectiveCidPut)
                 .first();
         } else {
             const courseIdsPut = await resolveNcsPlanDocumentCourseIds(dbPut, effectiveCidPut);
@@ -5011,7 +5011,7 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(docId, round, docType, curriculumId, effectiveCidDel, effectiveCidDel)
+                .bind(docId, round, docType, curriculumId, effectiveCidDel, effectiveCidDel, effectiveCidDel)
                 .first();
         } else {
             const courseIdsDel = await resolveNcsPlanDocumentCourseIds(dbDel, effectiveCidDel);
