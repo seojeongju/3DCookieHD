@@ -3,6 +3,7 @@ import { hrdSidebar } from './components/hrd_sidebar';
 /**
  * NCS 분류보기 — 국가직무능력표준(ncs.go.kr) NCS 정보 보기·분류보기 UI에 맞춘 조회 화면
  * 좌측: 정보 유형 메뉴 / 우측: 대·중·소 선택 → 검색 → 직무별 rowspan 표, 펼침 시 능력단위(분류번호·명)
+ * 키워드: NCS007 기반 능력단위 내용(취지) 검색 (#keyword)
  */
 export function adminNcsViewerHtml(): string {
     return `
@@ -44,10 +45,10 @@ export function adminNcsViewerHtml(): string {
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">NCS 정보 보기</p>
                 </div>
                 <nav class="ncs-portal-nav flex md:flex-col gap-1 p-2 overflow-x-auto md:overflow-y-auto custom-scrollbar text-sm">
-                    <a href="/admin/ncs/viewer" class="active whitespace-nowrap rounded-lg px-3 py-2.5 font-bold transition">NCS 분류보기</a>
-                    <a href="/admin/ncs/viewer#keyword" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="추후 연동">키워드</a>
-                    <a href="/admin/ncs/viewer#code" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="추후 연동">코드</a>
-                    <a href="/admin/ncs/viewer#print" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="추후 연동">직무기술서 출력</a>
+                    <a id="ncsNavClassify" href="/admin/ncs/viewer#classify" class="active whitespace-nowrap rounded-lg px-3 py-2.5 font-bold transition">NCS 분류보기</a>
+                    <a id="ncsNavKeyword" href="/admin/ncs/viewer#keyword" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="능력단위명·취지 키워드 검색 (NCS007)">키워드</a>
+                    <a href="/admin/ncs/viewer#code" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="준비 중">코드</a>
+                    <a href="/admin/ncs/viewer#print" class="text-slate-600 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium transition" title="준비 중">직무기술서 출력</a>
                 </nav>
                 <div class="hidden md:block mt-auto p-3 border-t border-slate-100 text-[10px] text-slate-400 leading-relaxed">
                     출처: <a href="https://www.ncs.go.kr" target="_blank" rel="noopener" class="text-blue-600 hover:underline">국가직무능력표준 ncs.go.kr</a>
@@ -57,13 +58,14 @@ export function adminNcsViewerHtml(): string {
             <main class="flex-1 flex flex-col overflow-hidden min-w-0">
                 <header class="bg-white border-b border-slate-200 shadow-sm px-4 md:px-6 py-3 md:py-4 shrink-0">
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <h1 class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight">NCS 분류보기</h1>
-                        <p class="text-[11px] text-slate-500">
+                        <h1 id="ncsMainTitle" class="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight">NCS 분류보기</h1>
+                        <p id="ncsMainSub" class="text-[11px] text-slate-500">
                             내부 DB·분류 API · <a href="https://www.ncs.go.kr/index.do" target="_blank" rel="noopener" class="text-blue-600 hover:underline">ncs.go.kr</a> 체계
                         </p>
                     </div>
                 </header>
 
+                <div id="ncs-panel-classify" class="flex flex-1 flex-col min-h-0 overflow-hidden">
                 <!-- 필터: 대·중·소 + 직무 필터 + 검색 + 엑셀 -->
                 <div class="bg-white border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 shrink-0">
                     <div class="flex flex-col xl:flex-row xl:items-end gap-3 md:gap-4 flex-wrap">
@@ -139,6 +141,68 @@ export function adminNcsViewerHtml(): string {
                         </p>
                     </div>
                 </div>
+                </div>
+
+                <div id="ncs-panel-keyword" class="hidden flex flex-1 flex-col min-h-0 overflow-hidden">
+                    <div class="bg-white border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 shrink-0">
+                        <div class="flex flex-col lg:flex-row lg:items-end gap-3 flex-wrap max-w-[1200px]">
+                            <label class="block flex-1 min-w-[200px]">
+                                <span class="block text-[11px] font-bold text-slate-600 mb-1">검색어 (능력단위명·취지)</span>
+                                <div class="relative">
+                                    <i class="fas fa-font absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                    <input type="text" id="ncsKeywordInput" placeholder="예: 용접, 안전, CAD" class="pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm w-full focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                            </label>
+                            <label class="block w-full sm:w-36">
+                                <span class="block text-[11px] font-bold text-slate-600 mb-1">능력단위 수준</span>
+                                <select id="ncsKeywordLevel" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="">전체</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                </select>
+                            </label>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" id="ncsBtnKeywordSearch" class="inline-flex items-center justify-center gap-2 px-4 md:px-5 py-2 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition">
+                                    <i class="fas fa-search"></i> 검색
+                                </button>
+                                <button type="button" id="ncsBtnKeywordCsv" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white bg-[#163a58] hover:bg-[#0f2d44] shadow-sm transition">
+                                    <i class="fas fa-file-csv"></i> CSV 저장
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-6">
+                        <div class="max-w-[1600px] mx-auto">
+                            <div class="bg-white rounded-lg shadow-sm ncs-table-wrap overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full border-collapse min-w-[800px]">
+                                        <thead class="ncs-thead">
+                                            <tr>
+                                                <th class="text-left w-[22%]">분류번호</th>
+                                                <th class="text-left w-[20%]">능력단위명</th>
+                                                <th class="text-center w-[8%]">수준</th>
+                                                <th class="text-left">능력단위 취지(내용)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ncsKeywordTbody" class="ncs-tbody text-slate-800">
+                                            <tr>
+                                                <td colspan="4" class="px-6 py-14 text-center text-slate-400 text-sm">
+                                                    검색어를 입력한 뒤 <strong class="text-slate-600">검색</strong>을 누르세요.<br>
+                                                    <span class="text-xs mt-2 inline-block">기준정보 API NCS007 · 서버에 NCS_API_KEY가 설정되어 있어야 합니다.</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-3 px-1">※ 결과는 분류번호 기준으로 한 번만 표시합니다.</p>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -158,8 +222,147 @@ export function adminNcsViewerHtml(): string {
                 jobs: [],
                 jobsFull: [],
                 unitsCache: {},
-                classRes: null
+                classRes: null,
+                keywordRows: []
             };
+
+            var CLASSIFY_SUB_HTML = '내부 DB·분류 API · <a href="https://www.ncs.go.kr/index.do" target="_blank" rel="noopener" class="text-blue-600 hover:underline">ncs.go.kr</a> 체계';
+
+            function getView() {
+                var h = (location.hash || '').replace(/^#/, '');
+                if (h === 'keyword') return 'keyword';
+                return 'classify';
+            }
+
+            function setNavActive(view) {
+                var navClassify = document.getElementById('ncsNavClassify');
+                var navKeyword = document.getElementById('ncsNavKeyword');
+                if (navClassify) {
+                    navClassify.classList.toggle('active', view === 'classify');
+                    navClassify.classList.toggle('font-bold', view === 'classify');
+                    navClassify.classList.toggle('font-medium', view !== 'classify');
+                    navClassify.classList.toggle('text-slate-600', view !== 'classify');
+                }
+                if (navKeyword) {
+                    navKeyword.classList.toggle('active', view === 'keyword');
+                    navKeyword.classList.toggle('font-bold', view === 'keyword');
+                    navKeyword.classList.toggle('font-medium', view !== 'keyword');
+                    navKeyword.classList.toggle('text-slate-600', view !== 'keyword');
+                }
+            }
+
+            function applyRoute() {
+                var view = getView();
+                var panelClassify = document.getElementById('ncs-panel-classify');
+                var panelKeyword = document.getElementById('ncs-panel-keyword');
+                var mainTitle = document.getElementById('ncsMainTitle');
+                var mainSub = document.getElementById('ncsMainSub');
+                if (panelClassify && panelKeyword) {
+                    if (view === 'keyword') {
+                        panelClassify.classList.add('hidden');
+                        panelKeyword.classList.remove('hidden');
+                    } else {
+                        panelClassify.classList.remove('hidden');
+                        panelKeyword.classList.add('hidden');
+                    }
+                }
+                if (mainTitle) {
+                    mainTitle.textContent = view === 'keyword' ? '능력단위 내용 검색' : 'NCS 분류보기';
+                }
+                if (mainSub) {
+                    if (view === 'keyword') {
+                        mainSub.textContent = '기준정보 API NCS007 · 능력단위명·취지 키워드로 검색합니다.';
+                    } else {
+                        mainSub.innerHTML = CLASSIFY_SUB_HTML;
+                    }
+                }
+                setNavActive(view);
+            }
+
+            async function runKeywordSearch() {
+                var kwIn = document.getElementById('ncsKeywordInput');
+                var lvSel = document.getElementById('ncsKeywordLevel');
+                var ktb = document.getElementById('ncsKeywordTbody');
+                var kw = (kwIn && kwIn.value || '').trim();
+                if (!kw) {
+                    alert('검색어를 입력해 주세요.');
+                    return;
+                }
+                var lv = (lvSel && lvSel.value) || '';
+                if (!ktb) return;
+                ktb.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500"><i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i><p class="mt-2 text-sm">검색 중…</p></td></tr>';
+
+                var q = '/approved/search-units?keyword=' + encodeURIComponent(kw);
+                if (lv) q += '&level=' + encodeURIComponent(lv);
+                var res = await api(q);
+                if (!res.success) {
+                    ktb.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-red-500 text-sm">' + esc(res.error || '검색에 실패했습니다.') + '</td></tr>';
+                    state.keywordRows = [];
+                    return;
+                }
+                var raw = res.data || [];
+                var seen = {};
+                var rows = [];
+                raw.forEach(function(u) {
+                    var c = String(u.code || '').trim();
+                    if (!c || seen[c]) return;
+                    seen[c] = true;
+                    rows.push(u);
+                });
+                rows.sort(function(a, b) { return String(a.code).localeCompare(String(b.code)); });
+                state.keywordRows = rows;
+                renderKeywordTable();
+            }
+
+            function renderKeywordTable() {
+                var rows = state.keywordRows || [];
+                var ktb = document.getElementById('ncsKeywordTbody');
+                if (!ktb) return;
+                if (rows.length === 0) {
+                    ktb.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-slate-400 text-sm">검색 결과가 없습니다.</td></tr>';
+                    return;
+                }
+                var html = '';
+                rows.forEach(function(u) {
+                    var desc = (u.description || '').trim();
+                    html += '<tr>';
+                    html += '<td class="px-3 py-2 ncs-badge align-top">' + esc(u.code) + '</td>';
+                    html += '<td class="px-3 py-2 font-medium align-top">' + esc(u.name) + '</td>';
+                    html += '<td class="px-2 py-2 text-center align-top">' + esc(u.level != null && u.level !== '' ? u.level : '—') + '</td>';
+                    html += '<td class="px-3 py-2 text-slate-700 align-top text-[13px] leading-relaxed">' + (desc ? esc(desc) : '<span class="text-slate-400">—</span>') + '</td>';
+                    html += '</tr>';
+                });
+                ktb.innerHTML = html;
+            }
+
+            function exportKeywordCsv() {
+                var rows = state.keywordRows || [];
+                if (!rows.length) {
+                    alert('먼저 검색 결과를 불러오세요.');
+                    return;
+                }
+                var out = [];
+                out.push(['분류번호', '능력단위명', '수준', '능력단위 취지(내용)']);
+                rows.forEach(function(u) {
+                    var desc = String(u.description || '');
+                    desc = desc.split(String.fromCharCode(10)).join(' ');
+                    desc = desc.split(String.fromCharCode(13)).join(' ');
+                    out.push([u.code || '', u.name || '', u.level != null && u.level !== '' ? String(u.level) : '', desc]);
+                });
+                var csv = out.map(function(r) {
+                    return r.map(function(cell) {
+                        var t = String(cell == null ? '' : cell).replace(/"/g, '""');
+                        if (t.indexOf(',') >= 0 || t.indexOf('"') >= 0 || t.indexOf(String.fromCharCode(10)) >= 0 || t.indexOf(String.fromCharCode(13)) >= 0) return '"' + t + '"';
+                        return t;
+                    }).join(',');
+                }).join(String.fromCharCode(13) + String.fromCharCode(10));
+                var blob = new Blob([String.fromCharCode(0xfeff) + csv], { type: 'text/csv;charset=utf-8;' });
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'ncs_keyword_search_' + Date.now() + '.csv';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }
 
             function api(path, method, body) {
                 var token = localStorage.getItem('token');
@@ -456,6 +659,18 @@ export function adminNcsViewerHtml(): string {
                 _kwTimer = setTimeout(function() {
                     if (state.jobsFull && state.jobsFull.length) renderJobTable();
                 }, 200);
+            });
+
+            window.addEventListener('hashchange', applyRoute);
+            applyRoute();
+
+            var btnKwSearch = document.getElementById('ncsBtnKeywordSearch');
+            var btnKwCsv = document.getElementById('ncsBtnKeywordCsv');
+            var kwInputEl = document.getElementById('ncsKeywordInput');
+            if (btnKwSearch) btnKwSearch.addEventListener('click', runKeywordSearch);
+            if (btnKwCsv) btnKwCsv.addEventListener('click', exportKeywordCsv);
+            if (kwInputEl) kwInputEl.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); runKeywordSearch(); }
             });
 
             loadLarge();
