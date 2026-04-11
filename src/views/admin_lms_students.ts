@@ -167,8 +167,10 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                 tbody.innerHTML = '<tr><td colspan="4" class="px-8 py-12 text-center text-slate-400"><i class="fas fa-spinner fa-spin text-2xl mb-4 block"></i>불러오는 중...</td></tr>';
                 try {
                     const search = document.getElementById('studentSearch').value.trim();
+                    const _sidParam = new URLSearchParams(window.location.search).get('session_id');
                     let url = '/api/enrollments?course_id=' + courseId + '&page=' + page + '&limit=' + limit;
                     if (getUrlTypeHrd()) url += '&type=hrd';
+                    if (_sidParam) url += '&session_id=' + encodeURIComponent(_sidParam);
                     if (search) url += '&search=' + encodeURIComponent(search);
                     const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + getToken() } });
                     const result = await res.json();

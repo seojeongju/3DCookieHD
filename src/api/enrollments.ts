@@ -124,24 +124,35 @@ app.get('/', authMiddleware, async (c) => {
       }
       const search = (c.req.query('search') || '').trim();
 
-      const isLmsCourse = await isRegisteredLmsCourseId(DB, courseIdNum);
-
       let asSession: { id: number; approved_course_id: number } | null = null;
 
-      if (isLmsCourse) {
-        // LMS 개설 과정 ID: 회차는 lms_course_id 로만 연결 (제목 LIKE 추정은 다른 승인과정 회차를 잡아 수강생 목록이 엇갈림)
-        asSession = await DB.prepare(
-          `SELECT id, approved_course_id FROM course_sessions
-           WHERE lms_course_id = ?
-           ORDER BY session_number DESC, id DESC
-           LIMIT 1`
-        )
-          .bind(courseIdNum)
+      // session_id 쿼리가 명시되면 해석 없이 해당 회차 직접 사용 (PK 충돌 방지)
+      const explicitSessionId = c.req.query('session_id');
+      const explicitSid = explicitSessionId != null && String(explicitSessionId).trim() !== ''
+        ? parseInt(String(explicitSessionId), 10)
+        : NaN;
+
+      if (Number.isFinite(explicitSid) && explicitSid >= 1) {
+        asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?')
+          .bind(explicitSid)
           .first<{ id: number; approved_course_id: number }>();
       } else {
-        asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?')
-          .bind(courseIdNum)
-          .first<{ id: number; approved_course_id: number }>();
+        const isLmsCourse = await isRegisteredLmsCourseId(DB, courseIdNum);
+
+        if (isLmsCourse) {
+          asSession = await DB.prepare(
+            `SELECT id, approved_course_id FROM course_sessions
+             WHERE lms_course_id = ?
+             ORDER BY session_number DESC, id DESC
+             LIMIT 1`
+          )
+            .bind(courseIdNum)
+            .first<{ id: number; approved_course_id: number }>();
+        } else {
+          asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?')
+            .bind(courseIdNum)
+            .first<{ id: number; approved_course_id: number }>();
+        }
       }
 
       if (asSession?.id != null) {
