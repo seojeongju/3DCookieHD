@@ -6,6 +6,7 @@ function resultPageScript(useFixedCourseId: boolean) {
   return `
   <script>
     const useFixedCourseId = ${useFixedCourseId ? 'true' : 'false'};
+    const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
     const fixedCourseId = useFixedCourseId ? (window.location.pathname.split('/')[3] || '') : '';
     const isTeacherPath = window.location.pathname.startsWith('/teacher/');
     const basePrefix = isTeacherPath ? '/teacher' : '/admin';
@@ -80,7 +81,7 @@ function resultPageScript(useFixedCourseId: boolean) {
 
     async function fetchPlansByRound(round) {
       if (!selectedCourseId) return [];
-      const res = await authFetch('/api/ncs/plans?courseId=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + round);
+      const res = await authFetch('/api/ncs/plans?courseId=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + round + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''));
       const json = await res.json();
       return Array.isArray(json?.data) ? json.data : [];
     }

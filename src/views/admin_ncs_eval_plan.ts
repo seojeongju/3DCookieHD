@@ -1618,6 +1618,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
   return `
   <script>
     const useFixedCourseId = ${useFixedCourseId ? 'true' : 'false'};
+    const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
     const fixedCourseId = useFixedCourseId ? (window.location.pathname.split('/')[3] || '') : '';
     let activeTab = 'minutes';
     let selectedCourseId = useFixedCourseId ? fixedCourseId : '';
@@ -1781,9 +1782,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (type && type.startsWith('hrd')) type = 'hrd';
         if (type === 'undefined') type = 'hrd';
         var base = '/api/courses/' + encodeURIComponent(courseId);
-        return type ? base + '?type=' + encodeURIComponent(type) : base;
+        var qs = type ? '?type=' + encodeURIComponent(type) : '';
+        if (_sid) qs += (qs ? '&' : '?') + 'session_id=' + encodeURIComponent(_sid);
+        return base + qs;
       } catch (e) {
-        return '/api/courses/' + encodeURIComponent(courseId) + '?type=hrd';
+        return '/api/courses/' + encodeURIComponent(courseId) + '?type=hrd' + (_sid ? '&session_id=' + encodeURIComponent(_sid) : '');
       }
     }
 
@@ -4828,7 +4831,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return [];
       }
       try {
-        var listUrl = '/api/ncs/plan-documents/list?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId);
+        var listUrl = '/api/ncs/plan-documents/list?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId) + (_sid ? '&session_id=' + encodeURIComponent(_sid) : '');
         var cid = getCurriculumIdForPlanTab(tabId);
         if (cid) listUrl += '&curriculum_id=' + encodeURIComponent(cid);
         var res = await authFetch(listUrl);
@@ -4859,7 +4862,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var requestedDocId = docId != null && String(docId).trim() !== '' ? String(docId).trim() : '';
         var currentSelectedId = requestedDocId || selectedDocIdByTab[tabId] || '';
         await loadDocumentList(tabId, currentSelectedId);
-        var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId);
+        var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(selectedCourseId) + '&evaluation_round=' + encodeURIComponent(selectedRound) + '&doc_type=' + encodeURIComponent(tabId) + (_sid ? '&session_id=' + encodeURIComponent(_sid) : '');
         var cid = getCurriculumIdForPlanTab(tabId);
         if (cid) url += '&curriculum_id=' + encodeURIComponent(cid);
         if (requestedDocId) url += '&doc_id=' + encodeURIComponent(requestedDocId);
@@ -5015,7 +5018,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var url = '/api/ncs/plan-documents/' + encodeURIComponent(docId) +
           '?course_id=' + encodeURIComponent(String(selectedCourseId)) +
           '&evaluation_round=' + encodeURIComponent(String(selectedRound)) +
-          '&doc_type=' + encodeURIComponent(tabId);
+          '&doc_type=' + encodeURIComponent(tabId) +
+          (_sid ? '&session_id=' + encodeURIComponent(_sid) : '');
         var cid = getCurriculumIdForPlanTab(tabId);
         if (cid) url += '&curriculum_id=' + encodeURIComponent(cid);
         const res = await authFetch(url, {
