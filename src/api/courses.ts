@@ -314,27 +314,7 @@ courses.get('/:id', async (c) => {
           session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(rawId).first<any>();
         }
 
-        // courses.id 인데 lms_course_id 미연결: 개설과정명 ↔ 승인과정명으로 회차 추정
-        if (courseRow && !session) {
-          const co = await DB.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?')
-            .bind(rawId)
-            .first<{ t: string }>();
-          const lmsTitle = co?.t ? String(co.t).trim() : '';
-          if (lmsTitle) {
-            session = await DB.prepare(
-              `${selectSessionJoin}
-             WHERE TRIM(COALESCE(a.name, '')) != ''
-               AND (
-                 ? LIKE '%' || TRIM(a.name) || '%'
-                 OR TRIM(a.name) LIKE '%' || ? || '%'
-               )
-             ORDER BY LENGTH(TRIM(a.name)) DESC, s.session_number DESC, s.id DESC
-             LIMIT 1`
-            )
-              .bind(lmsTitle, lmsTitle)
-              .first<any>();
-          }
-        }
+        // lms_course_id 미연결 시 제목 LIKE 로 회차를 붙이면 다른 과정 회차가 매칭되어 헤더·수강생·일정이 서로 엇갈림 (수정: 사용 안 함)
 
         // courses 행이 없을 때만 approved_course_id(승인과정 PK)로 최신 회차
         if (!session && !courseRow) {

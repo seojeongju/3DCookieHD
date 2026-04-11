@@ -141,11 +141,17 @@ function initAdminSidebar() {
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (res.success && res.data) {
+                    var seenLms = {};
                     for (var j = 0; j < res.data.length; j++) {
                         var s = res.data[j];
+                        // LMS URL은 항상 courses.id. 회차 PK(s.id)를 value로 쓰면 동일 숫자의 LMS id와 충돌 → 엉뚱한 과정으로 이동·선택됨
+                        var lmsRaw = s.lms_course_id;
+                        if (lmsRaw == null || String(lmsRaw).trim() === '') continue;
+                        var lmsId = String(lmsRaw).trim();
+                        if (seenLms[lmsId]) continue;
+                        seenLms[lmsId] = true;
+
                         var opt = document.createElement('option');
-                        // URL /courses/{id}/lms 는 LMS courses.id 기준. 회차 PK(s.id)와 숫자가 겹치면 잘못된 과정이 선택됨 → lms_course_id 우선
-                        var lmsId = s.lms_course_id != null && String(s.lms_course_id).trim() !== '' ? String(s.lms_course_id) : String(s.id);
                         opt.value = lmsId;
 
                         var courseName = s.course_name || '';
