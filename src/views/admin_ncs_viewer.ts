@@ -137,7 +137,8 @@ export function adminNcsViewerHtml(): string {
                             </div>
                         </div>
                         <p class="text-[11px] text-slate-400 mt-3 px-1">
-                            ※ 분류번호(능력단위) 형식: 10자리 숫자_개발연도2자리v버전 (예: 1903110201_15v1)
+                            ※ 분류번호(능력단위) 형식: 10자리 숫자_개발연도2자리v버전 (예: 1903110201_15v1)<br>
+                            ※ 직무 펼침 시 요소명·수행준거·평가준거는 기준정보 API(NCS006·NCS008)로 조합하며, 서버에 NCS_API_KEY가 있어야 합니다.
                         </p>
                     </div>
                 </div>
@@ -540,13 +541,30 @@ export function adminNcsViewerHtml(): string {
 
                 var units = state.unitsCache[fullCode];
                 var inner = '<table class="w-full ncs-inner-table border-collapse"><thead><tr>' +
-                    '<th class="w-[38%]">분류번호</th><th class="w-[42%]">능력단위명</th><th class="w-[10%]">수준</th><th class="w-[10%]">학습모듈</th></tr></thead><tbody>';
+                    '<th class="w-[20%]">분류번호</th><th class="w-[28%]">능력단위명</th><th class="w-[8%]">수준</th><th class="w-[10%]">학습모듈</th></tr></thead><tbody>';
                 if (units.length === 0) {
                     inner += '<tr><td colspan="4" class="text-center text-slate-400 py-6">등록된 능력단위가 없습니다.</td></tr>';
                 } else {
                     units.forEach(function(u) {
-                        inner += '<tr><td class="ncs-badge text-slate-700">' + esc(u.code) + '</td><td class="font-medium">' + esc(u.name) + '</td>' +
-                            '<td class="text-center">' + esc(u.level) + '</td><td class="text-center">' + esc(moduleYearFromCode(u.code)) + '</td></tr>';
+                        inner += '<tr><td class="ncs-badge text-slate-700 align-top">' + esc(u.code) + '</td><td class="font-medium align-top">' + esc(u.name) + '</td>' +
+                            '<td class="text-center align-top">' + esc(u.level) + '</td><td class="text-center align-top">' + esc(moduleYearFromCode(u.code)) + '</td></tr>';
+                        var els = u.elements || [];
+                        if (els.length > 0) {
+                            inner += '<tr><td colspan="4" class="p-0 bg-slate-50 border-t border-slate-200 align-top">' +
+                                '<div class="px-3 py-2 text-[11px] font-bold text-slate-600 border-b border-slate-100">능력단위 요소 · 수행준거 · 평가준거</div>' +
+                                '<table class="w-full text-xs border-collapse ncs-inner-table"><thead><tr>' +
+                                '<th class="w-[18%]">요소명</th><th class="w-[41%]">수행준거</th><th class="w-[41%]">평가준거</th></tr></thead><tbody>';
+                            els.forEach(function(el) {
+                                var ename = (el.name && String(el.name).trim()) ? String(el.name) : (el.code ? String(el.code) : '—');
+                                var crit = (el.criteriaText && String(el.criteriaText).trim()) ? String(el.criteriaText) : '';
+                                var eva = (el.evaluationCriteriaText || el.evaluation_criteria_text || '');
+                                eva = String(eva).trim();
+                                inner += '<tr><td class="align-top font-medium text-slate-800">' + esc(ename) + '</td>' +
+                                    '<td class="align-top text-slate-700 leading-relaxed">' + (crit ? esc(crit) : '<span class="text-slate-400">—</span>') + '</td>' +
+                                    '<td class="align-top text-slate-700 leading-relaxed">' + (eva ? esc(eva) : '<span class="text-slate-400">—</span>') + '</td></tr>';
+                            });
+                            inner += '</tbody></table></td></tr>';
+                        }
                     });
                 }
                 inner += '</tbody></table>';
@@ -599,7 +617,7 @@ export function adminNcsViewerHtml(): string {
                     return;
                 }
                 var rows = [];
-                rows.push(['대분류', '중분류', '소분류', '직종코드', '직종명(세분류)', '분류번호', '능력단위명', '수준', '학습모듈(연도)']);
+                rows.push(['대분류', '중분류', '소분류', '직종코드', '직종명(세분류)', '분류번호', '능력단위명', '수준', '학습모듈(연도)', '요소명', '수행준거', '평가준거']);
                 var lN = state.largeName, mN = state.midName, sN = state.smallName;
 
                 for (var i = 0; i < state.jobsFull.length; i++) {
@@ -611,10 +629,20 @@ export function adminNcsViewerHtml(): string {
                     }
                     var units = state.unitsCache[fc];
                     if (units.length === 0) {
-                        rows.push([lN, mN, sN, j.code, j.name, '', '', '', '']);
+                        rows.push([lN, mN, sN, j.code, j.name, '', '', '', '', '', '', '']);
                     } else {
                         units.forEach(function(u) {
-                            rows.push([lN, mN, sN, j.code, j.name, u.code || '', u.name || '', String(u.level != null ? u.level : ''), moduleYearFromCode(u.code)]);
+                            var els = u.elements || [];
+                            if (!els.length) {
+                                rows.push([lN, mN, sN, j.code, j.name, u.code || '', u.name || '', String(u.level != null ? u.level : ''), moduleYearFromCode(u.code), '', '', '']);
+                            } else {
+                                els.forEach(function(el) {
+                                    var ename = (el.name && String(el.name).trim()) ? String(el.name) : String(el.code || '');
+                                    var crit = String(el.criteriaText || '').trim();
+                                    var eva = String(el.evaluationCriteriaText || el.evaluation_criteria_text || '').trim();
+                                    rows.push([lN, mN, sN, j.code, j.name, u.code || '', u.name || '', String(u.level != null ? u.level : ''), moduleYearFromCode(u.code), ename, crit, eva]);
+                                });
+                            }
                         });
                     }
                 }
@@ -622,10 +650,10 @@ export function adminNcsViewerHtml(): string {
                 var csv = rows.map(function(r) {
                     return r.map(function(cell) {
                         var t = String(cell == null ? '' : cell).replace(/"/g, '""');
-                        if (/[",\\n\\r]/.test(t)) return '"' + t + '"';
+                        if (t.indexOf(',') >= 0 || t.indexOf('"') >= 0 || t.indexOf(String.fromCharCode(10)) >= 0 || t.indexOf(String.fromCharCode(13)) >= 0) return '"' + t + '"';
                         return t;
                     }).join(',');
-                }).join('\\r\\n');
+                }).join(String.fromCharCode(13) + String.fromCharCode(10));
                 var blob = new Blob([String.fromCharCode(0xfeff) + csv], { type: 'text/csv;charset=utf-8;' });
                 var a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);

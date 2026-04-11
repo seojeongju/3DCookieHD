@@ -530,6 +530,85 @@ async function fetchNcsPerformanceCriteria(
     return [];
 }
 
+function elementHasViewerCriteria(e: { criteriaText?: string; evaluationCriteriaText?: string; evaluation_criteria_text?: string }): boolean {
+    const c = (e?.criteriaText || '').trim();
+    const ev = (e?.evaluationCriteriaText || e?.evaluation_criteria_text || '').trim();
+    return !!(c || ev);
+}
+
+/** 분류보기용: 능력단위에 요소(NCS006)+수행·평가준거(NCS008)를 메모리에 병합(DB 미저장) */
+async function enrichNcsUnitForViewer(
+    unit: { code: string; elements?: unknown[] },
+    apiKey: string,
+    classificationBase?: string
+): Promise<void> {
+    let elements: any[] = Array.isArray(unit.elements) ? [...unit.elements] : [];
+    const allEnriched = elements.length > 0 && elements.every((e) => elementHasViewerCriteria(e));
+    if (allEnriched) {
+        unit.elements = elements;
+        return;
+    }
+
+    if (!elements.length) {
+        try {
+            elements = await fetchNcsUnitElements(apiKey, unit.code, classificationBase);
+        } catch (e) {
+            console.warn('[viewer enrich] NCS006', unit.code, e);
+        }
+    }
+
+    let details: Awaited<ReturnType<typeof fetchNcsPerformanceCriteria>> = [];
+    try {
+        details = await fetchNcsPerformanceCriteria(apiKey, unit.code, classificationBase);
+    } catch (e) {
+        console.warn('[viewer enrich] NCS008', unit.code, e);
+    }
+
+    const findDetail = (elemCode: string) =>
+        details.find(
+            (det) =>
+                det.elemCode &&
+                elemCode &&
+                (det.elemCode === elemCode ||
+                    det.elemCode === elemCode.split('_')[0] ||
+                    (elemCode.length >= det.elemCode.length && elemCode.startsWith(det.elemCode)))
+        );
+
+    if (details.length > 0) {
+        if (elements.length > 0) {
+            elements = elements.map((e: any) => {
+                const ec = String(e.code || '').trim();
+                const d = findDetail(ec);
+                if (d) {
+                    return {
+                        ...e,
+                        evaluationCriteriaText: d.evaluationCriteriaText || e.evaluationCriteriaText,
+                        evaluation_criteria_text: d.evaluationCriteriaText || e.evaluation_criteria_text,
+                        criteriaText: d.criteriaText || e.criteriaText,
+                        knowledgeText: d.knowledgeText || e.knowledgeText,
+                        skillText: d.skillText || e.skillText,
+                        attitudeText: d.attitudeText || e.attitudeText,
+                    };
+                }
+                return e;
+            });
+        } else {
+            elements = details.map((d) => ({
+                code: d.elemCode,
+                name: '',
+                evaluationCriteriaText: d.evaluationCriteriaText,
+                evaluation_criteria_text: d.evaluationCriteriaText,
+                criteriaText: d.criteriaText,
+                knowledgeText: d.knowledgeText,
+                skillText: d.skillText,
+                attitudeText: d.attitudeText,
+            }));
+        }
+    }
+
+    unit.elements = elements;
+}
+
 /** NCS009: 평가방법 조회 - 능력단위별 권장 평가방법 및 교수학습방법 */
 async function fetchNcsEvaluationMethods(apiKey: string, ncsClCd: string, baseUrl?: string): Promise<{ evaluation: string[]; teaching: string[] }> {
     const key = decodeServiceKey(apiKey);
@@ -1389,6 +1468,19 @@ app.get('/approved/units-by-job', async (c) => {
             if (lvB !== lvA) return lvB - lvA;
             return (a.code || '').localeCompare(b.code || '');
         });
+
+        // 3.5 분류보기: 요소명+수행준거(NCS006+NCS008) 메모리 병합 — 키가 있을 때만(능력단위별 순차 호출)
+        if (apiKey) {
+            for (const u of data) {
+                const code = String((u as { code?: string }).code || '').trim();
+                if (!code) continue;
+                try {
+                    await enrichNcsUnitForViewer(u as { code: string; elements?: unknown[] }, apiKey, classificationBase);
+                } catch (e) {
+                    console.warn('[units-by-job] enrich', code, e);
+                }
+            }
+        }
 
         // 4. 능력단위별 연동 과정명 조회 (course_ncs_units → courses)
         const codeToTitles = new Map<string, string[]>();
