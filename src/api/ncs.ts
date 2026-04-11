@@ -3589,6 +3589,94 @@ function normalizeEvalElementTitle(t: string): string {
         .replace(/\s+/g, ' ');
 }
 
+type AbilityUnitJsonEntry =
+    | string
+    | {
+          code?: string;
+          name?: string;
+          elements?: { code?: string; name?: string }[];
+      };
+
+function getAbilityUnitEntryForCode(parsed: AbilityUnitJsonEntry[], unitCode: string): AbilityUnitJsonEntry | undefined {
+    const want = String(unitCode || '').trim();
+    if (!want) return undefined;
+    for (const au of parsed) {
+        const uc =
+            typeof au === 'string'
+                ? String(au).trim()
+                : String(
+                      au && typeof au === 'object' && au !== null && 'code' in au
+                          ? (au as { code?: string }).code
+                          : ''
+                  ).trim();
+        if (uc === want) return au;
+    }
+    return undefined;
+}
+
+function abilityUnitsHasStrictElements(parsed: AbilityUnitJsonEntry[]): boolean {
+    for (const au of parsed) {
+        if (typeof au === 'object' && au !== null && Array.isArray(au.elements) && au.elements.length > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function ncsElementMatchesConfigured(el: any, configured: { code?: string; name?: string }[]): boolean {
+    const elCode = normalizeEvalElementTitle(String(el?.code || ''));
+    const elName = normalizeEvalElementTitle(String(el?.name || '').replace(/^-\s*/, ''));
+    for (const cfg of configured) {
+        const cCode = normalizeEvalElementTitle(String(cfg?.code || ''));
+        const cName = normalizeEvalElementTitle(String(cfg?.name || '').replace(/^-\s*/, ''));
+        if (cCode && elCode) {
+            if (elCode === cCode || elCode.endsWith(cCode) || cCode.endsWith(elCode)) return true;
+        }
+        if (cName && elName && elName === cName) return true;
+    }
+    return false;
+}
+
+function filterNcsElementsByCourseConfig(
+    elements: any[],
+    configured: { code?: string; name?: string }[] | null | undefined
+): any[] {
+    const els = Array.isArray(elements) ? elements : [];
+    if (!configured || configured.length === 0) return els;
+    return els.filter((el) => ncsElementMatchesConfigured(el, configured));
+}
+
+async function resolveDefaultToolsInstructor(
+    DB: D1Database,
+    mainInstructorIdsJson: string | null | undefined,
+    sessionInstructorName: string | null | undefined
+): Promise<string> {
+    const names: string[] = [];
+    if (mainInstructorIdsJson) {
+        try {
+            const ids = JSON.parse(String(mainInstructorIdsJson)) as unknown;
+            if (Array.isArray(ids)) {
+                for (const rawId of ids) {
+                    if (rawId == null || rawId === '') continue;
+                    const uid = Number(rawId);
+                    if (!Number.isFinite(uid)) continue;
+                    const row = (await DB.prepare('SELECT name FROM users WHERE id = ? LIMIT 1').bind(uid).first()) as {
+                        name?: string;
+                    } | null;
+                    const n = String(row?.name || '').trim();
+                    if (n) names.push(n);
+                }
+            }
+        } catch (_) {
+            /* ignore */
+        }
+    }
+    if (names.length) return names.join(', ');
+    const sn = String(sessionInstructorName || '').trim();
+    if (sn) return sn;
+    return '';
+}
+
 /** NCS 기준 그룹 + 저장된 평가도구제작 그룹 병합(능력단위 요소명 기준 매칭) */
 function mergeCriteriaGroupsFromOverlay(ncsGroups: any[], savedGroups: any[] | null | undefined): any[] {
     if (!savedGroups || !Array.isArray(savedGroups) || savedGroups.length === 0) return ncsGroups;
@@ -3706,7 +3794,8 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const link: any = await c.env.DB.prepare(
-            `SELECT c.id, c.name, c.job_name, c.ability_units_json, c.registration_id
+            `SELECT c.id, c.name, c.job_name, c.ability_units_json, c.registration_id, c.main_instructor_ids_json,
+                    s.instructor_name AS session_instructor_name
              FROM ncs_approved_curriculum c
              INNER JOIN ncs_approved_registrations r ON r.id = c.registration_id
              INNER JOIN course_sessions s ON s.approved_course_id = r.approved_course_id
@@ -3722,14 +3811,27 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
         const courseRow: any = await c.env.DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(courseId).first();
 
         let unitCodes: string[] = [];
+        let parsedAbilityUnits: AbilityUnitJsonEntry[] = [];
         try {
-            const parsed = JSON.parse(String(link.ability_units_json || '[]')) as (string | { code?: string })[];
-            if (Array.isArray(parsed)) {
-                unitCodes = parsed.map((u) => (typeof u === 'string' ? u : (u?.code || ''))).filter(Boolean);
-            }
+            const parsed = JSON.parse(String(link.ability_units_json || '[]')) as AbilityUnitJsonEntry[];
+            parsedAbilityUnits = Array.isArray(parsed) ? parsed : [];
+            unitCodes = parsedAbilityUnits
+                .map((u) => (typeof u === 'string' ? u : String((u as { code?: string }).code || '')))
+                .map((s) => String(s || '').trim())
+                .filter(Boolean);
         } catch (_) {
             unitCodes = [];
+            parsedAbilityUnits = [];
         }
+
+        const defaultToolsInstructor = await resolveDefaultToolsInstructor(
+            c.env.DB,
+            link?.main_instructor_ids_json,
+            link?.session_instructor_name
+        );
+
+        const allowedElementTitles = new Set<string>();
+        const strictElements = abilityUnitsHasStrictElements(parsedAbilityUnits);
 
         type CriteriaLine = { label: string; text: string };
         type CriteriaGroup = { element_title: string; lines: CriteriaLine[] };
@@ -3791,10 +3893,23 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             } catch (_) {
                 elements = [];
             }
+            const auEntry = getAbilityUnitEntryForCode(parsedAbilityUnits, code);
+            let configuredEls: { code?: string; name?: string }[] | null = null;
+            if (
+                auEntry &&
+                typeof auEntry === 'object' &&
+                auEntry !== null &&
+                Array.isArray(auEntry.elements) &&
+                auEntry.elements.length > 0
+            ) {
+                configuredEls = auEntry.elements;
+            }
+            elements = filterNcsElementsByCourseConfig(elements, configuredEls);
             for (let ei = 0; ei < elements.length; ei++) {
                 majorCounter += 1;
                 const el = elements[ei];
                 const etitle = String(el?.name || '').trim() || '-';
+                allowedElementTitles.add(normalizeEvalElementTitle(etitle));
                 const lines = extractLines(el, majorCounter);
                 if (!lines.length) continue;
                 groups.push({ element_title: etitle, lines });
@@ -3817,6 +3932,12 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             }
         }
 
+        if (strictElements) {
+            groups = groups.filter((g) =>
+                allowedElementTitles.has(normalizeEvalElementTitle(String(g?.element_title ?? '')))
+            );
+        }
+
         const subjectName = String(link.name || '').trim();
         const unitNameLevel =
             primaryUnitName && primaryLevel !== null && primaryLevel !== ''
@@ -3836,7 +3957,8 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                 ability_unit_codes: unitCodes,
                 criteria_groups: groups,
                 evaluation_round: evalRound,
-                overlay_merged: !skipOverlay
+                overlay_merged: !skipOverlay,
+                default_tools_instructor: defaultToolsInstructor
             },
         });
     } catch (e) {

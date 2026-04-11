@@ -1161,6 +1161,11 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">평가내용<br/><span class="text-[10px] font-normal text-slate-500">(NCS 평가준거)</span></td>
                         <td class="border border-black p-0" colspan="3">
+                          <div class="flex flex-wrap items-center gap-2 px-2 py-2 border-b border-slate-200 bg-slate-50/90">
+                            <button type="button" id="toolsCriteriaAddLineBtn" class="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-800 text-xs font-black hover:bg-indigo-100 transition">평가내용 행 추가</button>
+                            <button type="button" id="toolsCriteriaAddElementBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-xs font-black hover:bg-slate-50 transition">능력단위 요소 추가</button>
+                            <span class="text-[10px] text-slate-500 leading-snug">같은 능력단위요소에 여러 줄이 필요하면 <strong class="text-slate-600">평가내용 행 추가</strong>를 누르세요.</span>
+                          </div>
                           <table class="w-full text-left border-collapse">
                             <thead class="bg-slate-100 border-b border-black">
                               <tr>
@@ -2650,7 +2655,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getQuestionsFieldValue('questions_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = getNcsSubjectSelectText('questionsSubjectSelect');
+      var subjLabel = getNcsSubjectSelectPlainName('questionsSubjectSelect');
 
       setMinutesPrintText('questionsPrintCourseName', courseTitle || '-');
       setMinutesPrintText('questionsPrintSubject', subjLabel || '-');
@@ -2747,7 +2752,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getToolsFieldValue('tools_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = getNcsSubjectSelectText('toolsSubjectSelect');
+      var subjLabel = getNcsSubjectSelectPlainName('toolsSubjectSelect');
 
       setMinutesPrintText('toolsPrintCourseName', courseTitle || '-');
       setMinutesPrintText('toolsPrintSubject', subjLabel || '-');
@@ -2832,7 +2837,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getRubricFieldValue('rubric_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = getNcsSubjectSelectText('rubric_subject_name');
+      var subjLabel = getNcsSubjectSelectPlainName('rubric_subject_name');
 
       setMinutesPrintText('rubricPrintCourseName', courseTitle || '-');
       setMinutesPrintText('rubricPrintSubject', subjLabel || '-');
@@ -2902,7 +2907,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getAchievementFieldValue('achievement_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = getNcsSubjectSelectText('achievement_subject_name');
+      var subjLabel = getNcsSubjectSelectPlainName('achievement_subject_name');
 
       setMinutesPrintText('achievementPrintCourseName', courseTitle || '-');
       setMinutesPrintText('achievementPrintSubject', subjLabel || '-');
@@ -2970,7 +2975,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var docTitle = getReviewFieldValue('review_doc_title');
       if (subEl) subEl.textContent = docTitle ? ('(' + docTitle + ')') : '';
 
-      var subjLabel = getNcsSubjectSelectText('review_subject_name');
+      var subjLabel = getNcsSubjectSelectPlainName('review_subject_name');
 
       setMinutesPrintText('reviewPrintCourseName', courseTitle || '-');
       setMinutesPrintText('reviewPrintSubject', subjLabel || '-');
@@ -3150,7 +3155,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             rows: readToolRowsFromTable(),
             session_id: Number.isFinite(tRawSess) && tRawSess > 0 ? tRawSess : '',
             curriculum_id: Number.isFinite(tRawCur) && tRawCur > 0 ? tRawCur : '',
-            subject_name: getNcsSubjectSelectText('toolsSubjectSelect')
+            subject_name: getNcsSubjectSelectPlainName('toolsSubjectSelect')
           }
         };
       }
@@ -3161,7 +3166,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           title: getRubricFieldValue('rubric_doc_title'),
           payload: {
             writer: getRubricFieldValue('rubric_writer'),
-            subject_name: getNcsSubjectSelectText('rubric_subject_name'),
+            subject_name: getNcsSubjectSelectPlainName('rubric_subject_name'),
             curriculum_id: Number.isFinite(ruRawCur) && ruRawCur > 0 ? ruRawCur : '',
             session_id: Number.isFinite(ruRawSess) && ruRawSess > 0 ? ruRawSess : '',
             unit_name: getRubricFieldValue('rubric_unit_name'),
@@ -3180,7 +3185,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           payload: {
             writer: getAchievementFieldValue('achievement_writer'),
             eval_date: getAchievementFieldValue('achievement_eval_date'),
-            subject_name: getNcsSubjectSelectText('achievement_subject_name'),
+            subject_name: getNcsSubjectSelectPlainName('achievement_subject_name'),
             curriculum_id: Number.isFinite(achRawCur) && achRawCur > 0 ? achRawCur : '',
             session_id: Number.isFinite(achRawSess) && achRawSess > 0 ? achRawSess : '',
             trainee: getAchievementFieldValue('achievement_trainee'),
@@ -3207,7 +3212,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             approval_role_chair: getReviewFieldValue('review_approval_role_chair'),
             approval_role_writer: getReviewFieldValue('review_approval_role_writer'),
             approval_role_reviewer: getReviewFieldValue('review_approval_role_reviewer'),
-            subject_name: getNcsSubjectSelectText('review_subject_name'),
+            subject_name: getNcsSubjectSelectPlainName('review_subject_name'),
             curriculum_id: Number.isFinite(revRawCur) && revRawCur > 0 ? revRawCur : '',
             session_id: Number.isFinite(revRawSess) && revRawSess > 0 ? revRawSess : '',
             unit_level: getReviewFieldValue('review_unit_level'),
@@ -3585,7 +3590,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
     function addQuestionFromInputs() {
       var qSubEl = document.getElementById('questionsSubjectSelect');
-      var subjectLabel = getNcsSubjectSelectText('questionsSubjectSelect');
+      var subjectLabel = getNcsSubjectSelectPlainName('questionsSubjectSelect');
       var curriculumId = qSubEl && qSubEl.value ? String(qSubEl.value).trim() : '';
       const noEl = document.getElementById('questionInputNo');
       const typeEl = document.getElementById('questionInputType');
@@ -3688,8 +3693,44 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function syncToolsSubjectDisplay() {
       var el = document.getElementById('tools_display_subject');
       if (!el) return;
-      var txt = getNcsSubjectSelectText('toolsSubjectSelect');
-      el.textContent = txt || '-';
+      var sel = document.getElementById('toolsSubjectSelect');
+      if (!sel || sel.selectedIndex < 0 || !sel.options[sel.selectedIndex]) {
+        el.textContent = '-';
+        return;
+      }
+      var opt = sel.options[sel.selectedIndex];
+      var v = String(sel.value || '').trim();
+      var plain = stripSubjectTypeBadge(String(opt.textContent || ''));
+      if (!v || !plain) {
+        el.textContent = '-';
+        return;
+      }
+      var t = String(opt.getAttribute('data-subject-type') || '').trim().toLowerCase();
+      if (!t) {
+        var rawTx = String(opt.textContent || '');
+        if (/^\[NCS\]/i.test(rawTx)) t = 'ncs';
+        else if (/^\[비NCS\]/i.test(rawTx)) t = 'non_ncs';
+        else if (/^\[직업기초\]/i.test(rawTx)) t = 'basic';
+      }
+      var badgeClass =
+        'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border mr-1.5 align-middle shrink-0';
+      var badgeHtml = '';
+      if (t === 'ncs') {
+        badgeHtml =
+          '<span class="' + badgeClass + ' bg-indigo-100 text-indigo-800 border-indigo-200">NCS</span>';
+      } else if (t === 'non_ncs') {
+        badgeHtml =
+          '<span class="' + badgeClass + ' bg-amber-100 text-amber-900 border-amber-200">비NCS</span>';
+      } else if (t === 'basic') {
+        badgeHtml =
+          '<span class="' + badgeClass + ' bg-slate-100 text-slate-700 border-slate-300">직업기초</span>';
+      }
+      el.innerHTML =
+        '<span class="inline-flex items-center flex-wrap gap-1.5">' +
+        badgeHtml +
+        '<span class="font-semibold text-slate-900">' +
+        escapeHtml(plain) +
+        '</span></span>';
     }
 
     function updateToolsLoadButtonState() {
@@ -3721,13 +3762,58 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }, true);
     }
 
+    /** contenteditable 변경분을 상태에 반영(행 추가 직전 등 구조 변경 시 호출) */
+    function syncToolsCriteriaStateFromDom() {
+      var tbody = document.getElementById('toolsCriteriaBody');
+      if (!tbody || !toolsCriteriaGroupsState.length) return;
+      tbody.querySelectorAll('[data-role="element-title"]').forEach(function(el) {
+        var g = parseInt(el.getAttribute('data-g') || '-1', 10);
+        if (!Number.isFinite(g) || g < 0 || !toolsCriteriaGroupsState[g]) return;
+        toolsCriteriaGroupsState[g].element_title = String(el.textContent || '').trim() || '-';
+      });
+      tbody.querySelectorAll('.data-tools-crit-text').forEach(function(el) {
+        var g = parseInt(el.getAttribute('data-g') || '-1', 10);
+        var ln = parseInt(el.getAttribute('data-ln') || '-1', 10);
+        if (!Number.isFinite(g) || !Number.isFinite(ln) || !toolsCriteriaGroupsState[g] || !toolsCriteriaGroupsState[g].lines[ln]) {
+          return;
+        }
+        toolsCriteriaGroupsState[g].lines[ln].text = String(el.textContent || '').trim();
+      });
+    }
+
+    function addToolsCriteriaContentLine() {
+      syncToolsCriteriaStateFromDom();
+      if (!toolsCriteriaGroupsState.length) {
+        toolsCriteriaGroupsState = [{ element_title: '능력단위 요소', lines: [{ label: '1.1', text: '' }] }];
+      } else {
+        var lastG = toolsCriteriaGroupsState.length - 1;
+        var grp = toolsCriteriaGroupsState[lastG];
+        if (!Array.isArray(grp.lines)) grp.lines = [];
+        var major = lastG + 1;
+        var nextMinor = grp.lines.length + 1;
+        grp.lines.push({ label: major + '.' + nextMinor, text: '' });
+      }
+      renderToolsCriteriaBody(toolsCriteriaGroupsState);
+    }
+
+    function addToolsCriteriaElementGroup() {
+      syncToolsCriteriaStateFromDom();
+      var nextMajor = toolsCriteriaGroupsState.length + 1;
+      toolsCriteriaGroupsState.push({
+        element_title: '능력단위 요소',
+        lines: [{ label: nextMajor + '.1', text: '' }]
+      });
+      renderToolsCriteriaBody(toolsCriteriaGroupsState);
+    }
+
     function renderToolsCriteriaBody(groups) {
       wireToolsCriteriaEditDelegation();
       toolsCriteriaGroupsState = Array.isArray(groups) ? JSON.parse(JSON.stringify(groups)) : [];
       var tbody = document.getElementById('toolsCriteriaBody');
       if (!tbody) return;
       if (!toolsCriteriaGroupsState.length) {
-        tbody.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">교과목을 선택한 뒤 「NCS 평가준거 불러오기」를 눌러 평가내용을 채웁니다.</td></tr>';
+        tbody.innerHTML =
+          '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">「NCS 평가준거 불러오기」로 채우거나, 위의 <strong class="text-slate-600">평가내용 행 추가</strong>로 수동 입력을 시작할 수 있습니다.</td></tr>';
         return;
       }
       var html = '';
@@ -3753,10 +3839,42 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
       if (!html) {
-        tbody.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">불러온 평가준거가 없습니다. NCS 능력단위·요소 데이터를 확인해 주세요.</td></tr>';
+        tbody.innerHTML =
+          '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">표시할 평가내용 행이 없습니다. 「평가내용 행 추가」로 줄을 추가하거나 NCS 데이터를 확인해 주세요.</td></tr>';
         return;
       }
       tbody.innerHTML = html;
+    }
+
+    function getToolsInstructorFieldTrimmed() {
+      var el = document.getElementById('tools_instructor');
+      return el ? String(el.value || '').trim() : '';
+    }
+
+    /** 배정 강사명 — 입력란이 비어 있을 때만 채움 (과정·교과목·회차 기준) */
+    async function applyDefaultToolsInstructorFromEvalFormApi() {
+      var cid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      if (!cid || !courseId) return;
+      if (getToolsInstructorFieldTrimmed()) return;
+      try {
+        var roundQ = (typeof selectedRound === 'number' && selectedRound >= 1 && selectedRound <= 3) ? selectedRound : 1;
+        var res = await authFetch(
+          '/api/ncs/approved/curriculum/' +
+            encodeURIComponent(cid) +
+            '/evaluation-tool-form?course_id=' +
+            encodeURIComponent(String(courseId)) +
+            '&evaluation_round=' +
+            encodeURIComponent(String(roundQ)) +
+            '&refresh=1'
+        );
+        var json = await res.json();
+        if (!json || !json.success) return;
+        var ins = String((json.data && json.data.default_tools_instructor) || '').trim();
+        if (ins) setToolsFieldValue('tools_instructor', ins);
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     async function loadNcsCriteriaIntoToolsForm() {
@@ -3778,6 +3896,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setToolsFieldValue('tools_display_course', d.course_title || '');
         syncToolsSubjectDisplay();
         setToolsFieldValue('tools_unit_name_level', d.unit_name_level || '');
+        var insDefault = String(d.default_tools_instructor || '').trim();
+        if (insDefault && !getToolsInstructorFieldTrimmed()) {
+          setToolsFieldValue('tools_instructor', insDefault);
+        }
         var groups = Array.isArray(d.criteria_groups) ? d.criteria_groups : [];
         if (groups.length && groups[0] && groups[0].element_title) {
           setToolsFieldValue('tools_element_focus', '- ' + String(groups[0].element_title));
@@ -4178,6 +4300,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           applyNcsSubjectSelectValue('toolsSubjectSelect', payload.curriculum_id, payload.subject_name);
           syncToolsSubjectDisplay();
           updateToolsLoadButtonState();
+          if (!String(getToolsFieldValue('tools_instructor') || '').trim()) {
+            void applyDefaultToolsInstructorFromEvalFormApi();
+          }
         })();
         return;
       }
@@ -4313,6 +4438,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       return String(el.options[el.selectedIndex].textContent || '').trim();
     }
 
+    /** 드롭다운 표시용 [NCS] 등 접두 제거 — 저장·인쇄·문항 행에는 순수 교과목명 사용 */
+    function stripSubjectTypeBadge(text) {
+      var s = String(text || '').trim();
+      s = s.replace(/^\[(?:NCS|비NCS|직업기초)\]\s*/i, '');
+      return s.trim();
+    }
+
+    function getNcsSubjectSelectPlainName(selectId) {
+      return stripSubjectTypeBadge(getNcsSubjectSelectText(selectId));
+    }
+
+    function subjectTypeBadgePrefix(typeRaw) {
+      var t = String(typeRaw || 'ncs').trim().toLowerCase();
+      if (t === 'ncs') return '[NCS] ';
+      if (t === 'non_ncs') return '[비NCS] ';
+      if (t === 'basic') return '[직업기초] ';
+      return '';
+    }
+
     function getNcsSubjectSelectCurriculumValue(selectId) {
       var el = document.getElementById(selectId);
       if (!el || String(el.tagName).toUpperCase() !== 'SELECT') return '';
@@ -4332,9 +4476,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         el.value = '';
         return;
       }
+      var namePlain = stripSubjectTypeBadge(name);
       for (var i = 0; i < el.options.length; i++) {
         var o = el.options[i];
-        if (String(o.textContent || '').trim() === name) {
+        var ot = String(o.textContent || '').trim();
+        if (ot === name || stripSubjectTypeBadge(ot) === namePlain) {
           el.value = o.value;
           return;
         }
@@ -4351,9 +4497,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         seen[idKey] = true;
         var opt = document.createElement('option');
         opt.value = idKey;
-        var nm = String(sub.name || sub.main_job_name || sub.job_name || '교과목');
-        opt.textContent = nm;
-        opt.title = nm;
+        var nm = String(sub.name || sub.main_job_name || sub.job_name || '교과목').trim();
+        var typeRaw = String(sub.type || 'ncs').trim().toLowerCase();
+        opt.setAttribute('data-subject-type', typeRaw);
+        var display = subjectTypeBadgePrefix(typeRaw) + nm;
+        opt.textContent = display;
+        opt.title = display;
         el.appendChild(opt);
       });
     }
@@ -4837,12 +4986,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         toolsSubSelInit.addEventListener('change', function() {
           syncToolsSubjectDisplay();
           updateToolsLoadButtonState();
+          void applyDefaultToolsInstructorFromEvalFormApi();
         });
       }
       var toolsLoadBtnInit = document.getElementById('toolsLoadNcsCriteriaBtn');
       if (toolsLoadBtnInit) {
         toolsLoadBtnInit.addEventListener('click', function() {
           void loadNcsCriteriaIntoToolsForm();
+        });
+      }
+      var toolsCritAddLineBtn = document.getElementById('toolsCriteriaAddLineBtn');
+      if (toolsCritAddLineBtn) {
+        toolsCritAddLineBtn.addEventListener('click', function() {
+          addToolsCriteriaContentLine();
+        });
+      }
+      var toolsCritAddElBtn = document.getElementById('toolsCriteriaAddElementBtn');
+      if (toolsCritAddElBtn) {
+        toolsCritAddElBtn.addEventListener('click', function() {
+          addToolsCriteriaElementGroup();
         });
       }
 
