@@ -4581,6 +4581,8 @@ app.get('/plan-documents', authMiddleware, async (c) => {
         const roundRaw = c.req.query('evaluation_round') ?? c.req.query('round');
         const docType = (c.req.query('doc_type') || '').trim();
         const docIdRaw = (c.req.query('doc_id') || '').trim();
+        const cidRaw = (c.req.query('curriculum_id') || '').trim();
+
         if (!courseIdRaw || !docType) {
             return c.json({ success: false, error: 'course_id and doc_type are required' }, 400);
         }
@@ -4592,6 +4594,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
         if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
+        const curriculumId = cidRaw ? parseInt(cidRaw, 10) : null;
 
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
@@ -4615,11 +4618,12 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                     SELECT n.id, n.course_id, n.evaluation_round, n.doc_type, n.title, n.payload_json, n.updated_at
                     FROM ncs_plan_documents n
                     WHERE n.id = ? AND n.evaluation_round = ? AND n.doc_type = ?
+                      AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)
                       AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                     LIMIT 1
                 `
                     )
-                    .bind(docId, round, docType, courseId, courseId)
+                    .bind(docId, round, docType, curriculumId, courseId, courseId)
                     .first();
             } else {
                 row = await db
@@ -4628,10 +4632,11 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                     SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
                     FROM ncs_plan_documents
                     WHERE id = ? AND course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
+                      AND (curriculum_id = ? OR curriculum_id IS NULL)
                     LIMIT 1
                 `
                     )
-                    .bind(docId, ...inList, round, docType)
+                    .bind(docId, ...inList, round, docType, curriculumId)
                     .first();
             }
         } else if (useLmsStrict) {
@@ -4641,6 +4646,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 SELECT n.id, n.course_id, n.evaluation_round, n.doc_type, n.title, n.payload_json, n.updated_at
                 FROM ncs_plan_documents n
                 WHERE n.evaluation_round = ? AND n.doc_type = ?
+                  AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)
                   AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                 ORDER BY
                   CASE
@@ -4652,7 +4658,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(round, docType, courseId, courseId, courseId)
+                .bind(round, docType, curriculumId, courseId, courseId, courseId)
                 .first();
         } else {
             row = await db
@@ -4661,11 +4667,12 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 SELECT id, course_id, evaluation_round, doc_type, title, payload_json, updated_at
                 FROM ncs_plan_documents
                 WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
+                  AND (curriculum_id = ? OR curriculum_id IS NULL)
                 ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
                 LIMIT 1
             `
                 )
-                .bind(...inList, round, docType, courseId)
+                .bind(...inList, round, docType, curriculumId, courseId)
                 .first();
         }
 
@@ -4704,6 +4711,8 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
         const courseIdRaw = c.req.query('course_id');
         const roundRaw = c.req.query('evaluation_round') ?? c.req.query('round');
         const docType = (c.req.query('doc_type') || '').trim();
+        const cidRaw = (c.req.query('curriculum_id') || '').trim();
+
         if (!courseIdRaw || !docType) {
             return c.json({ success: false, error: 'course_id and doc_type are required' }, 400);
         }
@@ -4715,6 +4724,7 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
         if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
+        const curriculumId = cidRaw ? parseInt(cidRaw, 10) : null;
 
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
@@ -4729,6 +4739,7 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                 SELECT n.id, n.title, n.updated_at
                 FROM ncs_plan_documents n
                 WHERE n.evaluation_round = ? AND n.doc_type = ?
+                  AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)
                   AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                 ORDER BY
                   CASE
@@ -4739,7 +4750,7 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                   n.id DESC
             `
                 )
-                .bind(round, docType, courseId, courseId, courseId)
+                .bind(round, docType, curriculumId, courseId, courseId, courseId)
                 .all();
             results = Array.isArray(q?.results) ? q.results : [];
         } else {
@@ -4752,10 +4763,11 @@ app.get('/plan-documents/list', authMiddleware, async (c) => {
                 SELECT id, title, updated_at
                 FROM ncs_plan_documents
                 WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
+                  AND (curriculum_id = ? OR curriculum_id IS NULL)
                 ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
             `
                 )
-                .bind(...inList, round, docType, courseId)
+                .bind(...inList, round, docType, curriculumId, courseId)
                 .all();
             results = Array.isArray(q?.results) ? q.results : [];
         }
@@ -4775,6 +4787,7 @@ app.post('/plan-documents', authMiddleware, async (c) => {
         const courseIdRaw = body.course_id;
         const roundRaw = body.evaluation_round ?? body.round;
         const docType = String(body.doc_type || '').trim();
+        const cidRaw = body.curriculum_id;
         const title = String(body.title || '').trim();
         const payload = body.payload ?? {};
 
@@ -4789,6 +4802,7 @@ app.post('/plan-documents', authMiddleware, async (c) => {
         if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
+        const curriculumId = cidRaw != null && String(cidRaw).trim() !== '' ? parseInt(String(cidRaw), 10) : null;
 
         const deniedMinutes = forbidTeacherMinutesMutation(c, docType);
         if (deniedMinutes) return deniedMinutes;
@@ -4798,15 +4812,15 @@ app.post('/plan-documents', authMiddleware, async (c) => {
 
         const payloadJson = JSON.stringify(payload ?? {});
         const result = await c.env.DB.prepare(`
-            INSERT INTO ncs_plan_documents (course_id, evaluation_round, doc_type, title, payload_json, created_by, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(courseId, round, docType, title || null, payloadJson, user.userId ?? null, user.userId ?? null).run();
+            INSERT INTO ncs_plan_documents (course_id, curriculum_id, evaluation_round, doc_type, title, payload_json, created_by, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(courseId, curriculumId, round, docType, title || null, payloadJson, user.userId ?? null, user.userId ?? null).run();
 
         if (docType === 'tools') {
             const pl = payload as Record<string, unknown>;
-            const cidRaw = pl.curriculum_id;
+            const cidRawTools = pl.curriculum_id;
             const curriculumIdOv =
-                typeof cidRaw === 'number' ? cidRaw : parseInt(String(cidRaw ?? ''), 10);
+                typeof cidRawTools === 'number' ? cidRawTools : parseInt(String(cidRawTools ?? ''), 10);
             const cg = pl.criteria_groups;
             if (Number.isFinite(curriculumIdOv) && curriculumIdOv > 0 && Array.isArray(cg) && cg.length > 0) {
                 try {
@@ -4840,6 +4854,7 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
         const courseIdRaw = body.course_id;
         const roundRaw = body.evaluation_round ?? body.round;
         const docType = String(body.doc_type || '').trim();
+        const cidRaw = body.curriculum_id;
         const title = String(body.title || '').trim();
         const payload = body.payload ?? {};
 
@@ -4858,6 +4873,7 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
         if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
+        const curriculumId = cidRaw != null && String(cidRaw).trim() !== '' ? parseInt(String(cidRaw), 10) : null;
 
         const deniedMinutesPut = forbidTeacherMinutesMutation(c, docType);
         if (deniedMinutesPut) return deniedMinutesPut;
@@ -4874,11 +4890,12 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
                     `
                 SELECT n.id FROM ncs_plan_documents n
                 WHERE n.id = ? AND n.evaluation_round = ? AND n.doc_type = ?
+                  AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)
                   AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                 LIMIT 1
             `
                 )
-                .bind(docId, round, docType, courseId, courseId)
+                .bind(docId, round, docType, curriculumId, courseId, courseId)
                 .first();
         } else {
             const courseIdsPut = await resolveNcsPlanDocumentCourseIds(dbPut, courseId);
@@ -4889,10 +4906,11 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
                     `
                 SELECT id FROM ncs_plan_documents
                 WHERE id = ? AND course_id IN (${inPhPut}) AND evaluation_round = ? AND doc_type = ?
+                  AND (curriculum_id = ? OR curriculum_id IS NULL)
                 LIMIT 1
             `
                 )
-                .bind(docId, ...inListPut, round, docType)
+                .bind(docId, ...inListPut, round, docType, curriculumId)
                 .first();
         }
         if (!existing) {
@@ -4902,15 +4920,15 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
         const payloadJson = JSON.stringify(payload ?? {});
         await c.env.DB.prepare(`
             UPDATE ncs_plan_documents
-            SET title = ?, payload_json = ?, updated_by = ?, updated_at = datetime('now')
+            SET title = ?, payload_json = ?, updated_by = ?, updated_at = datetime('now'), curriculum_id = ?
             WHERE id = ?
-        `).bind(title || null, payloadJson, user.userId ?? null, docId).run();
+        `).bind(title || null, payloadJson, user.userId ?? null, curriculumId, docId).run();
 
         if (docType === 'tools') {
             const pl = payload as Record<string, unknown>;
-            const cidRaw = pl.curriculum_id;
+            const cidRawTools = pl.curriculum_id;
             const curriculumIdOv =
-                typeof cidRaw === 'number' ? cidRaw : parseInt(String(cidRaw ?? ''), 10);
+                typeof cidRawTools === 'number' ? cidRawTools : parseInt(String(cidRawTools ?? ''), 10);
             const cg = pl.criteria_groups;
             if (Number.isFinite(curriculumIdOv) && curriculumIdOv > 0 && Array.isArray(cg) && cg.length > 0) {
                 try {
@@ -4942,6 +4960,7 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
         const courseIdRaw = c.req.query('course_id');
         const roundRaw = c.req.query('evaluation_round') ?? c.req.query('round');
         const docType = String(c.req.query('doc_type') || '').trim();
+        const cidRaw = (c.req.query('curriculum_id') || '').trim();
 
         const docId = parseInt(String(docIdRaw), 10);
         if (!Number.isFinite(docId) || docId < 1) {
@@ -4958,6 +4977,7 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
         if (!Number.isFinite(courseId) || courseId < 1 || !Number.isFinite(round) || round < 1 || round > 3) {
             return c.json({ success: false, error: 'Invalid course_id or evaluation_round' }, 400);
         }
+        const curriculumId = cidRaw ? parseInt(cidRaw, 10) : null;
 
         const deniedMinutesDel = forbidTeacherMinutesMutation(c, docType);
         if (deniedMinutesDel) return deniedMinutesDel;
@@ -4974,11 +4994,12 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
                     `
                 SELECT n.id FROM ncs_plan_documents n
                 WHERE n.id = ? AND n.evaluation_round = ? AND n.doc_type = ?
+                  AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)
                   AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                 LIMIT 1
             `
                 )
-                .bind(docId, round, docType, courseId, courseId)
+                .bind(docId, round, docType, curriculumId, courseId, courseId)
                 .first();
         } else {
             const courseIdsDel = await resolveNcsPlanDocumentCourseIds(dbDel, courseId);
@@ -4989,10 +5010,11 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
                     `
                 SELECT id FROM ncs_plan_documents
                 WHERE id = ? AND course_id IN (${inPhDel}) AND evaluation_round = ? AND doc_type = ?
+                  AND (curriculum_id = ? OR curriculum_id IS NULL)
                 LIMIT 1
             `
                 )
-                .bind(docId, ...inListDel, round, docType)
+                .bind(docId, ...inListDel, round, docType, curriculumId)
                 .first();
         }
         if (!existingDel) {
