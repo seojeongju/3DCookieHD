@@ -7,6 +7,7 @@ import {
   getEffectiveSessionStatus,
   sqlWhereEffectiveStatusEquals,
 } from '../utils/course_session_status';
+import { getCourseSessionTimetableHeaderByLmsCourseId } from '../lib/lmsCourseContext';
 
 const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
 
@@ -447,13 +448,7 @@ async function resolveCourseSessionForTimetableApi(
 ): Promise<TimetableSessionHeader | null> {
   const preferLms = opts?.preferLmsCourse === true;
 
-  const fetchByLms = () =>
-    DB.prepare(
-      `SELECT id, approved_course_id, instructor_name FROM course_sessions
-       WHERE lms_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1`
-    )
-      .bind(rawId)
-      .first<TimetableSessionHeader>();
+  const fetchByLms = () => getCourseSessionTimetableHeaderByLmsCourseId(DB, rawId);
 
   const fetchByPk = () =>
     DB.prepare(

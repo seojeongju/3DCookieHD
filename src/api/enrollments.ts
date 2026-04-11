@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings, JWTPayload, Course, Enrollment } from '../types';
 import { authMiddleware, requireRole, requireAdmin } from '../middleware/auth';
+import { isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 
@@ -123,13 +124,11 @@ app.get('/', authMiddleware, async (c) => {
       }
       const search = (c.req.query('search') || '').trim();
 
-      const courseRow = await DB.prepare('SELECT id FROM courses WHERE id = ?')
-        .bind(courseIdNum)
-        .first<{ id: number }>();
+      const isLmsCourse = await isRegisteredLmsCourseId(DB, courseIdNum);
 
       let asSession: { id: number; approved_course_id: number } | null = null;
 
-      if (courseRow) {
+      if (isLmsCourse) {
         // LMS 개설 과정 ID: 회차는 lms_course_id 로만 연결 (제목 LIKE 추정은 다른 승인과정 회차를 잡아 수강생 목록이 엇갈림)
         asSession = await DB.prepare(
           `SELECT id, approved_course_id FROM course_sessions
@@ -184,7 +183,7 @@ app.get('/', authMiddleware, async (c) => {
       }
 
       let approvedCourseId: number | null = asSession?.approved_course_id ?? null;
-      if (approvedCourseId == null && !courseRow) {
+      if (approvedCourseId == null && !isLmsCourse) {
         const asApproved = await DB.prepare('SELECT id FROM approved_courses WHERE id = ?').bind(courseIdNum).first<{ id: number }>();
         if (asApproved?.id != null) approvedCourseId = asApproved.id;
       }

@@ -10,6 +10,7 @@ import { getOne, getAll, execute, calculatePagination } from '../utils/database'
 import { authMiddleware, requireAdmin, requireTeacher } from '../middleware/auth';
 import { verifyCourseOwnership } from '../middleware/ownership';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
+import { isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
 
 const courses = new Hono<{ Bindings: Bindings }>();
 
@@ -297,8 +298,8 @@ courses.get('/:id', async (c) => {
 
         // LMS URL은 /admin/courses/{id}/lms … 에서 id가 대부분 courses.id(개설 과정 PK)이다.
         // course_sessions.id·approved_courses.id 와 숫자가 겹치면 s.id = ? 만 조회하면 엉뚱한 회차가 선택된다.
-        const courseRow = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first<{ id: number }>();
-        if (courseRow) {
+        const isLmsCourse = await isRegisteredLmsCourseId(DB, rawId);
+        if (isLmsCourse) {
           session = await DB.prepare(
             `${selectSessionJoin}
             WHERE s.lms_course_id = ?
@@ -310,14 +311,14 @@ courses.get('/:id', async (c) => {
         }
 
         // courses 행이 없을 때만 회차 PK로 직접 조회
-        if (!session && !courseRow) {
+        if (!session && !isLmsCourse) {
           session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(rawId).first<any>();
         }
 
         // lms_course_id 미연결 시 제목 LIKE 로 회차를 붙이면 다른 과정 회차가 매칭되어 헤더·수강생·일정이 서로 엇갈림 (수정: 사용 안 함)
 
         // courses 행이 없을 때만 approved_course_id(승인과정 PK)로 최신 회차
-        if (!session && !courseRow) {
+        if (!session && !isLmsCourse) {
           session = await DB.prepare(
             `${selectSessionJoin}
             WHERE s.approved_course_id = ?
@@ -329,7 +330,7 @@ courses.get('/:id', async (c) => {
         }
 
         // 레거시: lms_course_id 컬럼만 일치하는 경우(위에서 이미 처리했으나 이중 안전)
-        if (!session && !courseRow) {
+        if (!session && !isLmsCourse) {
           session = await DB.prepare(
             `${selectSessionJoin}
             WHERE s.lms_course_id = ?
@@ -356,7 +357,7 @@ courses.get('/:id', async (c) => {
           const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
 
           let displayTitle = fullTitle;
-          if (courseRow) {
+          if (isLmsCourse) {
             const ctr = await DB.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?')
               .bind(rawId)
               .first<{ t: string }>();

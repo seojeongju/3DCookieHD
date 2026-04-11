@@ -3,6 +3,12 @@ import { Bindings, JWTPayload, Variables } from '../types';
 import { authMiddleware, requireAdmin } from '../middleware/auth';
 import { forbiddenResponse } from '../utils/response';
 import { stepContentHtml } from '../views/admin_ncs_approved';
+import {
+    getLatestCourseSessionRowForLmsCourseId,
+    isRegisteredLmsCourseId,
+    resolveNcsPlanDocumentCourseIdsForLmsCourse,
+    sqlNcsPlanDocBelongsToLmsCourse,
+} from '../lib/lmsCourseContext';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -4455,33 +4461,8 @@ async function resolveNcsPlanDocumentCourseIds(db: any, courseId: number): Promi
     const ids = new Set<number>();
     if (!Number.isFinite(courseId) || courseId < 1) return [];
 
-    // LMS `courses.id`로 조회하는 경우: `course_sessions.id`가 동일한 숫자여도 다른 과정일 수 있음(PK 충돌).
-    // 이 때 session.id로 먼저 조인하면 잘못된 lms_course_id가 IN 목록에 섞여 다른 과정 문서가 선택될 수 있다.
-    let courseRow: any = null;
-    try {
-        courseRow = await db.prepare('SELECT id FROM courses WHERE id = ?').bind(courseId).first();
-    } catch {
-        courseRow = null;
-    }
-    if (courseRow) {
-        // LMS 개설 과정 ID로 조회할 때는 문서 키도 주로 courses.id 또는 해당 회차(session.id)이다.
-        // approved_courses.id 를 IN 에 넣으면 숫자만 같은 다른 과정(승인과정 PK) 문서까지 섞여 엉뚱한 저장문서가 선택된다.
-        ids.add(courseId);
-        try {
-            const { results } = await db
-                .prepare('SELECT id FROM course_sessions WHERE lms_course_id = ?')
-                .bind(courseId)
-                .all();
-            const rows = results || [];
-            for (const r of rows) {
-                const sid = parseInt(String((r as any).id), 10);
-                if (Number.isFinite(sid) && sid >= 1) ids.add(sid);
-            }
-            // lms_course_id 미연결 시 제목 LIKE 로 회차를 추정하면 다른 과정 회차 PK가 IN 에 섞여 잘못된 저장문서가 조회된다.
-        } catch {
-            /* ignore */
-        }
-        return [...ids];
+    if (await isRegisteredLmsCourseId(db, courseId)) {
+        return resolveNcsPlanDocumentCourseIdsForLmsCourse(db, courseId);
     }
 
     ids.add(courseId);
@@ -4549,29 +4530,6 @@ async function resolveNcsPlanDocumentCourseIds(db: any, courseId: number): Promi
         /* ignore */
     }
     return [...ids];
-}
-
-/** `courses` 테이블에 있는 LMS 개설 과정 ID인지 */
-async function isRegisteredLmsCourseId(db: any, courseId: number): Promise<boolean> {
-    try {
-        const r = await db.prepare('SELECT 1 AS o FROM courses WHERE id = ?').bind(courseId).first();
-        return !!(r && (r as { o?: number }).o);
-    } catch {
-        return false;
-    }
-}
-
-/**
- * LMS 개설 과정 ID로 평가계획 문서를 찾을 때 `course_id IN (...)` 만 쓰면
- * courses.id 와 course_sessions.id 가 같은 숫자일 때 엉뚱한 행이 섞인다.
- * - 회차 PK 로 저장: 해당 회차의 lms_course_id 가 요청 LMS 와 일치
- * - LMS id 로만 저장: course_id 가 어느 회차 PK 와도 겹치지 않을 때(순수 LMS 키)
- */
-function sqlNcsPlanDocBelongsToLmsCourse(nAlias: string): string {
-    return `(
-      EXISTS (SELECT 1 FROM course_sessions s WHERE s.id = ${nAlias}.course_id AND s.lms_course_id = ?)
-      OR (${nAlias}.course_id = ? AND NOT EXISTS (SELECT 1 FROM course_sessions s2 WHERE s2.id = ${nAlias}.course_id))
-    )`;
 }
 
 // NCS 평가계획 문서 단건 조회
@@ -5240,39 +5198,10 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
-        // 1) HRD 요약은 courses.id(LMS)를 넘김. course_sessions.id와 숫자가 겹치면 PK 우선 조회 시 엉뚱한 회차가 선택되므로,
-        //    courses에 존재하는 id는 lms_course_id로만 회차를 해석한다. 그 외에는 기존처럼 session/승인과정/lms 순으로 해석.
+        // 1) HRD 요약은 courses.id(LMS)를 넘김. 회차는 lms_course_id로만 확정 (제목 LIKE 금지 — lmsCourseContext).
         const resolveCourseSessionForTimetable = async (DB: any, rawId: number) => {
-            const courseRow = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
-            if (courseRow) {
-                const byLmsForCourse = await DB.prepare(
-                    `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
-                     FROM course_sessions
-                     WHERE lms_course_id = ?
-                     ORDER BY session_number DESC, id DESC
-                     LIMIT 1`
-                ).bind(rawId).first();
-                if (byLmsForCourse) return byLmsForCourse;
-                const co = await DB.prepare('SELECT TRIM(title) AS t FROM courses WHERE id = ?').bind(rawId).first();
-                const lmsTitle = co?.t != null ? String(co.t).trim() : '';
-                if (lmsTitle) {
-                    const byTitle = await DB.prepare(
-                        `SELECT s.id, s.approved_course_id, s.instructor_name, s.lms_course_id, s.session_number
-                         FROM course_sessions s
-                         INNER JOIN approved_courses a ON a.id = s.approved_course_id
-                         WHERE TRIM(COALESCE(a.name, '')) != ''
-                           AND (
-                             ? LIKE '%' || TRIM(a.name) || '%'
-                             OR TRIM(a.name) LIKE '%' || ? || '%'
-                           )
-                         ORDER BY LENGTH(TRIM(a.name)) DESC, s.session_number DESC, s.id DESC
-                         LIMIT 1`
-                    )
-                        .bind(lmsTitle, lmsTitle)
-                        .first();
-                    if (byTitle) return byTitle;
-                }
-                return null;
+            if (await isRegisteredLmsCourseId(DB, rawId)) {
+                return getLatestCourseSessionRowForLmsCourseId(DB, rawId);
             }
 
             const byPk = await DB.prepare(
