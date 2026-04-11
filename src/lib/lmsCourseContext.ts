@@ -22,7 +22,7 @@ export async function isRegisteredLmsCourseId(db: D1Database, courseId: number):
 }
 
 /**
- * LMS `courses.id`에 연결된 최신 회차 1건 (`session_number`·`id` 내림차순).
+ * LMS `courses.id`에 연결된 메인 회차 1건 (`session_number`·`id` 오름차순 → 1회차 우선).
  * `lms_course_id` 미설정 시 null (추정 조회 없음).
  */
 export async function getLatestCourseSessionRowForLmsCourseId(
@@ -36,7 +36,7 @@ export async function getLatestCourseSessionRowForLmsCourseId(
                 `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
                  FROM course_sessions
                  WHERE lms_course_id = ?
-                 ORDER BY session_number DESC, id DESC
+                 ORDER BY session_number ASC, id ASC
                  LIMIT 1`
             )
             .bind(lmsCourseId)
@@ -55,7 +55,7 @@ export type LmsLinkedSessionRow = {
     session_number: number | null;
 };
 
-/** 시간표 API 등에서 쓰는 최소 회차 헤더 — `lms_course_id` 로만 조회 */
+/** 시간표 API 등에서 쓰는 최소 회차 헤더 — `lms_course_id` 로만 조회 (1회차 우선) */
 export async function getCourseSessionTimetableHeaderByLmsCourseId(
     db: D1Database,
     lmsCourseId: number
@@ -66,7 +66,7 @@ export async function getCourseSessionTimetableHeaderByLmsCourseId(
             .prepare(
                 `SELECT id, approved_course_id, instructor_name FROM course_sessions
                  WHERE lms_course_id = ?
-                 ORDER BY session_number DESC, id DESC
+                 ORDER BY session_number ASC, id ASC
                  LIMIT 1`
             )
             .bind(lmsCourseId)

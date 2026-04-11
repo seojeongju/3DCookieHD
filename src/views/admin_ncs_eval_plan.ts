@@ -1623,6 +1623,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     let activeTab = 'minutes';
     let selectedCourseId = useFixedCourseId ? fixedCourseId : '';
     let selectedRound = 1;
+    var __resolvedSessionIdFromCourseApi = '';
     var imageInsertContext = { targetId: '', folder: 'minutes', file: null };
     var lastFocusedEditableId = '';
     var autoEditableSeq = 1;
@@ -1810,6 +1811,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var cd = await fetchLmsCourseDetail(fixedCourseId);
         if (cd && (cd.title || cd.name)) {
           window.__ncsEvalPlanCourseTitle = cd.title || cd.name;
+          if (cd.id != null && String(cd.id).trim() !== '' && String(cd.id) !== fixedCourseId) {
+            __resolvedSessionIdFromCourseApi = String(cd.id);
+          }
           hint.textContent = window.__ncsEvalPlanCourseTitle;
           try {
             var tdc = document.getElementById('tools_display_course');
@@ -4728,12 +4732,21 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (wantSessionId) {
           sessionIdForApi = wantSessionId;
         } else {
-          // LMS courses.id 를 course_sessions.id 로 착각하면 숫자만 같을 때 다른 과정의 교과목·강사가 로드된다.
-          // lms_course_id 로 회차 행을 확정한 뒤 세션 PK 로만 시간표 리소스를 조회한다.
           var sessRes = await authFetch('/api/course-sessions?lms_course_id=' + encodeURIComponent(String(courseId)) + '&limit=100&page=1');
           var sessJson = await sessRes.json();
           var sessions = Array.isArray(sessJson && sessJson.data) ? sessJson.data : [];
-          var picked = sessions[0] || null;
+          if (!sessions.length) {
+            resetAllNcsPlanSubjectSelects();
+            return;
+          }
+          var picked = sessions.reduce(function(best, s) {
+            if (!best) return s;
+            var bNum = Number(best.session_number) || 999;
+            var sNum = Number(s.session_number) || 999;
+            if (sNum < bNum) return s;
+            if (sNum === bNum && (Number(s.id) || 0) < (Number(best.id) || 0)) return s;
+            return best;
+          }, null);
           if (!picked || picked.id == null) {
             resetAllNcsPlanSubjectSelects();
             return;
@@ -5435,7 +5448,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       switchNcsPlanTab(initialPlanTab);
       if (useFixedCourseId) {
         selectedCourseId = fixedCourseId;
-        await loadNcsPlanSubjectOptions(fixedCourseId, undefined, { preserveSelection: false });
+        var _resolvedSid = _sid || __resolvedSessionIdFromCourseApi || undefined;
+        await loadNcsPlanSubjectOptions(fixedCourseId, _resolvedSid, { preserveSelection: false });
         await loadDocument(initialPlanTab);
         await applyAutoFocusIfRequested();
       }

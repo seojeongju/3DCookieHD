@@ -460,7 +460,7 @@ async function resolveCourseSessionForTimetableApi(
   const fetchByApproved = () =>
     DB.prepare(
       `SELECT id, approved_course_id, instructor_name FROM course_sessions
-       WHERE approved_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1`
+       WHERE approved_course_id = ? ORDER BY session_number ASC, id ASC LIMIT 1`
     )
       .bind(rawId)
       .first<TimetableSessionHeader>();

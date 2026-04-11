@@ -313,7 +313,7 @@ courses.get('/:id', async (c) => {
           session = await DB.prepare(
             `${selectSessionJoin}
             WHERE s.lms_course_id = ?
-            ORDER BY s.session_number DESC, s.id DESC
+            ORDER BY s.session_number ASC, s.id ASC
             LIMIT 1`
           )
             .bind(rawId)
@@ -344,7 +344,7 @@ courses.get('/:id', async (c) => {
           session = await DB.prepare(
             `${selectSessionJoin}
             WHERE s.lms_course_id = ?
-            ORDER BY s.session_number DESC, s.id DESC
+            ORDER BY s.session_number ASC, s.id ASC
             LIMIT 1`
           )
             .bind(rawId)

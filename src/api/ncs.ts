@@ -5264,7 +5264,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                 `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
                  FROM course_sessions
                  WHERE approved_course_id = ?
-                 ORDER BY session_number DESC, id DESC
+                 ORDER BY session_number ASC, id ASC
                  LIMIT 1`
             ).bind(rawId).first();
             if (byApproved) return byApproved;
@@ -5273,7 +5273,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                 `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
                  FROM course_sessions
                  WHERE lms_course_id = ?
-                 ORDER BY session_number DESC, id DESC
+                 ORDER BY session_number ASC, id ASC
                  LIMIT 1`
             ).bind(rawId).first();
 

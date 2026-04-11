@@ -217,7 +217,14 @@ export const adminNcsEvalExecHtml = (sidebar = hrdSidebar('ncs-eval-exec')) => `
         });
         const sessJson = await sessRes.json();
         const sessions = Array.isArray(sessJson?.data) ? sessJson.data : [];
-        const picked = sessions[0];
+        const picked = sessions.reduce(function(best, s) {
+          if (!best) return s;
+          var bNum = Number(best.session_number) || 999;
+          var sNum = Number(s.session_number) || 999;
+          if (sNum < bNum) return s;
+          if (sNum === bNum && (Number(s.id) || 0) < (Number(best.id) || 0)) return s;
+          return best;
+        }, null);
         if (!picked || picked.id == null) {
           sel.disabled = true;
           return;
