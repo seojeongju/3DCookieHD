@@ -7,7 +7,7 @@ const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 // ============================================
 // 수강 신청 목록 조회
 // GET /api/enrollments
-// type=hrd & course_id=approved_course_id 이면 HRD 회차 수강생(course_session_enrollments) 반환
+// type=hrd: course_id 는 LMS courses.id(우선) 또는 course_sessions.id. 제목 매칭 없이 lms_course_id 로 회차 확정
 // ============================================
 app.get('/', authMiddleware, async (c) => {
   try {
@@ -122,53 +122,30 @@ app.get('/', authMiddleware, async (c) => {
         return c.json({ success: true, data: [], pagination: { page, limit, total: 0, totalPages: 0 } });
       }
       const search = (c.req.query('search') || '').trim();
-      const sessionOnly = true;
 
-      const courseRow = await DB.prepare('SELECT id, TRIM(title) AS title FROM courses WHERE id = ?')
+      const courseRow = await DB.prepare('SELECT id FROM courses WHERE id = ?')
         .bind(courseIdNum)
-        .first<{ id: number; title: string }>();
+        .first<{ id: number }>();
 
       let asSession: { id: number; approved_course_id: number } | null = null;
 
       if (courseRow) {
-        let sid: number | null = null;
-        const byLms = await DB.prepare(
-          `SELECT id FROM course_sessions WHERE lms_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1`
+        // LMS 개설 과정 ID: 회차는 lms_course_id 로만 연결 (제목 LIKE 추정은 다른 승인과정 회차를 잡아 수강생 목록이 엇갈림)
+        asSession = await DB.prepare(
+          `SELECT id, approved_course_id FROM course_sessions
+           WHERE lms_course_id = ?
+           ORDER BY session_number DESC, id DESC
+           LIMIT 1`
         )
           .bind(courseIdNum)
-          .first<{ id: number }>();
-        if (byLms?.id != null) sid = byLms.id;
-        else if (courseRow.title) {
-          const t = String(courseRow.title).trim();
-          if (t) {
-            const byTitle = await DB.prepare(
-              `SELECT s.id FROM course_sessions s
-               INNER JOIN approved_courses a ON a.id = s.approved_course_id
-               WHERE TRIM(COALESCE(a.name, '')) != ''
-                 AND (
-                   ? LIKE '%' || TRIM(a.name) || '%'
-                   OR TRIM(a.name) LIKE '%' || ? || '%'
-                 )
-               ORDER BY LENGTH(TRIM(a.name)) DESC, s.session_number DESC, s.id DESC
-               LIMIT 1`
-            )
-              .bind(t, t)
-              .first<{ id: number }>();
-            if (byTitle?.id != null) sid = byTitle.id;
-          }
-        }
-        if (sid != null) {
-          asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?')
-            .bind(sid)
-            .first<{ id: number; approved_course_id: number }>();
-        }
+          .first<{ id: number; approved_course_id: number }>();
       } else {
         asSession = await DB.prepare('SELECT id, approved_course_id FROM course_sessions WHERE id = ?')
           .bind(courseIdNum)
           .first<{ id: number; approved_course_id: number }>();
       }
 
-      if (asSession?.id != null && sessionOnly) {
+      if (asSession?.id != null) {
         // 해당 회차(session_id) 수강생만 조회 (approved, enrolled)
         let countQuery = `
           SELECT COUNT(*) as total FROM course_session_enrollments cse
