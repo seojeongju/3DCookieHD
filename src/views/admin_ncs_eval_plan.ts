@@ -4684,37 +4684,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var json = null;
         var sessionIdForApi = '';
 
-        if (useFixedCourseId) {
-          sessionIdForApi = wantSessionId || String(courseId).trim();
-        } else if (wantSessionId) {
+        if (wantSessionId) {
           sessionIdForApi = wantSessionId;
         } else {
-          var probeRes = await authFetch('/api/course-sessions/' + encodeURIComponent(String(courseId)) + '/timetable/resources');
-          json = await probeRes.json();
-          if (probeRes.ok && json && json.success && json.data) {
-            sessionIdForApi = String(courseId);
-          }
-        }
-
-        if (!sessionIdForApi) {
-          var sessRes = await authFetch('/api/course-sessions?lms_course_id=' + encodeURIComponent(String(courseId)) + '&limit=500&page=1');
+          // LMS courses.id 를 course_sessions.id 로 착각하면 숫자만 같을 때 다른 과정의 교과목·강사가 로드된다.
+          // lms_course_id 로 회차 행을 확정한 뒤 세션 PK 로만 시간표 리소스를 조회한다.
+          var sessRes = await authFetch('/api/course-sessions?lms_course_id=' + encodeURIComponent(String(courseId)) + '&limit=100&page=1');
           var sessJson = await sessRes.json();
           var sessions = Array.isArray(sessJson && sessJson.data) ? sessJson.data : [];
-          var picked = wantSessionId ? (sessions.find(function(s) { return s && String(s.id) === wantSessionId; }) || null) : null;
-          if (!picked) picked = sessions[0] || null;
+          var picked = sessions[0] || null;
           if (!picked || picked.id == null) {
             resetAllNcsPlanSubjectSelects();
             return;
           }
           sessionIdForApi = String(picked.id);
-          json = null;
         }
 
         selectedSessionIdForSubject = sessionIdForApi;
-        if (!json || !json.data) {
-          var res = await authFetch('/api/course-sessions/' + encodeURIComponent(sessionIdForApi) + '/timetable/resources');
-          json = await res.json();
-        }
+        var res = await authFetch('/api/course-sessions/' + encodeURIComponent(sessionIdForApi) + '/timetable/resources');
+        json = await res.json();
         var data = json && json.data;
         var subjects = data && Array.isArray(data.subjects) ? data.subjects : [];
         forEachNcsPlanSubjectSelect(function(el) {

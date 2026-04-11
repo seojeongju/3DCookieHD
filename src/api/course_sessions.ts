@@ -436,35 +436,66 @@ type TimetableSessionHeader = {
 
 /**
  * URL의 :id 가 course_sessions.id, approved_course_id, 또는 courses.id(lms_course_id) 인 경우 모두 실제 회차로 해석
+ *
+ * preferLmsCourse: LMS 개설 과정 ID로 호출할 때 — 세션 PK·승인과정 ID와 숫자만 같아도 먼저 매칭되는 것을 막기 위해
+ * lms_course_id 매칭을 최우선한다. (기본값은 시간표 UI 등에서 회차 PK로 조회하는 흐름을 유지)
  */
 async function resolveCourseSessionForTimetableApi(
   DB: D1Database,
-  rawId: number
+  rawId: number,
+  opts?: { preferLmsCourse?: boolean }
 ): Promise<TimetableSessionHeader | null> {
-  const byPk = await DB.prepare(
-    'SELECT id, approved_course_id, instructor_name FROM course_sessions WHERE id = ?'
-  )
-    .bind(rawId)
-    .first<TimetableSessionHeader>();
+  const preferLms = opts?.preferLmsCourse === true;
+
+  const fetchByLms = () =>
+    DB.prepare(
+      `SELECT id, approved_course_id, instructor_name FROM course_sessions
+       WHERE lms_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1`
+    )
+      .bind(rawId)
+      .first<TimetableSessionHeader>();
+
+  const fetchByPk = () =>
+    DB.prepare(
+      'SELECT id, approved_course_id, instructor_name FROM course_sessions WHERE id = ?'
+    )
+      .bind(rawId)
+      .first<TimetableSessionHeader>();
+
+  const fetchByApproved = () =>
+    DB.prepare(
+      `SELECT id, approved_course_id, instructor_name FROM course_sessions
+       WHERE approved_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1`
+    )
+      .bind(rawId)
+      .first<TimetableSessionHeader>();
+
+  if (preferLms) {
+    const byLms = await fetchByLms();
+    if (byLms) {
+      console.log(`[CourseSessionResolve] id ${rawId} → session ${byLms.id} (lms_course_id, prefer)`);
+      return byLms;
+    }
+    const byPk = await fetchByPk();
+    if (byPk) return byPk;
+    const byApproved = await fetchByApproved();
+    if (byApproved) {
+      console.log(`[CourseSessionResolve] id ${rawId} → session ${byApproved.id} (approved_course_id, prefer)`);
+      return byApproved;
+    }
+    return null;
+  }
+
+  const byPk = await fetchByPk();
   if (byPk) return byPk;
 
-  const byApproved = await DB.prepare(
-    `SELECT id, approved_course_id, instructor_name FROM course_sessions
-     WHERE approved_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1`
-  )
-    .bind(rawId)
-    .first<TimetableSessionHeader>();
+  const byApproved = await fetchByApproved();
   if (byApproved) {
     console.log(`[CourseSessionResolve] id ${rawId} → session ${byApproved.id} (approved_course_id)`);
     return byApproved;
   }
 
-  const byLms = await DB.prepare(
-    `SELECT id, approved_course_id, instructor_name FROM course_sessions
-     WHERE lms_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1`
-  )
-    .bind(rawId)
-    .first<TimetableSessionHeader>();
+  const byLms = await fetchByLms();
   if (byLms) {
     console.log(`[CourseSessionResolve] id ${rawId} → session ${byLms.id} (lms_course_id)`);
     return byLms;
@@ -546,7 +577,8 @@ app.get('/:id/timetable/resources', authMiddleware, requireRole('admin', 'teache
 
     const { DB } = c.env;
 
-    const session = await resolveCourseSessionForTimetableApi(DB, id);
+    const preferLmsCourse = String(c.req.query('prefer') || '').toLowerCase() === 'lms_course';
+    const session = await resolveCourseSessionForTimetableApi(DB, id, { preferLmsCourse });
     if (!session) {
       console.warn(`[TimetableResources] No session found for ID ${id}`);
       return c.json({ success: false, error: '회차 정보 없음' }, 404);
