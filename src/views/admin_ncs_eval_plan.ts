@@ -1214,12 +1214,10 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                     <div class="overflow-x-auto">
                       <table class="w-full border-collapse text-[12px] leading-relaxed bg-white">
                         <colgroup>
-                          <col style="width: 11%" />
-                          <col style="width: 44%" />
-                          <col style="width: 9%" />
-                          <col style="width: 8%" />
-                          <col style="width: 10%" />
                           <col style="width: 18%" />
+                          <col style="width: 37%" />
+                          <col style="width: 15%" />
+                          <col style="width: 30%" />
                         </colgroup>
                         <tbody>
                           <tr>
@@ -1227,17 +1225,23 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <td class="border border-black px-2 py-1.5" colspan="3">
                               <div id="rubric_doc_title" contenteditable="true" class="min-h-[1.5rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
                             </td>
+                          </tr>
+                          <tr>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">교과목</td>
+                            <td class="border border-black px-2 py-1.5">
+                              <select id="rubric_subject_name" class="w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
+                                <option value="">과정 선택 후 교과목</option>
+                              </select>
+                            </td>
                             <td class="border border-black text-center bg-slate-50 font-bold py-1.5">수준</td>
                             <td class="border border-black px-2 py-1.5 text-center">
                               <div id="rubric_total_target" contenteditable="true" class="min-h-[1.5rem] text-center whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">2</div>
                             </td>
                           </tr>
                           <tr>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">교과목</td>
-                            <td class="border border-black px-2 py-1.5" colspan="3">
-                              <select id="rubric_subject_name" class="w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
-                                <option value="">과정 선택 후 교과목</option>
-                              </select>
+                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">능력단위명</td>
+                            <td class="border border-black px-2 py-1.5">
+                              <div id="rubric_unit_name" contenteditable="true" class="min-h-[1.5rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
                             </td>
                             <td class="border border-black text-center bg-slate-50 font-bold py-1.5">훈련교사</td>
                             <td class="border border-black px-2 py-1.5">
@@ -1245,26 +1249,18 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </td>
                           </tr>
                           <tr>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">능력단위명</td>
-                            <td class="border border-black px-2 py-1.5" colspan="5">
-                              <div id="rubric_unit_name" contenteditable="true" class="min-h-[1.5rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1"></div>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td class="border border-black p-0 align-top" colspan="6">
+                            <td class="border border-black p-0 align-top" colspan="4">
                               <table class="w-full border-collapse text-[12px] leading-relaxed bg-white">
                                 <colgroup>
-                                  <col style="width: 18%" />
-                                  <col style="width: 44%" />
-                                  <col style="width: 10%" />
-                                  <col style="width: 28%" />
+                                  <col style="width: 20%" />
+                                  <col style="width: 12%" />
+                                  <col style="width: 68%" />
                                 </colgroup>
                                 <thead>
                                   <tr class="bg-slate-50">
                                     <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">능력단위요소</th>
-                                    <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">성취기준(채점기준) 설명</th>
                                     <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">성취수준</th>
-                                    <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">성취기준 등록</th>
+                                    <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">성취기준(배점기준) 설명</th>
                                   </tr>
                                 </thead>
                                 <tbody id="rubricRowsBody" class="bg-white"></tbody>
@@ -2889,7 +2885,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           tbody.innerHTML = '<tr><td colspan="5" class="border border-black px-2 py-3 text-center text-slate-500 text-[10pt]">등록된 채점기준이 없습니다.</td></tr>';
         } else {
           tbody.innerHTML = rows.map(function(row) {
-            var item = escapeHtml(String(row && row.item != null ? row.item : '-'));
+            var el = String(row && row.item != null ? row.item : '').trim();
+            var crit = String(row && row.criterion != null ? row.criterion : '').trim();
+            var itemLabel = crit || el || '-';
+            if (el && crit) itemLabel = el + ' · ' + crit;
+            var item = escapeHtml(itemLabel);
             var score = Number(row && row.score != null ? row.score : 0);
             var high = escapeHtml(String(row && row.high != null ? row.high : '-'));
             var mid = escapeHtml(String(row && row.mid != null ? row.mid : '-'));
@@ -4126,10 +4126,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           lineDesc = String(lineDesc || '').trim();
           rows.push({
             item: elTitle,
+            criterion: lineDesc,
             score: 0,
-            high: lineDesc,
-            mid: lineDesc,
-            low: lineDesc
+            high: '성취기준 등록',
+            mid: '성취기준 등록',
+            low: '성취기준 등록'
           });
         }
       }
@@ -4144,6 +4145,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         return !t || t === '성취기준 등록';
       }
       return rows.every(function(r) {
+        var crit = String(r.criterion || '').trim();
+        if (!crit) return true;
         return isPlaceholder(r.high) && isPlaceholder(r.mid) && isPlaceholder(r.low);
       });
     }
@@ -4243,36 +4246,53 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const rows = [];
       var trs = Array.prototype.slice.call(body.querySelectorAll('tr'));
       var i = 0;
+      var currentElement = '';
       while (i < trs.length) {
         var tr = trs[i];
-        if (!tr.hasAttribute('data-rubric-row')) {
+        var critCell = tr.querySelector('[data-rubric-cell="criterion"]');
+        if (!critCell) {
           i += 1;
           continue;
         }
-        var trHigh = tr;
-        var trMid = trs[i + 1];
-        var trLow = trs[i + 2];
-        var itemCell = trHigh.querySelector('[data-rubric-cell="item"]');
-        var scoreCell = trHigh.querySelector('[data-rubric-cell="score"]');
-        var highCell = trHigh.querySelector('[data-rubric-cell="high"]');
-        var midCell = trMid ? trMid.querySelector('[data-rubric-cell="mid"]') : null;
-        var lowCell = trLow ? trLow.querySelector('[data-rubric-cell="low"]') : null;
-        var itemText = itemCell ? String(itemCell.textContent || '').trim() : (trHigh.getAttribute('data-item') || '');
-        var scoreText = scoreCell ? String(scoreCell.textContent || '').trim() : (trHigh.getAttribute('data-score') || '0');
-        var highText = highCell ? String(highCell.textContent || '').trim() : (trHigh.getAttribute('data-high') || '');
-        var midText = midCell ? String(midCell.textContent || '').trim() : (trHigh.getAttribute('data-mid') || '');
-        var lowText = lowCell ? String(lowCell.textContent || '').trim() : (trHigh.getAttribute('data-low') || '');
+        var rowspanTd = tr.querySelector('td[rowspan]');
+        if (rowspanTd) {
+          var itemDiv = rowspanTd.querySelector('[data-rubric-cell="item"]');
+          currentElement = itemDiv ? String(itemDiv.textContent || '').trim() : String(rowspanTd.textContent || '').trim();
+        }
+        var criterion = String(critCell.textContent || '').trim();
+        var scoreWrap = tr.querySelector('[data-rubric-cell="score"]');
+        var scoreText = scoreWrap ? String(scoreWrap.textContent || '').trim() : '0';
         var scoreNum = Number(scoreText || 0);
+        var trHi = trs[i + 1];
+        var trMd = trs[i + 2];
+        var trLo = trs[i + 3];
+        var highCell = trHi ? trHi.querySelector('[data-rubric-cell="high"]') : null;
+        var midCell = trMd ? trMd.querySelector('[data-rubric-cell="mid"]') : null;
+        var lowCell = trLo ? trLo.querySelector('[data-rubric-cell="low"]') : null;
         rows.push({
-          item: itemText,
+          item: currentElement,
+          criterion: criterion,
           score: Number.isFinite(scoreNum) ? scoreNum : 0,
-          high: highText,
-          mid: midText,
-          low: lowText
+          high: highCell ? String(highCell.textContent || '').trim() : '',
+          mid: midCell ? String(midCell.textContent || '').trim() : '',
+          low: lowCell ? String(lowCell.textContent || '').trim() : ''
         });
         i += 4;
       }
       return rows;
+    }
+
+    function groupRubricRowsByElement(safeRows) {
+      var groups = [];
+      for (var i = 0; i < safeRows.length; i++) {
+        var r = safeRows[i];
+        var el = String(r.item || '').trim() || '—';
+        if (!groups.length || groups[groups.length - 1].element !== el) {
+          groups.push({ element: el, rows: [] });
+        }
+        groups[groups.length - 1].rows.push(r);
+      }
+      return groups;
     }
 
     function renderRubricRows(rows) {
@@ -4280,36 +4300,53 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!body) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="4" class="border border-black px-4 py-8 text-center text-sm text-slate-400">등록된 채점기준이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="3" class="border border-black px-4 py-8 text-center text-sm text-slate-400">등록된 채점기준이 없습니다.</td></tr>';
         updateRubricTotalScore([]);
         return;
       }
-      body.innerHTML = safeRows.map(function(row) {
-        const item = String(row?.item || '');
-        const score = Number(row?.score || 0);
-        const high = String(row?.high || '');
-        const mid = String(row?.mid || '');
-        const low = String(row?.low || '');
-        return '<tr data-rubric-row data-item="' + escapeHtml(item) + '" data-score="' + score + '" data-high="' + escapeHtml(high) + '" data-mid="' + escapeHtml(mid) + '" data-low="' + escapeHtml(low) + '">' +
-          '<td class="border border-black px-2 py-1 align-top" rowspan="4"><div data-rubric-cell="item" contenteditable="true" class="min-h-[6.4rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div><div data-rubric-cell="score" contenteditable="true" class="hidden">' + escapeHtml(String(score)) + '</div></td>' +
-          '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="high" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(high) + '</div></td>' +
-          '<td class="border border-black px-2 py-1 text-center font-bold align-middle">우수</td>' +
-          '<td class="border border-black px-2 py-1 align-top text-slate-500 text-[11px]">&nbsp;</td>' +
-        '</tr>' +
-        '<tr>' +
-          '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="mid" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(mid) + '</div></td>' +
-          '<td class="border border-black px-2 py-1 text-center font-bold align-middle">보통</td>' +
-          '<td class="border border-black px-2 py-1 align-top text-slate-500 text-[11px]">&nbsp;</td>' +
-        '</tr>' +
-        '<tr>' +
-          '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="low" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(low) + '</div></td>' +
-          '<td class="border border-black px-2 py-1 text-center font-bold align-middle">미흡</td>' +
-          '<td class="border border-black px-2 py-1 align-top text-slate-500 text-[11px]">&nbsp;</td>' +
-        '</tr>' +
-        '<tr>' +
-          '<td class="border border-black px-2 py-1 text-[12px] text-slate-600" colspan="3">필요 시 성취기준을 직접 수정해 사용하세요.</td>' +
-        '</tr>';
-      }).join('');
+      var groups = groupRubricRowsByElement(safeRows);
+      var parts = [];
+      for (var g = 0; g < groups.length; g++) {
+        var grp = groups[g];
+        var subs = grp.rows;
+        var rowspan = subs.length * 4;
+        for (var s = 0; s < subs.length; s++) {
+          var row = subs[s];
+          var criterion = String(row?.criterion || '');
+          var high = String(row?.high || '');
+          var mid = String(row?.mid || '');
+          var low = String(row?.low || '');
+          var score = Number(row?.score || 0);
+          var elEsc = escapeHtml(grp.element);
+          var critEsc = escapeHtml(criterion);
+          var hiEsc = escapeHtml(high);
+          var midEsc = escapeHtml(mid);
+          var lowEsc = escapeHtml(low);
+          var itemTd = '<td class="border border-black px-2 py-1 align-top bg-slate-50 text-center font-bold" rowspan="' + rowspan + '">' +
+            '<div data-rubric-cell="item" contenteditable="true" class="min-h-[4rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + elEsc + '</div></td>';
+          var titleCells = '<td class="border border-black px-2 py-1 align-top" colspan="2">' +
+            '<div data-rubric-cell="criterion" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1 text-left">' + critEsc + '</div>' +
+            '<div data-rubric-cell="score" contenteditable="true" class="hidden">' + escapeHtml(String(score)) + '</div></td>';
+          if (s === 0) {
+            parts.push('<tr data-rubric-title>' + itemTd + titleCells + '</tr>');
+          } else {
+            parts.push('<tr data-rubric-title>' + titleCells + '</tr>');
+          }
+          parts.push('<tr data-rubric-level>' +
+            '<td class="border border-black px-2 py-1 text-center font-bold align-middle bg-slate-50">우수</td>' +
+            '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="high" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1 text-left">' + hiEsc + '</div></td>' +
+            '</tr>');
+          parts.push('<tr data-rubric-level>' +
+            '<td class="border border-black px-2 py-1 text-center font-bold align-middle bg-slate-50">보통</td>' +
+            '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="mid" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1 text-left">' + midEsc + '</div></td>' +
+            '</tr>');
+          parts.push('<tr data-rubric-level>' +
+            '<td class="border border-black px-2 py-1 text-center font-bold align-middle bg-slate-50">미흡</td>' +
+            '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="low" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1 text-left">' + lowEsc + '</div></td>' +
+            '</tr>');
+        }
+      }
+      body.innerHTML = parts.join('');
       updateRubricTotalScore(safeRows);
     }
 
@@ -4324,10 +4361,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     function defaultRubricRows() {
+      var el = '슬라이싱하기';
       return [
-        { item: '2.1 신조형 3D프린터에서 지원하는 적층 장비별 파라미터를 설명할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' },
-        { item: '2.2 파악된 적층 값의 범위 내에서 적용 값을 결정할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' },
-        { item: '2.3 결정된 적층 값을 운영하여 제품을 슬라이싱 할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' }
+        { item: el, criterion: '2.1 신조형 3D프린터에서 지원하는 적층 장비별 파라미터를 설명할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' },
+        { item: el, criterion: '2.2 파악된 적층 값의 범위 내에서 적용 값을 결정할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' },
+        { item: el, criterion: '2.3 결정된 적층 값을 운영하여 제품을 슬라이싱 할 수 있다.', score: 0, high: '성취기준 등록', mid: '성취기준 등록', low: '성취기준 등록' }
       ];
     }
 
@@ -4336,12 +4374,38 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!list.length) return defaultRubricRows();
       return list.map(function(row, idx) {
         const score = Number(row?.score ?? 0);
+        var criterion = String(row?.criterion ?? '').trim();
+        var item = String(row?.item ?? '').trim();
+        var high = String(row?.high ?? '');
+        var mid = String(row?.mid ?? '');
+        var low = String(row?.low ?? '');
+        if (!criterion && item && /^\d+\.\d+/.test(item)) {
+          criterion = item;
+          item = '';
+        }
+        if (!criterion && high && high === mid && high === low && String(high).trim() !== '' && String(high).trim() !== '성취기준 등록') {
+          criterion = String(high).trim();
+          high = mid = low = '성취기준 등록';
+        }
+        if (!criterion && high && String(high).trim() !== '' && String(high).trim() !== '성취기준 등록' && (!mid || !String(mid).trim()) && (!low || !String(low).trim())) {
+          criterion = String(high).trim();
+          high = '성취기준 등록';
+          mid = '성취기준 등록';
+          low = '성취기준 등록';
+        }
+        if (!item) item = '능력단위 요소';
+        if (!criterion) criterion = '평가내용 ' + (idx + 1);
+        function defLv(s) {
+          var t = String(s || '').trim();
+          return t ? t : '성취기준 등록';
+        }
         return {
-          item: String(row?.item ?? ('평가항목 ' + (idx + 1))),
+          item: item,
+          criterion: criterion,
           score: Number.isFinite(score) ? score : 0,
-          high: String(row?.high ?? ''),
-          mid: String(row?.mid ?? ''),
-          low: String(row?.low ?? '')
+          high: defLv(high),
+          mid: defLv(mid),
+          low: defLv(low)
         };
       });
     }
