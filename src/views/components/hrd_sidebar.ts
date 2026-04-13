@@ -178,15 +178,15 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
                     <i class="fas fa-table-columns w-6 text-sm ${activeMenu === 'ncs-eval-dashboard-hub' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                     <span class="font-medium text-[13px]">본평가 · 전체 과정 현황</span>
                 </a>
-                <a href="/admin/ncs-eval-plan" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-plan' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <a href="/admin/ncs-eval-plan" onclick="return typeof window.__hrdSidebarNcsLmsNav==='function' ? window.__hrdSidebarNcsLmsNav(event, 'ncs-eval-plan') : true;" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-plan' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative" title="운영 과정 바로가기에서 과정을 고르면 해당 과정 LMS로 연결됩니다">
                     <i class="fas fa-clipboard-list w-6 text-sm ${activeMenu === 'ncs-eval-plan' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                     <span class="font-medium text-[13px]">NCS평가계획 <span class="text-slate-500 font-normal">(과정 선택)</span></span>
                 </a>
-                <a href="/admin/ncs-eval-exec" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-exec' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <a href="/admin/ncs-eval-exec" onclick="return typeof window.__hrdSidebarNcsLmsNav==='function' ? window.__hrdSidebarNcsLmsNav(event, 'ncs-eval-exec') : true;" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-exec' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative" title="운영 과정 바로가기에서 과정을 고르면 해당 과정 LMS로 연결됩니다">
                     <i class="fas fa-play-circle w-6 text-sm ${activeMenu === 'ncs-eval-exec' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                     <span class="font-medium text-[13px]">NCS평가실행 <span class="text-slate-500 font-normal">(과정 선택)</span></span>
                 </a>
-                <a href="/admin/ncs-eval-result" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-result' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                <a href="/admin/ncs-eval-result" onclick="return typeof window.__hrdSidebarNcsLmsNav==='function' ? window.__hrdSidebarNcsLmsNav(event, 'ncs-eval-result') : true;" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'ncs-eval-result' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative" title="운영 과정 바로가기에서 과정을 고르면 해당 과정 LMS로 연결됩니다">
                     <i class="fas fa-poll w-6 text-sm ${activeMenu === 'ncs-eval-result' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                     <span class="font-medium text-[13px]">NCS평가결과 <span class="text-slate-500 font-normal">(과정 선택)</span></span>
                 </a>

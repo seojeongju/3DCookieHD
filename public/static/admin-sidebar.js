@@ -90,6 +90,26 @@ window.logout = function () {
         });
 })();
 
+/**
+ * NCS 본평가: 전역 /admin/ncs-eval-* 가 아닌 LMS 경로로 열어야 저장 문서(course_id)가 일치함.
+ * 상단 「운영 과정 바로가기」에 값이 있으면 해당 과정 LMS로 이동, 없으면 링크 기본(href) 동작.
+ */
+window.__hrdSidebarNcsLmsNav = function (event, lmsSegment) {
+    var sel = document.getElementById('sidebarActiveCourseSelector');
+    var raw = sel && String(sel.value || '').trim();
+    if (!raw) return true;
+    var parts = raw.split('|');
+    var cid = parts[0] ? String(parts[0]).trim() : '';
+    var sid = parts.length > 1 ? String(parts[1] || '').trim() : '';
+    if (!cid) return true;
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    var base = window.location.pathname.indexOf('/teacher') === 0 ? '/teacher' : '/admin';
+    var url = base + '/courses/' + encodeURIComponent(cid) + '/lms/' + String(lmsSegment || '').replace(/^\/+|\/+$/g, '') + '?type=hrd';
+    if (sid) url += '&session_id=' + encodeURIComponent(sid);
+    window.location.href = url;
+    return false;
+};
+
 function initAdminSidebar() {
     var sidebarNav = document.querySelector('aside nav');
     if (sidebarNav) {

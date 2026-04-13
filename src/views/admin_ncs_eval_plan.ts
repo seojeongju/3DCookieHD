@@ -766,6 +766,9 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       </button>
                       ` : ''}
                       ${item.id === 'rubric' ? `
+                      <button type="button" id="rubricLoadFromToolsBtn" class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 text-xs font-black hover:bg-indigo-100 transition" title="같은 교과목·회차의 평가도구 제작 저장분">
+                        <i class="fas fa-file-import mr-1"></i>평가도구 평가내용 반영
+                      </button>
                       <button type="button" id="rubricPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
@@ -1203,6 +1206,10 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                 </div>
               ` : item.id === 'rubric' ? `
                 <div class="space-y-4">
+                  <p class="text-xs text-slate-700 bg-indigo-50/80 border border-indigo-100 rounded-xl px-3 py-2.5 leading-relaxed">
+                    <i class="fas fa-circle-info text-indigo-500 mr-1"></i>
+                    <strong>평가도구 제작</strong>에서 선택한 <strong>교과목·평가회차</strong>와 동일하게 이 탭에서 교과목을 고른 뒤, 상단 <strong>「평가도구 평가내용 반영」</strong>으로 저장된 능력단위요소·평가내용을 채점기준표 행에 채울 수 있습니다.
+                  </p>
                   <div class="rounded-2xl border border-slate-200/70 bg-white p-4 space-y-4">
                     <div class="overflow-x-auto">
                       <table class="w-full border-collapse text-[12px] leading-relaxed bg-white">
@@ -4101,6 +4108,81 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       });
     }
 
+    /** 평가도구 제작 payload.criteria_groups → 채점기준표 행 (교과목별 동일 curriculum_id 문서 기준) */
+    function buildRubricRowsFromToolsCriteriaGroups(groups) {
+      var rows = [];
+      var list = Array.isArray(groups) ? groups : [];
+      for (var g = 0; g < list.length; g++) {
+        var grp = list[g] || {};
+        var elTitle = String(grp.element_title || '').trim() || '능력단위 요소';
+        var lines = Array.isArray(grp.lines) ? grp.lines : [];
+        for (var ln = 0; ln < lines.length; ln++) {
+          var line = lines[ln] || {};
+          var label = String(line.label || '').trim();
+          var text = String(line.text || '').trim();
+          var item = elTitle;
+          if (label) item += ' (' + label + ')';
+          rows.push({
+            item: item,
+            score: 0,
+            high: text,
+            mid: '',
+            low: ''
+          });
+        }
+      }
+      return rows;
+    }
+
+    async function applyRubricFromSavedToolsDocument() {
+      var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      var cid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      if (!courseId) {
+        alert('과정을 먼저 선택해 주세요.');
+        return;
+      }
+      if (!cid) {
+        alert('채점기준표에서 교과목을 선택해 주세요. (평가도구 제작에서 저장할 때와 같은 교과목이어야 합니다.)');
+        return;
+      }
+      if (!confirm('현재 채점기준표 표의 행을, 이 교과목·평가회차에 저장된 평가도구 제작 문서의 평가내용으로 덮어씁니다. 계속할까요?')) return;
+      try {
+        var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(courseId) +
+          '&evaluation_round=' + encodeURIComponent(selectedRound) +
+          '&doc_type=tools' +
+          (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
+          '&curriculum_id=' + encodeURIComponent(cid);
+        var res = await authFetch(url);
+        var json = await res.json();
+        if (!json || !json.success) {
+          alert((json && json.error) ? String(json.error) : '평가도구 문서를 불러오지 못했습니다.');
+          return;
+        }
+        if (!json.data || !json.data.payload) {
+          alert('저장된 평가도구 제작 문서가 없습니다. 평가도구 제작 탭에서 이 교과목을 선택한 뒤 저장해 주세요.');
+          return;
+        }
+        var payload = json.data.payload || {};
+        var rows = buildRubricRowsFromToolsCriteriaGroups(payload.criteria_groups);
+        if (!rows.length) {
+          alert('평가도구 문서에 평가내용(능력단위요소·평가내용 표)이 없습니다. 평가도구 제작에서 「NCS 평가준거 불러오기」 등으로 채운 뒤 저장해 주세요.');
+          return;
+        }
+        var u = String(getRubricFieldValue('rubric_unit_name') || '').trim();
+        if (!u) {
+          var tul = String(payload.tools_unit_name_level || '').trim();
+          if (tul) setRubricFieldValue('rubric_unit_name', tul);
+        }
+        var w = String(getRubricFieldValue('rubric_writer') || '').trim();
+        if (!w && payload.writer) setRubricFieldValue('rubric_writer', String(payload.writer || ''));
+        renderRubricRows(rows);
+        setStatus('rubric', '평가도구 평가내용을 반영했습니다. 필요 시 수정 후 저장하세요.', false);
+      } catch (e) {
+        console.error(e);
+        alert('평가도구 내용을 가져오는 중 오류가 발생했습니다.');
+      }
+    }
+
     function readRubricRowsFromTable() {
       const body = document.getElementById('rubricRowsBody');
       if (!body) return [];
@@ -5485,6 +5567,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var rubricPrintBtn = document.getElementById('rubricPrintBtn');
       if (rubricPrintBtn) {
         rubricPrintBtn.addEventListener('click', function() { void printRubricDocument(); });
+      }
+      var rubricLoadFromToolsBtn = document.getElementById('rubricLoadFromToolsBtn');
+      if (rubricLoadFromToolsBtn) {
+        rubricLoadFromToolsBtn.addEventListener('click', function() { void applyRubricFromSavedToolsDocument(); });
       }
       var achievementPrintBtn = document.getElementById('achievementPrintBtn');
       if (achievementPrintBtn) {
