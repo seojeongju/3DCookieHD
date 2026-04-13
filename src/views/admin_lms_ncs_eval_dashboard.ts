@@ -71,7 +71,8 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
   (function() {
     var _sid = new URLSearchParams(window.location.search).get('session_id') || '';
     var _pathCourseId = window.location.pathname.split('/')[3] || '';
-    var courseId = _sid || _pathCourseId;
+    /** LMS 경로의 과정 ID만 course_id로 사용. session_id는 회차 PK라 course_id에 넣으면 ncs_plan_documents 조회가 허브와 달라짐 */
+    var courseId = _pathCourseId;
     var isTeacherPath = window.location.pathname.indexOf('/teacher/') === 0;
     var basePrefix = isTeacherPath ? '/teacher' : '/admin';
     var lmsBase = basePrefix + '/courses/' + _pathCourseId + '/lms/';
