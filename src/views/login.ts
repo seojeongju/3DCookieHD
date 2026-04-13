@@ -119,8 +119,11 @@ export const loginHtml = `
                                 <i class="fas fa-lock text-xs"></i>
                             </span>
                             <input id="password" name="password" type="password" autocomplete="current-password" required 
-                                class="block w-full pl-10 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400/20 focus:border-primary-500 transition-all sm:text-sm" 
+                                class="block w-full pl-10 pr-12 py-3 bg-white/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400/20 focus:border-primary-500 transition-all sm:text-sm" 
                                 placeholder="••••••••">
+                            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-primary-500 transition-colors">
+                                <i id="passwordToggleIcon" class="far fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -200,6 +203,21 @@ export const loginHtml = `
     </div>
 
     <script>
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const icon = document.getElementById('passwordToggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
         function openForgotModal() { 
             const modal = document.getElementById('forgotModal');
             modal.classList.remove('hidden'); 

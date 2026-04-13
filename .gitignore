@@ -33,3 +33,21 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Cursor / agent session notes (not part of the app)
+.agent/
+
+# Repo root: ad-hoc DB dumps and CLI logs (not application source)
+/table_info*.txt
+/table_check.txt
+/schema_info.txt
+/schema_enrollments.txt
+/posts_schema.txt
+/projects.txt
+/courses_info.txt
+/migration_status.txt
+/deploy*.txt
+/build_log.txt
+/build_output.txt
+/error_log.txt
+/migrate_log*.txt

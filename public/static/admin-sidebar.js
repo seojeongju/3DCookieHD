@@ -152,7 +152,8 @@ function initAdminSidebar() {
                         seenLms[lmsId] = true;
 
                         var opt = document.createElement('option');
-                        opt.value = lmsId;
+                        // courseId와 sessionId를 함께 전달하기 위해 구분자로 결합
+                        opt.value = lmsId + '|' + s.id;
 
                         var courseName = s.course_name || '';
                         var sessionNum = s.session_number != null ? String(s.session_number) + '회차' : '';
@@ -167,10 +168,10 @@ function initAdminSidebar() {
                     var match = location.pathname.match(/\/(admin|teacher)\/courses\/(\d+)\/lms/);
                     if (match && match[2]) {
                         var urlCid = String(match[2]);
-                        var has = Array.prototype.some.call(courseSelector.options, function (o) {
-                            return o.value === urlCid;
+                        var has = Array.prototype.find.call(courseSelector.options, function (o) {
+                            return o.value && o.value.split('|')[0] === urlCid;
                         });
-                        if (has) courseSelector.value = urlCid;
+                        if (has) courseSelector.value = has.value;
                     }
                 }
             })
