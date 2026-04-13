@@ -1251,20 +1251,22 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </td>
                           </tr>
                           <tr>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">능력단위요소</td>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5">성취기준(채점기준) 설명</td>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5" colspan="2">성취수준</td>
-                            <td class="border border-black text-center bg-slate-50 font-bold py-1.5" colspan="2">성취기준 등록</td>
-                          </tr>
-                          <tr>
                             <td class="border border-black p-0 align-top" colspan="6">
-                              <table class="w-full border-collapse text-[12px] leading-relaxed">
+                              <table class="w-full border-collapse text-[12px] leading-relaxed bg-white">
                                 <colgroup>
                                   <col style="width: 18%" />
-                                  <col style="width: 47%" />
-                                  <col style="width: 9%" />
-                                  <col style="width: 26%" />
+                                  <col style="width: 44%" />
+                                  <col style="width: 10%" />
+                                  <col style="width: 28%" />
                                 </colgroup>
+                                <thead>
+                                  <tr class="bg-slate-50">
+                                    <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">능력단위요소</th>
+                                    <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">성취기준(채점기준) 설명</th>
+                                    <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">성취수준</th>
+                                    <th scope="col" class="border border-black text-center font-bold py-1.5 px-2">성취기준 등록</th>
+                                  </tr>
+                                </thead>
                                 <tbody id="rubricRowsBody" class="bg-white"></tbody>
                               </table>
                             </td>
@@ -4120,62 +4122,114 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           var line = lines[ln] || {};
           var label = String(line.label || '').trim();
           var text = String(line.text || '').trim();
-          var item = elTitle;
-          if (label) item += ' (' + label + ')';
+          var lineDesc = (label ? label + ' ' : '') + text;
+          lineDesc = String(lineDesc || '').trim();
           rows.push({
-            item: item,
+            item: elTitle,
             score: 0,
-            high: text,
-            mid: '',
-            low: ''
+            high: lineDesc,
+            mid: lineDesc,
+            low: lineDesc
           });
         }
       }
       return rows;
     }
 
+    function rubricPayloadNeedsToolsAutoSync(payload) {
+      var rows = payload && Array.isArray(payload.rows) ? payload.rows : [];
+      if (!rows.length) return true;
+      function isPlaceholder(s) {
+        var t = String(s || '').trim();
+        return !t || t === '성취기준 등록';
+      }
+      return rows.every(function(r) {
+        return isPlaceholder(r.high) && isPlaceholder(r.mid) && isPlaceholder(r.low);
+      });
+    }
+
+    function ensureRubricSubjectFromToolsIfEmpty() {
+      var rSel = document.getElementById('rubric_subject_name');
+      var tSel = document.getElementById('toolsSubjectSelect');
+      if (!rSel || !tSel) return;
+      if (String(rSel.value || '').trim()) return;
+      var tv = String(tSel.value || '').trim();
+      if (!tv) return;
+      applyNcsSubjectSelectValue('rubric_subject_name', tv, '');
+    }
+
+    async function fetchToolsPlanPayloadForRubricMerge() {
+      var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      ensureRubricSubjectFromToolsIfEmpty();
+      var cid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      if (!courseId || !cid) return { ok: false, error: 'no_course_or_curriculum', payload: null };
+      var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(courseId) +
+        '&evaluation_round=' + encodeURIComponent(selectedRound) +
+        '&doc_type=tools' +
+        (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
+        '&curriculum_id=' + encodeURIComponent(cid);
+      var res = await authFetch(url);
+      var json = await res.json();
+      if (!json || !json.success) return { ok: false, error: 'fetch_failed', payload: null };
+      if (!json.data || !json.data.payload) return { ok: false, error: 'no_tools_doc', payload: null };
+      return { ok: true, error: '', payload: json.data.payload || {} };
+    }
+
+    function applyToolsPayloadToRubricForm(payload) {
+      var rows = buildRubricRowsFromToolsCriteriaGroups(payload.criteria_groups);
+      if (!rows.length) return false;
+      var u = String(getRubricFieldValue('rubric_unit_name') || '').trim();
+      if (!u) {
+        var tul = String(payload.tools_unit_name_level || '').trim();
+        if (tul) setRubricFieldValue('rubric_unit_name', tul);
+      }
+      var w = String(getRubricFieldValue('rubric_writer') || '').trim();
+      if (!w && payload.writer) setRubricFieldValue('rubric_writer', String(payload.writer || ''));
+      renderRubricRows(rows);
+      return true;
+    }
+
+    async function tryAutoFillRubricFromTools(savedPayload, opts) {
+      opts = opts || {};
+      var force = !!opts.force;
+      if (!force && savedPayload && !rubricPayloadNeedsToolsAutoSync(savedPayload)) return;
+      try {
+        var got = await fetchToolsPlanPayloadForRubricMerge();
+        if (!got.ok || !got.payload) return;
+        if (!applyToolsPayloadToRubricForm(got.payload)) return;
+        setStatus('rubric', '평가도구 평가내용을 자동 반영했습니다. 확인 후 저장하세요.', false);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     async function applyRubricFromSavedToolsDocument() {
       var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
-      var cid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
       if (!courseId) {
         alert('과정을 먼저 선택해 주세요.');
         return;
       }
+      ensureRubricSubjectFromToolsIfEmpty();
+      var cid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
       if (!cid) {
         alert('채점기준표에서 교과목을 선택해 주세요. (평가도구 제작에서 저장할 때와 같은 교과목이어야 합니다.)');
         return;
       }
       if (!confirm('현재 채점기준표 표의 행을, 이 교과목·평가회차에 저장된 평가도구 제작 문서의 평가내용으로 덮어씁니다. 계속할까요?')) return;
       try {
-        var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(courseId) +
-          '&evaluation_round=' + encodeURIComponent(selectedRound) +
-          '&doc_type=tools' +
-          (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
-          '&curriculum_id=' + encodeURIComponent(cid);
-        var res = await authFetch(url);
-        var json = await res.json();
-        if (!json || !json.success) {
-          alert((json && json.error) ? String(json.error) : '평가도구 문서를 불러오지 못했습니다.');
+        var got = await fetchToolsPlanPayloadForRubricMerge();
+        if (!got.ok) {
+          if (got.error === 'no_tools_doc') {
+            alert('저장된 평가도구 제작 문서가 없습니다. 평가도구 제작 탭에서 이 교과목을 선택한 뒤 저장해 주세요.');
+          } else {
+            alert('평가도구 문서를 불러오지 못했습니다.');
+          }
           return;
         }
-        if (!json.data || !json.data.payload) {
-          alert('저장된 평가도구 제작 문서가 없습니다. 평가도구 제작 탭에서 이 교과목을 선택한 뒤 저장해 주세요.');
-          return;
-        }
-        var payload = json.data.payload || {};
-        var rows = buildRubricRowsFromToolsCriteriaGroups(payload.criteria_groups);
-        if (!rows.length) {
+        if (!applyToolsPayloadToRubricForm(got.payload)) {
           alert('평가도구 문서에 평가내용(능력단위요소·평가내용 표)이 없습니다. 평가도구 제작에서 「NCS 평가준거 불러오기」 등으로 채운 뒤 저장해 주세요.');
           return;
         }
-        var u = String(getRubricFieldValue('rubric_unit_name') || '').trim();
-        if (!u) {
-          var tul = String(payload.tools_unit_name_level || '').trim();
-          if (tul) setRubricFieldValue('rubric_unit_name', tul);
-        }
-        var w = String(getRubricFieldValue('rubric_writer') || '').trim();
-        if (!w && payload.writer) setRubricFieldValue('rubric_writer', String(payload.writer || ''));
-        renderRubricRows(rows);
         setStatus('rubric', '평가도구 평가내용을 반영했습니다. 필요 시 수정 후 저장하세요.', false);
       } catch (e) {
         console.error(e);
@@ -4187,17 +4241,27 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const body = document.getElementById('rubricRowsBody');
       if (!body) return [];
       const rows = [];
-      body.querySelectorAll('tr[data-rubric-row]').forEach(function(tr) {
-        var itemCell = tr.querySelector('[data-rubric-cell="item"]');
-        var scoreCell = tr.querySelector('[data-rubric-cell="score"]');
-        var highCell = tr.querySelector('[data-rubric-cell="high"]');
-        var midCell = tr.querySelector('[data-rubric-cell="mid"]');
-        var lowCell = tr.querySelector('[data-rubric-cell="low"]');
-        var itemText = itemCell ? String(itemCell.textContent || '').trim() : (tr.getAttribute('data-item') || '');
-        var scoreText = scoreCell ? String(scoreCell.textContent || '').trim() : (tr.getAttribute('data-score') || '0');
-        var highText = highCell ? String(highCell.textContent || '').trim() : (tr.getAttribute('data-high') || '');
-        var midText = midCell ? String(midCell.textContent || '').trim() : (tr.getAttribute('data-mid') || '');
-        var lowText = lowCell ? String(lowCell.textContent || '').trim() : (tr.getAttribute('data-low') || '');
+      var trs = Array.prototype.slice.call(body.querySelectorAll('tr'));
+      var i = 0;
+      while (i < trs.length) {
+        var tr = trs[i];
+        if (!tr.hasAttribute('data-rubric-row')) {
+          i += 1;
+          continue;
+        }
+        var trHigh = tr;
+        var trMid = trs[i + 1];
+        var trLow = trs[i + 2];
+        var itemCell = trHigh.querySelector('[data-rubric-cell="item"]');
+        var scoreCell = trHigh.querySelector('[data-rubric-cell="score"]');
+        var highCell = trHigh.querySelector('[data-rubric-cell="high"]');
+        var midCell = trMid ? trMid.querySelector('[data-rubric-cell="mid"]') : null;
+        var lowCell = trLow ? trLow.querySelector('[data-rubric-cell="low"]') : null;
+        var itemText = itemCell ? String(itemCell.textContent || '').trim() : (trHigh.getAttribute('data-item') || '');
+        var scoreText = scoreCell ? String(scoreCell.textContent || '').trim() : (trHigh.getAttribute('data-score') || '0');
+        var highText = highCell ? String(highCell.textContent || '').trim() : (trHigh.getAttribute('data-high') || '');
+        var midText = midCell ? String(midCell.textContent || '').trim() : (trHigh.getAttribute('data-mid') || '');
+        var lowText = lowCell ? String(lowCell.textContent || '').trim() : (trHigh.getAttribute('data-low') || '');
         var scoreNum = Number(scoreText || 0);
         rows.push({
           item: itemText,
@@ -4206,7 +4270,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           mid: midText,
           low: lowText
         });
-      });
+        i += 4;
+      }
       return rows;
     }
 
@@ -4226,20 +4291,20 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const mid = String(row?.mid || '');
         const low = String(row?.low || '');
         return '<tr data-rubric-row data-item="' + escapeHtml(item) + '" data-score="' + score + '" data-high="' + escapeHtml(high) + '" data-mid="' + escapeHtml(mid) + '" data-low="' + escapeHtml(low) + '">' +
-          '<td class="border border-black px-2 py-1 align-top" rowspan="4"><div data-rubric-cell="item" contenteditable="true" class="min-h-[6.4rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div></td>' +
-          '<td class="border border-black px-2 py-1 text-[12px] align-top"><div class="min-h-[1.6rem] whitespace-pre-wrap">성취기준 설명</div><div data-rubric-cell="score" contenteditable="true" class="hidden">' + escapeHtml(String(score)) + '</div></td>' +
-          '<td class="border border-black px-2 py-1 text-center font-bold">우수</td>' +
+          '<td class="border border-black px-2 py-1 align-top" rowspan="4"><div data-rubric-cell="item" contenteditable="true" class="min-h-[6.4rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(item) + '</div><div data-rubric-cell="score" contenteditable="true" class="hidden">' + escapeHtml(String(score)) + '</div></td>' +
           '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="high" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(high) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-center font-bold align-middle">우수</td>' +
+          '<td class="border border-black px-2 py-1 align-top text-slate-500 text-[11px]">&nbsp;</td>' +
         '</tr>' +
         '<tr>' +
-          '<td class="border border-black px-2 py-1 text-[12px] text-slate-600">보통</td>' +
-          '<td class="border border-black px-2 py-1 text-center font-bold">보통</td>' +
           '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="mid" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(mid) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-center font-bold align-middle">보통</td>' +
+          '<td class="border border-black px-2 py-1 align-top text-slate-500 text-[11px]">&nbsp;</td>' +
         '</tr>' +
         '<tr>' +
-          '<td class="border border-black px-2 py-1 text-[12px] text-slate-600">미흡</td>' +
-          '<td class="border border-black px-2 py-1 text-center font-bold">미흡</td>' +
           '<td class="border border-black px-2 py-1 align-top"><div data-rubric-cell="low" contenteditable="true" class="min-h-[1.6rem] whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-sky-200 rounded px-1">' + escapeHtml(low) + '</div></td>' +
+          '<td class="border border-black px-2 py-1 text-center font-bold align-middle">미흡</td>' +
+          '<td class="border border-black px-2 py-1 align-top text-slate-500 text-[11px]">&nbsp;</td>' +
         '</tr>' +
         '<tr>' +
           '<td class="border border-black px-2 py-1 text-[12px] text-slate-600" colspan="3">필요 시 성취기준을 직접 수정해 사용하세요.</td>' +
@@ -4977,11 +5042,17 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             await autoFillQuestionsCourseNameIfEmpty();
           }
           setStatus(tabId, '새 문서', false);
+          if (tabId === 'rubric') {
+            await tryAutoFillRubricFromTools({}, { force: true });
+          }
           return;
         }
         applyDocForm(tabId, json.data);
         if (tabId === 'questions') {
           await autoFillQuestionsCourseNameIfEmpty();
+        }
+        if (tabId === 'rubric') {
+          await tryAutoFillRubricFromTools(json.data.payload || {}, { force: false });
         }
         selectedDocIdByTab[tabId] = String(json.data.id || '');
         await loadDocumentList(tabId, selectedDocIdByTab[tabId]);
@@ -5143,7 +5214,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (minutesRoundCell) minutesRoundCell.textContent = String(selectedRound) + '차';
     }
 
-    function switchNcsPlanTab(tabId) {
+    /** 탭 버튼·패널만 전환 (문서 로드 없음). LMS 초기화에서 교과목 API 후 단일 loadDocument와 조합 */
+    function setNcsPlanTabUiOnly(tabId) {
       activeTab = tabId;
       document.querySelectorAll('[data-plan-tab-btn]').forEach(function(btn) {
         const isActive = btn.getAttribute('data-plan-tab-btn') === tabId;
@@ -5159,6 +5231,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       });
       const activeDocLabel = document.getElementById('activeDocLabel');
       if (activeDocLabel) activeDocLabel.textContent = TAB_NAMES[tabId] || tabId;
+    }
+
+    function switchNcsPlanTab(tabId) {
+      setNcsPlanTabUiOnly(tabId);
       loadDocument(tabId);
     }
 
@@ -5527,13 +5603,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       } catch (eRound) {}
 
       applyRoundBadges();
-      switchNcsPlanTab(initialPlanTab);
       if (useFixedCourseId) {
         selectedCourseId = fixedCourseId;
+        setNcsPlanTabUiOnly(initialPlanTab);
         var _resolvedSid = _sid || __resolvedSessionIdFromCourseApi || undefined;
         await loadNcsPlanSubjectOptions(fixedCourseId, _resolvedSid, { preserveSelection: false });
         await loadDocument(initialPlanTab);
         await applyAutoFocusIfRequested();
+        if (initialPlanTab !== 'minutes') {
+          void loadDocument('minutes');
+        }
+      } else {
+        switchNcsPlanTab(initialPlanTab);
       }
 
       var minutesPrintBtn = document.getElementById('minutesPrintBtn');
