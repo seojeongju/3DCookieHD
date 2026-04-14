@@ -1134,7 +1134,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </select>
                             <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>NCS 평가준거 불러오기</button>
                           </div>
-                          <p class="mt-2 text-[11px] text-slate-500 leading-snug">표에서 요소명·평가 내용을 직접 수정할 수 있습니다. <strong class="text-slate-600">저장</strong> 시 이 과정·교과목·평가회차별로 서버에 보관되며, 이후 「NCS 평가준거 불러오기」·교수계획서 연동 시 저장된 문구가 우선 반영됩니다.</p>
+                          <p class="mt-2 text-[11px] text-slate-500 leading-snug">표에서 요소명·평가 내용을 직접 수정할 수 있습니다. <strong class="text-slate-600">저장</strong> 시 이 과정·교과목·평가회차별로 서버에 보관되며, 이후 「NCS 평가준거 불러오기」·교수계획서 연동 시 저장된 문구가 우선 반영됩니다. <strong class="text-slate-600">능력단위가 여러 개</strong>인 교과목도 요소별로 소속 능력단위명·수준이 구분되어, 동일 조합(능력단위명·수준·요소명·평가회차)이면 <strong class="text-slate-600">다른 과정</strong>에서 작성한 평가내용이 자동으로 채워집니다. 과정별로 수정한 내용은 해당 과정에만 우선 적용됩니다.</p>
                         </td>
                       </tr>
                       <tr>
@@ -3764,6 +3764,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       btn.disabled = !ok;
     }
 
+    /** 상단 표의 능력단위명/수준 — 수동 추가 요소 그룹에 소속 단위 메타로 사용 */
+    function getToolsSheetUnitContext() {
+      var el = document.getElementById('tools_unit_name_level');
+      var raw = el ? String(el.textContent || '').replace(/\s+/g, ' ').trim() : '';
+      if (!raw) return {};
+      return { unit_name_level: raw, unit_level_key: raw };
+    }
+
     function wireToolsCriteriaEditDelegation() {
       if (toolsCriteriaInputBound) return;
       toolsCriteriaInputBound = true;
@@ -3859,8 +3867,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
     function addToolsCriteriaContentLine() {
       syncToolsCriteriaStateFromDom();
+      var umeta = getToolsSheetUnitContext();
       if (!toolsCriteriaGroupsState.length) {
-        toolsCriteriaGroupsState = [{ element_title: '능력단위 요소', lines: [{ label: '1.1', text: '' }] }];
+        toolsCriteriaGroupsState = [
+          Object.assign(
+            { element_title: '능력단위 요소', lines: [{ label: '1.1', text: '' }] },
+            umeta.unit_name_level ? umeta : {}
+          )
+        ];
       } else {
         var lastG = toolsCriteriaGroupsState.length - 1;
         var grp = toolsCriteriaGroupsState[lastG];
@@ -3876,10 +3890,16 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function addToolsCriteriaElementGroup() {
       syncToolsCriteriaStateFromDom();
       var nextMajor = toolsCriteriaGroupsState.length + 1;
-      toolsCriteriaGroupsState.push({
-        element_title: '능력단위 요소',
-        lines: [{ label: nextMajor + '.1', text: '' }]
-      });
+      var umeta = getToolsSheetUnitContext();
+      toolsCriteriaGroupsState.push(
+        Object.assign(
+          {
+            element_title: '능력단위 요소',
+            lines: [{ label: nextMajor + '.1', text: '' }]
+          },
+          umeta.unit_name_level ? umeta : {}
+        )
+      );
       renumberToolsCriteriaLabels();
       renderToolsCriteriaBody(toolsCriteriaGroupsState);
     }
@@ -3915,6 +3935,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
               '" contenteditable="true" title="능력단위 요소명(직접 수정 가능)">' +
               escapeHtml(title) +
               '</div>';
+            var unl = String(grp.unit_name_level || '').trim();
+            if (unl) {
+              html +=
+                '<div class="text-[10px] text-slate-500 font-normal leading-snug mt-0.5" title="이 행이 매칭되는 NCS 능력단위명·수준">' +
+                escapeHtml(unl) +
+                '</div>';
+            }
             html +=
               '<button type="button" class="self-start text-[11px] px-2 py-0.5 rounded border border-rose-200 bg-rose-50 text-rose-700 font-bold hover:bg-rose-100" data-tools-crit-del-group data-g="' +
               g +

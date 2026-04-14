@@ -3632,6 +3632,11 @@ function normalizeEvalElementTitle(t: string): string {
         .replace(/\s+/g, ' ');
 }
 
+/** 능력단위명·수준 문자열 정규화(과정 간 공유 키) — 공백만 통일 */
+function normalizeUnitLevelKey(t: string): string {
+    return normalizeEvalElementTitle(t);
+}
+
 type AbilityUnitJsonEntry =
     | string
     | {
@@ -3737,8 +3742,9 @@ function mergeCriteriaGroupsFromOverlay(ncsGroups: any[], savedGroups: any[] | n
         const ovr = key ? savedByTitle.get(key) : null;
         if (ovr && Array.isArray(ovr.lines) && ovr.lines.length > 0) {
             out.push({
+                ...ncs,
                 element_title: ncs.element_title,
-                lines: JSON.parse(JSON.stringify(ovr.lines))
+                lines: JSON.parse(JSON.stringify(ovr.lines)),
             });
             if (key) usedSaved.add(key);
         } else {
@@ -3752,6 +3758,314 @@ function mergeCriteriaGroupsFromOverlay(ncsGroups: any[], savedGroups: any[] | n
         out.push(JSON.parse(JSON.stringify(s)));
     }
     return out.length ? out : ncsGroups;
+}
+
+type GlobalEvalContentLibRow = {
+    unit_level_key: string;
+    element_key: string;
+    lines: any[];
+    element_title_snapshot: string | null;
+};
+
+function globalLibCompositeKey(unitLevelKey: string, elementKey: string): string {
+    return `${normalizeUnitLevelKey(unitLevelKey)}\x1f${normalizeEvalElementTitle(elementKey)}`;
+}
+
+/** 여러 능력단위명·수준 키에 대한 과정 공통 평가내용(복합 키: unit_level_key + element_key) */
+async function fetchGlobalEvaluationContentLibraryBatch(
+    DB: D1Database,
+    unitLevelKeys: string[],
+    evaluationRound: number
+): Promise<GlobalEvalContentLibRow[]> {
+    const uniq = [...new Set(unitLevelKeys.map((k) => normalizeUnitLevelKey(k)).filter(Boolean))];
+    if (!uniq.length) return [];
+    try {
+        const ph = uniq.map(() => '?').join(', ');
+        const rs = await DB.prepare(
+            `SELECT unit_level_key, element_key, lines_json, element_title_snapshot
+             FROM ncs_evaluation_content_library
+             WHERE evaluation_round = ? AND unit_level_key IN (${ph})`
+        )
+            .bind(evaluationRound, ...uniq)
+            .all();
+        const rows = (rs?.results || []) as {
+            unit_level_key?: string;
+            element_key?: string;
+            lines_json?: string;
+            element_title_snapshot?: string | null;
+        }[];
+        const out: GlobalEvalContentLibRow[] = [];
+        for (const row of rows) {
+            const uk = String(row?.unit_level_key || '').trim();
+            const ek = String(row?.element_key || '').trim();
+            if (!uk || !ek) continue;
+            let lines: any[] = [];
+            try {
+                const p = JSON.parse(String(row?.lines_json || '[]')) as unknown;
+                lines = Array.isArray(p) ? p : [];
+            } catch {
+                lines = [];
+            }
+            if (!lines.length) continue;
+            out.push({
+                unit_level_key: uk,
+                element_key: ek,
+                lines,
+                element_title_snapshot: row?.element_title_snapshot ? String(row.element_title_snapshot) : null,
+            });
+        }
+        return out;
+    } catch {
+        return [];
+    }
+}
+
+/** NCS 기준 그룹에 라이브러리 평가내용 병합(능력단위명·수준 + 요소명). 과정별 오버레이보다 먼저 적용 */
+function mergeCriteriaGroupsFromGlobalLibrary(
+    ncsGroups: any[],
+    libRows: GlobalEvalContentLibRow[],
+    fallbackPrimaryUnitLevelKey?: string | null
+): any[] {
+    if (!libRows || !libRows.length || !ncsGroups || !ncsGroups.length) return ncsGroups;
+    const libMap = new Map<string, any[]>();
+    libRows.forEach((r) => {
+        const uk = normalizeUnitLevelKey(String(r.unit_level_key || ''));
+        const ek = normalizeEvalElementTitle(String(r.element_key || ''));
+        if (!uk || !ek || !Array.isArray(r.lines) || !r.lines.length) return;
+        libMap.set(globalLibCompositeKey(uk, ek), r.lines);
+    });
+    if (!libMap.size) return ncsGroups;
+    const fb = fallbackPrimaryUnitLevelKey ? normalizeUnitLevelKey(fallbackPrimaryUnitLevelKey) : '';
+    return ncsGroups.map((g) => {
+        let uk =
+            normalizeUnitLevelKey(String(g?.unit_level_key || '').trim()) ||
+            normalizeUnitLevelKey(String(g?.unit_name_level || '').trim());
+        if (!uk && fb) uk = fb;
+        const ek = normalizeEvalElementTitle(String(g?.element_title ?? ''));
+        if (!uk || !ek) return g;
+        let ln = libMap.get(globalLibCompositeKey(uk, ek));
+        if (!ln || !ln.length) return g;
+        return {
+            ...g,
+            lines: JSON.parse(JSON.stringify(ln)),
+        };
+    });
+}
+
+/** 교과목의 첫 능력단위 기준 능력단위명·수준 키(평가도구·라이브러리와 동일 규칙) */
+async function resolvePrimaryUnitLevelKeyForCurriculum(
+    DB: D1Database,
+    curriculumId: number
+): Promise<{ key: string; display: string } | null> {
+    const link = (await DB.prepare(
+        `SELECT id, name, ability_units_json FROM ncs_approved_curriculum WHERE id = ? LIMIT 1`
+    )
+        .bind(curriculumId)
+        .first()) as { id?: number; name?: string; ability_units_json?: string } | null;
+    if (!link) return null;
+    let unitCodes: string[] = [];
+    let parsedAbilityUnits: AbilityUnitJsonEntry[] = [];
+    try {
+        const parsed = JSON.parse(String(link.ability_units_json || '[]')) as AbilityUnitJsonEntry[];
+        parsedAbilityUnits = Array.isArray(parsed) ? parsed : [];
+        unitCodes = parsedAbilityUnits
+            .map((u) => (typeof u === 'string' ? u : String((u as { code?: string }).code || '')))
+            .map((s) => String(s || '').trim())
+            .filter(Boolean);
+    } catch {
+        unitCodes = [];
+    }
+    if (!unitCodes.length) return null;
+    const code = unitCodes[0];
+    let u: any = await DB.prepare('SELECT code, name, level FROM ncs_units WHERE code = ? LIMIT 1')
+        .bind(code)
+        .first();
+    if (!u) {
+        const compact = String(code).replace(/\s/g, '');
+        if (compact) {
+            u = await DB.prepare(
+                `SELECT code, name, level FROM ncs_units WHERE replace(replace(code, char(9), ''), ' ', '') = ? LIMIT 1`
+            )
+                .bind(compact)
+                .first();
+        }
+    }
+    if (!u) return null;
+    const primaryUnitName = String(u.name || '').trim();
+    const primaryLevel = u.level != null && u.level !== '' ? u.level : null;
+    const subjectName = String(link.name || '').trim();
+    const display =
+        primaryUnitName && primaryLevel !== null && primaryLevel !== ''
+            ? `${primaryUnitName} / ${primaryLevel}수준`
+            : primaryUnitName || subjectName;
+    const key = normalizeUnitLevelKey(display);
+    return key ? { key, display } : null;
+}
+
+async function upsertOneGlobalEvaluationContentLibraryRow(
+    DB: D1Database,
+    unitLevelKey: string,
+    elementTitle: string,
+    evaluationRound: number,
+    lines: unknown[],
+    userId: number | null
+): Promise<void> {
+    if (!unitLevelKey || !Number.isFinite(evaluationRound)) return;
+    const et = String(elementTitle || '').trim();
+    const linesArr = Array.isArray(lines) ? lines : [];
+    if (!et || !linesArr.length) return;
+    const elementKey = normalizeEvalElementTitle(et);
+    if (!elementKey) return;
+    const json = JSON.stringify(linesArr);
+    try {
+        await DB.prepare(
+            `INSERT INTO ncs_evaluation_content_library (unit_level_key, element_key, evaluation_round, lines_json, element_title_snapshot, updated_by, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+             ON CONFLICT(unit_level_key, element_key, evaluation_round) DO UPDATE SET
+               lines_json = excluded.lines_json,
+               element_title_snapshot = excluded.element_title_snapshot,
+               updated_by = excluded.updated_by,
+               updated_at = datetime('now')`
+        )
+            .bind(unitLevelKey, elementKey, evaluationRound, json, et, userId)
+            .run();
+    } catch (e) {
+        console.warn('ncs_evaluation_content_library upsert:', e);
+    }
+}
+
+/** ncs_units.code(및 공백무시 매칭)으로 능력단위명·수준 키 */
+async function resolveUnitLevelKeyFromNcsUnitCode(
+    DB: D1Database,
+    unitCode: string
+): Promise<{ key: string; display: string } | null> {
+    const raw = String(unitCode || '').trim();
+    if (!raw) return null;
+    let u: any = await DB.prepare('SELECT code, name, level FROM ncs_units WHERE code = ? LIMIT 1').bind(raw).first();
+    if (!u) {
+        const compact = raw.replace(/\s/g, '');
+        if (compact) {
+            u = await DB.prepare(
+                `SELECT code, name, level FROM ncs_units WHERE replace(replace(code, char(9), ''), ' ', '') = ? LIMIT 1`
+            )
+                .bind(compact)
+                .first();
+        }
+    }
+    if (!u) return null;
+    const name = String(u.name || '').trim();
+    const lv = u.level != null && u.level !== '' ? u.level : null;
+    const display =
+        name && lv !== null && lv !== '' ? `${name} / ${lv}수준` : name;
+    const key = normalizeUnitLevelKey(display);
+    return key ? { key, display } : null;
+}
+
+/** 교과목 편성의 능력단위들에서 요소명이 일치하는 능력단위의 unit_level_key */
+async function resolveUnitLevelKeyForElementName(
+    DB: D1Database,
+    curriculumId: number,
+    elementTitle: string
+): Promise<{ key: string; display: string } | null> {
+    const want = normalizeEvalElementTitle(String(elementTitle || '').replace(/^-\s*/, ''));
+    if (!want) return null;
+    const link = (await DB.prepare(`SELECT ability_units_json FROM ncs_approved_curriculum WHERE id = ? LIMIT 1`)
+        .bind(curriculumId)
+        .first()) as { ability_units_json?: string } | null;
+    if (!link) return null;
+    let unitCodes: string[] = [];
+    try {
+        const parsed = JSON.parse(String(link.ability_units_json || '[]')) as AbilityUnitJsonEntry[];
+        const arr = Array.isArray(parsed) ? parsed : [];
+        unitCodes = arr
+            .map((u) => (typeof u === 'string' ? u : String((u as { code?: string }).code || '')))
+            .map((s) => String(s || '').trim())
+            .filter(Boolean);
+    } catch {
+        return null;
+    }
+    for (const code of unitCodes) {
+        let u: any = await DB.prepare(
+            'SELECT code, name, level, elements_json FROM ncs_units WHERE code = ? LIMIT 1'
+        )
+            .bind(code)
+            .first();
+        if (!u) {
+            const compact = String(code).replace(/\s/g, '');
+            if (compact) {
+                u = await DB.prepare(
+                    `SELECT code, name, level, elements_json FROM ncs_units WHERE replace(replace(code, char(9), ''), ' ', '') = ? LIMIT 1`
+                )
+                    .bind(compact)
+                    .first();
+            }
+        }
+        if (!u) continue;
+        let elements: any[] = [];
+        try {
+            const parsed = JSON.parse(String(u.elements_json || '[]'));
+            elements = Array.isArray(parsed) ? parsed : [];
+        } catch {
+            elements = [];
+        }
+        for (const el of elements) {
+            const en = normalizeEvalElementTitle(String(el?.name || '').replace(/^-\s*/, ''));
+            if (en && en === want) {
+                const name = String(u.name || '').trim();
+                const lv = u.level != null && u.level !== '' ? u.level : null;
+                const display =
+                    name && lv !== null && lv !== '' ? `${name} / ${lv}수준` : name;
+                const key = normalizeUnitLevelKey(display);
+                return key ? { key, display } : null;
+            }
+        }
+    }
+    return null;
+}
+
+async function upsertGlobalEvaluationContentLibraryFromToolsSave(
+    DB: D1Database,
+    curriculumId: number,
+    evaluationRound: number,
+    criteriaGroups: unknown[],
+    userId: number | null
+): Promise<void> {
+    if (!Array.isArray(criteriaGroups) || !criteriaGroups.length) return;
+    const primary = await resolvePrimaryUnitLevelKeyForCurriculum(DB, curriculumId);
+
+    for (const raw of criteriaGroups) {
+        const gr = raw as {
+            element_title?: string;
+            lines?: unknown[];
+            unit_level_key?: string;
+            unit_name_level?: string;
+            ability_unit_code?: string;
+        };
+        const lines = Array.isArray(gr?.lines) ? gr.lines : [];
+        const et = String(gr?.element_title ?? '').trim();
+        if (!et || !lines.length) continue;
+
+        let unitKey = normalizeUnitLevelKey(String(gr.unit_level_key || '').trim());
+        if (!unitKey) {
+            const unl = String(gr.unit_name_level || '').trim();
+            if (unl) unitKey = normalizeUnitLevelKey(unl);
+        }
+        if (!unitKey) {
+            const ac = String(gr.ability_unit_code || '').trim();
+            if (ac) {
+                const rk = await resolveUnitLevelKeyFromNcsUnitCode(DB, ac);
+                if (rk?.key) unitKey = rk.key;
+            }
+        }
+        if (!unitKey) {
+            const rk = await resolveUnitLevelKeyForElementName(DB, curriculumId, et);
+            if (rk?.key) unitKey = rk.key;
+        }
+        if (!unitKey && primary?.key) unitKey = primary.key;
+        if (!unitKey) continue;
+
+        await upsertOneGlobalEvaluationContentLibraryRow(DB, unitKey, et, evaluationRound, lines, userId);
+    }
 }
 
 async function getEvaluationCriteriaOverlay(
@@ -3897,7 +4211,16 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
         const strictElements = abilityUnitsHasStrictElements(parsedAbilityUnits);
 
         type CriteriaLine = { label: string; text: string };
-        type CriteriaGroup = { element_title: string; lines: CriteriaLine[] };
+        type CriteriaGroup = {
+            element_title: string;
+            lines: CriteriaLine[];
+            /** 편성된 ncs_units.code */
+            ability_unit_code?: string;
+            /** 예: 능력단위명 / 2수준 */
+            unit_name_level?: string;
+            /** 공백 정규화된 능력단위명·수준(라이브러리·병합 키) */
+            unit_level_key?: string;
+        };
 
         const extractLines = (el: any, majorIdx: number): CriteriaLine[] => {
             const evalCrit = String(el?.evaluation_criteria_text || el?.evaluationCriteriaText || '').trim();
@@ -3936,6 +4259,7 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
         let groups: CriteriaGroup[] = [];
         let primaryUnitName = '';
         let primaryLevel: string | number | null = null;
+        const subjectName = String(link.name || '').trim();
 
         let majorCounter = 0;
         for (const code of unitCodes) {
@@ -3996,7 +4320,20 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                 allowedElementTitles.add(normalizeEvalElementTitle(etitle));
                 const lines = extractLines(el, majorCounter);
                 if (!lines.length) continue;
-                groups.push({ element_title: etitle, lines });
+                const thisUnitName = String(u.name || '').trim();
+                const thisLevel = u.level != null && u.level !== '' ? u.level : null;
+                const unitNameLevelOne =
+                    thisUnitName && thisLevel !== null && thisLevel !== ''
+                        ? `${thisUnitName} / ${thisLevel}수준`
+                        : thisUnitName || subjectName;
+                const ulKey = normalizeUnitLevelKey(unitNameLevelOne);
+                groups.push({
+                    element_title: etitle,
+                    lines,
+                    ability_unit_code: String(u.code ?? code ?? '').trim(),
+                    unit_name_level: unitNameLevelOne,
+                    unit_level_key: ulKey,
+                });
             }
         }
 
@@ -4006,6 +4343,34 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
         const skipOverlay = c.req.query('refresh') === '1';
 
         if (!skipOverlay) {
+            const unitNameLevelStr =
+                primaryUnitName && primaryLevel !== null && primaryLevel !== ''
+                    ? `${primaryUnitName} / ${primaryLevel}수준`
+                    : primaryUnitName || subjectName;
+            const primaryUnitLevelKeyFallback = normalizeUnitLevelKey(unitNameLevelStr);
+
+            const unitKeysForLib: string[] = [];
+            for (const g of groups) {
+                const gg = g as CriteriaGroup;
+                const uk = String(gg.unit_level_key || '').trim();
+                if (uk) unitKeysForLib.push(uk);
+                else if (String(gg.unit_name_level || '').trim()) {
+                    unitKeysForLib.push(normalizeUnitLevelKey(String(gg.unit_name_level)));
+                }
+            }
+            if (!unitKeysForLib.length && primaryUnitLevelKeyFallback) {
+                unitKeysForLib.push(primaryUnitLevelKeyFallback);
+            }
+
+            const libRows = await fetchGlobalEvaluationContentLibraryBatch(c.env.DB, unitKeysForLib, evalRound);
+            if (libRows && libRows.length && groups.length) {
+                groups = mergeCriteriaGroupsFromGlobalLibrary(
+                    groups,
+                    libRows,
+                    primaryUnitLevelKeyFallback
+                ) as CriteriaGroup[];
+            }
+
             const savedOv = await getEvaluationCriteriaOverlay(c.env.DB, courseId, curriculumId, evalRound);
             if (savedOv && savedOv.length) {
                 if (groups.length) {
@@ -4022,7 +4387,6 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             );
         }
 
-        const subjectName = String(link.name || '').trim();
         const unitNameLevel =
             primaryUnitName && primaryLevel !== null && primaryLevel !== ''
                 ? `${primaryUnitName} / ${primaryLevel}수준`
@@ -4843,6 +5207,17 @@ app.post('/plan-documents', authMiddleware, async (c) => {
                 } catch (ovErr) {
                     console.warn('evaluation overlay upsert (plan POST):', ovErr);
                 }
+                try {
+                    await upsertGlobalEvaluationContentLibraryFromToolsSave(
+                        c.env.DB,
+                        curriculumIdOv,
+                        round,
+                        cg,
+                        user.userId ?? null
+                    );
+                } catch (libErr) {
+                    console.warn('global evaluation content library upsert (plan POST):', libErr);
+                }
             }
         }
 
@@ -4952,6 +5327,17 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
                     );
                 } catch (ovErr) {
                     console.warn('evaluation overlay upsert (plan PUT):', ovErr);
+                }
+                try {
+                    await upsertGlobalEvaluationContentLibraryFromToolsSave(
+                        c.env.DB,
+                        curriculumIdOv,
+                        round,
+                        cg,
+                        user.userId ?? null
+                    );
+                } catch (libErr) {
+                    console.warn('global evaluation content library upsert (plan PUT):', libErr);
                 }
             }
         }
