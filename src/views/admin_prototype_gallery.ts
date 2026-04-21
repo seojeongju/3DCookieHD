@@ -740,12 +740,12 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
         function renderUploadedVideos() {
             const listEl = document.getElementById('multiVideoList');
             if (!listEl) return;
-            listEl.innerHTML = multiUploadedVideos.map((url, idx) => `
+            listEl.innerHTML = multiUploadedVideos.map((url, idx) => \`
                 <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200 text-xs">
-                    <span class="truncate flex-1 mr-2 text-gray-600"><i class="fas fa-video mr-1 text-blue-400"></i> ${url.split('/').pop()}</span>
-                    <button type="button" onclick="removeUploadedVideo(${idx})" class="text-red-500 hover:text-red-700 px-1"><i class="fas fa-times"></i></button>
+                    <span class="truncate flex-1 mr-2 text-gray-600"><i class="fas fa-video mr-1 text-blue-400"></i> \${url.split('/').pop()}</span>
+                    <button type="button" onclick="removeUploadedVideo(\${idx})" class="text-red-500 hover:text-red-700 px-1"><i class="fas fa-times"></i></button>
                 </div>
-            `).join('');
+            \`).join('');
             listEl.classList.toggle('hidden', multiUploadedVideos.length === 0);
         }
  
@@ -775,12 +775,12 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                 let icon = 'fa-link';
                 if (url.includes('youtube.com') || url.includes('youtu.be')) icon = 'fa-youtube text-red-500';
                 else if (url.includes('vimeo.com')) icon = 'fa-vimeo-v text-blue-400';
-                return `
+                return \`
                     <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200 text-xs">
-                        <span class="truncate flex-1 mr-2 text-gray-600"><i class="fab ${icon} mr-1"></i> ${url}</span>
-                        <button type="button" onclick="removeVideoLink(${idx})" class="text-red-500 hover:text-red-700 px-1"><i class="fas fa-times"></i></button>
+                        <span class="truncate flex-1 mr-2 text-gray-600"><i class="fab \${icon} mr-1"></i> \${url}</span>
+                        <button type="button" onclick="removeVideoLink(\${idx})" class="text-red-500 hover:text-red-700 px-1"><i class="fas fa-times"></i></button>
                     </div>
-                `;
+                \`;
             }).join('');
         }
  
