@@ -44,6 +44,22 @@ export const prototypeGalleryHtml = `
       .gallery-modal-body::-webkit-scrollbar-thumb:hover {
         background: linear-gradient(180deg, #4a90e2 0%, #2d5fa3 100%);
       }
+      .video-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        height: 0;
+        overflow: hidden;
+        border-radius: 1rem;
+        background: #000;
+      }
+      .video-container iframe, .video-container video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
     </style>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
@@ -99,6 +115,9 @@ export const prototypeGalleryHtml = `
                     <span class="px-3.5 py-1.5 bg-amber-500 text-gray-900 text-[10px] font-black rounded-full shadow-md uppercase tracking-[0.18em] mb-3 inline-block">PROTOTYPE</span>
                     <h2 id="modalTitle" class="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight drop-shadow-sm"></h2>
                 </div>
+            </div>
+            <div id="modalVideoSection" class="hidden px-6 sm:px-10 py-6 bg-slate-50 border-b border-slate-100">
+                <div id="modalVideoContainer" class="max-w-3xl mx-auto space-y-4"></div>
             </div>
             <div class="flex-1 min-h-0 flex flex-col lg:flex-row border-t border-slate-100/90 bg-gradient-to-b from-slate-50/80 to-white">
                 <div class="flex-1 min-h-0 overflow-y-auto gallery-modal-body px-6 sm:px-10 py-8 sm:py-9">
@@ -293,6 +312,25 @@ export const prototypeGalleryHtml = `
             if (modalImgEl) modalImgEl.alt = item.title ? '시제품 이미지: ' + item.title : '';
             if (modalImgEl) modalImgEl.style.display = img ? 'block' : 'none';
             if (modalImgWrap) modalImgWrap.style.display = img ? 'block' : 'none';
+ 
+            // 비디오 처리
+            var videoSection = document.getElementById('modalVideoSection');
+            var videoContainer = document.getElementById('modalVideoContainer');
+            if (videoSection && videoContainer) {
+                videoContainer.innerHTML = '';
+                var videos = item.videos || [];
+                if (typeof videos === 'string') { try { videos = JSON.parse(videos); } catch(e) { videos = []; } }
+                
+                if (videos && videos.length > 0) {
+                    videoSection.classList.remove('hidden');
+                    videos.forEach(function(v) {
+                        videoContainer.innerHTML += renderVideoPlayer(v);
+                    });
+                } else {
+                    videoSection.classList.add('hidden');
+                }
+            }
+ 
             document.getElementById('modalTitle').textContent = item.title || '';
             document.getElementById('modalAuthor').textContent = item.author_name || '관리자';
             document.getElementById('modalDate').textContent = new Date(item._date).toLocaleDateString('ko-KR');
@@ -301,6 +339,25 @@ export const prototypeGalleryHtml = `
             document.getElementById('modalContent').innerHTML = content || '<p class="text-gray-500">내용이 없습니다.</p>';
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+        }
+ 
+        function renderVideoPlayer(url) {
+            if (!url) return '';
+            
+            // 유튜브
+            var ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+            if (ytMatch && ytMatch[1]) {
+                return '<div class="video-container shadow-lg"><iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '" allowfullscreen></iframe></div>';
+            }
+            
+            // 비메오
+            var vimeoMatch = url.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)(?:$|\/|\?)/);
+            if (vimeoMatch && vimeoMatch[3]) {
+                return '<div class="video-container shadow-lg"><iframe src="https://player.vimeo.com/video/' + vimeoMatch[3] + '" allowfullscreen></iframe></div>';
+            }
+            
+            // 직접 업로드 (HTML5 video)
+            return '<div class="video-container shadow-lg"><video controls preload="metadata" class="bg-black"><source src="' + url + '" type="video/mp4"><p>브라우저가 동영상을 지원하지 않습니다.</p></video></div>';
         }
 
         function closeDetailModal() {

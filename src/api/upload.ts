@@ -24,6 +24,10 @@ const ALLOWED_MIME_TYPES = {
   'text/plain': ['.txt'],
   'application/zip': ['.zip'],
   'application/x-rar-compressed': ['.rar'],
+  // 동영상
+  'video/mp4': ['.mp4'],
+  'video/webm': ['.webm'],
+  'video/ogg': ['.ogv'],
 };
 
 // 최대 파일 크기 (50MB)
@@ -39,6 +43,7 @@ const FILE_CATEGORIES = {
   materials: 'materials',       // 강의 자료
   images: 'images',             // 이미지
   profile: 'images/profile',     // 프로필/교강사 사진
+  videos: 'videos',             // 동영상
 } as const;
 
 type FileCategory = keyof typeof FILE_CATEGORIES;

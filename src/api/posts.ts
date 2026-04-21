@@ -23,6 +23,16 @@ function parsePostImagesArray(raw: unknown): string[] {
   }
 }
 
+function parsePostVideosArray(raw: unknown): string[] {
+  if (raw == null || raw === '') return [];
+  try {
+    const v = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(v) ? v.map((x) => String(x)) : [];
+  } catch {
+    return [];
+  }
+}
+
 async function loadPostFullHtmlContent(post: any, R2: R2Bucket | undefined): Promise<string> {
   let content = post.content || '';
   const r2UrlMatch =
@@ -293,6 +303,7 @@ app.get('/', async (c) => {
         ...post,
         content: outContent,
         images,
+        videos: parsePostVideosArray(post.videos),
         pinned: Boolean(post.pinned),
         is_secret: Boolean(isQnaSecret)
       };
@@ -396,6 +407,7 @@ app.post('/:id/verify-qna-password', async (c) => {
         ...post,
         content: finalContent,
         images,
+        videos: parsePostVideosArray(post.videos),
         pinned: Boolean(post.pinned),
         comments: comments || []
       }
@@ -518,6 +530,7 @@ app.get('/:id', async (c) => {
         ...post,
         content: finalContent,
         images,
+        videos: parsePostVideosArray(post.videos),
         pinned: Boolean(post.pinned),
         comments: comments || []
       }
@@ -549,7 +562,7 @@ app.post('/', async (c) => {
       user = await verifyToken(authHeader.substring(7));
     }
 
-    const { title, content, category, images, pinned, status, course_id, enrollment_id, rating, created_at } = body;
+    const { title, content, category, images, videos, pinned, status, course_id, enrollment_id, rating, created_at } = body;
 
     const tit = title != null ? String(title).trim() : '';
     const cont = content != null ? String(content) : '';
@@ -764,10 +777,10 @@ app.post('/', async (c) => {
 
     const result = await DB.prepare(`
       INSERT INTO posts (
-        author_id, title, content, category, sub_category, author_name, guest_password_hash, images,
+        author_id, title, content, category, sub_category, author_name, guest_password_hash, images, videos,
         views, likes, pinned, status, course_id, enrollment_id, rating, 
         content_url, teacher_feedback, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `).bind(
       finalAuthorId,
       tit,
@@ -777,6 +790,7 @@ app.post('/', async (c) => {
       guestAuthorName,
       guestPasswordHash,
       imagesJson,
+      videosJson,
       pin ? 1 : 0,
       st,
       course_id || null,
@@ -884,7 +898,18 @@ app.post('/bulk', authMiddleware, async (c) => {
       } catch {
         imagesJson = '[]';
       }
-      if (imagesJson.length > CONTENT_SIZE_LIMIT) {
+ 
+      let videosJson = '[]';
+      try {
+        if (item.videos != null) {
+          if (Array.isArray(item.videos)) videosJson = JSON.stringify(item.videos);
+          else if (typeof item.videos === 'string') videosJson = item.videos.trim() || '[]';
+        }
+      } catch {
+        videosJson = '[]';
+      }
+ 
+      if (imagesJson.length > CONTENT_SIZE_LIMIT || videosJson.length > CONTENT_SIZE_LIMIT) {
         results.fail++;
         results.errors.push(`[${idx + 1}] 이미지 정보 과다`);
         continue;
@@ -918,9 +943,9 @@ app.post('/bulk', authMiddleware, async (c) => {
 
       try {
         const ins = await DB.prepare(`
-          INSERT INTO posts ( author_id, title, content, category, images, views, likes, pinned, status, created_at, updated_at )
-          VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?, datetime('now'), datetime('now'))
-        `).bind(user.userId, tit, finalContent, cat, imagesJson, st).run();
+          INSERT INTO posts ( author_id, title, content, category, images, videos, views, likes, pinned, status, created_at, updated_at )
+          VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, datetime('now'), datetime('now'))
+        `).bind(user.userId, tit, finalContent, cat, imagesJson, videosJson, st).run();
         const bulkId = Number(ins.meta.last_row_id);
         if (cat === 'education_photo') {
           const epRow = await DB.prepare(
@@ -1237,7 +1262,7 @@ app.put('/:id', authMiddleware, async (c) => {
       return c.json({ success: false, error: '권한이 없습니다' }, 403);
     }
 
-    const { title, content, images, pinned, status, sub_category, content_url, teacher_feedback, created_at, category } = body;
+    const { title, content, images, videos, pinned, status, sub_category, content_url, teacher_feedback, created_at, category } = body;
 
     // D1 TEXT 컬럼 크기 제한을 초과하면 R2에 저장
     const CONTENT_SIZE_LIMIT = 50 * 1024; // 50KB
@@ -1300,7 +1325,7 @@ app.put('/:id', authMiddleware, async (c) => {
       }
     }
 
-    const { title: newTitle, content: newContent, images: newImages, pinned: newPinned, status: newStatus, rating: newRating, created_at: newCreatedAt } = body;
+    const { title: newTitle, content: newContent, images: newImages, videos: newVideos, pinned: newPinned, status: newStatus, rating: newRating, created_at: newCreatedAt } = body;
 
     let effectiveStatus = newStatus !== undefined ? newStatus : post.status;
     if (post.category === 'review' && user.role !== 'admin') {
@@ -1313,7 +1338,7 @@ app.put('/:id', authMiddleware, async (c) => {
     // 게시글 수정
     await DB.prepare(`
       UPDATE posts 
-      SET title = ?, content = ?, images = ?, category = ?,
+      SET title = ?, content = ?, images = ?, videos = ?, category = ?,
           pinned = ?, status = ?, rating = ?, 
           sub_category = ?, content_url = ?, teacher_feedback = ?,
           created_at = ?,
@@ -1323,6 +1348,7 @@ app.put('/:id', authMiddleware, async (c) => {
       newTitle ?? post.title,
       finalContent,
       imagesJsonForUpdate,
+      videosJsonForUpdate,
       effectiveCategory,
       (newPinned !== undefined && user.role === 'admin') ? (newPinned ? 1 : 0) : post.pinned,
       effectiveStatus,

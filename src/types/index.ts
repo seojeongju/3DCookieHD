@@ -143,6 +143,7 @@ export interface Post {
   content_url?: string; // 포트폴리오용: 외부 작품 링크
   teacher_feedback?: string; // 포트폴리오용: 강사 피드백
   images?: string; // JSON
+  videos?: string; // JSON
   views: number;
   likes: number;
   pinned: boolean; // 포트폴리오용: 추천 여부 (is_featured)
