@@ -50,6 +50,22 @@ function extractFirstImage(content: string): string {
     return match ? match[1] : '';
 }
 
+function extractVideos(content: string): string[] {
+    const videos: string[] = [];
+    if (!content) return videos;
+    const iframes = content.matchAll(/<iframe[^>]+src=["']([^"']+)["'][^>]*>/gi);
+    for (const match of iframes) {
+        if (match[1].includes('youtube') || match[1].includes('youtu.be') || match[1].includes('vimeo')) {
+            videos.push(match[1]);
+        }
+    }
+    const htmlVideos = content.matchAll(/<video[^>]+src=["']([^"']+)["'][^>]*>/gi);
+    for (const match of htmlVideos) {
+        videos.push(match[1]);
+    }
+    return videos;
+}
+
 function replaceUrlsInString(s: string, map: Map<string, string>): string {
     let out = s;
     const pairs = [...map.entries()].sort((a, b) => b[0].length - a[0].length);
@@ -169,12 +185,14 @@ app.get('/', async (c) => {
             }
             const st = normalizePortfolioStatus(p.status);
             const descriptionPlain = stripHtml(String(p.description || ''));
+            const videos = extractVideos(p.description || '');
             return {
                 ...p,
                 status: st,
                 thumbnail_url: thumb,
                 is_featured: Boolean(p.is_featured),
-                description_plain: descriptionPlain
+                description_plain: descriptionPlain,
+                videos
             };
         });
 
@@ -382,6 +400,8 @@ app.get('/:id', async (c) => {
         if (!thumb && post.description) {
             thumb = extractFirstImage(post.description);
         }
+        
+        const videos = extractVideos(post.description || '');
 
         return c.json({
             success: true,
@@ -390,7 +410,8 @@ app.get('/:id', async (c) => {
                 status: st,
                 thumbnail_url: thumb,
                 is_featured: Boolean(post.is_featured),
-                description_plain: stripHtml(String(post.description || ''))
+                description_plain: stripHtml(String(post.description || '')),
+                videos
             }
         });
     } catch (error: any) {

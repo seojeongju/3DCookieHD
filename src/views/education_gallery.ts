@@ -98,17 +98,22 @@ export const educationGalleryHtml = `
     <div id="detailModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closeDetailModal()" aria-hidden="true"></div>
         <div class="relative w-full max-w-5xl max-h-[min(92vh,900px)] flex flex-col rounded-[1.75rem] sm:rounded-[2rem] bg-white shadow-[0_25px_80px_-12px_rgba(15,23,42,0.45)] ring-1 ring-white/10 overflow-hidden" onclick="event.stopPropagation()">
-            <div class="relative h-[min(42vh,22rem)] sm:h-96 flex-shrink-0">
+            <div class="relative h-[min(42vh,22rem)] sm:h-96 flex-shrink-0 bg-slate-900" id="modalImageWrap">
                 <img id="modalImage" src="" alt="" class="w-full h-full object-cover education-face-mask-modal">
                 <div class="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-slate-900/25 pointer-events-none"></div>
                 <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/35 to-transparent pointer-events-none"></div>
-                <button type="button" onclick="closeDetailModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white bg-black/45 hover:bg-black/65 border border-white/25 shadow-lg backdrop-blur-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="닫기">
+                <button type="button" onclick="closeDetailModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white bg-black/45 hover:bg-black/65 border border-white/25 shadow-lg backdrop-blur-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 z-20" aria-label="닫기">
                     <i class="fas fa-times text-lg"></i>
                 </button>
                 <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 pt-16 sm:pt-20">
                     <span class="px-3.5 py-1.5 bg-primary-600 text-white text-[10px] font-black rounded-full shadow-md uppercase tracking-[0.18em] mb-3 inline-block">교육 사진</span>
                     <h2 id="modalTitle" class="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight drop-shadow-sm"></h2>
                 </div>
+            </div>
+            
+            <!-- 비디오 섹션 (존재할 경우) -->
+            <div id="modalVideoSection" class="hidden px-8 sm:px-10 py-8 bg-gray-50 border-b border-gray-100">
+                <div id="modalVideoContainer" class="max-w-4xl mx-auto space-y-6"></div>
             </div>
             <div class="flex-1 min-h-0 flex flex-col lg:flex-row border-t border-slate-100/90 bg-gradient-to-b from-slate-50/80 to-white">
                 <div class="flex-1 min-h-0 overflow-y-auto gallery-modal-body px-6 sm:px-10 py-8 sm:py-9">
@@ -253,17 +258,42 @@ export const educationGalleryHtml = `
                 var idx = start + pageIdx;
                 var typeLabel = '교육 사진';
                 var typeClass = 'bg-primary-600';
-                var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
-                var hasImage = !!img;
+                var img = getItemImage(item);
+                var videos = item.videos || [];
+                if (typeof videos === 'string') { try { videos = JSON.parse(videos); } catch(e) { videos = []; } }
+                var hasVideo = videos.length > 0;
+                
+                var displayImg = img;
+                var isVideoThumb = false;
+                if (!displayImg && hasVideo) {
+                    var vUrl = videos[0];
+                    var ytMatch = vUrl.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+                    if (ytMatch && ytMatch[1]) {
+                        displayImg = 'https://img.youtube.com/vi/' + ytMatch[1] + '/mqdefault.jpg';
+                        isVideoThumb = true;
+                    }
+                }
+                
                 var titleEsc = (item.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 var contentPlain = (item.content || item.description || '').replace(/<[^>]+>/g, '').trim().substring(0, 80);
                 if ((item.content || item.description || '').replace(/<[^>]+>/g, '').trim().length > 80) contentPlain += '…';
-                if (hasImage) {
+                
+                var hasMedia = !!displayImg || hasVideo;
+                
+                if (hasMedia) {
                     var aspectClass = isImageMode ? 'aspect-[4/3]' : 'aspect-square';
+                    var mediaHtml = '';
+                    if (displayImg) {
+                        mediaHtml = '<img src="' + displayImg.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover education-face-mask transition duration-500">';
+                    } else {
+                        mediaHtml = '<div class="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-slate-300 transition duration-500"><i class="fas fa-video text-4xl mb-3"></i><span class="text-[10px] font-black tracking-widest uppercase opacity-70">Video</span></div>';
+                    }
+                    
                     return '<div class="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')" data-idx="' + idx + '">' +
-                        '<div class="' + aspectClass + ' bg-gray-200 relative">' +
-                        '<img src="' + img.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover education-face-mask transition duration-500">' +
+                        '<div class="' + aspectClass + ' bg-gray-200 relative overflow-hidden shrink-0">' +
+                        mediaHtml +
                         '<span class="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-bold text-white ' + typeClass + '">' + typeLabel + '</span>' +
+                        (hasVideo ? '<div class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/70 to-transparent"><i class="fas fa-play-circle text-white text-2xl drop-shadow-md"></i></div>' : '') +
                         '</div>' +
                         '<div class="p-4">' +
                         '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
@@ -307,11 +337,51 @@ export const educationGalleryHtml = `
         function openDetail(idx) {
             var item = educationList[idx];
             if (!item) return;
-            var img = (item.images && item.images.length) ? item.images[0] : (item.thumbnail_url || '');
+            var img = getItemImage(item);
+            
+            var videos = item.videos || [];
+            if (typeof videos === 'string') { try { videos = JSON.parse(videos); } catch(e) { videos = []; } }
+            var hasVideo = videos.length > 0;
+            
+            if (!img && hasVideo) {
+                var vUrl = videos[0];
+                var ytMatch = vUrl.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+                if (ytMatch && ytMatch[1]) {
+                    img = 'https://img.youtube.com/vi/' + ytMatch[1] + '/maxresdefault.jpg';
+                }
+            }
+            
             var modalImgEl = document.getElementById('modalImage');
-            if (modalImgEl) modalImgEl.src = img || '';
-            if (modalImgEl) modalImgEl.alt = item.title ? '교육 사진: ' + item.title : '';
-            if (modalImgEl) modalImgEl.style.display = img ? 'block' : 'none';
+            var modalImgWrap = document.getElementById('modalImageWrap');
+            if (modalImgEl) {
+                modalImgEl.src = img || '';
+                modalImgEl.alt = item.title ? '교육 사진: ' + item.title : '';
+                modalImgEl.style.display = img ? 'block' : 'none';
+            }
+            if (modalImgWrap) {
+                modalImgWrap.style.display = 'block';
+                if (!img) {
+                    modalImgWrap.classList.add('bg-slate-800');
+                } else {
+                    modalImgWrap.classList.remove('bg-slate-800');
+                }
+            }
+            
+            // 비디오 처리
+            var videoSection = document.getElementById('modalVideoSection');
+            var videoContainer = document.getElementById('modalVideoContainer');
+            if (videoSection && videoContainer) {
+                videoContainer.innerHTML = '';
+                if (videos && videos.length > 0) {
+                    videoSection.classList.remove('hidden');
+                    videos.forEach(function(v) {
+                        videoContainer.innerHTML += renderVideoPlayer(v);
+                    });
+                } else {
+                    videoSection.classList.add('hidden');
+                }
+            }
+
             document.getElementById('modalTitle').textContent = item.title || '';
             document.getElementById('modalAuthor').textContent = (item.author_name || item.student_name || '-');
             document.getElementById('modalDate').textContent = new Date(item._date).toLocaleDateString('ko-KR');
@@ -321,7 +391,28 @@ export const educationGalleryHtml = `
             document.body.style.overflow = 'hidden';
         }
 
+        function renderVideoPlayer(url) {
+            if (!url) return '';
+            
+            // 유튜브
+            var ytMatch = url.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+            if (ytMatch && ytMatch[1]) {
+                return '<div class="video-container shadow-lg rounded-xl overflow-hidden aspect-video relative"><iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>';
+            }
+            
+            // 비메오
+            var vimeoMatch = url.match(/vimeo\\.com\\/(?:channels\\/(?:\\w+\\/)?|groups\\/([^\\/]*)\\/videos\\/|album\\/(\\d+)\\/video\\/|video\\/|)(\\d+)(?:$|\\/|\\?)/);
+            if (vimeoMatch && vimeoMatch[3]) {
+                return '<div class="video-container shadow-lg rounded-xl overflow-hidden aspect-video relative"><iframe src="https://player.vimeo.com/video/' + vimeoMatch[3] + '" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>';
+            }
+            
+            // 직접 업로드된 동영상
+            return '<div class="video-container shadow-lg rounded-xl overflow-hidden bg-black flex justify-center"><video controls src="' + url + '" class="max-w-full max-h-[600px]"></video></div>';
+        }
+
         function closeDetailModal() {
+            var videoContainer = document.getElementById('modalVideoContainer');
+            if (videoContainer) videoContainer.innerHTML = ''; // 모달 닫을때 비디오 재생 멈춤
             document.getElementById('detailModal').classList.add('hidden');
             document.body.style.overflow = '';
         }

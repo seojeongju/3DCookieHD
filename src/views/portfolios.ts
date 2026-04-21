@@ -102,17 +102,22 @@ export const portfoliosListHtml = `
     <div id="detailModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closeModal()" aria-hidden="true"></div>
         <div class="relative w-full max-w-5xl max-h-[min(92vh,900px)] flex flex-col rounded-[1.75rem] sm:rounded-[2rem] bg-white shadow-[0_25px_80px_-12px_rgba(15,23,42,0.45)] ring-1 ring-white/10 overflow-hidden" onclick="event.stopPropagation()">
-            <div class="relative h-[min(42vh,22rem)] sm:h-96 flex-shrink-0">
+            <div class="relative h-[min(42vh,22rem)] sm:h-96 flex-shrink-0 bg-slate-900" id="modalImageWrap">
                 <img id="modalThumbnail" src="" alt="" class="w-full h-full object-cover">
                 <div class="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-slate-900/25 pointer-events-none"></div>
                 <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/35 to-transparent pointer-events-none"></div>
-                <button type="button" onclick="closeModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white bg-black/45 hover:bg-black/65 border border-white/25 shadow-lg backdrop-blur-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="닫기">
+                <button type="button" onclick="closeModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white bg-black/45 hover:bg-black/65 border border-white/25 shadow-lg backdrop-blur-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 z-20" aria-label="닫기">
                     <i class="fas fa-times text-lg"></i>
                 </button>
                 <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 pt-16 sm:pt-20">
                     <span id="modalCategory" class="px-3.5 py-1.5 bg-primary-600 text-white text-[10px] font-black rounded-full shadow-md uppercase tracking-[0.18em] mb-3 inline-block">CATEGORY</span>
                     <h3 id="modalTitle" class="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight drop-shadow-sm">TITLE</h3>
                 </div>
+            </div>
+            
+            <!-- 비디오 섹션 (존재할 경우) -->
+            <div id="modalVideoSection" class="hidden px-8 sm:px-10 py-8 bg-gray-50 border-b border-gray-100">
+                <div id="modalVideoContainer" class="max-w-4xl mx-auto space-y-6"></div>
             </div>
             <div class="flex-1 min-h-0 flex flex-col lg:flex-row gap-0 lg:gap-0 border-t border-slate-100/90 bg-gradient-to-b from-slate-50/80 to-white">
                 <div class="flex-1 min-h-0 overflow-y-auto portfolio-modal-body px-6 sm:px-10 py-8 sm:py-9">
@@ -186,6 +191,7 @@ export const portfoliosListHtml = `
                     content_url: p.content_url,
                     is_featured: !!p.is_featured,
                     created_at: p.created_at,
+                    videos: p.videos || [],
                     source: 'post'
                 }));
                 
@@ -208,9 +214,32 @@ export const portfoliosListHtml = `
             }
 
             grid.innerHTML = currentPortfolios.map(p => {
+                var thumb = p.thumbnail_url;
+                var hasVideo = p.videos && p.videos.length > 0;
+                
+                var displayImg = thumb;
+                var isVideoThumb = false;
+                if (!displayImg && hasVideo) {
+                    var vUrl = p.videos[0];
+                    var ytMatch = vUrl.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+                    if (ytMatch && ytMatch[1]) {
+                        displayImg = 'https://img.youtube.com/vi/' + ytMatch[1] + '/mqdefault.jpg';
+                        isVideoThumb = true;
+                    }
+                }
+                
+                var mediaHtml = '';
+                if (displayImg) {
+                    mediaHtml = '<img src="' + displayImg + '" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">';
+                } else if (hasVideo) {
+                    mediaHtml = '<div class="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-slate-300 transition duration-500"><i class="fas fa-video text-4xl mb-3"></i><span class="text-[10px] font-black tracking-widest uppercase opacity-70">Video</span></div>';
+                } else {
+                    mediaHtml = '<img src="https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">';
+                }
+
                 return '<div class="group bg-white rounded-[2rem] shadow-sm hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-700 cursor-pointer flex flex-col h-full" onclick="openModal(\\'' + p.id + '\\')">' +
                     '<div class="relative overflow-hidden h-72">' +
-                        '<img src="' + (p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800') + '" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">' +
+                        mediaHtml +
                         '<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-8">' +
                             '<span class="text-white text-xs font-black uppercase tracking-widest mb-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-75">' + p.category + '</span>' +
                             '<h4 class="text-white text-xl font-black mb-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100">' + p.title + '</h4>' +
@@ -219,6 +248,7 @@ export const portfoliosListHtml = `
                                 '<span class="text-white/80 text-xs font-bold">' + p.student_name + '</span>' +
                             '</div>' +
                         '</div>' +
+                        (hasVideo ? '<div class="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/90 shadow-lg z-10 opacity-0 group-hover:opacity-100 transition duration-300"><i class="fas fa-play ml-1"></i></div>' : '') +
                         (p.is_featured ? '<div class="absolute top-6 left-6 px-3 py-1 bg-yellow-400 text-white text-[10px] font-black rounded-full shadow-lg flex items-center gap-1.5 z-10"><i class="fas fa-star text-[8px]"></i> RECOMMENDED</div>' : '') +
                     '</div>' +
                 '</div>';
@@ -244,9 +274,32 @@ export const portfoliosListHtml = `
             });
             if (!p) return;
 
+            var thumbUrl = p.thumbnail_url;
+            var hasVideo = p.videos && p.videos.length > 0;
+            if (!thumbUrl && hasVideo) {
+                var vUrl = p.videos[0];
+                var ytMatch = vUrl.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+                if (ytMatch && ytMatch[1]) {
+                    thumbUrl = 'https://img.youtube.com/vi/' + ytMatch[1] + '/maxresdefault.jpg';
+                }
+            }
+
             const thumb = document.getElementById('modalThumbnail');
-            thumb.src = p.thumbnail_url || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=800';
+            var modalImgWrap = document.getElementById('modalImageWrap');
+            
+            thumb.src = thumbUrl || '';
             thumb.alt = p.title ? '포트폴리오 썸네일: ' + p.title : '';
+            thumb.style.display = thumbUrl ? 'block' : 'none';
+            
+            if (modalImgWrap) {
+                modalImgWrap.style.display = 'block';
+                if (!thumbUrl) {
+                    modalImgWrap.classList.add('bg-slate-800');
+                } else {
+                    modalImgWrap.classList.remove('bg-slate-800');
+                }
+            }
+            
             document.getElementById('modalCategory').textContent = p.category;
             document.getElementById('modalTitle').textContent = p.title;
             
@@ -265,11 +318,41 @@ export const portfoliosListHtml = `
                 linkBtn.classList.add('hidden');
             }
             
+            // 비디오 섹션 처리
+            var videoSection = document.getElementById('modalVideoSection');
+            var videoContainer = document.getElementById('modalVideoContainer');
+            if (videoSection && videoContainer) {
+                videoContainer.innerHTML = '';
+                if (p.videos && p.videos.length > 0) {
+                    videoSection.classList.remove('hidden');
+                    p.videos.forEach(function(v) {
+                        videoContainer.innerHTML += renderVideoPlayer(v);
+                    });
+                } else {
+                    videoSection.classList.add('hidden');
+                }
+            }
+            
             document.getElementById('detailModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
 
+        function renderVideoPlayer(url) {
+            if (!url) return '';
+            var ytMatch = url.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+            if (ytMatch && ytMatch[1]) {
+                return '<div class="video-container shadow-lg rounded-xl overflow-hidden aspect-video relative"><iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>';
+            }
+            var vimeoMatch = url.match(/vimeo\\.com\\/(?:channels\\/(?:\\w+\\/)?|groups\\/([^\\/]*)\\/videos\\/|album\\/(\\d+)\\/video\\/|video\\/|)(\\d+)(?:$|\\/|\\?)/);
+            if (vimeoMatch && vimeoMatch[3]) {
+                return '<div class="video-container shadow-lg rounded-xl overflow-hidden aspect-video relative"><iframe src="https://player.vimeo.com/video/' + vimeoMatch[3] + '" class="absolute inset-0 w-full h-full" frameborder="0" allowfullscreen></iframe></div>';
+            }
+            return '<div class="video-container shadow-lg rounded-xl overflow-hidden bg-black flex justify-center"><video controls src="' + url + '" class="max-w-full max-h-[600px]"></video></div>';
+        }
+
         function closeModal() {
+            var videoContainer = document.getElementById('modalVideoContainer');
+            if (videoContainer) videoContainer.innerHTML = ''; // 재생 멈춤
             document.getElementById('detailModal').classList.add('hidden');
             document.body.style.overflow = '';
         }
