@@ -939,6 +939,24 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
 
         async function handleSavePost(e) {
             e.preventDefault();
+            let finalContent = tinymce.get('postContent') ? tinymce.get('postContent').getContent() : '';
+            const finalVideos = [...new Set([].concat(multiUploadedVideos, videoLinks))];
+            
+            // 본문 내 이미지 추출
+            let extractedImages = [];
+            if (finalContent) {
+                const div = document.createElement('div');
+                div.innerHTML = finalContent;
+                const imgs = div.getElementsByTagName('img');
+                for (let i = 0; i < imgs.length; i++) extractedImages.push(imgs[i].src);
+            }
+            const finalImages = [...new Set([].concat(multiUploadedUrls, extractedImages))];
+            
+            // 본문이 비어있는데 사진이나 영상이 있으면 기본 문구 채움
+            if (!finalContent.trim() && (finalVideos.length > 0 || finalImages.length > 0)) {
+                finalContent = '<p>시제품 사진/동영상 게시물입니다.</p>';
+            }
+
             const data = {
                 id: document.getElementById('postId').value || null,
                 category: 'prototype',
@@ -946,18 +964,10 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                 status: document.getElementById('postStatus').value,
                 pinned: document.getElementById('postPinned').checked,
                 created_at: document.getElementById('postCreatedAt').value ? document.getElementById('postCreatedAt').value.replace('T', ' ') + ':00' : null,
-                content: tinymce.get('postContent') ? tinymce.get('postContent').getContent() : '',
-                images: []
+                content: finalContent,
+                images: finalImages,
+                videos: finalVideos
             };
-            if (tinymce.get('postContent')) {
-                const content = tinymce.get('postContent').getContent();
-                const div = document.createElement('div');
-                div.innerHTML = content;
-                const imgs = div.getElementsByTagName('img');
-                for (let i = 0; i < imgs.length; i++) data.images.push(imgs[i].src);
-            }
-            data.images = [...new Set([].concat(multiUploadedUrls, data.images))];
-            data.videos = [...new Set([].concat(multiUploadedVideos, videoLinks))];
             try {
                 const token = localStorage.getItem('token');
                 const url = data.id ? '/api/posts/' + data.id : '/api/posts';

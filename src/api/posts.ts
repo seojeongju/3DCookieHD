@@ -574,7 +574,7 @@ app.post('/', async (c) => {
     if (!cat) {
       return c.json({ success: false, error: '카테고리는 필수입니다' }, 400);
     }
-    if (!cont) {
+    if (!cont && (!images || (Array.isArray(images) && images.length === 0)) && (!videos || (Array.isArray(videos) && videos.length === 0))) {
       return c.json({ success: false, error: '내용은 필수입니다' }, 400);
     }
 
@@ -693,6 +693,21 @@ app.post('/', async (c) => {
       }
     } catch {
       imagesJson = '[]';
+    }
+    let videosJson: string;
+    try {
+      if (videos == null) {
+        videosJson = '[]';
+      } else if (Array.isArray(videos)) {
+        videosJson = JSON.stringify(videos);
+      } else if (typeof videos === 'string') {
+        const t = videos.trim();
+        videosJson = t === '' || t === '[]' ? '[]' : t;
+      } else {
+        videosJson = '[]';
+      }
+    } catch {
+      videosJson = '[]';
     }
 
     let st = status && ['draft', 'published', 'hidden'].includes(String(status))
