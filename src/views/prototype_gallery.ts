@@ -211,7 +211,11 @@ export const prototypeGalleryHtml = `
                     return p;
                 });
                 raw.sort(function(a, b) { return new Date(b._date || 0) - new Date(a._date || 0); });
-                currentList = raw.filter(function(p) { return !!getItemImage(p); });
+                currentList = raw.filter(function(p) {
+                    var videos = p.videos || [];
+                    if (typeof videos === 'string') { try { videos = JSON.parse(videos); } catch(e) { videos = []; } }
+                    return !!getItemImage(p) || (videos && videos.length > 0);
+                });
                 currentPage = 1;
                 renderGrid();
             } catch (e) {
@@ -257,24 +261,44 @@ export const prototypeGalleryHtml = `
 
             grid.innerHTML = pageList.map(function(item, pageIdx) {
                 var idx = start + pageIdx;
-                var img = (item.images && item.images.length) ? item.images[0] : '';
-                var hasImage = !!img;
+                var img = getItemImage(item);
+                var videos = item.videos || [];
+                if (typeof videos === 'string') { try { videos = JSON.parse(videos); } catch(e) { videos = []; } }
+                var hasVideo = videos.length > 0;
+                
+                var displayImg = img;
+                var isVideoThumb = false;
+                if (!displayImg && hasVideo) {
+                    var vUrl = videos[0];
+                    var ytMatch = vUrl.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+                    if (ytMatch && ytMatch[1]) {
+                        displayImg = 'https://img.youtube.com/vi/' + ytMatch[1] + '/mqdefault.jpg';
+                        isVideoThumb = true;
+                    }
+                }
+
                 var titleEsc = (item.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                var contentPlain = (item.content || '').replace(/<[^>]+>/g, '').trim().substring(0, 80);
-                if ((item.content || '').replace(/<[^>]+>/g, '').trim().length > 80) contentPlain += '…';
-                if (hasImage) {
-                    var aspectClass = isImageMode ? 'aspect-[4/3]' : 'aspect-square';
-                    return '<div class="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')">' +
+                var aspectClass = isImageMode ? 'aspect-[4/3]' : 'aspect-square';
+                
+                if (displayImg) {
+                    return '<div class="group rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')">' +
                         '<div class="' + aspectClass + ' bg-gray-200 relative">' +
-                        '<img src="' + img.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover hover:scale-105 transition duration-500">' +
+                        '<img src="' + displayImg.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
+                        (hasVideo ? '<div class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent"><i class="fas fa-play-circle text-white text-xl"></i></div>' : '') +
                         '</div>' +
                         '<div class="p-5">' +
                         '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
                         '<p class="text-sm text-gray-500 mt-1">' + (item.author_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
                         '</div></div>';
                 }
+
+                var contentPlain = (item.content || '').replace(/<[^>]+>/g, '').trim().substring(0, 80);
+                if ((item.content || '').replace(/<[^>]+>/g, '').trim().length > 80) contentPlain += '…';
+                
                 return '<div class="col-span-full rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition cursor-pointer flex items-center gap-4 px-5 py-4 text-left" onclick="openDetail(' + idx + ')">' +
-                    '<span class="shrink-0 w-10 h-10 rounded-lg bg-gray-200 text-gray-600 flex items-center justify-center"><i class="fas fa-cube"></i></span>' +
+                    '<span class="shrink-0 w-12 h-12 rounded-lg bg-primary-50 text-primary-500 flex items-center justify-center">' +
+                    (hasVideo ? '<i class="fas fa-video"></i>' : '<i class="fas fa-cube"></i>') +
+                    '</span>' +
                     '<div class="min-w-0 flex-1">' +
                     '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
                     (contentPlain ? '<p class="text-sm text-gray-500 mt-0.5 truncate">' + contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>' : '') +
