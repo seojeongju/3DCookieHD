@@ -100,46 +100,85 @@ export const prototypeGalleryHtml = `
         <div id="pagination" class="mt-12 flex justify-center"></div>
     </main>
 
-    <!-- 상세 모달 -->
-    <div id="detailModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closeDetailModal()" aria-hidden="true"></div>
-        <div class="relative w-full max-w-5xl max-h-[min(92vh,900px)] flex flex-col rounded-[1.75rem] sm:rounded-[2rem] bg-white shadow-[0_25px_80px_-12px_rgba(15,23,42,0.45)] ring-1 ring-white/10 overflow-hidden" onclick="event.stopPropagation()">
-            <div class="relative h-[min(42vh,22rem)] sm:h-96 flex-shrink-0" id="modalImageWrap">
-                <img id="modalImage" src="" alt="" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-slate-900/25 pointer-events-none"></div>
-                <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/35 to-transparent pointer-events-none"></div>
-                <button type="button" onclick="closeDetailModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white bg-black/45 hover:bg-black/65 border border-white/25 shadow-lg backdrop-blur-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80" aria-label="닫기">
-                    <i class="fas fa-times text-lg"></i>
+    <!-- 상세 모달 (고도화된 UI/UX) -->
+    <div id="detailModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6 lg:p-8" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onclick="closeDetailModal()" aria-hidden="true"></div>
+        <div class="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-[2.5rem] bg-white shadow-[0_35px_100px_-15px_rgba(0,0,0,0.5)] ring-1 ring-white/20 overflow-hidden transform transition-all" onclick="event.stopPropagation()">
+            
+            <!-- 상단 컴팩트 히어로 배너 -->
+            <div class="relative h-56 sm:h-64 lg:h-72 flex-shrink-0 group" id="modalImageWrap">
+                <img id="modalImage" src="" alt="" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/30"></div>
+                
+                <!-- 닫기 버튼 -->
+                <button type="button" onclick="closeDetailModal()" class="absolute top-6 right-6 w-11 h-11 rounded-full flex items-center justify-center text-white bg-black/30 hover:bg-black/60 border border-white/20 shadow-xl backdrop-blur-md transition-all active:scale-95 z-20" aria-label="닫기">
+                    <i class="fas fa-times"></i>
                 </button>
-                <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 pt-16 sm:pt-20">
-                    <span class="px-3.5 py-1.5 bg-amber-500 text-gray-900 text-[10px] font-black rounded-full shadow-md uppercase tracking-[0.18em] mb-3 inline-block">PROTOTYPE</span>
-                    <h2 id="modalTitle" class="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight drop-shadow-sm"></h2>
+
+                <!-- 타이틀 오버레이 (하단 정렬) -->
+                <div class="absolute bottom-0 left-0 right-0 p-8 sm:p-10">
+                    <div class="flex flex-col gap-2">
+                        <span class="w-max px-3 py-1 bg-amber-500 text-gray-900 text-[10px] font-black rounded-full shadow-lg uppercase tracking-widest animate-pulse">PROTOTYPE</span>
+                        <h2 id="modalTitle" class="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight drop-shadow-md"></h2>
+                    </div>
                 </div>
             </div>
-            <div id="modalVideoSection" class="hidden px-6 sm:px-10 py-6 bg-slate-50 border-b border-slate-100">
-                <div id="modalVideoContainer" class="max-w-3xl mx-auto space-y-4"></div>
+
+            <!-- 비디오 섹션 (존재할 경우) -->
+            <div id="modalVideoSection" class="hidden px-8 sm:px-10 py-8 bg-gray-50 border-b border-gray-100">
+                <div id="modalVideoContainer" class="max-w-4xl mx-auto space-y-6"></div>
             </div>
-            <div class="flex-1 min-h-0 flex flex-col lg:flex-row border-t border-slate-100/90 bg-gradient-to-b from-slate-50/80 to-white">
-                <div class="flex-1 min-h-0 overflow-y-auto gallery-modal-body px-6 sm:px-10 py-8 sm:py-9">
-                    <h4 class="text-[11px] font-black text-primary-600 uppercase tracking-[0.28em] mb-5 flex items-center">
-                        <span class="w-8 h-px bg-primary-200 mr-3 shrink-0"></span> Project Overview
-                    </h4>
-                    <div id="modalContent" class="prose max-w-none text-slate-600 leading-relaxed text-base sm:text-[1.0625rem]"></div>
+
+            <!-- 하단 상세 정보 영역 -->
+            <div class="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
+                <!-- 본문 컨텐츠 (스크롤 가능) -->
+                <div class="flex-1 min-h-0 overflow-y-auto gallery-modal-body px-8 sm:px-10 py-10">
+                    <div class="flex items-center gap-3 mb-8">
+                        <div class="h-px flex-1 bg-gradient-to-r from-primary-500 to-transparent opacity-20"></div>
+                        <span class="text-[11px] font-black text-primary-600 uppercase tracking-[0.3em]">Project Details</span>
+                        <div class="h-px flex-1 bg-gradient-to-l from-primary-500 to-transparent opacity-20"></div>
+                    </div>
+                    <div id="modalContent" class="prose prose-slate max-w-none prose-img:rounded-3xl prose-img:shadow-2xl prose-headings:font-black prose-p:leading-relaxed text-slate-600 text-base sm:text-lg">
+                        <!-- TinyMCE 컨텐츠 삽입 -->
+                    </div>
                 </div>
-                <div class="w-full lg:w-[min(100%,20rem)] flex-shrink-0 lg:border-l border-slate-100 bg-white/90 px-6 sm:px-8 py-7 sm:py-9 space-y-6">
-                    <div class="rounded-2xl border border-slate-100/90 bg-gradient-to-br from-white to-slate-50/90 p-6 sm:p-7 shadow-sm space-y-4">
-                        <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Author</p>
-                            <p id="modalAuthor" class="text-base font-black text-slate-800"></p>
+
+                <!-- 사이드바 정보 영역 -->
+                <div class="w-full lg:w-80 flex-shrink-0 bg-slate-50/50 lg:border-l border-slate-100 p-8 sm:p-10 space-y-8">
+                    <div class="space-y-6">
+                        <div class="group">
+                            <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 group-hover:text-primary-500 transition-colors">CREATED BY</h5>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-black text-xs">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <p id="modalAuthor" class="text-base font-black text-slate-800"></p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
-                            <p id="modalDate" class="text-sm font-bold text-slate-700"></p>
+
+                        <div class="grid grid-cols-2 lg:grid-cols-1 gap-6">
+                            <div>
+                                <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">DATE</h5>
+                                <p id="modalDate" class="text-sm font-bold text-slate-600 flex items-center gap-2">
+                                    <i class="far fa-calendar-alt text-primary-400"></i>
+                                    <span id="modalDateVal"></span>
+                                </p>
+                            </div>
+                            <div>
+                                <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">VIEWS</h5>
+                                <p class="text-sm font-bold text-slate-600 flex items-center gap-2">
+                                    <i class="far fa-eye text-primary-400"></i>
+                                    <span id="modalViews">0</span>
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Views</p>
-                            <p class="text-sm font-bold text-slate-700"><i class="far fa-eye mr-1.5 text-primary-500"></i><span id="modalViews">0</span></p>
-                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-200/60">
+                        <button onclick="closeDetailModal()" class="w-full py-4 bg-white hover:bg-slate-50 text-slate-600 font-bold rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fas fa-arrow-left text-xs text-slate-400"></i>
+                            Back to Gallery
+                        </button>
                     </div>
                 </div>
             </div>
