@@ -319,31 +319,22 @@ export const prototypeGalleryHtml = `
                 var titleEsc = (item.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 var aspectClass = isImageMode ? 'aspect-[4/3]' : 'aspect-square';
                 
+                var mediaHtml = '';
                 if (displayImg) {
-                    return '<div class="group rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer" onclick="openDetail(' + idx + ')">' +
-                        '<div class="' + aspectClass + ' bg-gray-200 relative">' +
-                        '<img src="' + displayImg.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">' +
-                        (hasVideo ? '<div class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent"><i class="fas fa-play-circle text-white text-xl"></i></div>' : '') +
-                        '</div>' +
-                        '<div class="p-5">' +
-                        '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
-                        '<p class="text-sm text-gray-500 mt-1">' + (item.author_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
-                        '</div></div>';
+                    mediaHtml = '<img src="' + displayImg.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">';
+                } else {
+                    mediaHtml = '<div class="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-slate-300 group-hover:bg-slate-700 transition duration-500"><i class="fas fa-video text-4xl mb-3"></i><span class="text-[10px] font-black tracking-widest uppercase opacity-70">Video</span></div>';
                 }
-
-                var contentPlain = (item.content || '').replace(/<[^>]+>/g, '').trim().substring(0, 80);
-                if ((item.content || '').replace(/<[^>]+>/g, '').trim().length > 80) contentPlain += '…';
                 
-                return '<div class="col-span-full rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition cursor-pointer flex items-center gap-4 px-5 py-4 text-left" onclick="openDetail(' + idx + ')">' +
-                    '<span class="shrink-0 w-12 h-12 rounded-lg bg-primary-50 text-primary-500 flex items-center justify-center">' +
-                    (hasVideo ? '<i class="fas fa-video"></i>' : '<i class="fas fa-cube"></i>') +
-                    '</span>' +
-                    '<div class="min-w-0 flex-1">' +
-                    '<h3 class="font-bold text-gray-800 truncate">' + titleEsc + '</h3>' +
-                    (contentPlain ? '<p class="text-sm text-gray-500 mt-0.5 truncate">' + contentPlain.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>' : '') +
+                return '<div class="group rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition bg-white border border-gray-100 cursor-pointer flex flex-col" onclick="openDetail(' + idx + ')">' +
+                    '<div class="w-full ' + aspectClass + ' bg-gray-200 relative overflow-hidden shrink-0">' +
+                    mediaHtml +
+                    (hasVideo ? '<div class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/70 to-transparent"><i class="fas fa-play-circle text-white text-2xl drop-shadow-md"></i></div>' : '') +
                     '</div>' +
-                    '<p class="text-sm text-gray-400 shrink-0">' + (item.author_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
-                    '</div>';
+                    '<div class="p-5 flex-1 flex flex-col justify-between">' +
+                    '<h3 class="font-bold text-gray-800 truncate text-base">' + titleEsc + '</h3>' +
+                    '<p class="text-xs font-medium text-gray-500 mt-2">' + (item.author_name || '-') + ' · ' + new Date(item._date).toLocaleDateString('ko-KR') + '</p>' +
+                    '</div></div>';
             }).join('');
 
             if (paginationEl) {
@@ -368,13 +359,35 @@ export const prototypeGalleryHtml = `
         function openDetail(idx) {
             var item = currentList[idx];
             if (!item) return;
-            var img = (item.images && item.images.length) ? item.images[0] : '';
+            var img = getItemImage(item);
+            
+            var videos = item.videos || [];
+            if (typeof videos === 'string') { try { videos = JSON.parse(videos); } catch(e) { videos = []; } }
+            var hasVideo = videos.length > 0;
+            
+            if (!img && hasVideo) {
+                var vUrl = videos[0];
+                var ytMatch = vUrl.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+                if (ytMatch && ytMatch[1]) {
+                    img = 'https://img.youtube.com/vi/' + ytMatch[1] + '/maxresdefault.jpg';
+                }
+            }
+
             var modalImgEl = document.getElementById('modalImage');
             var modalImgWrap = document.getElementById('modalImageWrap');
-            if (modalImgEl) modalImgEl.src = img || '';
-            if (modalImgEl) modalImgEl.alt = item.title ? '시제품 이미지: ' + item.title : '';
-            if (modalImgEl) modalImgEl.style.display = img ? 'block' : 'none';
-            if (modalImgWrap) modalImgWrap.style.display = img ? 'block' : 'none';
+            if (modalImgEl) {
+                modalImgEl.src = img || '';
+                modalImgEl.alt = item.title ? '시제품 이미지: ' + item.title : '';
+                modalImgEl.style.display = img ? 'block' : 'none';
+            }
+            if (modalImgWrap) {
+                modalImgWrap.style.display = 'block';
+                if (!img) {
+                    modalImgWrap.classList.add('bg-slate-800');
+                } else {
+                    modalImgWrap.classList.remove('bg-slate-800');
+                }
+            }
  
             // 비디오 처리
             var videoSection = document.getElementById('modalVideoSection');
