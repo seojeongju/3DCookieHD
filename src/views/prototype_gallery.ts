@@ -345,13 +345,13 @@ export const prototypeGalleryHtml = `
             if (!url) return '';
             
             // 유튜브
-            var ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+            var ytMatch = url.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
             if (ytMatch && ytMatch[1]) {
                 return '<div class="video-container shadow-lg"><iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '" allowfullscreen></iframe></div>';
             }
             
             // 비메오
-            var vimeoMatch = url.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)(?:$|\/|\?)/);
+            var vimeoMatch = url.match(/vimeo\\.com\\/(?:channels\\/(?:\\w+\\/)?|groups\\/([^\\/]*)\\/videos\\/|album\\/(\\d+)\\/video\\/|video\\/|)(\\d+)(?:$|\\/|\\?)/);
             if (vimeoMatch && vimeoMatch[3]) {
                 return '<div class="video-container shadow-lg"><iframe src="https://player.vimeo.com/video/' + vimeoMatch[3] + '" allowfullscreen></iframe></div>';
             }
