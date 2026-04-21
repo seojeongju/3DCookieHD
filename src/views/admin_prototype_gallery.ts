@@ -716,6 +716,7 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
                     var url = await uploadPostVideo(blob);
                     multiUploadedVideos.push(url);
                     renderUploadedVideos();
+                    insertVideoToEditor(url);
                 } catch (err) {
                     console.error(err);
                     alert('업로드 오류: ' + (err.message || '실패'));
@@ -762,6 +763,7 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
             videoLinks.push(url);
             input.value = '';
             renderVideoLinks();
+            insertVideoToEditor(url);
         }
  
         function renderVideoLinks() {
@@ -787,6 +789,28 @@ export const adminPrototypeGalleryHtml = (sidebar: string) => `
         function removeVideoLink(idx) {
             videoLinks.splice(idx, 1);
             renderVideoLinks();
+        }
+
+        function insertVideoToEditor(url) {
+            const editor = tinymce.get('postContent');
+            if (!editor) return;
+            
+            let html = '';
+            const ytMatch = url.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+            if (ytMatch && ytMatch[1]) {
+                html = \`<p><iframe src="https://www.youtube.com/embed/\${ytMatch[1]}" width="560" height="315" frameborder="0" allowfullscreen></iframe></p>\`;
+            }
+            else if (url.includes('vimeo.com')) {
+                const vimeoMatch = url.match(/vimeo\\.com\\/(?:channels\\/(?:\\w+\\/)?|groups\\/([^\\/]*)\\/videos\\/|album\\/(\\d+)\\/video\\/|video\\/|)(\\d+)(?:$|\\/|\\?)/);
+                if (vimeoMatch && vimeoMatch[3]) {
+                    html = \`<p><iframe src="https://player.vimeo.com/video/\${vimeoMatch[3]}" width="640" height="360" frameborder="0" allowfullscreen></iframe></p>\`;
+                }
+            }
+            else {
+                html = \`<p><video controls src="\${url}" style="max-width:100%; height:auto;"></video></p>\`;
+            }
+            
+            if (html) editor.insertContent(html);
         }
 
         const IMAGE_MAX = 1200;
