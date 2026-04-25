@@ -227,6 +227,34 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                                 <div id="multiImageThumbs" class="hidden mt-3 flex flex-wrap gap-2 justify-center"></div>
                             </div>
                         </div>
+                        <div class="border-t border-gray-100 pt-4">
+                            <label class="block text-gray-700 font-bold mb-3 flex items-center">
+                                <i class="fas fa-video mr-2 text-amber-500"></i> 동영상 관리
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-gray-600 text-sm font-medium mb-2">동영상 직접 올리기 (MP4, WebM)</label>
+                                    <div id="multiVideoDropZone" class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center bg-gray-50 hover:bg-blue-50 hover:border-blue-300 transition cursor-pointer">
+                                        <input type="file" id="multiVideoInput" accept="video/*" multiple class="hidden">
+                                        <p class="text-gray-500 text-sm mb-1"><i class="fas fa-file-video text-2xl text-blue-500 mb-2"></i></p>
+                                        <p class="text-gray-600 text-sm font-medium">영상을 여기에 끌어다 놓으세요</p>
+                                        <p class="text-gray-400 text-[10px] mt-1">최대 50MB</p>
+                                        <div id="multiVideoProgress" class="hidden mt-3 text-xs text-blue-600"></div>
+                                        <div id="multiVideoList" class="hidden mt-3 space-y-2"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 text-sm font-medium mb-2">동영상 링크 (유튜브/비메오)</label>
+                                    <div class="flex gap-2 mb-3">
+                                        <input type="text" id="videoLinkInput" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" placeholder="https://www.youtube.com/watch?v=...">
+                                        <button type="button" onclick="addVideoLink()" class="px-3 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition text-sm">추가</button>
+                                    </div>
+                                    <div id="videoLinksList" class="space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar pr-1">
+                                        <p class="text-gray-400 text-xs text-center py-4 bg-gray-50 rounded-lg">등록된 링크가 없습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-gray-700 font-medium mb-2">내용 (이미지 첨부 가능)</label>
                             <textarea name="content" id="postContent" rows="15" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"></textarea>
@@ -328,14 +356,25 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
         });
 
         let multiUploadedUrls = [];
+        let multiUploadedVideos = [];
+        let videoLinks = [];
         function openModal(post) {
             document.getElementById('postCategory').value = 'education_photo';
             multiUploadedUrls = [];
+            multiUploadedVideos = [];
+            videoLinks = [];
             document.getElementById('multiImageProgress').classList.add('hidden');
             document.getElementById('multiImageProgress').textContent = '';
             document.getElementById('multiImageThumbs').classList.add('hidden');
             document.getElementById('multiImageThumbs').innerHTML = '';
             document.getElementById('multiImageInput').value = '';
+            
+            document.getElementById('multiVideoProgress').classList.add('hidden');
+            document.getElementById('multiVideoList').innerHTML = '';
+            document.getElementById('multiVideoList').classList.add('hidden');
+            document.getElementById('multiVideoInput').value = '';
+            document.getElementById('videoLinkInput').value = '';
+            document.getElementById('videoLinksList').innerHTML = '<p class="text-gray-400 text-xs text-center py-4 bg-gray-50 rounded-lg">등록된 링크가 없습니다.</p>';
             if (post) {
                 document.getElementById('modalTitle').textContent = '교육사진 수정';
                 document.getElementById('postId').value = post.id;
@@ -352,6 +391,15 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                     document.getElementById('postCreatedAt').value = '';
                 }
 
+                let vids = post.videos || [];
+                if (typeof vids === 'string') { try { vids = JSON.parse(vids); } catch(e) { vids = []; } }
+                vids.forEach(v => {
+                    if (v.includes('youtube.com') || v.includes('youtu.be') || v.includes('vimeo.com')) videoLinks.push(v);
+                    else multiUploadedVideos.push(v);
+                });
+                renderUploadedVideos();
+                renderVideoLinks();
+
                 setTinyContent(post.content || '');
             } else {
                 document.getElementById('modalTitle').textContent = '교육사진 등록';
@@ -365,6 +413,8 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 const localIso = new Date(now.getTime() - offset).toISOString().substring(0, 16);
                 document.getElementById('postCreatedAt').value = localIso;
 
+                renderUploadedVideos();
+                renderVideoLinks();
                 setTinyContent('');
             }
             document.getElementById('createPostModal').classList.remove('hidden');
@@ -431,6 +481,140 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 }
             }
             progressEl.textContent = total + '장 업로드 완료.';
+        }
+
+        function triggerMultiVideoInput() { document.getElementById('multiVideoInput').click(); }
+        function setupMultiVideoUpload() {
+            var dropZone = document.getElementById('multiVideoDropZone');
+            var input = document.getElementById('multiVideoInput');
+            if (!dropZone || !input) return;
+            dropZone.addEventListener('click', function(e) { if (!e.target.closest('#multiVideoList')) triggerMultiVideoInput(); });
+            dropZone.addEventListener('dragover', function(e) { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('border-blue-500', 'bg-blue-50'); });
+            dropZone.addEventListener('dragleave', function(e) { e.preventDefault(); dropZone.classList.remove('border-blue-500', 'bg-blue-50'); });
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+                var files = e.dataTransfer && e.dataTransfer.files;
+                if (files && files.length) handleMultiVideoFiles(Array.from(files));
+            });
+            input.addEventListener('change', function() {
+                var files = this.files;
+                if (files && files.length) handleMultiVideoFiles(Array.from(files));
+                this.value = '';
+            });
+        }
+        
+        async function handleMultiVideoFiles(files) {
+            var videoFiles = Array.from(files).filter(function(f) { return f.type.indexOf('video/') === 0; });
+            if (videoFiles.length === 0) { alert('동영상 파일만 선택해 주세요.'); return; }
+            var total = videoFiles.length;
+            var progressEl = document.getElementById('multiVideoProgress');
+            var listEl = document.getElementById('multiVideoList');
+            progressEl.classList.remove('hidden');
+            progressEl.textContent = '업로드 중 0 / ' + total + '...';
+            listEl.classList.remove('hidden');
+            for (var i = 0; i < videoFiles.length; i++) {
+                progressEl.textContent = '업로드 중 ' + (i + 1) + ' / ' + total + '...';
+                try {
+                    var blob = videoFiles[i];
+                    if (blob.size > 50 * 1024 * 1024) { alert('파일 용량이 너무 큽니다 (최대 50MB): ' + blob.name); continue; }
+                    var url = await uploadPostVideo(blob);
+                    multiUploadedVideos.push(url);
+                    renderUploadedVideos();
+                    insertVideoToEditor(url);
+                } catch (err) {
+                    console.error(err);
+                    alert('업로드 오류: ' + (err.message || '실패'));
+                }
+            }
+            progressEl.textContent = total + '개 업로드 완료.';
+        }
+ 
+        async function uploadPostVideo(blob) {
+            const token = localStorage.getItem('token');
+            if (!token) throw new Error('로그인이 필요합니다.');
+            const fd = new FormData();
+            fd.append('file', blob);
+            fd.append('category', 'videos');
+            fd.append('folder', 'posts');
+            const res = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || '업로드 실패');
+            return json.data.url || json.data.file_url || '';
+        }
+ 
+        function renderUploadedVideos() {
+            const listEl = document.getElementById('multiVideoList');
+            if (!listEl) return;
+            listEl.innerHTML = multiUploadedVideos.map((url, idx) => \`
+                <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200 text-xs">
+                    <span class="truncate flex-1 mr-2 text-gray-600"><i class="fas fa-video mr-1 text-blue-400"></i> \${url.split('/').pop()}</span>
+                    <button type="button" onclick="removeUploadedVideo(\${idx})" class="text-red-500 hover:text-red-700 px-1"><i class="fas fa-times"></i></button>
+                </div>
+            \`).join('');
+            listEl.classList.toggle('hidden', multiUploadedVideos.length === 0);
+        }
+ 
+        function removeUploadedVideo(idx) {
+            multiUploadedVideos.splice(idx, 1);
+            renderUploadedVideos();
+        }
+ 
+        function addVideoLink() {
+            const input = document.getElementById('videoLinkInput');
+            const url = input.value.trim();
+            if (!url) return;
+            if (!url.startsWith('http')) { alert('올바른 URL 형식이 아닙니다.'); return; }
+            videoLinks.push(url);
+            input.value = '';
+            renderVideoLinks();
+            insertVideoToEditor(url);
+        }
+ 
+        function renderVideoLinks() {
+            const listEl = document.getElementById('videoLinksList');
+            if (!listEl) return;
+            if (videoLinks.length === 0) {
+                listEl.innerHTML = '<p class="text-gray-400 text-xs text-center py-4 bg-gray-50 rounded-lg">등록된 링크가 없습니다.</p>';
+                return;
+            }
+            listEl.innerHTML = videoLinks.map((url, idx) => {
+                let icon = 'fa-link';
+                if (url.includes('youtube.com') || url.includes('youtu.be')) icon = 'fa-youtube text-red-500';
+                else if (url.includes('vimeo.com')) icon = 'fa-vimeo-v text-blue-400';
+                return \`
+                    <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200 text-xs">
+                        <span class="truncate flex-1 mr-2 text-gray-600"><i class="fab \${icon} mr-1"></i> \${url}</span>
+                        <button type="button" onclick="removeVideoLink(\${idx})" class="text-red-500 hover:text-red-700 px-1"><i class="fas fa-times"></i></button>
+                    </div>
+                \`;
+            }).join('');
+        }
+ 
+        function removeVideoLink(idx) {
+            videoLinks.splice(idx, 1);
+            renderVideoLinks();
+        }
+
+        function insertVideoToEditor(url) {
+            const editor = tinymce.get('postContent');
+            if (!editor) return;
+            
+            let html = '';
+            const ytMatch = url.match(/(?:youtube\\.com\\/(?:[^\\/]+\\/.+\\/|(?:v|e(?:mbed)?)\\/|.*[?&]v=)|youtu\\.be\\/)([^"&?\\/\\s]{11})/);
+            if (ytMatch && ytMatch[1]) {
+                html = \`<p><iframe src="https://www.youtube.com/embed/\${ytMatch[1]}" width="560" height="315" frameborder="0" allowfullscreen></iframe></p>\`;
+            }
+            else if (url.includes('vimeo.com')) {
+                const vimeoMatch = url.match(/vimeo\\.com\\/(?:channels\\/(?:\\w+\\/)?|groups\\/([^\\/]*)\\/videos\\/|album\\/(\\d+)\\/video\\/|video\\/|)(\\d+)(?:$|\\/|\\?)/);
+                if (vimeoMatch && vimeoMatch[3]) {
+                    html = \`<p><iframe src="https://player.vimeo.com/video/\${vimeoMatch[3]}" width="640" height="360" frameborder="0" allowfullscreen></iframe></p>\`;
+                }
+            }
+            else {
+                html = \`<p><video controls src="\${url}" style="max-width:100%; height:auto;"></video></p>\`;
+            }
+            
+            if (html) editor.insertContent(html);
         }
 
         const IMAGE_MAX = 1200;
@@ -658,7 +842,8 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 pinned: document.getElementById('postPinned').checked,
                 created_at: document.getElementById('postCreatedAt').value ? document.getElementById('postCreatedAt').value.replace('T', ' ') + ':00' : null,
                 content: tinymce.get('postContent') ? tinymce.get('postContent').getContent() : '',
-                images: []
+                images: [],
+                videos: []
             };
             if (tinymce.get('postContent')) {
                 const content = tinymce.get('postContent').getContent();
@@ -668,6 +853,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
                 for (let i = 0; i < imgs.length; i++) data.images.push(imgs[i].src);
             }
             data.images = [...new Set([].concat(multiUploadedUrls, data.images))];
+            data.videos = [...new Set([].concat(multiUploadedVideos, videoLinks))];
             try {
                 const token = localStorage.getItem('token');
                 const url = data.id ? '/api/posts/' + data.id : '/api/posts';

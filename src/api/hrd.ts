@@ -2046,7 +2046,7 @@ app.get('/attendance/print-form', async (c) => {
         const sessionRow = await DB.prepare(`
             SELECT s.id, s.session_number, s.session_name, s.training_start_date, s.training_end_date,
                 s.instructor_name, s.training_time_start, s.training_time_end, s.location as session_location,
-                a.name as course_name
+                a.name as course_name, a.total_days, a.total_hours, a.daily_hours
             FROM course_sessions s
             JOIN approved_courses a ON s.approved_course_id = a.id
             WHERE s.id = ?
@@ -2148,7 +2148,7 @@ app.get('/attendance/print-form', async (c) => {
             const datePlaceholders = dates.map(() => '?').join(',');
 
             const logsRows = await DB.prepare(`
-                SELECT enrollment_id, date, status, check_in_time
+                SELECT enrollment_id, date, status, check_in_time, check_out_time
                 FROM attendance_logs
                 WHERE enrollment_id IN (${placeholders}) AND date IN (${datePlaceholders})
             `).bind(...enrollmentIds, ...dates).all();
@@ -2158,15 +2158,80 @@ app.get('/attendance/print-form', async (c) => {
                 date: l.date,
                 status: l.status,
                 check_in_time: l.check_in_time,
+                check_out_time: l.check_out_time,
             }));
         }
+
+        // 출석률 계산을 위한 정보 준비
+        const actualDailyMinutes = calcActualDailyMinutes(
+            sessionRow.training_time_start,
+            sessionRow.training_time_end,
+            sessionRow.daily_hours || 0
+        );
+
+        const logsByEnrollment: Record<number, any[]> = {};
+        attendance.forEach(l => {
+            if (!logsByEnrollment[l.enrollment_id]) logsByEnrollment[l.enrollment_id] = [];
+            logsByEnrollment[l.enrollment_id].push(l);
+        });
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const progressedTrainingDays = trainingDays.filter(d => d.date <= todayStr).length;
+
+        const studentsWithRates = students.map((s: any) => {
+            const studentLogs = logsByEnrollment[s.enrollment_id] || [];
+            
+            let presentCount = 0;
+            let absentCount = 0;
+            let lateCount = 0;
+            let earlyCount = 0;
+            let outCount = 0;
+            let accumulatedMinutes = 0;
+
+            studentLogs.forEach(l => {
+                const status = l.status;
+                if (status === 'present') presentCount++;
+                else if (status === 'absent' || status === 'absent_under_50') absentCount++;
+                else if (status === 'late') lateCount++;
+                else if (status === 'early_leave') earlyCount++;
+                else if (status === 'public_leave') outCount++;
+                else if (status === 'late_and_early') { lateCount++; earlyCount++; }
+
+                accumulatedMinutes += calcAttendedMinutes(
+                    status, l.check_in_time, l.check_out_time,
+                    sessionRow.training_time_start || '09:00',
+                    sessionRow.training_time_end || '18:00',
+                    actualDailyMinutes
+                );
+            });
+
+            // 1. 일 단위 출석률 (Long term style)
+            const penaltyDays = Math.floor((lateCount + earlyCount + outCount) / 3);
+            const totalAbsentConverted = absentCount + penaltyDays;
+            
+            const rateDay = progressedTrainingDays > 0
+                ? Math.max(0, ((progressedTrainingDays - totalAbsentConverted) / progressedTrainingDays) * 100).toFixed(1)
+                : '0.0';
+
+            // 2. 시간 단위 출석률 (Short term style)
+            const expectedCurrentMinutes = progressedTrainingDays * actualDailyMinutes;
+            const rateMin = expectedCurrentMinutes > 0
+                ? Math.min(100, (accumulatedMinutes / expectedCurrentMinutes) * 100).toFixed(1)
+                : '0.0';
+
+            return {
+                ...s,
+                rateDay,
+                rateMin
+            };
+        });
 
         return c.json({
             success: true,
             data: {
                 info,
                 trainingDays,
-                students,
+                students: studentsWithRates,
                 attendance,
             },
         });

@@ -31,10 +31,12 @@ export const adminHrdAttendanceTraineePrintHtml = `
         table.trainee-table .col-name { width: 72px; }
         table.trainee-table .col-phone { width: 100px; }
         table.trainee-table .col-gubun { width: 64px; }
+        table.trainee-table .col-rate { width: 48px; font-size: 10px; }
         table.trainee-table .col-day { width: 32px; min-width: 32px; }
         .unit-label { font-size: 10px; text-align: left; padding: 2px 4px; background: #f0f0f0; }
         .status-o { color: #166534; font-weight: bold; }
         .status-x { color: #dc2626; font-weight: bold; }
+        .status-under50 { color: #111; font-weight: bold; }
         .status-late { color: #d97706; font-size: 10px; }
     </style>
 </head>
@@ -64,7 +66,7 @@ export const adminHrdAttendanceTraineePrintHtml = `
 
         <div class="legend">
             &larr; 결석 2/12 일 인정 / 결석2회 + 지각+조퇴 2회 까지 인정 &nbsp;|&nbsp;
-            출석: ○, 결석: X, 지각(시간), 조퇴(시간)로 표기
+            출석: ○, 결석: X, 지각(시간), 조퇴(시간), 50%미만결석: ◐로 표기
         </div>
 
         <table class="trainee-table" id="traineeTable">
@@ -97,6 +99,7 @@ export const adminHrdAttendanceTraineePrintHtml = `
         function attendanceSymbol(status, checkInTime) {
             if (status === 'present') return '<span class="status-o">○</span>';
             if (status === 'absent') return '<span class="status-x">X</span>';
+            if (status === 'absent_under_50') return '<span class="status-under50">◐</span>';
             if (status === 'late') return '<span class="status-late">지각' + (checkInTime ? '(' + (checkInTime + '').substring(0, 5) + ')' : '') + '</span>';
             if (status === 'early_leave') return '<span class="status-late">조퇴</span>';
             if (status === 'public_leave') return '공결';
@@ -131,6 +134,7 @@ export const adminHrdAttendanceTraineePrintHtml = `
                 const theadRow2 = document.getElementById('theadRow2');
 
                 theadRow1.innerHTML = '<th rowspan="2" class="col-no">번호</th><th rowspan="2" class="col-name">성명</th><th rowspan="2" class="col-phone">전화번호</th><th rowspan="2" class="col-gubun">구분</th>' +
+                    '<th rowspan="2" class="col-rate">출석률<br>(일)</th><th rowspan="2" class="col-rate">출석률<br>(분)</th>' +
                     trainingDays.map(day => '<th class="col-day">' + day.dayNumber + '일차</th>').join('');
                 theadRow2.innerHTML = trainingDays.map(day => '<th class="col-day">' + day.dateShort + '<br><span style="font-weight:normal">' + day.dayOfWeek + '</span></th>').join('');
 
@@ -148,7 +152,15 @@ export const adminHrdAttendanceTraineePrintHtml = `
                         const sym = att ? attendanceSymbol(att.status, att.check_in_time) : '';
                         dayCells += '<td class="col-day">' + sym + '</td>';
                     });
-                    return '<tr><td class="col-no">' + st.no + '</td><td class="col-name">' + (st.name || '-') + '</td><td class="col-phone">' + formatPhone(st.phone) + '</td><td class="col-gubun">' + (st.classification || '훈련생') + '</td>' + dayCells + '</tr>';
+                    return '<tr>' +
+                        '<td class="col-no">' + st.no + '</td>' +
+                        '<td class="col-name">' + (st.name || '-') + '</td>' +
+                        '<td class="col-phone">' + formatPhone(st.phone) + '</td>' +
+                        '<td class="col-gubun">' + (st.classification || '훈련생') + '</td>' +
+                        '<td class="col-rate">' + (st.rateDay || '0.0') + '%</td>' +
+                        '<td class="col-rate">' + (st.rateMin || '0.0') + '%</td>' +
+                        dayCells +
+                        '</tr>';
                 }).join('');
             } catch (e) {
                 console.error(e);
