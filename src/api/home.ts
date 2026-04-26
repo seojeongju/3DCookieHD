@@ -89,8 +89,9 @@ app.get('/', async (c) => {
         LIMIT 12
       `).all(),
       DB.prepare(`
-        SELECT p.id, p.title, p.description, p.thumbnail_url, p.student_name, p.content_url, p.created_at
+        SELECT p.id, p.title, p.description, p.thumbnail_url, u.name as student_name, p.content_url, p.created_at
         FROM student_portfolios p
+        LEFT JOIN users u ON p.student_id = u.id
         ${hasPortfolioStatus ? "WHERE (p.status IS NULL OR p.status = 'published')" : ''}
         ORDER BY p.created_at DESC
         LIMIT 12
