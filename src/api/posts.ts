@@ -169,6 +169,8 @@ app.get('/', async (c) => {
     const page = Number(c.req.query('page')) || 1;
     const limit = Number(c.req.query('limit')) || 10;
     const category = c.req.query('category');
+    const categories = c.req.query('categories');
+    const excludeCategories = c.req.query('exclude_categories');
     const search = c.req.query('search');
     const status = c.req.query('status');
     const sort = c.req.query('sort') || 'created_at';
@@ -183,21 +185,29 @@ app.get('/', async (c) => {
       WHERE 1=1
     `;
     const params: any[] = [];
+    const whereClauses: string[] = [];
 
     if (category && category !== 'all') {
+      whereClauses.push(' AND p.category = ?');
       params.push(category);
+    } else if (categories) {
+      const cats = categories.split(',');
+      whereClauses.push(` AND p.category IN (${cats.map(() => '?').join(',')})`);
+      params.push(...cats);
+    } else if (excludeCategories) {
+      const excludes = excludeCategories.split(',');
+      whereClauses.push(` AND p.category NOT IN (${excludes.map(() => '?').join(',')})`);
+      params.push(...excludes);
     }
+
     if (search) {
+      whereClauses.push(' AND (p.title LIKE ? OR p.content LIKE ?)');
       params.push(`%${search}%`, `%${search}%`);
     }
     if (status) {
+      whereClauses.push(' AND p.status = ?');
       params.push(status);
     }
-
-    const whereClauses: string[] = [];
-    if (category && category !== 'all') whereClauses.push(' AND p.category = ?');
-    if (search) whereClauses.push(' AND (p.title LIKE ? OR p.content LIKE ?)');
-    if (status) whereClauses.push(' AND p.status = ?');
 
     const mine = c.req.query('mine');
     const authHeader = c.req.header('Authorization');

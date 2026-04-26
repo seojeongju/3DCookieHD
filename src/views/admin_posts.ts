@@ -169,8 +169,6 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                                 <select name="category" id="postCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                     <option value="notice">공지사항</option>
                                     <option value="faq">FAQ</option>
-                                    <option value="portfolio">포트폴리오</option>
-                                    <option value="prototype">시제품</option>
                                     <option value="qna">Q&A</option>
                                 </select>
                             </div>
@@ -385,7 +383,12 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             const search = document.getElementById('searchInput').value;
             
             let url = \`/api/posts?page=\${page}&limit=\${itemsPerPage}&\`;
-            if (category) url += 'category=' + encodeURIComponent(category) + '&';
+            if (category) {
+                url += 'category=' + encodeURIComponent(category) + '&';
+            } else {
+                // 게시판 관리의 '전체'에서는 갤러리 및 리뷰 카테고리 제외
+                url += 'exclude_categories=prototype,portfolio,education_photo,review&';
+            }
             if (search) url += 'search=' + encodeURIComponent(search);
 
             try {
@@ -522,9 +525,8 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             const names = {
                 'notice': '공지사항',
                 'faq': 'FAQ',
-                'portfolio': '포트폴리오',
-                'prototype': '시제품',
-                'qna': 'Q&A'
+                'qna': 'Q&A',
+                'review': '수강후기'
             };
             return names[category] || category;
         }

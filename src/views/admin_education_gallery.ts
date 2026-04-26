@@ -316,6 +316,7 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
             loadPosts(1);
             runGalleryBackgroundDedupe();
             setupMultiImageUpload();
+            setupMultiVideoUpload();
             const csvInput = document.getElementById('csvFileInput');
             if (csvInput) {
                 csvInput.addEventListener('change', function() {
