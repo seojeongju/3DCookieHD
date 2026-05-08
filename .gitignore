@@ -51,3 +51,6 @@ Thumbs.db
 /build_output.txt
 /error_log.txt
 /migrate_log*.txt
+
+# Backups
+/backups/
