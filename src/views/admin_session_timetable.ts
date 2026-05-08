@@ -499,10 +499,16 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 closeResetModal();
                 
                 let startHour = 9;
+                let startMin = 0;
                 if (sessionInfo && sessionInfo.training_time_start) {
                     try {
                         const parts = String(sessionInfo.training_time_start).split(':');
-                        if (parts.length >= 1) {
+                        if (parts.length >= 2) {
+                            const h = parseInt(parts[0], 10);
+                            const m = parseInt(parts[1], 10);
+                            if (!isNaN(h) && h >= 0 && h <= 23) startHour = h;
+                            if (!isNaN(m) && m >= 0 && m <= 59) startMin = m;
+                        } else if (parts.length === 1) {
                             const h = parseInt(parts[0], 10);
                             if (!isNaN(h) && h >= 0 && h <= 23) startHour = h;
                         }
@@ -510,14 +516,20 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                 }
 
                 periodConfigs = [];
+                let currentTotalMinutes = startHour * 60 + startMin;
                 for(let i=1; i<=8; i++) {
-                    const currentHour = startHour + (i - 1);
+                    const sh = Math.floor(currentTotalMinutes / 60);
+                    const sm = currentTotalMinutes % 60;
+                    const eh = Math.floor((currentTotalMinutes + 50) / 60);
+                    const em = (currentTotalMinutes + 50) % 60;
+
                     periodConfigs.push({
                         period_number: i,
-                        start_time: currentHour.toString().padStart(2, '0') + ':00',
-                        end_time: currentHour.toString().padStart(2, '0') + ':50',
+                        start_time: sh.toString().padStart(2, '0') + ':' + sm.toString().padStart(2, '0'),
+                        end_time: eh.toString().padStart(2, '0') + ':' + em.toString().padStart(2, '0'),
                         break_minute: 10
                     });
+                    currentTotalMinutes += 60; // 50분 수업 + 10분 쉬는시간 = 60분
                 }
                 renderTimetableGrid();
                 showToast('교시 시간이 재설정되었습니다. [저장하기]를 눌러 확정하세요.');
@@ -586,24 +598,36 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     } else {
                         // 기본 8교시 설정 (과정 시작 시간 반영)
                         let startHour = 9;
+                        let startMin = 0;
                         if (sessionInfo && sessionInfo.training_time_start) {
                             try {
                                 const parts = String(sessionInfo.training_time_start).split(':');
-                                if (parts.length >= 1) {
+                                if (parts.length >= 2) {
+                                    const h = parseInt(parts[0], 10);
+                                    const m = parseInt(parts[1], 10);
+                                    if (!isNaN(h) && h >= 0 && h <= 23) startHour = h;
+                                    if (!isNaN(m) && m >= 0 && m <= 59) startMin = m;
+                                } else if (parts.length === 1) {
                                     const h = parseInt(parts[0], 10);
                                     if (!isNaN(h) && h >= 0 && h <= 23) startHour = h;
                                 }
                             } catch(e) {}
                         }
 
+                        let currentTotalMinutes = startHour * 60 + startMin;
                         for(let i=1; i<=8; i++) {
-                            const currentHour = startHour + (i - 1);
+                            const sh = Math.floor(currentTotalMinutes / 60);
+                            const sm = currentTotalMinutes % 60;
+                            const eh = Math.floor((currentTotalMinutes + 50) / 60);
+                            const em = (currentTotalMinutes + 50) % 60;
+
                             periodConfigs.push({
                                 period_number: i,
-                                start_time: currentHour.toString().padStart(2, '0') + ':00',
-                                end_time: currentHour.toString().padStart(2, '0') + ':50',
+                                start_time: sh.toString().padStart(2, '0') + ':' + sm.toString().padStart(2, '0'),
+                                end_time: eh.toString().padStart(2, '0') + ':' + em.toString().padStart(2, '0'),
                                 break_minute: 10
                             });
+                            currentTotalMinutes += 60; // 50분 수업 + 10분 쉬는시간 = 60분
                         }
                     }
 
@@ -1066,13 +1090,22 @@ export function adminSessionTimetableHtml(sessionId: number): string {
 
             window.saveAll = async function() {
                 try {
-                    const res = await fetch('/api/course-sessions/' + sessionId + '/timetable', {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({ schedules: timetableData })
-                    });
-                    const json = await res.json();
-                    if(json.success) showToast('시간표가 정상적으로 저장되었습니다.');
+                    // 시간표 스케줄과 교시 설정을 모두 저장
+                    const [res1, res2] = await Promise.all([
+                        fetch('/api/course-sessions/' + sessionId + '/timetable', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ schedules: timetableData })
+                        }),
+                        fetch('/api/course-sessions/' + sessionId + '/timetable/config', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ configs: periodConfigs })
+                        })
+                    ]);
+
+                    const json1 = await res1.json();
+                    if(json1.success) showToast('시간표와 교시 설정이 정상적으로 저장되었습니다.');
                     else showToast('저장에 실패했습니다.', true);
                 } catch(e) {
                     console.error(e);
