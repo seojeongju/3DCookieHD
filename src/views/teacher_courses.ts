@@ -7,7 +7,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>나의 강의 관리 - 강사 대시보드</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -65,6 +65,10 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             #teacherCoursesFilterDock[data-collapsed-mobile="false"] #teacherCoursesFilterToggle .teacher-filter-chevron {
                 transform: rotate(180deg);
             }
+            .teacher-courses-header-action {
+                min-width: 44px;
+                min-height: 44px;
+            }
         }
     </style>
 </head>
@@ -72,32 +76,38 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
     <div class="flex h-screen overflow-hidden">
         ${teacherSidebar('courses', tab)}
         <div class="flex-1 flex flex-col overflow-hidden bg-[#f1f3f5]">
-            <header class="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 transition-all duration-300">
-                <div class="px-8 py-5 flex justify-between items-center max-w-[1600px] mx-auto w-full">
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white shadow-xl shadow-brand-200 group transition-transform hover:scale-110 duration-500">
-                            <i class="fas fa-chalkboard-teacher text-2xl group-hover:rotate-12 transition-transform duration-500"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h1 class="text-2xl font-outfit font-extrabold text-neutral-900 tracking-tight">나의 강의 관리</h1>
-                                <span class="px-3 py-1 bg-brand-50 text-brand-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-brand-100">PRO EDUCATOR</span>
+            <header class="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 transition-all duration-300 overflow-x-hidden">
+                <div class="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 max-w-[1600px] mx-auto w-full min-w-0 pr-[max(1rem,env(safe-area-inset-right,0px))]">
+                    <!-- 모바일: 제목 블록과 네비 버튼 행 분리 → 우측 아이콘 잘림 방지 -->
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 min-w-0">
+                        <div class="flex items-start gap-3 sm:gap-5 min-w-0 flex-1">
+                            <div class="w-11 h-11 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white shadow-lg shadow-brand-200 group transition-transform hover:scale-105 duration-500 shrink-0">
+                                <i class="fas fa-chalkboard-teacher text-lg sm:text-xl lg:text-2xl group-hover:rotate-12 transition-transform duration-500"></i>
                             </div>
-                            <p class="text-[11px] font-bold text-neutral-400 uppercase tracking-[0.2em] mt-0.5">Education Management & LMS Hub</p>
+                            <div class="min-w-0 flex-1 pt-0.5">
+                                <h1 class="text-[1.05rem] sm:text-xl lg:text-2xl font-outfit font-extrabold text-neutral-900 tracking-tight leading-snug break-keep">나의 강의 관리</h1>
+                                <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                                    <span class="text-[9px] sm:text-[10px] px-2 py-0.5 sm:px-3 sm:py-1 bg-brand-50 text-brand-600 font-black rounded-full uppercase tracking-widest border border-brand-100 shrink-0">PRO EDUCATOR</span>
+                                    <span class="hidden sm:inline-flex text-[10px] font-bold text-emerald-600 uppercase tracking-widest items-center gap-1 shrink-0">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                                    </span>
+                                </div>
+                                <p class="text-[10px] sm:text-[11px] font-bold text-neutral-400 uppercase tracking-[0.12em] sm:tracking-[0.2em] mt-1 leading-snug line-clamp-2 sm:line-clamp-none">Education Management & LMS Hub</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="hidden md:flex flex-col items-end mr-2">
-                            <span class="text-sm font-black text-neutral-800" id="userNameDisplay">강사님</span>
-                            <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
-                            </span>
-                        </div>
-                        <a href="/teacher" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-neutral-50 hover:bg-white hover:shadow-lg text-neutral-400 hover:text-brand-600 transition-all border border-neutral-100 group">
-                            <i class="fas fa-home text-lg group-hover:scale-110 transition-transform"></i>
-                        </a>
-                        <div class="w-12 h-12 rounded-2xl bg-neutral-100 border-2 border-white shadow-sm overflow-hidden cursor-pointer hover:ring-2 hover:ring-brand-500 transition-all">
-                            <img src="https://ui-avatars.com/api/?name=Teacher&background=4f69f2&color=fff" alt="Profile" class="w-full h-full object-cover">
+                        <div class="flex items-center justify-end gap-2 sm:gap-3 shrink-0 sm:shrink-0 w-full sm:w-auto min-w-0 border-t border-neutral-100/80 pt-3 sm:border-t-0 sm:pt-0">
+                            <div class="hidden md:flex flex-col items-end mr-1 min-w-0 max-w-[140px] lg:max-w-none">
+                                <span class="text-xs lg:text-sm font-black text-neutral-800 truncate text-right w-full" id="userNameDisplay">강사님</span>
+                                <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1 justify-end">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span> Online
+                                </span>
+                            </div>
+                            <a href="/teacher" class="teacher-courses-header-action w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl sm:rounded-2xl bg-neutral-50 hover:bg-white hover:shadow-md text-neutral-500 hover:text-brand-600 transition-all border border-neutral-100 group touch-manipulation shrink-0" title="종합 대시보드">
+                                <i class="fas fa-home text-base sm:text-lg group-hover:scale-110 transition-transform"></i>
+                            </a>
+                            <a href="/teacher/profile" class="teacher-courses-header-action w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-neutral-100 border-2 border-white shadow-sm overflow-hidden hover:ring-2 hover:ring-brand-500 transition-all shrink-0 touch-manipulation block" title="강사 프로필">
+                                <img src="https://ui-avatars.com/api/?name=Teacher&background=4f69f2&color=fff" alt="프로필" class="w-full h-full object-cover pointer-events-none">
+                            </a>
                         </div>
                     </div>
                 </div>
