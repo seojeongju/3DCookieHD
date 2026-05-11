@@ -16,6 +16,14 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @keyframes attendanceToastIn {
+            from { opacity: 0; transform: translateY(14px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .attendance-toast-panel {
+            animation: attendanceToastIn 0.35s ease-out forwards;
+            box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.35);
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans overflow-hidden">
@@ -23,7 +31,7 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         ${sidebar}
         
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
                 ${lmsHeaderHtml('attendance')}
 
         <!-- Main Content -->
@@ -141,6 +149,8 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         </div>
     </div>
 
+    <div id="attendanceToastHost" class="fixed inset-x-0 bottom-0 z-[100] flex justify-center pointer-events-none px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-2" aria-live="polite"></div>
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const pathParts = window.location.pathname.split('/');
@@ -158,6 +168,45 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
             } catch(e) { return ''; }
         }
         const isAdmin = getTokenRole() === 'admin';
+
+        window._attendanceToastClearTimer = window._attendanceToastClearTimer || null;
+        function showAttendanceToast(message, type) {
+            type = type || 'success';
+            var host = document.getElementById('attendanceToastHost');
+            if (!host || !message) return;
+            if (window._attendanceToastClearTimer) {
+                clearTimeout(window._attendanceToastClearTimer);
+                window._attendanceToastClearTimer = null;
+            }
+            host.innerHTML = '';
+            var palette = {
+                success: { wrap: 'bg-emerald-600 border-emerald-400/30', icon: 'fa-check-circle' },
+                error: { wrap: 'bg-red-600 border-red-400/30', icon: 'fa-times-circle' },
+                warning: { wrap: 'bg-amber-500 border-amber-300/40', icon: 'fa-exclamation-triangle' },
+                info: { wrap: 'bg-slate-800 border-slate-600/40', icon: 'fa-info-circle' }
+            };
+            var p = palette[type] || palette.success;
+            var panel = document.createElement('div');
+            panel.className = 'pointer-events-auto attendance-toast-panel flex items-start gap-3 px-5 py-3.5 rounded-2xl border max-w-[min(100%,26rem)] text-white text-sm font-bold shadow-xl';
+            panel.classList.add.apply(panel.classList, p.wrap.split(' '));
+            var ic = document.createElement('i');
+            ic.className = 'fas ' + p.icon + ' text-lg shrink-0 mt-0.5';
+            var span = document.createElement('span');
+            span.className = 'leading-snug';
+            span.textContent = message;
+            panel.appendChild(ic);
+            panel.appendChild(span);
+            host.appendChild(panel);
+            window._attendanceToastClearTimer = setTimeout(function() {
+                panel.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(10px)';
+                setTimeout(function() {
+                    if (host.firstChild === panel) host.innerHTML = '';
+                    window._attendanceToastClearTimer = null;
+                }, 300);
+            }, 3600);
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             const today = new Date();
@@ -399,15 +448,20 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
         async function saveAttendance() {
             // 관리자는 마감 과정도 저장 가능
             if (window.sessionClosed && !isAdmin) {
-                alert('마감된 과정은 출석 수정이 제한됩니다. 관리자 계정으로 접속 후 수정하세요.');
+                showAttendanceToast('마감된 과정은 출석 수정이 제한됩니다. 관리자 계정으로 접속 후 수정하세요.', 'warning');
                 return;
             }
             if (window.notTrainingDay) {
-                alert('훈련일이 아닙니다. 해당 날짜에는 출석 입력이 불가합니다.');
+                showAttendanceToast('훈련일이 아닙니다. 해당 날짜에는 출석 입력이 불가합니다.', 'warning');
                 return;
             }
             const date = document.getElementById('attendanceDate').value;
-            
+            var btn = document.getElementById('btnSaveAttendance');
+            var prevHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> 저장 중...';
+            }
             try {
                 const token = localStorage.getItem('token');
                 let apiUrl = \`/api/courses/\${courseId}/attendance\`;
@@ -434,13 +488,18 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('저장되었습니다.');
+                    showAttendanceToast(result.message || '출결 정보가 저장되었습니다.', 'success');
                 } else {
-                    alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
+                    showAttendanceToast('저장 실패: ' + (result.error || '알 수 없는 오류'), 'error');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('저장 중 오류가 발생했습니다.');
+                showAttendanceToast('저장 중 오류가 발생했습니다. 네트워크를 확인해 주세요.', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = prevHtml;
+                }
             }
         }
 

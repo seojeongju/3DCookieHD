@@ -516,6 +516,18 @@ app.get('/teacher/courses/:id/lms/instructor-eval', (c) => c.html(adminLmsInstru
 app.get('/teacher/courses/:id/lms/assignments', (c) => c.html(adminLmsAssignmentsHtml(teacherSidebar('courses', 'assignments'))));
 app.get('/teacher/courses/:id/lms/qr-attendance', (c) => c.html(adminLmsQrAttendanceHtml(teacherSidebar('courses', 'attendance'))));
 
+// LMS 대시보드 등에서 상대경로 training-logs로 잘못 이동한 경우 보정 (admin과 동일)
+app.get('/teacher/courses/:id/training-logs', (c) => {
+    const id = c.req.param('id');
+    let search = '';
+    try {
+        search = new URL(c.req.url).search;
+    } catch {
+        search = '';
+    }
+    return c.redirect('/teacher/courses/' + id + '/lms/training-logs' + search);
+});
+
 // ============================================
 // 페이지 라우트
 // ============================================

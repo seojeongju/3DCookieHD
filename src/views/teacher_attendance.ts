@@ -42,6 +42,14 @@ export const teacherAttendanceHtml = `
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.6); }
         input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+        @keyframes attendanceToastIn {
+            from { opacity: 0; transform: translateY(14px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .attendance-toast-panel {
+            animation: attendanceToastIn 0.35s ease-out forwards;
+            box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.35);
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900 antialiased overflow-hidden">
@@ -135,7 +143,7 @@ export const teacherAttendanceHtml = `
                                             </div>
                                         </div>
                                     </div>
-                                    <button onclick="saveAttendance()" class="mt-8 w-full py-4 bg-white text-indigo-900 font-black text-[11px] rounded-[1.5rem] hover:bg-emerald-400 hover:text-white transition-all uppercase tracking-widest shadow-xl">
+                                    <button type="button" id="teacherAttendanceSaveBtn" onclick="saveAttendance()" class="mt-8 w-full py-4 bg-white text-indigo-900 font-black text-[11px] rounded-[1.5rem] hover:bg-emerald-400 hover:text-white transition-all uppercase tracking-widest shadow-xl disabled:opacity-60 disabled:pointer-events-none">
                                         출결 데이터 저장
                                     </button>
                                 </div>
@@ -202,11 +210,52 @@ export const teacherAttendanceHtml = `
         </div>
     </div>
 
+    <div id="teacherAttendanceToastHost" class="fixed inset-x-0 bottom-0 z-[100] flex justify-center pointer-events-none px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-2" aria-live="polite"></div>
+
     <script>
         let allCourses = [];
         let attendanceData = [];
         let selectedCourseId = null;
         let selectedDate = '';
+
+        window._teacherAttToastTimer = window._teacherAttToastTimer || null;
+        function showAttendanceToast(message, type) {
+            type = type || 'success';
+            var host = document.getElementById('teacherAttendanceToastHost');
+            if (!host || !message) return;
+            if (window._teacherAttToastTimer) {
+                clearTimeout(window._teacherAttToastTimer);
+                window._teacherAttToastTimer = null;
+            }
+            host.innerHTML = '';
+            var palette = {
+                success: { wrap: 'bg-emerald-600 border-emerald-400/30', icon: 'fa-check-circle' },
+                error: { wrap: 'bg-red-600 border-red-400/30', icon: 'fa-times-circle' },
+                warning: { wrap: 'bg-amber-500 border-amber-300/40', icon: 'fa-exclamation-triangle' },
+                info: { wrap: 'bg-slate-800 border-slate-600/40', icon: 'fa-info-circle' }
+            };
+            var p = palette[type] || palette.success;
+            var panel = document.createElement('div');
+            panel.className = 'pointer-events-auto attendance-toast-panel flex items-start gap-3 px-5 py-3.5 rounded-2xl border max-w-[min(100%,26rem)] text-white text-sm font-bold shadow-xl';
+            panel.classList.add.apply(panel.classList, p.wrap.split(' '));
+            var ic = document.createElement('i');
+            ic.className = 'fas ' + p.icon + ' text-lg shrink-0 mt-0.5';
+            var span = document.createElement('span');
+            span.className = 'leading-snug';
+            span.textContent = message;
+            panel.appendChild(ic);
+            panel.appendChild(span);
+            host.appendChild(panel);
+            window._teacherAttToastTimer = setTimeout(function() {
+                panel.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(10px)';
+                setTimeout(function() {
+                    if (host.firstChild === panel) host.innerHTML = '';
+                    window._teacherAttToastTimer = null;
+                }, 300);
+            }, 3600);
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const userStr = localStorage.getItem('user');
@@ -382,6 +431,16 @@ export const teacherAttendanceHtml = `
         }
 
         async function saveAttendance() {
+            if (!selectedCourseId) {
+                showAttendanceToast('과정을 먼저 선택해 주세요.', 'warning');
+                return;
+            }
+            var btn = document.getElementById('teacherAttendanceSaveBtn');
+            var prevHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> 저장 중...';
+            }
             try {
                 const token = localStorage.getItem('token');
                 const attendances = [];
@@ -404,11 +463,28 @@ export const teacherAttendanceHtml = `
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify({ courseId: selectedCourseId, date: selectedDate, attendances })
                 });
-                if ((await response.json()).success) {
-                    alert('Presence Intel Synchronized Successfully');
-                    await loadAttendance();
+                let result;
+                try {
+                    result = await response.json();
+                } catch (e) {
+                    showAttendanceToast('서버 응답을 해석할 수 없습니다.', 'error');
+                    return;
                 }
-            } catch (error) { console.error(error); }
+                if (result.success) {
+                    showAttendanceToast(result.message || '출결 정보가 저장되었습니다.', 'success');
+                    await loadAttendance();
+                } else {
+                    showAttendanceToast('저장 실패: ' + (result.error || '알 수 없는 오류'), 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showAttendanceToast('저장 중 오류가 발생했습니다. 네트워크를 확인해 주세요.', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = prevHtml;
+                }
+            }
         }
     </script>
 </body>

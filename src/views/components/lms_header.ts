@@ -16,29 +16,29 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                 const isActive =
                     (item.path === '' && activeTab === 'dashboard') ||
                     (item.path !== '' && (activeTab === item.path || isNcsCluster));
-                return `<a href="${href}" class="px-4 md:px-6 py-4 transition whitespace-nowrap flex items-center gap-2 text-[13px] md:text-sm ${isActive ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
-                            <i class="fas ${item.icon}"></i> ${item.label}
+                return `<a href="${href}" class="px-2.5 sm:px-4 md:px-6 py-3 md:py-4 transition whitespace-nowrap flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[13px] md:text-sm shrink-0 ${isActive ? 'bg-white text-indigo-700 font-bold rounded-t-xl' : 'text-indigo-100 hover:bg-white/10 hover:text-white font-medium'}">
+                            <i class="fas ${item.icon} text-[10px] sm:text-xs opacity-90 shrink-0"></i><span class="leading-tight">${item.label}</span>
                         </a>`;
             }
         )
         .join('\n                        ');
     return `
     <!-- Top Navigation -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center space-x-4">
-                    <a href="/admin" id="lms-logo-link" class="flex flex-col items-start group">
-                        <div class="flex items-center gap-2">
-                            <img src="/static/logo.png" alt="WOW 3D" class="h-9 w-auto object-contain mb-0.5">
-                            <span class="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-[10px] font-bold rounded-full">LMS</span>
+    <nav class="bg-white shadow-md sticky top-0 z-50 overflow-x-hidden max-w-[100vw]">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-w-0">
+            <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center sm:gap-4 py-3 sm:h-auto sm:min-h-[4.5rem] sm:py-0">
+                <div class="flex items-start gap-3 min-w-0 flex-1">
+                    <a href="/admin" id="lms-logo-link" class="flex flex-col items-start group min-w-0">
+                        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                            <img src="/static/logo.png" alt="WOW 3D" class="h-7 sm:h-9 w-auto max-w-[min(100%,180px)] object-contain object-left">
+                            <span class="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-[9px] sm:text-[10px] font-bold rounded-full shrink-0">LMS</span>
                         </div>
-                        <span class="text-sm text-gray-600 font-bold tracking-wider group-hover:text-primary-600 transition-colors">학사관리 시스템</span>
+                        <span class="text-[11px] sm:text-sm text-gray-600 font-bold tracking-wide group-hover:text-indigo-600 transition-colors mt-0.5 truncate max-w-full">학사관리 시스템</span>
                     </a>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/admin/courses" id="lms-back-link" class="text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-arrow-left mr-2"></i>과정 목록으로
+                <div class="flex items-center justify-end sm:justify-end shrink-0 w-full sm:w-auto">
+                    <a href="/admin/courses" id="lms-back-link" title="과정 목록으로 이동" class="inline-flex items-center justify-center gap-1.5 sm:gap-2 min-h-[44px] px-3 py-2 rounded-xl bg-gray-50 hover:bg-indigo-50 border border-gray-100 text-gray-800 hover:text-indigo-700 font-bold text-xs sm:text-sm whitespace-nowrap touch-manipulation">
+                        <i class="fas fa-arrow-left text-xs shrink-0"></i><span class="hidden sm:inline">과정 목록으로</span><span class="inline sm:hidden">목록</span>
                     </a>
                 </div>
             </div>
@@ -46,59 +46,59 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
     </nav>
 
     <!-- Course Header & Tabs -->
-    <div class="bg-gradient-to-r from-purple-700 to-indigo-800 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex justify-between items-start">
-                <div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="px-2 py-1 bg-white/20 rounded text-xs font-semibold" id="header-courseCategory">카테고리</span>
-                        <span class="px-2 py-1 bg-green-500 rounded text-xs font-semibold" id="header-courseStatus">상태</span>
+    <div class="bg-gradient-to-r from-purple-700 to-indigo-800 text-white overflow-x-hidden max-w-[100vw]">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 min-w-0">
+            <div class="flex flex-col gap-4 md:flex-row md:justify-between md:items-start min-w-0">
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <span class="px-2 py-1 bg-white/20 rounded text-[10px] sm:text-xs font-semibold shrink-0 max-w-full sm:max-w-[70%] truncate inline-block align-middle" id="header-courseCategory">카테고리</span>
+                        <span class="px-2 py-1 bg-green-500 rounded text-[10px] sm:text-xs font-semibold shrink-0" id="header-courseStatus">상태</span>
                     </div>
-                    <h1 class="text-3xl font-bold mb-2" id="header-courseTitle">과정 정보를 불러오는 중...</h1>
-                    <p class="text-purple-100 flex items-center gap-4 text-sm">
-                        <span id="header-coursePeriod"><i class="far fa-calendar-alt mr-1"></i> -</span>
-                        <span id="header-courseSchedule"><i class="far fa-clock mr-1"></i> -</span>
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-bold mb-2 break-words hyphens-auto leading-snug pr-1" id="header-courseTitle">과정 정보를 불러오는 중...</h1>
+                    <p class="text-purple-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-x-4 sm:gap-y-1 text-xs sm:text-sm min-w-0">
+                        <span class="min-w-0 break-all" id="header-coursePeriod"><i class="far fa-calendar-alt mr-1 shrink-0"></i> -</span>
+                        <span class="min-w-0 break-words" id="header-courseSchedule"><i class="far fa-clock mr-1 shrink-0"></i> -</span>
                     </p>
                 </div>
-                <div class="text-right">
-                    <div class="text-3xl font-bold mb-1" id="header-studentCount">0</div>
-                    <div class="text-sm text-purple-200">수강생 수</div>
+                <div class="flex md:flex-col items-center md:items-end justify-between gap-2 md:text-right shrink-0 pt-1 md:pt-0 border-t border-white/10 md:border-t-0 mt-1 md:mt-0 md:pl-4">
+                    <div class="text-2xl sm:text-3xl font-bold tabular-nums" id="header-studentCount">0</div>
+                    <div class="text-xs sm:text-sm text-purple-200">수강생 수</div>
                 </div>
             </div>
         </div>
         
         <!-- Tab Menu Container with Horizontal Scroll, Arrows & More -->
-        <div class="mt-4 border-t border-white/10 w-full relative group/menu">
-            <div class="flex items-center">
+        <div class="mt-3 sm:mt-4 border-t border-white/10 w-full min-w-0 relative group/menu">
+            <div class="flex items-stretch min-w-0">
                 <!-- Left arrow: scroll left -->
-                <button type="button" id="lms-tab-scroll-left" aria-label="메뉴 왼쪽으로" class="hidden flex-shrink-0 h-12 w-10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all z-10">
+                <button type="button" id="lms-tab-scroll-left" aria-label="메뉴 왼쪽으로" class="hidden shrink-0 h-11 sm:h-12 w-9 sm:w-10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg sm:rounded-xl transition-all z-10 touch-manipulation">
                     <i class="fas fa-chevron-left text-sm"></i>
                 </button>
                 <!-- Scroll area with edge gradients -->
                 <div class="flex-1 min-w-0 relative">
                     <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-indigo-800 to-transparent pointer-events-none z-[5] opacity-0 transition-opacity" id="lms-fade-left"></div>
                     <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-indigo-800 to-transparent pointer-events-none z-[5] opacity-0 transition-opacity" id="lms-fade-right"></div>
-                    <div class="overflow-x-auto scrollbar-hide px-2" id="lms-tab-menu" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                    <div class="overflow-x-auto overflow-y-hidden scrollbar-hide px-1 sm:px-2 max-w-full touch-pan-x" id="lms-tab-menu" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                     <div class="flex flex-nowrap py-0 min-w-max">
                         ${tabsHtml}
                         <!-- Crucial Spacer -->
-                        <div class="w-12 flex-shrink-0"></div>
+                        <div class="w-6 sm:w-12 shrink-0"></div>
                     </div>
                     </div>
                 </div>
 
                 <!-- Right arrow: scroll right -->
-                <button type="button" id="lms-tab-scroll-right" aria-label="메뉴 오른쪽으로" class="hidden flex-shrink-0 h-12 w-10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all z-10">
+                <button type="button" id="lms-tab-scroll-right" aria-label="메뉴 오른쪽으로" class="hidden shrink-0 h-11 sm:h-12 w-9 sm:w-10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 rounded-lg sm:rounded-xl transition-all z-10 touch-manipulation">
                     <i class="fas fa-chevron-right text-sm"></i>
                 </button>
 
                 <!-- More Button -->
-                <div class="relative px-2 sm:px-4 bg-indigo-800/80 backdrop-blur shadow-[-10px_0_15px_-5px_rgba(0,0,0,0.3)] z-10 block">
-                    <button id="lms-more-menu-btn" onclick="toggleMoreMenu(event)" class="h-12 w-12 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
+                <div class="relative pl-1 pr-2 sm:px-4 bg-indigo-800/80 backdrop-blur shadow-[-10px_0_15px_-5px_rgba(0,0,0,0.3)] z-10 shrink-0">
+                    <button type="button" id="lms-more-menu-btn" onclick="toggleMoreMenu(event)" aria-label="메뉴 더보기" class="h-11 w-11 sm:h-12 sm:w-12 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all touch-manipulation">
                         <i class="fas fa-ellipsis-v"></i>
                     </button>
                     <!-- More Dropdown (only overflowed / hidden tabs) -->
-                    <div id="lms-more-dropdown" class="hidden absolute right-4 top-14 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60] py-2">
+                    <div id="lms-more-dropdown" class="hidden absolute right-2 sm:right-4 top-14 w-[min(100vw-1rem,14rem)] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60] py-2">
                         <div id="lms-dropdown-title" class="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">더보기</div>
                         <div id="lms-dropdown-items" class="max-h-[60vh] overflow-y-auto custom-scrollbar">
                             <!-- Only hidden tab items will be mirrored here by script -->

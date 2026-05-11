@@ -37,7 +37,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         ${sidebar}
         
         <div class="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden relative">
-            <div class="flex-1 min-h-0 overflow-y-auto overflow-x-auto custom-scrollbar">
+            <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
                 ${lmsHeaderHtml('training-logs', 'hrd')}
 
     <!-- 서브 헤더 (훈련일지 전용) -->
@@ -53,8 +53,35 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- 일지 목록 -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto mb-4">
+        <!-- 일지 목록: 필터 · 보기 모드 -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4 space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end">
+                    <div>
+                        <label for="logFilterStart" class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">시작일</label>
+                        <input type="date" id="logFilterStart" class="border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-auto min-w-[10rem]">
+                    </div>
+                    <div>
+                        <label for="logFilterEnd" class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">종료일</label>
+                        <input type="date" id="logFilterEnd" class="border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-auto min-w-[10rem]">
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="applyLogDateFilter()" class="px-4 py-2 bg-indigo-600 text-white text-xs font-black rounded-lg hover:bg-indigo-700 transition shadow-sm uppercase tracking-wider">조회</button>
+                        <button type="button" onclick="clearLogDateFilter()" class="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-black rounded-lg hover:bg-gray-200 transition uppercase tracking-wider">전체 기간</button>
+                    </div>
+                </div>
+                <div>
+                    <span class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">목록 표시</span>
+                    <div class="inline-flex rounded-xl border border-gray-200 p-1 bg-gray-50/80" role="group" aria-label="목록 표시 방식">
+                        <button type="button" id="logViewBtnSimple" onclick="setTrainingLogViewMode('simple')" class="px-3 py-2 text-xs font-black rounded-lg transition uppercase tracking-tight bg-white text-indigo-700 shadow-sm">간단 목록</button>
+                        <button type="button" id="logViewBtnGrouped" onclick="setTrainingLogViewMode('grouped')" class="px-3 py-2 text-xs font-black rounded-lg transition uppercase tracking-tight text-gray-500 hover:text-gray-800">일자·교시별</button>
+                    </div>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 leading-relaxed"><span class="font-bold text-gray-600">일자별</span>은 기간 조회로 묶어 보고, <span class="font-bold text-gray-600">교시별</span>은 같은 화면에서 1~8교시 내용을 나란히 확인할 수 있습니다.</p>
+        </div>
+
+        <div id="logSimpleTableWrap" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto mb-4">
             <table class="w-full text-left border-collapse min-w-[560px]">
                 <thead class="bg-gray-50/50 border-b">
                     <tr>
@@ -69,6 +96,10 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                     <!-- JS Load -->
                 </tbody>
             </table>
+        </div>
+
+        <div id="logGroupedCardsWrap" class="hidden space-y-4 mb-4">
+            <!-- JS: 일자·교시별 카드 -->
         </div>
         
         <!-- Pagination Controls -->
@@ -169,8 +200,20 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                         </tr>
                     </table>
             
-                    <!-- Schedule Section -->
-                    <div class="bg-gray-200 border border-gray-800 border-b-0 p-2 text-center font-bold text-sm">훈 련 사 항</div>
+                    <!-- Schedule Section: 일자(위 훈련일) + 교시별 입력 안내 -->
+                    <p class="text-xs text-gray-600 mb-2 mt-4 px-1 leading-relaxed border-l-4 border-indigo-200 pl-3"><strong class="text-gray-800">일자별</strong> 작성은 위 <strong>훈련일</strong>을 바꾸면 됩니다(해당 일 출석·시간표 연동). <strong class="text-gray-800">교시(시간대)별</strong> 훈련 내용은 아래 표의 1~8교시 행에 구분하여 입력합니다.</p>
+                    <div class="flex flex-wrap items-center gap-1.5 mb-3 px-1" role="navigation" aria-label="교시 행으로 스크롤">
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider mr-1">교시 이동</span>
+                        <button type="button" onclick="scrollToSchPeriod(1)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">1</button>
+                        <button type="button" onclick="scrollToSchPeriod(2)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">2</button>
+                        <button type="button" onclick="scrollToSchPeriod(3)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">3</button>
+                        <button type="button" onclick="scrollToSchPeriod(4)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">4</button>
+                        <button type="button" onclick="scrollToSchPeriod(5)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">5</button>
+                        <button type="button" onclick="scrollToSchPeriod(6)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">6</button>
+                        <button type="button" onclick="scrollToSchPeriod(7)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">7</button>
+                        <button type="button" onclick="scrollToSchPeriod(8)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">8</button>
+                    </div>
+                    <div class="bg-gray-200 border border-gray-800 border-b-0 p-2 text-center font-bold text-sm">훈 련 사 항 (교시별)</div>
                     <table class="w-full border-collapse border border-gray-800 text-xs mb-0">
                         <thead class="bg-gray-50">
                             <tr>
@@ -257,6 +300,62 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         var assignedHoursFromApi = null;
         var currentPage = 1;
         var instructorList = [];
+        window.trainingLogsViewMode = window.trainingLogsViewMode || 'simple';
+        window.lastTrainingLogs = window.lastTrainingLogs || [];
+
+        function escapeHtmlAttr(s) {
+            if (s == null || s === '') return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function formatLogDateLabel(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                var dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                var d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return dateStr + ' (' + dayNames[d.getDay()] + ')';
+            } catch (e) { return dateStr; }
+        }
+
+        function setTrainingLogViewMode(mode) {
+            window.trainingLogsViewMode = mode === 'grouped' ? 'grouped' : 'simple';
+            var bS = document.getElementById('logViewBtnSimple');
+            var bG = document.getElementById('logViewBtnGrouped');
+            var wrapS = document.getElementById('logSimpleTableWrap');
+            var wrapG = document.getElementById('logGroupedCardsWrap');
+            if (bS && bG) {
+                if (window.trainingLogsViewMode === 'simple') {
+                    bS.className = 'px-3 py-2 text-xs font-black rounded-lg transition uppercase tracking-tight bg-white text-indigo-700 shadow-sm';
+                    bG.className = 'px-3 py-2 text-xs font-black rounded-lg transition uppercase tracking-tight text-gray-500 hover:text-gray-800';
+                } else {
+                    bS.className = 'px-3 py-2 text-xs font-black rounded-lg transition uppercase tracking-tight text-gray-500 hover:text-gray-800';
+                    bG.className = 'px-3 py-2 text-xs font-black rounded-lg transition uppercase tracking-tight bg-white text-indigo-700 shadow-sm';
+                }
+            }
+            if (wrapS && wrapG) {
+                wrapS.classList.toggle('hidden', window.trainingLogsViewMode !== 'simple');
+                wrapG.classList.toggle('hidden', window.trainingLogsViewMode !== 'grouped');
+            }
+            renderLogs(window.lastTrainingLogs || []);
+        }
+
+        function applyLogDateFilter() {
+            loadLogs(1);
+        }
+
+        function clearLogDateFilter() {
+            var fs = document.getElementById('logFilterStart');
+            var fe = document.getElementById('logFilterEnd');
+            if (fs) fs.value = '';
+            if (fe) fe.value = '';
+            loadLogs(1);
+        }
+
+        function scrollToSchPeriod(n) {
+            var row = document.getElementById('schPeriodRow' + n);
+            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
 
         function onTrainingDateChange() {
             var elDate = document.getElementById('logDate');
@@ -364,9 +463,24 @@ if (result.success && result.data.length > 0) {
 async function loadLogs(page = 1) {
     currentPage = page;
     var tbody = document.getElementById('logTableBody');
+    var groupedWrap = document.getElementById('logGroupedCardsWrap');
     if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">로딩 중...</td></tr>';
+    if (groupedWrap) groupedWrap.innerHTML = '<div class="text-center py-16 text-gray-400 text-sm font-bold">로딩 중...</div>';
+
+    var listUrl = '/api/hrd/training-logs?courseId=' + courseId + '&page=' + page + '&limit=10';
+    var fs = document.getElementById('logFilterStart');
+    var fe = document.getElementById('logFilterEnd');
+    var sVal = (fs && fs.value) ? String(fs.value).trim() : '';
+    var eVal = (fe && fe.value) ? String(fe.value).trim() : '';
+    if (sVal || eVal) {
+        var s = sVal || eVal;
+        var e = eVal || sVal;
+        if (s > e) { var tmp = s; s = e; e = tmp; }
+        listUrl += '&startDate=' + encodeURIComponent(s) + '&endDate=' + encodeURIComponent(e);
+    }
+
     try {
-        const res = await fetch('/api/hrd/training-logs?courseId=' + courseId + '&page=' + page + '&limit=10', {
+        const res = await fetch(listUrl, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         const result = await res.json();
@@ -389,7 +503,8 @@ async function loadLogs(page = 1) {
                 }
             }
             const logs = result.pagination ? result.data : result.data;
-            renderLogs(logs);
+            window.lastTrainingLogs = logs || [];
+            renderLogs(window.lastTrainingLogs);
             if (result.pagination) {
                 renderPagination(result.pagination);
             }
@@ -419,7 +534,28 @@ function renderPagination(pagination) {
     container.innerHTML = html;
 }
 
+function parseScheduleDetails(log) {
+    if (!log || !log.schedule_details_json) return [];
+    try {
+        var sch = typeof log.schedule_details_json === 'string' ? JSON.parse(log.schedule_details_json) : log.schedule_details_json;
+        return Array.isArray(sch) ? sch : [];
+    } catch (e) { return []; }
+}
+
 function renderLogs(logs) {
+    var mode = window.trainingLogsViewMode || 'simple';
+    var tbody = document.getElementById('logTableBody');
+    var groupedWrap = document.getElementById('logGroupedCardsWrap');
+    if (mode === 'grouped') {
+        if (tbody) tbody.innerHTML = '';
+        renderLogsGrouped(logs);
+    } else {
+        if (groupedWrap) groupedWrap.innerHTML = '';
+        renderLogsSimple(logs);
+    }
+}
+
+function renderLogsSimple(logs) {
     var tbody = document.getElementById('logTableBody');
     if (!tbody) return;
     if (!logs || logs.length === 0) {
@@ -461,6 +597,80 @@ function renderLogs(logs) {
             '</div></td></tr>';
     }
     tbody.innerHTML = html;
+}
+
+function renderLogsGrouped(logs) {
+    var groupedWrap = document.getElementById('logGroupedCardsWrap');
+    if (!groupedWrap) return;
+    if (!logs || logs.length === 0) {
+        groupedWrap.innerHTML = '<div class="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-20 text-center text-gray-400 text-sm font-medium whitespace-pre-line">등록된 훈련일지가 없습니다.\\n기간을 바꾸거나 새 일지를 작성해 보세요.</div>';
+        return;
+    }
+
+    var sorted = logs.slice().sort(function (a, b) {
+        var da = (a.date || '').toString();
+        var db = (b.date || '').toString();
+        if (da < db) return 1;
+        if (da > db) return -1;
+        return 0;
+    });
+
+    var cards = '';
+    for (var i = 0; i < sorted.length; i++) {
+        var log = sorted[i];
+        var details = parseScheduleDetails(log);
+        var byPeriod = {};
+        for (var j = 0; j < details.length; j++) {
+            var d = details[j];
+            var p = parseInt(d.period, 10);
+            if (!isNaN(p) && p >= 1 && p <= 8) byPeriod[p] = d;
+        }
+
+        var savedHours = (log.training_hours != null && log.training_hours !== '' && Number(log.training_hours) >= 0) ? (typeof log.training_hours === 'number' ? log.training_hours : parseFloat(log.training_hours)) : null;
+        var displayHoursText = (savedHours != null && !isNaN(savedHours)) ? savedHours + 'h' : '-';
+        var instructorDisplay = escapeHtmlAttr(log.instructor_name || '미상');
+        var dateLabel = formatLogDateLabel(log.date);
+
+        var subRows = '';
+        for (var pnum = 1; pnum <= 8; pnum++) {
+            var row = byPeriod[pnum];
+            var subj = row && row.subject ? String(row.subject) : '';
+            var inst = row && row.instructor ? String(row.instructor) : '';
+            var cont = row && row.content ? String(row.content) : '';
+            var note = row && row.note ? String(row.note) : '';
+            if (!subj.trim() && !inst.trim() && !cont.trim() && !note.trim()) continue;
+            subRows += '<tr class="border-b border-gray-100 last:border-0">' +
+                '<td class="py-2.5 pr-3 text-[10px] font-black text-indigo-400 whitespace-nowrap align-top w-14">' + pnum + '교시</td>' +
+                '<td class="py-2.5 px-2 text-xs font-bold text-gray-800 align-top min-w-[6rem]">' + escapeHtmlAttr(subj) + '</td>' +
+                '<td class="py-2.5 px-2 text-xs text-gray-600 align-top whitespace-nowrap">' + escapeHtmlAttr(inst) + '</td>' +
+                '<td class="py-2.5 pl-2 text-xs text-gray-600 align-top">' + escapeHtmlAttr(cont) + '</td>' +
+                '<td class="py-2.5 pl-2 text-xs text-gray-400 align-top max-w-[8rem] truncate" title="' + escapeHtmlAttr(note) + '">' + escapeHtmlAttr(note) + '</td>' +
+                '</tr>';
+        }
+        if (!subRows) {
+            var tTopic = log.topic || '-';
+            var tContent = log.content || '-';
+            subRows = '<tr class="border-b border-gray-100"><td colspan="5" class="py-3 text-xs text-gray-500 italic">교시별 상세 없음 — 요약: ' + escapeHtmlAttr(tTopic) + ' / ' + escapeHtmlAttr(tContent.length > 120 ? tContent.substring(0, 120) + '…' : tContent) + '</td></tr>';
+        }
+
+        cards += '<div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">' +
+            '<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-gradient-to-r from-indigo-50/80 to-white border-b border-gray-100">' +
+            '<div>' +
+            '<div class="text-lg font-black text-gray-900 tracking-tight">' + escapeHtmlAttr(dateLabel) + '</div>' +
+            '<div class="text-xs font-bold text-gray-500 mt-0.5">작성자 <span class="text-gray-800">' + instructorDisplay + '</span> · 훈련시간 <span class="text-indigo-700">' + displayHoursText + '</span></div>' +
+            '</div>' +
+            '<div class="flex items-center gap-2 shrink-0">' +
+            '<button type="button" onclick="printLog(' + log.id + ')" class="px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-black text-gray-600 hover:bg-gray-50 transition"><i class="fas fa-print mr-1"></i>인쇄</button>' +
+            '<button type="button" onclick="editLog(' + log.id + ')" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 transition"><i class="fas fa-edit mr-1"></i>수정</button>' +
+            '<button type="button" onclick="deleteLog(' + log.id + ')" class="px-3 py-2 rounded-xl border border-rose-100 bg-rose-50 text-xs font-black text-rose-600 hover:bg-rose-100 transition"><i class="fas fa-trash-alt mr-1"></i>삭제</button>' +
+            '</div></div>' +
+            '<div class="overflow-x-auto px-3 sm:px-5 pb-4">' +
+            '<table class="w-full text-left min-w-[520px]">' +
+            '<thead><tr class="text-[10px] font-black text-gray-400 uppercase tracking-wider border-b border-gray-200">' +
+            '<th class="py-2 w-14">교시</th><th class="py-2 px-2">훈련과목</th><th class="py-2 px-2">담당</th><th class="py-2 pl-2">훈련 내용</th><th class="py-2 pl-2 w-28">비고</th>' +
+            '</tr></thead><tbody>' + subRows + '</tbody></table></div></div>';
+    }
+    groupedWrap.innerHTML = cards;
 }
 
 async function printLog(id) {
@@ -1028,7 +1238,7 @@ async function printLog(id) {
                 const disabledAttr = isReadOnly ? ' disabled' : '';
                 const readonlyClass = isReadOnly ? ' bg-gray-50 cursor-not-allowed' : '';
 
-                html += '<tr class="hover:bg-indigo-50/30 transition-colors group">' +
+                html += '<tr id="schPeriodRow' + i + '" class="hover:bg-indigo-50/30 transition-colors group scroll-mt-24">' +
                         '<td class="px-2 py-2 text-center border-r font-black text-gray-400 bg-gray-50/50">' + i + '교시</td>' +
                         '<td class="px-2 py-2 border-r min-w-[200px] w-52"><input type="text" name="sch_subject_' + i + '" value="' + (subject || '') + '" class="w-full min-w-0 px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="교과목"' + disabledAttr + '></td>' +
                         '<td class="px-2 py-2 border-r min-w-[120px] w-36"><input type="text" name="sch_instructor_' + i + '" value="' + (instructor || '') + '" class="w-full min-w-0 px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="담당교사"' + disabledAttr + '></td>' +

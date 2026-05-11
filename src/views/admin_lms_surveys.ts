@@ -37,7 +37,7 @@ export const adminLmsSurveysHtml = (sidebar: string = hrdSidebar('courses')) => 
         ${sidebar}
         
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
                 ${lmsHeaderHtml('surveys')}
 
     <!-- 서브 헤더 -->

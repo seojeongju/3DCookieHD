@@ -27,7 +27,7 @@ export function teacherStudentConsultationHtml(courseId: string, studentId: stri
     <div class="flex h-screen overflow-hidden">
         ${teacherSidebar('students')}
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
                 ${lmsHeaderHtml('students', 'hrd')}
 
                 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

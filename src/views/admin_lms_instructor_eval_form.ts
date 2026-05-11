@@ -48,7 +48,7 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
     <div class="flex h-screen overflow-hidden">
         ${sidebar}
         <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-            <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
                 ${lmsHeaderHtml('instructor-eval')}
                 <main class="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
                     <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">

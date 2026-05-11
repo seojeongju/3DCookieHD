@@ -7,7 +7,7 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>학사관리 대시보드 - 와우쓰리디홍대센터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -35,18 +35,19 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
         @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .lms-dash-root { overflow-x: hidden; max-width: 100vw; }
     </style>
 </head>
-<body class="bg-gray-50 overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+<body class="bg-gray-50 overflow-hidden lms-dash-root">
+    <div class="flex h-screen overflow-hidden min-w-0 max-w-[100vw]">
         ${sidebar}
         
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
                 ${lmsHeaderHtml('dashboard')}
 
                 <!-- 메인 컨텐츠 -->
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="max-w-7xl mx-auto w-full min-w-0 px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
         
         <!-- 요약 카드 -->
         <div class="grid md:grid-cols-4 gap-6 mb-8">
@@ -95,9 +96,9 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
             </div>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-8">
+        <div class="grid md:grid-cols-3 gap-6 md:gap-8 min-w-0">
             <!-- 왼쪽: 출결 현황 차트 -->
-            <div class="md:col-span-2 bg-white rounded-lg shadow p-6">
+            <div class="md:col-span-2 bg-white rounded-lg shadow p-4 sm:p-6 min-w-0 overflow-hidden">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-bold text-gray-800">주간 출결 현황</h3>
                     <span class="text-xs text-gray-400" id="chartPeriodLabel"></span>
@@ -106,9 +107,9 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
             </div>
 
             <!-- 오른쪽: 오늘의 일정 및 할일 -->
-            <div class="space-y-6">
+            <div class="space-y-6 min-w-0">
                 <!-- 오늘의 훈련 -->
-                <div class="bg-white rounded-lg shadow p-6">
+                <div class="bg-white rounded-lg shadow p-4 sm:p-6 min-w-0 overflow-hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-bold text-gray-800">오늘의 훈련</h3>
                         <span class="text-xs text-gray-400" id="todayDateLabel"></span>
@@ -126,9 +127,9 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
                 </div>
 
                 <!-- 공지사항 -->
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">과정 공지사항</h3>
+                <div class="bg-white rounded-lg shadow p-4 sm:p-6 min-w-0 overflow-hidden">
+                    <div class="flex justify-between items-center gap-2 mb-4 min-w-0">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-800 truncate">과정 공지사항</h3>
                         <a id="noticesMoreLink" href="#" class="text-xs text-gray-500 hover:text-gray-700">더보기</a>
                     </div>
                     <ul class="space-y-3 text-sm text-gray-600" id="noticesContainer">
@@ -150,7 +151,7 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
         </div>
 
         <!-- NCS 진행 현황 (Full Width) -->
-        <div class="mt-8 bg-white rounded-lg shadow p-6 border-t-4 border-blue-600">
+        <div class="mt-6 sm:mt-8 bg-white rounded-lg shadow p-4 sm:p-6 border-t-4 border-blue-600 min-w-0 overflow-hidden">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-lg font-bold text-gray-800">NCS 능력단위별 이수 현황 (훈련시간 기준)</h3>
                 <div class="flex gap-4 text-xs font-semibold">
@@ -169,6 +170,11 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
         const token = localStorage.getItem('token');
         const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
         let resolvedSessionIdPromise = null;
+        /** 상대경로 training-logs는 /.../lms 에서 /.../training-logs 로 잘못 해석되므로 절대경로 사용 */
+        function lmsTrainingLogsPageHref() {
+            var prefix = window.location.pathname.startsWith('/admin') ? '/admin/courses/' : '/teacher/courses/';
+            return prefix + courseId + '/lms/training-logs' + window.location.search;
+        }
 
         // 오늘 날짜
         const today = new Date();
@@ -460,10 +466,10 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
                     html = '<div class="text-center py-6 text-gray-400 text-sm fade-in"><i class="fas fa-coffee text-2xl mb-2 block"></i>오늘은 배정된 수업이 없습니다.</div>';
                 }
 
-                // 훈련일지 작성 버튼
-                html += '<div class="text-center mt-2">';
-                html += '  <a href="training-logs" class="text-sm text-purple-600 hover:text-purple-800 font-medium">';
-                html += '    <i class="fas fa-pen-alt mr-1"></i>훈련일지 작성하기';
+                // 훈련일지 작성 버튼 (모바일 가로 잘림 방지)
+                html += '<div class="mt-3 pt-2 border-t border-gray-100 text-center w-full max-w-full px-1">';
+                html += '  <a href="' + lmsTrainingLogsPageHref() + '" class="inline-flex flex-wrap items-center justify-center gap-1.5 max-w-full px-2 py-2 rounded-lg text-xs sm:text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 font-semibold break-words text-center touch-manipulation">';
+                html += '    <i class="fas fa-pen-alt shrink-0"></i><span class="break-keep">훈련일지 작성하기</span>';
                 html += '  </a>';
                 html += '</div>';
 
@@ -496,8 +502,8 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
                         var shortDate = dateParts.length >= 3 ? dateParts[1] + '.' + dateParts[2] : dateStr;
                         var title = post.title || post.content || '제목 없음';
                         if (title.length > 30) title = title.substring(0, 30) + '...';
-                        return '<li class="flex justify-between items-center fade-in">' +
-                            '<span class="truncate pr-2 hover:text-blue-600 cursor-pointer" onclick="window.open(\\'/posts/' + post.id + '\\')">' + 
+                        return '<li class="flex justify-between items-center gap-2 fade-in min-w-0">' +
+                            '<span class="truncate min-w-0 flex-1 hover:text-blue-600 cursor-pointer text-left" onclick="window.open(\\'/posts/' + post.id + '\\')">' + 
                             (post.pinned ? '<i class="fas fa-thumbtack text-red-400 mr-1 text-xs"></i>' : '') +
                             title + '</span>' +
                             '<span class="text-gray-400 text-xs whitespace-nowrap">' + shortDate + '</span>' +

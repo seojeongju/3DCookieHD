@@ -23,7 +23,7 @@ export const adminLmsQrAttendanceHtml = (sidebar: string = hrdSidebar('courses')
         ${sidebar}
         
         <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
                 ${lmsHeaderHtml('attendance')}
 
                 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
