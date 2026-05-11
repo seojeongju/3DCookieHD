@@ -57,6 +57,15 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             50% { transform: translateY(-5px); }
         }
         .float-animation { animation: subtle-float 4s ease-in-out infinite; }
+        /* 나의 강의 관리: 모바일에서 상세 필터 접기 (검색만 상시 노출) */
+        @media (max-width: 1023px) {
+            #teacherCoursesFilterDock[data-collapsed-mobile="true"] #teacherCoursesFilterExtra {
+                display: none !important;
+            }
+            #teacherCoursesFilterDock[data-collapsed-mobile="false"] #teacherCoursesFilterToggle .teacher-filter-chevron {
+                transform: rotate(180deg);
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-neutral-900">
@@ -187,51 +196,66 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                         </div>
                     </div>
 
-                    <!-- Filter Dock -->
-                    <div class="glass border border-white/60 rounded-[3rem] p-4 mb-12 shadow-premium flex flex-wrap gap-4 items-center sticky top-[100px] z-30 transition-all duration-500 border-white/80 hover:shadow-premium-hover">
-                        <div class="flex gap-4 items-center flex-wrap flex-1 p-1">
-                            <div class="relative group min-w-[200px]">
-                                <select id="categoryFilter" onchange="loadCourses()" class="w-full pl-6 pr-12 py-4 bg-neutral-50/50 border border-neutral-100 rounded-[1.5rem] focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-neutral-800 text-xs appearance-none cursor-pointer">
+                    <!-- Filter Dock: 모바일은 검색·요약만 고정 높이, 상세 필터는 접기 -->
+                    <div id="teacherCoursesFilterDock" data-collapsed-mobile="true" class="glass border border-white/60 rounded-2xl lg:rounded-[3rem] p-3 sm:p-4 lg:p-4 mb-8 lg:mb-12 shadow-premium relative lg:sticky lg:top-24 z-20 transition-all duration-500 border-white/80 hover:shadow-premium-hover grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_auto] lg:items-center gap-3 lg:gap-4">
+                        <!-- 검색 (항상 노출 · 단일 입력) -->
+                        <div class="relative group min-w-0 lg:col-start-3 lg:row-start-1">
+                            <i class="fas fa-search absolute left-4 lg:left-7 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-brand-500 transition-colors text-sm lg:text-base pointer-events-none"></i>
+                            <input type="text" id="searchInput" placeholder="나의 강의 제목으로 검색해보세요"
+                                   class="w-full min-h-[44px] pl-11 lg:pl-16 pr-4 py-2.5 lg:py-4 bg-neutral-50/50 border border-neutral-100 rounded-xl lg:rounded-[1.5rem] focus:bg-white focus:ring-4 lg:focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-bold text-neutral-900 text-sm touch-manipulation"
+                                   onkeyup="if(event.key==='Enter') loadCourses()">
+                        </div>
+
+                        <!-- 모바일: 요약 + 상세 필터 토글 + 새로고침 -->
+                        <div class="flex lg:hidden items-center gap-2 min-h-[44px]">
+                            <button type="button" id="teacherCoursesFilterToggle" aria-expanded="false" aria-controls="teacherCoursesFilterExtra" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-100/90 border border-neutral-200 text-[11px] font-black text-neutral-800 active:scale-[0.98] touch-manipulation shrink-0">
+                                <i class="fas fa-sliders-h text-brand-600"></i>
+                                <span data-toggle-label>상세 필터</span>
+                                <i class="fas fa-chevron-down teacher-filter-chevron text-[10px] text-neutral-400 transition-transform duration-200"></i>
+                            </button>
+                            <span class="js-teacher-courses-search-result flex-1 text-center text-[10px] font-black text-neutral-500 uppercase tracking-wide truncate px-1">Searching...</span>
+                            <button type="button" onclick="loadCourses()" aria-label="목록 새로고침" class="w-11 h-11 min-w-[44px] min-h-[44px] shrink-0 bg-brand-600 text-white rounded-xl hover:bg-neutral-900 transition-colors flex items-center justify-center shadow-lg touch-manipulation active:scale-95">
+                                <i class="fas fa-sync-alt text-sm"></i>
+                            </button>
+                        </div>
+
+                        <div id="teacherCoursesFilterExtra" class="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 lg:contents lg:gap-0">
+                            <div class="relative group w-full sm:flex-1 min-w-0 lg:col-start-1 lg:row-start-1 lg:min-w-[140px] lg:max-w-[240px]">
+                                <select id="categoryFilter" onchange="loadCourses()" class="w-full min-h-[44px] pl-4 sm:pl-6 pr-10 py-2.5 lg:py-4 bg-neutral-50/50 border border-neutral-100 rounded-xl lg:rounded-[1.5rem] focus:bg-white focus:ring-4 lg:focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-neutral-800 text-xs appearance-none cursor-pointer touch-manipulation">
                                     <option value="">전체 카테고리</option>
                                     <option value="국비지원">국비지원</option>
                                     <option value="자격증">자격증</option>
                                     <option value="취업연계">취업연계</option>
                                     <option value="기타">기타</option>
                                 </select>
-                                <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-neutral-300 pointer-events-none text-[8px] group-hover:text-brand-500 transition-colors"></i>
+                                <i class="fas fa-chevron-down absolute right-4 lg:right-6 top-1/2 -translate-y-1/2 text-neutral-300 pointer-events-none text-[8px] group-hover:text-brand-500 transition-colors"></i>
                             </div>
-                            <div class="relative group min-w-[160px]">
-                                <select id="statusFilter" onchange="loadCourses()" class="w-full pl-6 pr-12 py-4 bg-neutral-50/50 border border-neutral-100 rounded-[1.5rem] focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-neutral-800 text-xs appearance-none cursor-pointer">
+                            <div class="relative group w-full sm:flex-1 min-w-0 lg:col-start-2 lg:row-start-1 lg:min-w-[140px] lg:max-w-[240px]">
+                                <select id="statusFilter" onchange="loadCourses()" class="w-full min-h-[44px] pl-4 sm:pl-6 pr-10 py-2.5 lg:py-4 bg-neutral-50/50 border border-neutral-100 rounded-xl lg:rounded-[1.5rem] focus:bg-white focus:ring-4 lg:focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-neutral-800 text-xs appearance-none cursor-pointer touch-manipulation">
                                     <option value="">전체 운영상태</option>
                                     <option value="active">강의중 (Active)</option>
                                     <option value="recruiting">모집중 (Recruiting)</option>
                                     <option value="completed">종료 (Closed)</option>
                                 </select>
-                                <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-neutral-300 pointer-events-none text-[8px] group-hover:text-brand-500 transition-colors"></i>
+                                <i class="fas fa-chevron-down absolute right-4 lg:right-6 top-1/2 -translate-y-1/2 text-neutral-300 pointer-events-none text-[8px] group-hover:text-brand-500 transition-colors"></i>
                             </div>
-                            <div class="relative flex-1 group">
-                                <i class="fas fa-search absolute left-7 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-brand-500 transition-colors text-base"></i>
-                                <input type="text" id="searchInput" placeholder="나의 강의 제목으로 검색해보세요" 
-                                       class="w-full pl-16 pr-8 py-4 bg-neutral-50/50 border border-neutral-100 rounded-[1.5rem] focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-bold text-neutral-900 text-sm"
-                                       onkeyup="if(event.key==='Enter') loadCourses()">
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4 px-6 border-l border-neutral-100">
-                             <div class="flex flex-col items-end">
-                                <span id="searchResultTextTeacherCourses" class="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Searching...</span>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <span class="text-[10px] font-bold text-neutral-300 uppercase">Per Page:</span>
-                                    <select id="rowsPerPageTeacherCourses" onchange="setRowsPerPageTeacherCourses(parseInt(this.value,10))" class="bg-transparent font-black text-xs text-brand-600 outline-none cursor-pointer hover:underline">
-                                        <option value="12">12</option>
-                                        <option value="24">24</option>
-                                        <option value="48">48</option>
-                                    </select>
+                            <div class="flex flex-wrap items-center justify-between gap-3 sm:justify-end lg:flex-nowrap w-full sm:flex-1 lg:w-auto lg:col-start-4 lg:row-start-1 lg:justify-end border-t border-neutral-100/90 lg:border-t-0 pt-3 sm:pt-3 lg:pt-0 mt-1 lg:mt-0 lg:pl-6 lg:border-l lg:border-neutral-100">
+                                <div class="flex flex-col items-start sm:items-end gap-1">
+                                    <span class="js-teacher-courses-search-result hidden lg:block text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] text-right w-full">Searching...</span>
+                                    <div class="flex items-center gap-2 flex-wrap justify-end">
+                                        <span class="text-[10px] font-bold text-neutral-400 uppercase">Per Page:</span>
+                                        <select id="rowsPerPageTeacherCourses" onchange="setRowsPerPageTeacherCourses(parseInt(this.value,10))" class="bg-transparent font-black text-xs text-brand-600 outline-none cursor-pointer hover:underline min-h-[40px] touch-manipulation">
+                                            <option value="12">12</option>
+                                            <option value="24">24</option>
+                                            <option value="48">48</option>
+                                        </select>
+                                    </div>
                                 </div>
+                                <button type="button" onclick="loadCourses()" aria-label="목록 새로고침" class="hidden lg:flex w-14 h-14 bg-brand-600 text-white rounded-3xl hover:bg-neutral-900 transition-all duration-500 items-center justify-center shadow-2xl shadow-brand-200 hover:shadow-neutral-200 group overflow-hidden relative shrink-0 touch-manipulation">
+                                    <i class="fas fa-sync-alt text-lg group-hover:rotate-180 transition-transform duration-700 relative z-10"></i>
+                                    <div class="absolute inset-0 bg-gradient-to-tr from-brand-400 to-transparent opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                                </button>
                             </div>
-                            <button onclick="loadCourses()" class="w-14 h-14 bg-brand-600 text-white rounded-3xl hover:bg-neutral-900 transition-all duration-500 flex items-center justify-center shadow-2xl shadow-brand-200 hover:shadow-neutral-200 group overflow-hidden relative">
-                                 <i class="fas fa-sync-alt text-lg group-hover:rotate-180 transition-transform duration-700 relative z-10"></i>
-                                 <div class="absolute inset-0 bg-gradient-to-tr from-brand-400 to-transparent opacity-0 group-hover:opacity-20 transition-opacity"></div>
-                            </button>
                         </div>
                     </div>
 
@@ -268,12 +292,30 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             loadCourses(1);
         }
 
+        function setTeacherCoursesSearchResultText(text) {
+            document.querySelectorAll('.js-teacher-courses-search-result').forEach(function(el) {
+                el.textContent = text;
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // 즉시 사용자 정보 로드
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (user.name) {
                 const nameEl = document.getElementById('userNameDisplay');
                 if (nameEl) nameEl.textContent = user.name + ' 강사님';
+            }
+
+            var dock = document.getElementById('teacherCoursesFilterDock');
+            var filterToggle = document.getElementById('teacherCoursesFilterToggle');
+            if (dock && filterToggle) {
+                filterToggle.addEventListener('click', function() {
+                    var collapsed = dock.getAttribute('data-collapsed-mobile') !== 'false';
+                    dock.setAttribute('data-collapsed-mobile', collapsed ? 'false' : 'true');
+                    filterToggle.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
+                    var lab = filterToggle.querySelector('[data-toggle-label]');
+                    if (lab) lab.textContent = collapsed ? '필터 접기' : '상세 필터';
+                });
             }
 
             checkLogin();
@@ -331,7 +373,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                     const total = p.total != null ? p.total : 0;
                     const pageNum = p.page != null ? p.page : currentPage;
                     
-                    document.getElementById('searchResultTextTeacherCourses').textContent = total + ' COURSES FOUND';
+                    setTeacherCoursesSearchResultText(total + ' COURSES FOUND');
                     
                     const activeCountEl = document.getElementById('activeCoursesCount');
                     const totalStudentsEl = document.getElementById('totalStudentsCount');
