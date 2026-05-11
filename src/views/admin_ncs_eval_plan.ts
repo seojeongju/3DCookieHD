@@ -2789,7 +2789,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var currentRows = readQuestionRowsFromTable();
         var existingRows = questionRowsForCurriculum(currentRows, curriculumId);
         if (existingRows.length && !opts.force) {
-          var confirmMsg = '현재 문서에 [' + subjectLabel + '] 문항이 이미 ' + existingRows.length + '개 있습니다.\n저장된 문항 ' + incomingRows.length + '개로 교체해서 다시 불러올까요?';
+          var confirmMsg = '현재 문서에 [' + subjectLabel + '] 문항이 이미 ' + existingRows.length + '개 있습니다.\\n저장된 문항 ' + incomingRows.length + '개로 교체해서 다시 불러올까요?';
           if (!confirm(confirmMsg)) return false;
         }
         var mergedRows = replaceQuestionRowsForCurriculum(currentRows, curriculumId, incomingRows);
