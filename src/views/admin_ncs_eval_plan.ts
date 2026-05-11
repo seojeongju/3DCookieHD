@@ -742,23 +742,15 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   <h3 class="text-lg font-black text-slate-900 tracking-tight">${item.label}</h3>
                   <div class="flex items-center gap-2 flex-wrap justify-end">
                       <span class="text-xs font-bold text-slate-400" id="activeRoundBadge-${item.id}">1차평가(본평가)</span>
-                      <label class="inline-flex items-center gap-2">
+                      <div class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
                         <span class="text-[11px] text-slate-500 font-bold">저장문서</span>
-                        <select id="planDocSelect-${item.id}" data-plan-doc-select="${item.id}" class="px-2.5 py-2 rounded-xl border border-slate-200 text-xs bg-white min-w-[13rem]">
+                        <select id="planDocSelect-${item.id}" data-plan-doc-select="${item.id}" class="px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs bg-white min-w-[13rem]">
                           <option value="">최신 문서</option>
                         </select>
-                      </label>
-                      <button type="button" data-plan-doc-list-reload="${item.id}" class="px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition" title="저장 목록 새로고침">
-                        <i class="fas fa-rotate-right"></i>
-                      </button>
+                      </div>
                       ${item.id === 'minutes' ? `
                       <button type="button" id="minutesPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
                         <i class="fas fa-print mr-1"></i>인쇄
-                      </button>
-                      ` : ''}
-                      ${(item.id === 'minutes' || item.id === 'questions' || item.id === 'tools' || item.id === 'rubric' || item.id === 'achievement' || item.id === 'review') ? `
-                      <button type="button" data-plan-new-btn="${item.id}" class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-xs font-black hover:bg-indigo-600 transition">
-                        <i class="fas fa-file-circle-plus mr-1"></i>새문서 작성
                       </button>
                       ` : ''}
                       ${item.id === 'questions' ? `
@@ -789,15 +781,30 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
-                      <button type="button" data-plan-save-btn="${item.id}" class="px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-black hover:bg-emerald-600 transition">
-                        <i class="fas fa-floppy-disk mr-1"></i>문서 저장
+                      <button type="button" data-plan-save-btn="${item.id}" class="px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-black hover:bg-emerald-600 transition shadow-sm">
+                        <i class="fas fa-floppy-disk mr-1"></i>저장
                       </button>
-                      <button type="button" id="planDocUpdateBtn-${item.id}" data-plan-update-btn="${item.id}" class="px-3 py-2 rounded-xl bg-blue-500 text-white text-xs font-black hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        <i class="fas fa-pen-to-square mr-1"></i>저장문서 수정
-                      </button>
-                      <button type="button" id="planDocDeleteBtn-${item.id}" data-plan-delete-btn="${item.id}" class="px-3 py-2 rounded-xl bg-rose-500 text-white text-xs font-black hover:bg-rose-600 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        <i class="fas fa-trash mr-1"></i>저장문서 삭제
-                      </button>
+                      <div class="relative" data-plan-more-wrap="${item.id}">
+                        <button type="button" data-plan-more-toggle="${item.id}" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 hover:bg-slate-50 transition shadow-sm">
+                          <i class="fas fa-ellipsis mr-1"></i>더보기
+                        </button>
+                        <div data-plan-more-menu="${item.id}" class="hidden absolute right-0 top-full z-30 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl">
+                          ${(item.id === 'minutes' || item.id === 'questions' || item.id === 'tools' || item.id === 'rubric' || item.id === 'achievement' || item.id === 'review') ? `
+                          <button type="button" data-plan-new-btn="${item.id}" class="w-full text-left px-3 py-2 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                            <i class="fas fa-file-circle-plus mr-1.5 text-indigo-500"></i>새 문서 작성
+                          </button>
+                          ` : ''}
+                          <button type="button" data-plan-doc-list-reload="${item.id}" class="w-full text-left px-3 py-2 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                            <i class="fas fa-rotate-right mr-1.5 text-slate-400"></i>저장문서 목록 새로고침
+                          </button>
+                          <button type="button" id="planDocUpdateBtn-${item.id}" data-plan-update-btn="${item.id}" class="w-full text-left px-3 py-2 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-pen-to-square mr-1.5 text-blue-500"></i>선택 문서 덮어쓰기
+                          </button>
+                          <button type="button" id="planDocDeleteBtn-${item.id}" data-plan-delete-btn="${item.id}" class="w-full text-left px-3 py-2 rounded-xl text-xs font-black text-rose-700 hover:bg-rose-50 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-trash mr-1.5"></i>선택 문서 삭제
+                          </button>
+                        </div>
+                      </div>
                   </div>
               </div>
               ${item.id === 'minutes' ? `
@@ -1068,6 +1075,14 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <input id="questionInputScore" type="number" min="0" step="1" class="px-2 py-1 border border-slate-200 rounded bg-white" placeholder="배점" />
                             <input id="questionInputKeyword" class="px-2 py-1 border border-slate-200 rounded bg-white md:col-span-2" placeholder="평가기준/키워드" />
                             <button type="button" id="questionAddRowBtn" class="px-2 py-1 rounded bg-sky-600 text-white font-black hover:bg-sky-700 transition md:col-span-1">문항 추가</button>
+                          </div>
+                          <div class="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                            <p class="text-[11px] text-amber-900 leading-snug">
+                              같은 <strong>과정·평가차수·교과목</strong>으로 저장된 기존 본평가 문항을 다시 불러와 현재 문서에 재사용할 수 있습니다.
+                            </p>
+                            <button type="button" id="questionsReuseSavedBtn" class="px-3 py-1.5 rounded-lg border border-amber-300 bg-white text-[11px] font-black text-amber-800 hover:bg-amber-100 transition">
+                              <i class="fas fa-copy mr-1"></i>기존 문항 불러오기
+                            </button>
                           </div>
                           <div id="questionInputComposer" class="flex flex-col lg:flex-row gap-0 border border-slate-200 rounded-lg overflow-hidden bg-white min-h-[140px]">
                             <div class="lg:w-[min(42%,300px)] lg:max-w-[min(42%,300px)] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-slate-50/50 flex flex-col">
@@ -1631,6 +1646,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
         </div>
       </div>
     </div>
+    <div id="ncsPlanToast" class="fixed bottom-5 right-5 hidden z-[270] max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-2xl"></div>
   `;
 }
 
@@ -2677,6 +2693,129 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setQuestionsFieldValue('questions_doc_title', courseTitle);
     }
 
+    function cloneQuestionRow(row) {
+      return {
+        subject: String(row && row.subject != null ? row.subject : ''),
+        curriculum_id: String(row && row.curriculum_id != null ? row.curriculum_id : ''),
+        no: Number(row && row.no != null ? row.no : 0),
+        type: String(row && row.type != null ? row.type : ''),
+        text: String(row && row.text != null ? row.text : ''),
+        score: Number(row && row.score != null ? row.score : 0),
+        keyword: String(row && row.keyword != null ? row.keyword : '')
+      };
+    }
+
+    function questionRowsForCurriculum(rows, curriculumId) {
+      var cid = String(curriculumId || '').trim();
+      if (!cid) return [];
+      return (Array.isArray(rows) ? rows : []).filter(function(row) {
+        return String(row && row.curriculum_id != null ? row.curriculum_id : '').trim() === cid;
+      }).map(cloneQuestionRow);
+    }
+
+    function replaceQuestionRowsForCurriculum(rows, curriculumId, nextRows) {
+      var cid = String(curriculumId || '').trim();
+      var kept = (Array.isArray(rows) ? rows : []).filter(function(row) {
+        return String(row && row.curriculum_id != null ? row.curriculum_id : '').trim() !== cid;
+      }).map(cloneQuestionRow);
+      return kept.concat((Array.isArray(nextRows) ? nextRows : []).map(cloneQuestionRow));
+    }
+
+    function isQuestionsDraftMostlyEmpty() {
+      if (readQuestionRowsFromTable().length > 0) return false;
+      if (questionInputHasContent()) return false;
+      if (readQuestionsAttachmentsFromDom().length > 0) return false;
+      if (String(getQuestionsFieldValue('questions_notes') || '').trim()) return false;
+      if (String(getQuestionsFieldValue('questions_writer') || '').trim()) return false;
+      if (Number(getQuestionsFieldValue('questions_total_target') || 0) > 0) return false;
+      var noEl = document.getElementById('questionInputNo');
+      var scoreEl = document.getElementById('questionInputScore');
+      var keywordEl = document.getElementById('questionInputKeyword');
+      if (noEl && String(noEl.value || '').trim()) return false;
+      if (scoreEl && String(scoreEl.value || '').trim()) return false;
+      if (keywordEl && String(keywordEl.value || '').trim()) return false;
+      return true;
+    }
+
+    async function fetchSavedQuestionsPayloadForSelectedSubject() {
+      var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      var curriculumId = getNcsSubjectSelectCurriculumValue('questionsSubjectSelect');
+      if (!courseId || !curriculumId) {
+        return { ok: false, error: 'no_course_or_curriculum', payload: null, data: null };
+      }
+      var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(courseId) +
+        '&evaluation_round=' + encodeURIComponent(selectedRound) +
+        '&doc_type=questions' +
+        (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
+        '&curriculum_id=' + encodeURIComponent(curriculumId);
+      var res = await authFetch(url);
+      var json = await res.json();
+      if (!json || !json.success || !json.data || !json.data.payload) {
+        return { ok: false, error: 'no_saved_questions', payload: null, data: json && json.data ? json.data : null };
+      }
+      return { ok: true, error: '', payload: json.data.payload || {}, data: json.data };
+    }
+
+    async function reuseSavedQuestionsForSelectedSubject(opts) {
+      opts = opts || {};
+      var silent = !!opts.silent;
+      var auto = !!opts.auto;
+      var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      var curriculumId = getNcsSubjectSelectCurriculumValue('questionsSubjectSelect');
+      var subjectLabel = getNcsSubjectSelectPlainName('questionsSubjectSelect');
+      if (!courseId) {
+        if (!silent) alert('과정을 먼저 선택해 주세요.');
+        return false;
+      }
+      if (!curriculumId || !subjectLabel) {
+        if (!silent) alert('교과목을 먼저 선택해 주세요.');
+        return false;
+      }
+      try {
+        var got = await fetchSavedQuestionsPayloadForSelectedSubject();
+        if (!got.ok || !got.payload) {
+          if (!silent) {
+            alert('이 과정·평가차수·교과목에 저장된 평가문항이 없습니다.');
+          } else if (!auto) {
+            setStatus('questions', '저장된 기존 문항이 없습니다.', false);
+          }
+          return false;
+        }
+        var incomingRows = questionRowsForCurriculum(got.payload.rows || [], curriculumId);
+        if (!incomingRows.length) {
+          if (!silent) alert('저장된 문서에 이 교과목 문항이 없습니다.');
+          return false;
+        }
+        var currentRows = readQuestionRowsFromTable();
+        var existingRows = questionRowsForCurriculum(currentRows, curriculumId);
+        if (existingRows.length && !opts.force) {
+          var confirmMsg = '현재 문서에 [' + subjectLabel + '] 문항이 이미 ' + existingRows.length + '개 있습니다.\n저장된 문항 ' + incomingRows.length + '개로 교체해서 다시 불러올까요?';
+          if (!confirm(confirmMsg)) return false;
+        }
+        var mergedRows = replaceQuestionRowsForCurriculum(currentRows, curriculumId, incomingRows);
+        renderQuestionRows(mergedRows);
+        if (!String(getQuestionsFieldValue('questions_writer') || '').trim() && String(got.payload.writer || '').trim()) {
+          setQuestionsFieldValue('questions_writer', String(got.payload.writer || '').trim());
+        }
+        if (!(Number(getQuestionsFieldValue('questions_total_target') || 0) > 0) && Number(got.payload.total_target || 0) > 0) {
+          setQuestionsFieldValue('questions_total_target', String(Number(got.payload.total_target || 0)));
+          updateQuestionTotalScore(mergedRows);
+        }
+        setStatus('questions', '[' + subjectLabel + '] 저장 문항 ' + incomingRows.length + '개를 불러왔습니다. 필요 시 수정 후 저장하세요.', false);
+        return true;
+      } catch (e) {
+        console.error(e);
+        if (!silent) alert('기존 평가문항을 불러오는 중 오류가 발생했습니다.');
+        setStatus('questions', '기존 문항 불러오기 실패', true);
+        return false;
+      }
+    }
+
+    async function maybeAutoReuseQuestionsForSelectedSubject() {
+      if (!isQuestionsDraftMostlyEmpty()) return false;
+      return reuseSavedQuestionsForSelectedSubject({ silent: true, auto: true, force: true });
+    }
+
     async function printMinutesDocument() {
       if (!selectedCourseId) {
         alert('과정을 선택해 주세요.');
@@ -3135,6 +3274,50 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const el = document.getElementById('planDocUpdatedAt-' + tabId);
       if (!el) return;
       el.textContent = '마지막 저장: ' + (updatedAt || '-');
+    }
+
+    var planToastTimer = 0;
+    function showPlanToast(message, isError) {
+      var el = document.getElementById('ncsPlanToast');
+      if (!el) return;
+      el.textContent = String(message || '');
+      el.className =
+        'fixed bottom-5 right-5 z-[270] max-w-sm rounded-2xl border px-4 py-3 text-sm font-bold shadow-2xl ' +
+        (isError
+          ? 'border-rose-200 bg-rose-50 text-rose-700'
+          : 'border-emerald-200 bg-emerald-50 text-emerald-700');
+      el.classList.remove('hidden');
+      if (planToastTimer) window.clearTimeout(planToastTimer);
+      planToastTimer = window.setTimeout(function() {
+        el.classList.add('hidden');
+      }, 2400);
+    }
+
+    function closePlanMoreMenu(tabId) {
+      var menu = document.querySelector('[data-plan-more-menu="' + tabId + '"]');
+      if (menu) menu.classList.add('hidden');
+      var toggle = document.querySelector('[data-plan-more-toggle="' + tabId + '"]');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeAllPlanMoreMenus(exceptTabId) {
+      document.querySelectorAll('[data-plan-more-menu]').forEach(function(menu) {
+        var tabId = menu.getAttribute('data-plan-more-menu') || '';
+        if (exceptTabId && tabId === exceptTabId) return;
+        menu.classList.add('hidden');
+      });
+      document.querySelectorAll('[data-plan-more-toggle]').forEach(function(btn) {
+        var tabId = btn.getAttribute('data-plan-more-toggle') || '';
+        btn.setAttribute('aria-expanded', exceptTabId && tabId === exceptTabId ? 'true' : 'false');
+      });
+    }
+
+    function togglePlanMoreMenu(tabId) {
+      var menu = document.querySelector('[data-plan-more-menu="' + tabId + '"]');
+      if (!menu) return;
+      var willOpen = menu.classList.contains('hidden');
+      closeAllPlanMoreMenus(willOpen ? tabId : '');
+      menu.classList.toggle('hidden', !willOpen);
     }
 
     function getDocForm(tabId) {
@@ -5253,7 +5436,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         setUpdatedAt(tabId, stamp);
         var tabName = TAB_NAMES[tabId] || tabId;
-        alert('[' + tabName + '] 문서가 저장되었습니다.');
+        showPlanToast('[' + tabName + '] 새 저장문서를 만들었습니다.', false);
       } catch (e) {
         console.error(e);
         setStatus(tabId, '저장 실패', true);
@@ -5310,7 +5493,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         setUpdatedAt(tabId, stamp);
         var tabName = TAB_NAMES[tabId] || tabId;
-        alert('[' + tabName + '] 저장문서가 수정되었습니다.');
+        showPlanToast('[' + tabName + '] 선택 문서를 수정 저장했습니다.', false);
       } catch (e) {
         console.error(e);
         setStatus(tabId, '수정 저장 실패', true);
@@ -5350,7 +5533,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         await loadDocument(tabId, '');
         setStatus(tabId, '문서 삭제 완료', false);
         var tabName = TAB_NAMES[tabId] || tabId;
-        alert('[' + tabName + '] 저장문서를 삭제했습니다.');
+        showPlanToast('[' + tabName + '] 선택 문서를 삭제했습니다.', false);
       } catch (e) {
         console.error(e);
         setStatus(tabId, '문서 삭제 실패', true);
@@ -5438,6 +5621,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (fp.subjectId && targetSelectId) {
           applyNcsSubjectSelectValue(targetSelectId, fp.subjectId, '');
         }
+        if (tabId === 'questions') {
+          await maybeAutoReuseQuestionsForSelectedSubject();
+        }
         // 탭별 입력 영역으로 스크롤
         var focusEl = null;
         if (tabId === 'schedule') focusEl = document.getElementById('scheduleInputDate') || document.getElementById('scheduleSubjectSelect');
@@ -5515,6 +5701,27 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           void applyDefaultToolsInstructorFromEvalFormApi();
         });
       }
+      var questionsSubSelInit = document.getElementById('questionsSubjectSelect');
+      if (questionsSubSelInit) {
+        questionsSubSelInit.addEventListener('change', function() {
+          void maybeAutoReuseQuestionsForSelectedSubject();
+        });
+      }
+      var questionsReuseBtn = document.getElementById('questionsReuseSavedBtn');
+      if (questionsReuseBtn) {
+        questionsReuseBtn.addEventListener('click', function() {
+          void reuseSavedQuestionsForSelectedSubject({ silent: false, force: false });
+        });
+      }
+      document.querySelectorAll('[data-plan-more-toggle]').forEach(function(btn) {
+        btn.addEventListener('click', function(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          var tabId = btn.getAttribute('data-plan-more-toggle');
+          if (!tabId) return;
+          togglePlanMoreMenu(tabId);
+        });
+      });
       var toolsLoadBtnInit = document.getElementById('toolsLoadNcsCriteriaBtn');
       if (toolsLoadBtnInit) {
         toolsLoadBtnInit.addEventListener('click', function() {
@@ -5545,6 +5752,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         btn.addEventListener('click', async function() {
           const tabId = btn.getAttribute('data-plan-new-btn');
           if (!tabId) return;
+          closePlanMoreMenu(tabId);
           await startNewDocument(tabId);
         });
       });
@@ -5552,6 +5760,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         btn.addEventListener('click', async function() {
           const tabId = btn.getAttribute('data-plan-update-btn');
           if (!tabId) return;
+          closePlanMoreMenu(tabId);
           await updateDocument(tabId);
         });
       });
@@ -5559,6 +5768,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         btn.addEventListener('click', async function() {
           const tabId = btn.getAttribute('data-plan-delete-btn');
           if (!tabId) return;
+          closePlanMoreMenu(tabId);
           await deleteDocument(tabId);
         });
       });
@@ -5577,6 +5787,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         btn.addEventListener('click', async function() {
           var tabId = btn.getAttribute('data-plan-doc-list-reload');
           if (!tabId) return;
+          closePlanMoreMenu(tabId);
           await loadDocumentList(tabId, selectedDocIdByTab[tabId] || '');
         });
       });
@@ -5584,6 +5795,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       document.addEventListener('click', function(e) {
         const target = e.target;
         if (!(target instanceof Element)) return;
+        if (!target.closest('[data-plan-more-wrap]')) {
+          closeAllPlanMoreMenus('');
+        }
         const rmMinutesAtt = target.getAttribute('data-remove-minutes-attachment');
         if (rmMinutesAtt != null) {
           removeMinutesAttachment(parseInt(rmMinutesAtt, 10));
