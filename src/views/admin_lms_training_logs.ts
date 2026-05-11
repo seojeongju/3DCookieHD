@@ -30,6 +30,127 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* 훈련일지 모달 — 모바일 시트 & 폼 가독성 */
+        #logModal { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+        .log-modal-inner { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+        @media (max-width: 767px) {
+            .training-log-paper { padding: 0.75rem !important; border-width: 1px; border-radius: 0.75rem; }
+            .training-log-print-badge { font-size: 9px; padding: 2px 6px; }
+            .training-log-approval-mini { display: none !important; }
+            .training-log-info-table { display: block; width: 100%; border: 0; }
+            .training-log-info-table tbody { display: block; }
+            .training-log-info-table tr {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0;
+                margin-bottom: 0.5rem;
+                border: 1px solid #1f2937;
+                border-radius: 0.5rem;
+                overflow: hidden;
+            }
+            .training-log-info-table td {
+                display: block;
+                padding: 0.45rem 0.55rem !important;
+                font-size: 11px;
+                border: none !important;
+                border-bottom: 1px solid #e5e7eb !important;
+                text-align: left !important;
+                word-break: break-word;
+            }
+            .training-log-info-table td.bg-gray-100 {
+                font-weight: 800;
+                font-size: 10px;
+                color: #374151;
+                background: #f3f4f6 !important;
+            }
+            .training-log-info-table tr td:nth-child(odd) { border-right: 1px solid #e5e7eb !important; }
+            .training-log-info-table tr td:nth-last-child(-n+2) { border-bottom: none !important; }
+
+            .training-log-attendance-table tr {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0;
+                border: 1px solid #1f2937;
+                border-radius: 0.5rem;
+                overflow: hidden;
+            }
+            .training-log-attendance-table td {
+                border: none !important;
+                border-bottom: 1px solid #e5e7eb !important;
+                border-right: 1px solid #e5e7eb !important;
+                min-height: 44px;
+                padding: 0 !important;
+            }
+            .training-log-attendance-table td:nth-child(2n) { border-right: none !important; }
+            .training-log-attendance-table tr td:nth-last-child(-n+2) { border-bottom: none !important; }
+            .training-log-attendance-table input { min-height: 44px; font-size: 15px; }
+
+            .training-log-schedule-table thead { display: none; }
+            .training-log-schedule-table tbody tr {
+                display: block;
+                margin-bottom: 0.75rem;
+                border: 1px solid #1f2937;
+                border-radius: 0.75rem;
+                overflow: hidden;
+                background: #fff;
+                scroll-margin-top: 5rem;
+                box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
+            }
+            .training-log-schedule-table tbody td {
+                display: grid;
+                grid-template-columns: 5.25rem minmax(0, 1fr);
+                gap: 0.25rem 0.65rem;
+                align-items: center;
+                padding: 0.55rem 0.65rem !important;
+                border: none !important;
+                border-bottom: 1px solid #f1f5f9 !important;
+                width: 100% !important;
+                min-width: 0 !important;
+            }
+            .training-log-schedule-table tbody td:last-child { border-bottom: none !important; }
+            .training-log-schedule-table tbody td::before {
+                content: attr(data-label);
+                font-size: 10px;
+                font-weight: 800;
+                color: #64748b;
+                letter-spacing: 0.04em;
+                line-height: 1.2;
+            }
+            .training-log-schedule-table tbody td:first-child {
+                display: block;
+                text-align: center;
+                padding: 0.6rem !important;
+                background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+                font-size: 13px;
+                font-weight: 900;
+                color: #4338ca;
+                letter-spacing: 0.02em;
+                border-bottom: 1px solid #e0e7ff !important;
+            }
+            .training-log-schedule-table tbody td:first-child::before { display: none; content: none; }
+            .training-log-schedule-table tbody td input {
+                width: 100%;
+                min-width: 0;
+                font-size: 15px;
+                padding-top: 0.55rem;
+                padding-bottom: 0.55rem;
+            }
+
+            .training-log-footer-note-table tr { display: flex; flex-wrap: wrap; }
+            .training-log-footer-note-table td:first-child {
+                flex: 0 0 100%;
+                border-bottom: 1px solid #1f2937 !important;
+            }
+            .training-log-footer-note-table td:not(:first-child) { flex: 1; min-width: 0; }
+
+            .training-log-special-table td.bg-gray-50 { min-width: 5rem; }
+            .training-log-special-table input,
+            .training-log-special-table textarea { font-size: 15px !important; min-height: 44px; }
+            .training-log-special-table textarea#logContent { min-height: 6rem; }
+
+        }
     </style>
 </head>
 <body class="bg-gray-50 overflow-x-hidden">
@@ -109,34 +230,34 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
     <!-- 일지 등록 모달 -->
     <!-- 일지 등록 모달 -->
     <!-- 일지 등록 모달 -->
-    <div id="logModal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] min-h-0 flex flex-col my-4 transform transition-all border border-gray-100 shadow-2xl">
+    <div id="logModal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm overflow-y-auto overflow-x-hidden">
+        <div class="log-modal-inner bg-white shadow-2xl w-full max-w-full sm:max-w-6xl max-h-[min(96dvh,100vh)] sm:max-h-[90vh] min-h-0 flex flex-col mb-0 sm:my-4 transform transition-all border border-gray-100 rounded-t-2xl sm:rounded-xl overflow-hidden">
             <!-- Header -->
-            <div class="p-6 border-b flex-none flex justify-between items-center bg-gray-50 rounded-t-xl z-10 relative shrink-0">
-                 <div class="flex items-center gap-2">
-                    <i class="fas fa-calendar-check text-indigo-600 text-xl"></i>
-                    <h3 class="text-xl font-bold text-gray-900" id="modalTitle">훈련일지 작성</h3>
+            <div class="p-4 sm:p-6 border-b flex-none flex justify-between items-center bg-gray-50 sm:rounded-t-xl z-10 relative shrink-0 gap-3">
+                 <div class="flex items-center gap-2 min-w-0">
+                    <i class="fas fa-calendar-check text-indigo-600 text-lg sm:text-xl shrink-0"></i>
+                    <h3 class="text-base sm:text-xl font-bold text-gray-900 truncate" id="modalTitle">훈련일지 작성</h3>
                  </div>
-                <button onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200"><i class="fas fa-times text-lg"></i></button>
+                <button type="button" onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition-colors w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full hover:bg-gray-200 shrink-0 touch-manipulation" aria-label="닫기"><i class="fas fa-times text-lg"></i></button>
             </div>
 
-            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-8 space-y-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar bg-white">
+            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto overflow-x-hidden flex-1 min-h-0 custom-scrollbar bg-white min-w-0">
                 <input type="hidden" id="logId">
                 
                 <!-- 훈련일 아님 안내 -->
-                <div id="logNotTrainingDayNotice" class="hidden mb-4 p-4 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 text-sm font-medium flex items-center gap-2">
-                    <i class="fas fa-calendar-times"></i>
-                    <span>훈련일이 아닙니다. 해당 날짜에는 훈련일지 작성이 제한됩니다. 훈련일을 선택해 주세요.</span>
+                <div id="logNotTrainingDayNotice" class="hidden mb-4 p-4 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 text-sm font-medium flex items-start gap-2 leading-snug">
+                    <i class="fas fa-calendar-times shrink-0 mt-0.5"></i>
+                    <span class="break-words">훈련일이 아닙니다. 해당 날짜에는 훈련일지 작성이 제한됩니다. 훈련일을 선택해 주세요.</span>
                 </div>
 
-                <div class="flex items-center gap-4 px-2">
-                     <label class="font-bold text-gray-700 text-sm"><i class="fas fa-clock text-indigo-500 mr-1"></i> 해당일 일지 훈련시간(h)</label>
-                     <input type="number" id="logHours" class="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-center outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-bold transition-all text-gray-700 bg-gray-50 focus:bg-white" min="0.5" max="24" step="0.1" placeholder="배정시간 (자동 로드, 소수 입력 가능)">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-0 sm:px-2">
+                     <label class="font-bold text-gray-700 text-sm shrink-0"><i class="fas fa-clock text-indigo-500 mr-1"></i> 해당일 일지 훈련시간(h)</label>
+                     <input type="number" id="logHours" class="border border-gray-300 rounded-lg px-3 py-2.5 sm:py-1.5 w-full sm:w-24 text-center outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-bold transition-all text-gray-700 bg-gray-50 focus:bg-white text-base sm:text-sm touch-manipulation" min="0.5" max="24" step="0.1" placeholder="배정시간 (자동 로드, 소수 입력 가능)">
                 </div>
 
-                <div class="flex items-center gap-4 px-2">
-                     <label class="font-bold text-gray-700 text-sm"><i class="fas fa-user-edit text-indigo-500 mr-1"></i> 작성자</label>
-                     <select id="logAuthorId" class="border border-gray-300 rounded-lg px-3 py-1.5 min-w-[180px] outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-gray-700 bg-white">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-0 sm:px-2">
+                     <label class="font-bold text-gray-700 text-sm shrink-0"><i class="fas fa-user-edit text-indigo-500 mr-1"></i> 작성자</label>
+                     <select id="logAuthorId" class="border border-gray-300 rounded-lg px-3 py-2.5 sm:py-1.5 w-full sm:min-w-[180px] outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-gray-700 bg-white text-base sm:text-sm touch-manipulation">
                         <option value="">선택</option>
                      </select>
                      <span id="logAuthorLabel" class="hidden text-sm font-bold text-gray-600"></span>
@@ -144,14 +265,14 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
             
                 <!-- Paper Form Container (Visual Match to Print) -->
-                <div class="border-2 border-gray-800 p-8 shadow-sm relative">
-                    <div class="absolute top-0 left-0 bg-gray-800 text-white text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider">Print Preview Layout</div>
+                <div class="training-log-paper border-2 border-gray-800 p-3 sm:p-8 shadow-sm relative min-w-0 overflow-hidden sm:overflow-visible rounded-lg sm:rounded-none">
+                    <div class="training-log-print-badge absolute top-0 left-0 bg-gray-800 text-white text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider rounded-br sm:rounded-none">Print Preview Layout</div>
                     
                     <!-- Header Section -->
-                    <div class="flex justify-between items-end mb-6 mt-4">
-                        <h1 class="text-3xl font-black text-center w-full absolute left-0 right-0 pointer-events-none opacity-10 select-none">훈련일지</h1>
+                    <div class="flex justify-between items-end mb-4 sm:mb-6 mt-6 sm:mt-4 min-h-[2rem] sm:min-h-0">
+                        <h1 class="text-2xl sm:text-3xl font-black text-center w-full absolute left-0 right-0 pointer-events-none opacity-10 select-none">훈련일지</h1>
                         
-                        <div class="ml-auto z-10">
+                        <div class="training-log-approval-mini ml-auto z-10 shrink-0">
                             <table class="border-collapse border border-gray-800 text-xs bg-white">
                                 <tr>
                                    <td rowspan="2" class="border border-gray-800 bg-gray-50 font-bold p-1 text-center w-8">결<br>재</td>
@@ -167,7 +288,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                     </div>
             
                     <!-- Info Table -->
-                    <table class="w-full border-collapse border border-gray-800 text-sm mb-4">
+                    <table class="training-log-info-table w-full border-collapse border border-gray-800 text-sm mb-4 min-w-0">
                         <tr>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-32">훈련기관명</td>
                             <td class="border border-gray-800 p-2 text-center font-medium" id="institution-name-display">쓰리디쿠키 홍대센터</td>
@@ -187,7 +308,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                     </table>
             
                     <!-- Attendance Input Table -->
-                    <table class="w-full border-collapse border border-gray-800 text-sm mb-6">
+                    <table class="training-log-attendance-table w-full border-collapse border border-gray-800 text-sm mb-6 min-w-0">
                         <tr>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-[12.5%]">출석</td>
                             <td class="border border-gray-800 p-0 w-[12.5%]"><input type="text" id="logAttPresent" class="w-full h-full p-2 text-center font-bold outline-none text-indigo-600 focus:bg-indigo-50 transition-colors" placeholder="0"></td>
@@ -201,7 +322,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                     </table>
             
                     <!-- Schedule Section: 일자(위 훈련일) + 교시별 입력 안내 -->
-                    <p class="text-xs text-gray-600 mb-2 mt-4 px-1 leading-relaxed border-l-4 border-indigo-200 pl-3"><strong class="text-gray-800">일자별</strong> 작성은 위 <strong>훈련일</strong>을 바꾸면 됩니다(해당 일 출석·시간표 연동). <strong class="text-gray-800">교시(시간대)별</strong> 훈련 내용은 아래 표의 1~8교시 행에 구분하여 입력합니다.</p>
+                    <p class="text-xs text-gray-600 mb-2 mt-4 px-1 leading-relaxed border-l-4 border-indigo-200 pl-3 break-words"><strong class="text-gray-800">일자별</strong> 작성은 위 <strong>훈련일</strong>을 바꾸면 됩니다(해당 일 출석·시간표 연동). <strong class="text-gray-800">교시(시간대)별</strong> 훈련 내용은 아래 교시 카드에 구분하여 입력합니다.</p>
                     <div class="flex flex-wrap items-center gap-1.5 mb-3 px-1" role="navigation" aria-label="교시 행으로 스크롤">
                         <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider mr-1">교시 이동</span>
                         <button type="button" onclick="scrollToSchPeriod(1)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">1</button>
@@ -213,8 +334,9 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                         <button type="button" onclick="scrollToSchPeriod(7)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">7</button>
                         <button type="button" onclick="scrollToSchPeriod(8)" class="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600 hover:bg-indigo-100 hover:text-indigo-800 transition">8</button>
                     </div>
-                    <div class="bg-gray-200 border border-gray-800 border-b-0 p-2 text-center font-bold text-sm">훈 련 사 항 (교시별)</div>
-                    <table class="w-full border-collapse border border-gray-800 text-xs mb-0">
+                    <div class="bg-gray-200 border border-gray-800 border-b-0 p-2 text-center font-bold text-xs sm:text-sm leading-tight">훈 련 사 항 (교시별)</div>
+                    <div class="min-w-0 overflow-x-auto sm:overflow-visible -mx-1 px-1 sm:mx-0 sm:px-0">
+                    <table class="training-log-schedule-table w-full border-collapse border border-gray-800 text-xs mb-0 min-w-0 sm:min-w-[520px]">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="border border-gray-800 p-2 w-12">교시</th>
@@ -228,13 +350,14 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <!-- JS Generated -->
                         </tbody>
                     </table>
-                    <div class="flex justify-between mt-1 mb-2">
-                         <button type="button" id="btnLoadAttendance" onclick="loadDailyAttendance()" class="text-xs text-rose-600 hover:text-rose-800 underline font-bold px-2 py-1 flex items-center gap-1"><i class="fas fa-users-viewfinder"></i> <span id="btnLoadAttText">출석 기록 불러오기</span></button>
-                         <button type="button" onclick="loadDailySchedule()" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-1 flex items-center gap-1"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 sm:justify-between mt-2 mb-2">
+                         <button type="button" id="btnLoadAttendance" onclick="loadDailyAttendance()" class="text-xs text-rose-600 hover:text-rose-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-rose-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-users-viewfinder"></i> <span id="btnLoadAttText">출석 기록 불러오기</span></button>
+                         <button type="button" onclick="loadDailySchedule()" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-indigo-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
                     </div>
             
                     <!-- Footer Lists -->
-                     <table class="w-full border-collapse border border-gray-800 border-t-0 text-xs mt-1">
+                     <table class="training-log-footer-note-table w-full border-collapse border border-gray-800 border-t-0 text-xs mt-1 min-w-0">
                         <tr>
                              <td class="bg-gray-200 border-r border-b border-gray-800 p-2 w-32 text-center font-bold" rowspan="2">지시사항</td>
                              <td class="border-b border-gray-800 p-0 h-16 align-top">
@@ -242,7 +365,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                              </td>
                         </tr>
                      </table>
-                     <table class="w-full border-collapse border border-gray-800 border-t-0 text-xs text-left">
+                     <table class="training-log-special-table w-full border-collapse border border-gray-800 border-t-0 text-xs text-left min-w-0">
                         <tr>
                              <td class="bg-gray-200 border-r border-gray-800 p-2 w-32 text-center font-bold" rowspan="8">특기<br>사항</td>
                         </tr>
@@ -282,9 +405,9 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                 <!-- Hidden elements picker (Legacy but maybe needed for NCS logic? kept hidden) -->
                 <div id="elementsPicker" class="hidden"></div> 
             
-                <div class="flex justify-center gap-3 pt-4">
-                    <button type="button" onclick="closeLogModal()" class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm">취소</button>
-                    <button type="submit" id="logFormSubmitBtn" class="px-8 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg hover:shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed">저장하기</button>
+                <div class="training-log-action-row flex flex-col-reverse sm:flex-row justify-center gap-3 pt-2 sm:pt-4 pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+                    <button type="button" onclick="closeLogModal()" class="w-full sm:w-auto px-6 py-3.5 sm:py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl sm:rounded-lg font-bold hover:bg-gray-50 transition shadow-sm touch-manipulation text-base sm:text-sm">취소</button>
+                    <button type="submit" id="logFormSubmitBtn" class="w-full sm:w-auto px-8 py-3.5 sm:py-2.5 bg-indigo-600 text-white rounded-xl sm:rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg hover:shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed touch-manipulation text-base sm:text-sm">저장하기</button>
                 </div>
             </form>
         </div>
@@ -1239,11 +1362,11 @@ async function printLog(id) {
                 const readonlyClass = isReadOnly ? ' bg-gray-50 cursor-not-allowed' : '';
 
                 html += '<tr id="schPeriodRow' + i + '" class="hover:bg-indigo-50/30 transition-colors group scroll-mt-24">' +
-                        '<td class="px-2 py-2 text-center border-r font-black text-gray-400 bg-gray-50/50">' + i + '교시</td>' +
-                        '<td class="px-2 py-2 border-r min-w-[200px] w-52"><input type="text" name="sch_subject_' + i + '" value="' + (subject || '') + '" class="w-full min-w-0 px-3 py-2 border border-gray-200 rounded-md text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="교과목"' + disabledAttr + '></td>' +
-                        '<td class="px-2 py-2 border-r min-w-[120px] w-36"><input type="text" name="sch_instructor_' + i + '" value="' + (instructor || '') + '" class="w-full min-w-0 px-3 py-2 border border-gray-200 rounded-md text-center text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="담당교사"' + disabledAttr + '></td>' +
-                        '<td class="px-2 py-2 border-r"><input type="text" name="sch_content_' + i + '" value="' + (content || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="훈련내용을 입력하세요"' + disabledAttr + '></td>' +
-                        '<td class="px-2 py-2"><input type="text" name="sch_note_' + i + '" value="' + (note || '') + '" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="비고"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2 text-center border-r border-gray-800 font-black text-gray-400 bg-gray-50/50">' + i + '교시</td>' +
+                        '<td class="px-2 py-2 border-r border-gray-800 min-w-0 md:min-w-[200px] md:w-52" data-label="훈련과목"><input type="text" name="sch_subject_' + i + '" value="' + (subject || '') + '" class="w-full min-w-0 px-3 py-2.5 md:py-2 border border-gray-200 rounded-lg md:rounded-md text-base md:text-sm font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="교과목"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2 border-r border-gray-800 min-w-0 md:min-w-[120px] md:w-36" data-label="담당교사"><input type="text" name="sch_instructor_' + i + '" value="' + (instructor || '') + '" class="w-full min-w-0 px-3 py-2.5 md:py-2 border border-gray-200 rounded-lg md:rounded-md text-center text-base md:text-sm font-medium text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="담당교사"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2 border-r border-gray-800 min-w-0" data-label="훈련 내용"><input type="text" name="sch_content_' + i + '" value="' + (content || '') + '" class="w-full px-3 py-2.5 md:py-2 border border-gray-200 rounded-lg md:rounded-md text-base md:text-sm text-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="훈련내용"' + disabledAttr + '></td>' +
+                        '<td class="px-2 py-2 min-w-0" data-label="비고"><input type="text" name="sch_note_' + i + '" value="' + (note || '') + '" class="w-full px-3 py-2.5 md:py-2 border border-gray-200 rounded-lg md:rounded-md text-base md:text-sm text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-gray-300' + readonlyClass + '" placeholder="비고"' + disabledAttr + '></td>' +
                     '</tr>';
             }
             tbody.innerHTML = html;
