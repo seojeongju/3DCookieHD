@@ -76,7 +76,7 @@ export const studentDashboardHtml = () => `
                         <div class="relative z-10 flex flex-col gap-6 sm:gap-8">
                             <div class="min-w-0">
                                 <h2 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tight mb-1 sm:mb-2 break-keep">반갑습니다, <span id="welcome-name">-</span>님.</h2>
-                                <p class="text-sky-200 text-xs sm:text-sm font-medium max-w-lg leading-relaxed">나의 강의실에서 수강 중인 과정, 시험, 성적, NCS·설문·포트폴리오를 한곳에서 확인하세요.</p>
+                                <p class="text-sky-200 text-xs sm:text-sm font-medium max-w-lg leading-relaxed">나의 강의실에서 수강 과정, 사전평가, NCS 본평가, 성적, 설문·포트폴리오를 한곳에서 확인하세요.</p>
                                 <div class="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
                                     <div class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 border border-white/10 rounded-xl sm:rounded-2xl flex items-center gap-2">
                                         <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-400 animate-pulse"></div>
@@ -89,19 +89,25 @@ export const studentDashboardHtml = () => `
                                 </div>
                             </div>
                             <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 md:gap-8 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 bg-white/5 border border-white/10 rounded-xl sm:rounded-[2rem] backdrop-blur-sm">
-                                <div class="flex flex-1 items-center justify-around sm:justify-center gap-4 sm:gap-8">
-                                    <div class="text-center">
-                                        <span class="block text-[9px] sm:text-[10px] font-black uppercase text-sky-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1">수강 과정</span>
-                                        <span class="text-2xl sm:text-3xl font-black" id="stat-enrollments">0</span>
-                                        <span class="block text-[9px] sm:text-[10px] font-black text-sky-300 uppercase mt-1">개</span>
-                                    </div>
-                                    <div class="w-px h-10 sm:h-12 bg-white/10 self-center hidden sm:block"></div>
-                                    <div class="text-center">
-                                        <span class="block text-[9px] sm:text-[10px] font-black uppercase text-sky-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1">진행 중 시험</span>
-                                        <span class="text-2xl sm:text-3xl font-black" id="stat-active-exams">0</span>
-                                        <span class="block text-[9px] sm:text-[10px] font-black text-sky-300 uppercase mt-1">건</span>
-                                    </div>
+                            <div class="flex flex-1 flex-wrap items-center justify-around sm:justify-center gap-y-6 gap-x-4 sm:gap-8">
+                                <div class="text-center min-w-[5rem]">
+                                    <span class="block text-[9px] sm:text-[10px] font-black uppercase text-sky-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1">수강 과정</span>
+                                    <span class="text-2xl sm:text-3xl font-black" id="stat-enrollments">0</span>
+                                    <span class="block text-[9px] sm:text-[10px] font-black text-sky-300 uppercase mt-1">개</span>
                                 </div>
+                                <div class="w-px h-10 sm:h-12 bg-white/10 self-center hidden sm:block"></div>
+                                <div class="text-center min-w-[5rem]">
+                                    <span class="block text-[9px] sm:text-[10px] font-black uppercase text-sky-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1">사전평가</span>
+                                    <span class="text-2xl sm:text-3xl font-black" id="stat-pre-pending">0</span>
+                                    <span class="block text-[9px] sm:text-[10px] font-black text-sky-300 uppercase mt-1">미응시 과정</span>
+                                </div>
+                                <div class="w-px h-10 sm:h-12 bg-white/10 self-center hidden sm:block"></div>
+                                <div class="text-center min-w-[5rem]">
+                                    <span class="block text-[9px] sm:text-[10px] font-black uppercase text-sky-300 tracking-[0.15em] sm:tracking-[0.2em] mb-1">NCS 본평가</span>
+                                    <span class="text-2xl sm:text-3xl font-black" id="stat-ncs-pending">0</span>
+                                    <span class="block text-[9px] sm:text-[10px] font-black text-sky-300 uppercase mt-1">미응시 회차</span>
+                                </div>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -152,7 +158,7 @@ export const studentDashboardHtml = () => `
                                         </button>
                                         <button onclick="switchTab('ncs')" id="btn-ncs" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
                                             <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-certificate text-[10px]"></i></span>
-                                            <span>NCS 평가</span>
+                                            <span>NCS 본평가</span>
                                         </button>
                                         <button onclick="switchTab('surveys')" id="btn-surveys" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
                                             <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-poll text-[10px]"></i></span>
@@ -245,23 +251,38 @@ export const studentDashboardHtml = () => `
             try {
                 const token = localStorage.getItem('token');
                 if (!token) return;
-                const [enrRes, sessionEnrRes, examRes] = await Promise.all([
+                const [enrRes, sessionEnrRes, examRes, ncsAvailRes] = await Promise.all([
                     fetch('/api/enrollments?status=approved&limit=1', { headers: { 'Authorization': 'Bearer ' + token } }),
                     fetch('/api/course-sessions/me/enrollments', { headers: { 'Authorization': 'Bearer ' + token } }),
-                    fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } })
+                    fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/cbt/ncs-available-for-student', { headers: { 'Authorization': 'Bearer ' + token } })
                 ]);
                 const enrJson = await enrRes.json();
                 const sessionEnrJson = await sessionEnrRes.json().catch(() => ({ success: false, data: [] }));
                 const examJson = await examRes.json();
+                const ncsAvailJson = await ncsAvailRes.json().catch(() => ({}));
                 const legacyCount = (enrJson.success && enrJson.pagination && typeof enrJson.pagination.total === 'number') ? enrJson.pagination.total : (Array.isArray(enrJson.data) ? enrJson.data.length : 0);
                 const hrdCount = (sessionEnrJson.success && Array.isArray(sessionEnrJson.data)) ? sessionEnrJson.data.length : 0;
                 const enrollments = legacyCount + hrdCount;
                 const examList = Array.isArray(examJson) ? examJson : (examJson.data || []);
-                const activeExams = examList.filter(e => e.is_active).length;
+                const practiceExams = examList.filter(function(e) { return e.type === 'practice' && e.is_active; });
+                var byCourse = {};
+                practiceExams.forEach(function(e) {
+                    var cid = e.course_id || 0;
+                    if (!byCourse[cid]) byCourse[cid] = [];
+                    byCourse[cid].push(e);
+                });
+                var prePending = Object.keys(byCourse).filter(function(k) {
+                    return byCourse[k].some(function(e) { return !e.has_submitted; });
+                }).length;
+                var ncsList = (ncsAvailJson && ncsAvailJson.success && Array.isArray(ncsAvailJson.data)) ? ncsAvailJson.data : [];
+                var ncsPending = ncsList.filter(function(x) { return x.has_submitted !== true; }).length;
                 const statEn = document.getElementById('stat-enrollments');
-                const statEx = document.getElementById('stat-active-exams');
+                const statPre = document.getElementById('stat-pre-pending');
+                const statNcs = document.getElementById('stat-ncs-pending');
                 if (statEn) statEn.textContent = enrollments;
-                if (statEx) statEx.textContent = activeExams;
+                if (statPre) statPre.textContent = prePending;
+                if (statNcs) statNcs.textContent = ncsPending;
             } catch (e) { console.error(e); }
         }
 
@@ -356,7 +377,7 @@ export const studentDashboardHtml = () => `
             window.logout();
         }
 
-        var tabLabels = { dashboard: '종합 대시보드', preAssessment: '사전평가', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', courseReviews: '수강후기', profile: '수강생 정보' };
+        var tabLabels = { dashboard: '종합 대시보드', preAssessment: '사전평가', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 본평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', courseReviews: '수강후기', profile: '수강생 정보' };
         var tabIcons = { dashboard: 'fa-th-large', preAssessment: 'fa-clipboard-list', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', courseReviews: 'fa-star', profile: 'fa-user-edit' };
 
         function switchTab(tab) {
@@ -686,14 +707,16 @@ export const studentDashboardHtml = () => `
             container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="text-slate-400 font-bold text-sm mt-4 uppercase tracking-widest">로딩 중...</p></div>';
             try {
                 const token = localStorage.getItem('token');
-                const [resGeneral, resSession, resExams] = await Promise.all([
+                const [resGeneral, resSession, resExams, resNcsAvailable] = await Promise.all([
                     fetch('/api/enrollments?status=approved', { headers: { 'Authorization': 'Bearer ' + token } }),
                     fetch('/api/course-sessions/me/enrollments', { headers: { 'Authorization': 'Bearer ' + token } }),
-                    fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } })
+                    fetch('/api/exams', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/cbt/ncs-available-for-student', { headers: { 'Authorization': 'Bearer ' + token } })
                 ]);
                 const jsonGeneral = await resGeneral.json();
                 const jsonSession = await resSession.json();
                 const examsJson = await resExams.json();
+                const ncsAvailableJson = await resNcsAvailable.json().catch(function() { return {}; });
                 const examList = Array.isArray(examsJson) ? examsJson : (examsJson.data || []);
                 const activeExams = examList.filter(function(e) { return e.is_active; });
                 var practiceExams = activeExams.filter(function(e) { return e.type === 'practice'; });
@@ -705,8 +728,9 @@ export const studentDashboardHtml = () => `
                     practiceByCourse[cid].exams.push(e);
                 });
                 var practiceGroups = Object.keys(practiceByCourse).map(function(k) { return practiceByCourse[k]; });
-                var displayList = practiceGroups.map(function(g) { return { type: 'preAssessment', group: g }; }).concat(otherExams.map(function(e) { return { type: 'single', exam: e }; }));
-                var displayCount = displayList.length;
+                var ncsAvailableList = (ncsAvailableJson && ncsAvailableJson.success && Array.isArray(ncsAvailableJson.data)) ? ncsAvailableJson.data : [];
+                var prePendingDash = practiceGroups.filter(function(g) { return g.exams.some(function(e) { return !e.has_submitted; }); }).length;
+                var ncsPendingDash = ncsAvailableList.filter(function(x) { return x.has_submitted !== true; }).length;
 
                 const generalData = jsonGeneral.success ? (jsonGeneral.data || []) : [];
                 const sessionData = jsonSession.success ? (jsonSession.data || []) : [];
@@ -714,9 +738,11 @@ export const studentDashboardHtml = () => `
                 allData.sort(function(a, b) { return new Date(b.enrolled_at) - new Date(a.enrolled_at); });
 
                 var statEn = document.getElementById('stat-enrollments');
-                var statEx = document.getElementById('stat-active-exams');
+                var statPre = document.getElementById('stat-pre-pending');
+                var statNcs = document.getElementById('stat-ncs-pending');
                 if (statEn) statEn.textContent = allData.length;
-                if (statEx) statEx.textContent = displayCount;
+                if (statPre) statPre.textContent = prePendingDash;
+                if (statNcs) statNcs.textContent = ncsPendingDash;
 
                 var html = '';
                 html += '<div class="space-y-10">';
@@ -737,33 +763,53 @@ export const studentDashboardHtml = () => `
                 }
                 html += '</section>';
 
-                html += '<section><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-book-open text-sky-500"></i> 진행 중인 시험</h3>';
-                if (displayList.length === 0) {
-                    html += '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-8 text-center"><i class="fas fa-clipboard-check text-4xl text-slate-300 mb-3"></i><p class="font-bold text-slate-500 text-sm">현재 진행 중인 시험이 없습니다.</p></div>';
+                html += '<section><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i class="fas fa-clipboard-list text-sky-500"></i> 사전평가</h3><p class="text-xs text-slate-500 mb-4">사전평가관리에서 과정·회차에 배정된 연습(사전) 시험입니다.</p>';
+                if (practiceGroups.length === 0) {
+                    html += '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-8 text-center"><i class="fas fa-clipboard-list text-4xl text-slate-300 mb-3"></i><p class="font-bold text-slate-500 text-sm">진행 중인 사전평가가 없습니다.</p></div>';
                 } else {
                     html += '<div class="space-y-4">';
-                    displayList.slice(0, 5).forEach(function(item) {
-                        if (item.type === 'preAssessment') {
-                            var g = item.group;
-                            var examCount = g.exams.length;
-                            var totalMin = g.exams.reduce(function(s, e) { return s + ((e.time_limit_minutes || e.time_limit) || 0); }, 0);
-                            var label = examCount > 1 ? '사전평가 (' + examCount + '개 시험)' : '사전평가';
-                            var title = (g.exams[0] && g.exams[0].title) || '사전평가';
-                            var desc = (g.exams[0] && g.exams[0].description) || '';
-                            var cid = g.course_id;
-                            var preSubmitted = g.exams.some(function(e) { return e.has_submitted; });
-                            var preBtn = preSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button type="button" onclick="location.href=&#39;/student/pre-assessment/take?course_id=' + cid + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
-                            html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + label + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (g.course_title || '일반').replace(/</g, '&lt;') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + totalMin + '분</span>' + (preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (title || '').replace(/</g, '&lt;') + '</h3><p class="text-sm text-slate-600 mt-1">' + (desc || '').replace(/</g, '&lt;') + '</p></div>' + preBtn + '</div>';
-                        } else {
-                            var exam = item.exam;
-                            var examSubmitted = exam.has_submitted;
-                            var examBtn = examSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button type="button" onclick="location.href=&#39;/student/exam/' + exam.id + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
-                            html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.course_title || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + (exam.time_limit_minutes || exam.time_limit || 0) + '분</span>' + (examSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (exam.title || '') + '</h3><p class="text-sm text-slate-600 mt-1">' + (exam.description || '설명 없음') + '</p></div>' + examBtn + '</div>';
-                        }
+                    practiceGroups.slice(0, 5).forEach(function(g) {
+                        var examCount = g.exams.length;
+                        var totalMin = g.exams.reduce(function(s, e) { return s + ((e.time_limit_minutes || e.time_limit) || 0); }, 0);
+                        var label = examCount > 1 ? '사전평가 (' + examCount + '개 시험)' : '사전평가';
+                        var title = (g.exams[0] && g.exams[0].title) || '사전평가';
+                        var desc = (g.exams[0] && g.exams[0].description) || '';
+                        var cid = g.course_id;
+                        var preSubmitted = g.exams.every(function(e) { return e.has_submitted; });
+                        var preBtn = preSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button type="button" onclick="location.href=&#39;/student/pre-assessment/take?course_id=' + cid + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + label + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (g.course_title || '일반').replace(/</g, '&lt;') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + totalMin + '분</span>' + (preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (title || '').replace(/</g, '&lt;') + '</h3><p class="text-sm text-slate-600 mt-1">' + (desc || '').replace(/</g, '&lt;') + '</p></div>' + preBtn + '</div>';
                     });
                     html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;preAssessment&#39;)" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">사전평가 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
                 }
                 html += '</section>';
+
+                html += '<section class="mt-10"><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i class="fas fa-certificate text-amber-500"></i> NCS 본평가</h3><p class="text-xs text-slate-500 mb-4">NCS평가(본평가) 관리에서 회차별로 등록된 문제은행 문항으로 응시합니다. (사전평가와 별도입니다.)</p>';
+                if (ncsAvailableList.length === 0) {
+                    html += '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-amber-100 p-8 text-center"><i class="fas fa-certificate text-4xl text-amber-200 mb-3"></i><p class="font-bold text-slate-500 text-sm">응시 가능한 NCS 본평가가 없습니다.</p><p class="text-xs text-slate-400 mt-2">담당자가 회차에 NCS 문항을 배정하면 이곳에 표시됩니다.</p></div>';
+                } else {
+                    html += '<div class="space-y-4">';
+                    ncsAvailableList.slice(0, 5).forEach(function(item) {
+                        var safeName = (item.session_name || '').replace(/</g, '&lt;');
+                        var safeTitle = (item.course_title || '').replace(/</g, '&lt;');
+                        var ncsSubmitted = item.has_submitted === true;
+                        var ncsBtn = ncsSubmitted
+                            ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>'
+                            : '<button type="button" onclick="goNcsExamFromDashboard(' + item.session_id + ')" class="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-amber-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-amber-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-widest">NCS 본평가</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeTitle + '</span>' + (ncsSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeName + '</h3><p class="text-sm text-slate-600 mt-1">' + (item.question_count || 0) + '문항</p></div>' + ncsBtn + '</div>';
+                    });
+                    html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;ncs&#39;)" class="text-amber-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">NCS 본평가 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
+                }
+                html += '</section>';
+
+                if (otherExams.length > 0) {
+                    html += '<section class="mt-10"><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i class="fas fa-file-alt text-slate-400"></i> 기타 시험</h3><p class="text-xs text-slate-500 mb-4">중간·기말·모의 등 사전평가·NCS 본평가와 별도로 개설된 시험입니다.</p><div class="space-y-4">';
+                    otherExams.slice(0, 5).forEach(function(exam) {
+                        var examSubmitted = exam.has_submitted;
+                        var examBtn = examSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button type="button" onclick="location.href=&#39;/student/exam/' + exam.id + '&#39;" class="px-6 py-3.5 bg-slate-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + String(exam.type || '시험') + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.course_title || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + (exam.time_limit_minutes || exam.time_limit || 0) + '분</span>' + (examSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (exam.title || '') + '</h3><p class="text-sm text-slate-600 mt-1">' + (exam.description || '설명 없음') + '</p></div>' + examBtn + '</div>';
+                    });
+                    html += '</div></section>';
+                }
 
                 html += '</div>';
                 container.innerHTML = html;
@@ -982,6 +1028,11 @@ export const studentDashboardHtml = () => `
             }
         }
 
+        function goNcsExamFromDashboard(sessionId) {
+            try { sessionStorage.setItem('studentNcsAutoOpenSession', String(sessionId)); } catch (e) {}
+            switchTab('ncs');
+        }
+
         async function loadNcsStatus() {
             try {
                 const user = JSON.parse(localStorage.getItem('user'));
@@ -1005,7 +1056,7 @@ export const studentDashboardHtml = () => `
                     html += \`
                         <section>
                             <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <span class="w-1 h-5 bg-amber-500 rounded"></span> NCS 평가 문제 풀기
+                                <span class="w-1 h-5 bg-amber-500 rounded"></span> NCS 본평가 응시
                             </h3>
                             <div class="grid grid-cols-1 gap-4">
                     \`;
@@ -1178,6 +1229,15 @@ export const studentDashboardHtml = () => `
                     dataPlans.data.forEach(p => checkEvidenceStatus(p.id));
                 }
 
+                try {
+                    var autoSid = sessionStorage.getItem('studentNcsAutoOpenSession');
+                    if (autoSid) {
+                        sessionStorage.removeItem('studentNcsAutoOpenSession');
+                        var sidNum = parseInt(autoSid, 10);
+                        if (Number.isFinite(sidNum) && sidNum > 0) openNcsExam(sidNum);
+                    }
+                } catch (e2) { console.error(e2); }
+
             } catch (e) {
                 console.error(e);
                 document.getElementById('contentArea').innerHTML = '<div class="text-center text-red-500">NCS 정보를 불러오는데 실패했습니다.</div>';
@@ -1254,7 +1314,7 @@ export const studentDashboardHtml = () => `
 
         async function openNcsExam(sessionId) {
             const container = document.getElementById('contentArea');
-            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-amber-500"></i><p class="mt-4 text-slate-500 font-bold">NCS 평가 문제를 불러오는 중...</p></div>';
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-amber-500"></i><p class="mt-4 text-slate-500 font-bold">NCS 본평가 문제를 불러오는 중...</p></div>';
             const token = localStorage.getItem('token');
             if (!token) { container.innerHTML = '<div class="text-center text-red-500">로그인이 필요합니다.</div>'; return; }
             try {
@@ -1262,11 +1322,11 @@ export const studentDashboardHtml = () => `
                 const json = await res.json();
                 const questions = (json && json.success && Array.isArray(json.data)) ? json.data : (Array.isArray(json) ? json : []);
                 if (questions.length === 0) {
-                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] p-8 text-center"><p class="font-bold text-slate-500">이 회차에 NCS 평가 문제가 없습니다.</p><button type="button" onclick="loadNcsStatus()" class="mt-4 px-4 py-2 bg-amber-500 text-white rounded-xl font-bold">목록으로</button></div>';
+                    container.innerHTML = '<div class="bento-card bg-slate-50 rounded-[2rem] p-8 text-center"><p class="font-bold text-slate-500">이 회차에 NCS 본평가 문제가 없습니다.</p><button type="button" onclick="loadNcsStatus()" class="mt-4 px-4 py-2 bg-amber-500 text-white rounded-xl font-bold">목록으로</button></div>';
                     return;
                 }
                 var html = '<button type="button" onclick="loadNcsStatus()" class="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition"><i class="fas fa-arrow-left"></i> 목록으로</button>';
-                html += '<div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden"><div class="px-6 py-4 border-b border-slate-100 bg-amber-50/50"><h3 class="text-lg font-black text-slate-800">NCS 평가</h3><p class="text-xs text-slate-500 mt-1">총 ' + questions.length + '문항</p></div>';
+                html += '<div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden"><div class="px-6 py-4 border-b border-slate-100 bg-amber-50/50"><h3 class="text-lg font-black text-slate-800">NCS 본평가</h3><p class="text-xs text-slate-500 mt-1">총 ' + questions.length + '문항</p></div>';
                 html += '<form id="ncsExamForm" onsubmit="event.preventDefault(); submitNcsExam(' + sessionId + ')" class="p-6 space-y-6">';
                 questions.forEach(function(q, idx) {
                     var safeText = String(q.question_text || '').replace(/</g, '&lt;');
@@ -1317,7 +1377,7 @@ export const studentDashboardHtml = () => `
                         '<div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div>' +
                         '<h3 class="text-xl font-black text-slate-800">제출 완료</h3>' +
                         '<p class="text-3xl font-black text-amber-600 mt-2">' + score + ' / ' + total + ' (' + pct + '%)</p>' +
-                        '<p class="text-sm text-slate-500 mt-2">NCS 평가가 제출되었습니다.</p>' +
+                        '<p class="text-sm text-slate-500 mt-2">NCS 본평가가 제출되었습니다.</p>' +
                         '<button type="button" onclick="loadNcsStatus()" class="mt-6 px-6 py-3 bg-amber-500 text-white rounded-2xl font-bold">목록으로</button></div>';
                 } else {
                     container.innerHTML = '<div class="text-center text-red-500">' + (json && json.error ? json.error : '제출에 실패했습니다.') + '</div><button type="button" onclick="loadNcsStatus()" class="mt-4 px-4 py-2 bg-slate-200 rounded-xl font-bold">목록으로</button>';
