@@ -5,7 +5,8 @@ export const teacherDashboardHtml = `
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#f8fafc">
     <title>강사 대시보드 - 3D COOKIE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -52,6 +53,9 @@ export const teacherDashboardHtml = `
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
         .section-fade-in { animation: fadeIn 0.8s ease-out forwards; opacity: 0; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 1023px) {
+            .teacher-touch-target { min-height: 44px; min-width: 44px; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-neutral-900 antialiased overflow-hidden">
@@ -62,72 +66,74 @@ export const teacherDashboardHtml = `
         <main class="flex-1 overflow-y-auto bg-[#f1f3f5] custom-scrollbar relative">
             <div class="absolute inset-0 bg-[radial-gradient(#d1d5db_1px,transparent_1px)] [background-size:40px_40px] opacity-20 pointer-events-none"></div>
             
-            <!-- 상단 헤더 -->
-            <header class="sticky top-0 z-40 px-8 py-5 bg-white/80 backdrop-blur-md border-b border-gray-100 flex justify-between items-center">
-                <div class="flex flex-col">
-                    <h1 class="text-2xl font-outfit font-black text-neutral-900 tracking-tight flex items-center gap-3">
-                        강사 대시보드
-                        <span class="text-[10px] bg-brand-600 text-white px-3 py-1 rounded-full uppercase tracking-widest font-black border border-brand-500 shadow-lg shadow-brand-100">PRO HUB</span>
-                    </h1>
-                    <p class="text-[11px] font-bold text-neutral-400 uppercase tracking-[0.2em] mt-0.5">Education AI Management Terminal</p>
+            <!-- 상단 헤더 (모바일: 타이틀·배지 줄바꿈, 터치 영역 확대) -->
+            <header class="sticky top-0 z-40 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 bg-white/80 backdrop-blur-md border-b border-gray-100 flex flex-wrap justify-between items-start sm:items-center gap-3 sm:gap-4">
+                <div class="flex flex-col min-w-0 flex-1 basis-[min(100%,14rem)]">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <h1 class="text-lg sm:text-xl lg:text-2xl font-outfit font-black text-neutral-900 tracking-tight truncate">
+                            강사 대시보드
+                        </h1>
+                        <span class="text-[9px] sm:text-[10px] bg-brand-600 text-white px-2.5 sm:px-3 py-1 rounded-full uppercase tracking-widest font-black border border-brand-500 shadow-md shadow-brand-100 shrink-0 self-start sm:self-center max-w-full">PRO HUB</span>
+                    </div>
+                    <p class="text-[10px] sm:text-[11px] font-bold text-neutral-400 uppercase tracking-[0.18em] sm:tracking-[0.2em] mt-1.5 leading-snug">Education AI Management Terminal</p>
                 </div>
-                <div class="flex items-center gap-5">
+                <div class="flex items-center gap-3 sm:gap-5 shrink-0 ml-auto">
                     <div class="hidden md:flex items-center gap-3 px-5 py-2.5 bg-neutral-50 rounded-2xl border border-neutral-100 shadow-inner group">
                         <i class="fas fa-clock text-brand-500 text-xs animate-pulse"></i>
                         <span id="current-time" class="text-xs font-black text-neutral-800 tracking-tighter">00:00:00</span>
                     </div>
-                    <div class="h-10 w-px bg-neutral-200"></div>
-                    <div class="flex items-center gap-4">
-                        <div class="text-right hidden sm:flex flex-col">
-                            <span id="header-user-name" class="text-sm font-black text-neutral-900">강사님</span>
+                    <div class="hidden md:block h-10 w-px bg-neutral-200"></div>
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="text-right hidden sm:flex flex-col min-w-0 max-w-[120px] lg:max-w-none">
+                            <span id="header-user-name" class="text-xs sm:text-sm font-black text-neutral-900 truncate">강사님</span>
                             <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 justify-end">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Authorized
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span> Authorized
                             </span>
                         </div>
-                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white shadow-xl shadow-brand-200 border-2 border-white cursor-pointer hover:scale-110 transition-transform">
-                            <i class="fas fa-user-tie text-lg"></i>
-                        </div>
+                        <a href="/teacher/profile" class="teacher-touch-target w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white shadow-xl shadow-brand-200 border-2 border-white hover:scale-105 active:scale-95 transition-transform" title="강사 프로필">
+                            <i class="fas fa-user-tie text-base sm:text-lg"></i>
+                        </a>
                     </div>
                 </div>
             </header>
 
-            <div class="p-8 lg:p-12 max-w-[1600px] mx-auto space-y-12 relative z-10">
+            <div class="p-4 sm:p-6 lg:p-12 max-w-[1600px] mx-auto space-y-8 sm:space-y-10 lg:space-y-12 relative z-10 max-lg:pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]">
                 
                 <!-- 환영 섹션 (Premium Hero) -->
                 <section class="section-fade-in" style="animation-delay: 0.1s">
-                    <div class="bg-neutral-900 rounded-5xl p-10 text-white relative overflow-hidden shadow-2xl shadow-neutral-900/10 group">
+                    <div class="bg-neutral-900 rounded-3xl sm:rounded-4xl lg:rounded-5xl p-5 sm:p-8 lg:p-10 text-white relative overflow-hidden shadow-2xl shadow-neutral-900/10 group">
                         <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-brand-600/20 to-transparent pointer-events-none"></div>
                         <div class="absolute -right-20 -top-20 w-96 h-96 bg-brand-600/10 rounded-full blur-[120px] group-hover:bg-brand-600/20 transition-all duration-1000"></div>
                         <div class="absolute left-1/4 bottom-0 w-64 h-64 bg-indigo-600/5 rounded-full blur-[80px]"></div>
                         
-                        <div class="relative z-10 flex flex-col lg:flex-row justify-between items-center gap-10">
-                            <div class="max-w-2xl">
-                                <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl mb-6 backdrop-blur-md">
-                                    <i class="fas fa-sparkles text-yellow-400 text-xs"></i>
-                                    <span class="text-[10px] font-black uppercase tracking-widest text-brand-200">System Synced in Real-time</span>
+                        <div class="relative z-10 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 sm:gap-8 lg:gap-10">
+                            <div class="max-w-2xl w-full text-center lg:text-left">
+                                <div class="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 backdrop-blur-md mx-auto lg:mx-0">
+                                    <i class="fas fa-sparkles text-yellow-400 text-[10px] sm:text-xs"></i>
+                                    <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-widest text-brand-200">System Synced in Real-time</span>
                                 </div>
-                                <h2 class="text-4xl lg:text-5xl font-outfit font-black tracking-tight mb-4 leading-[1.1]">안녕하세요, <span id="welcome-name" class="text-brand-400">강사님</span> 강사님.</h2>
-                                <p class="text-neutral-400 text-sm font-medium leading-relaxed max-w-lg mb-8">배정된 강의의 실시간 학사 현황과 학생들의 학습 성과를 분석한 데이터입니다. 인공지능 기반의 지표를 활용하여 교육의 질을 높여보세요.</p>
-                                <div class="flex flex-wrap gap-4">
-                                    <button onclick="location.href='/teacher/courses'" class="px-8 py-4 bg-brand-600 hover:bg-white hover:text-brand-900 rounded-2xl font-black text-xs transition-all duration-500 flex items-center gap-3 shadow-xl shadow-brand-600/20">
-                                        강의실 입장하기 <i class="fas fa-arrow-right text-[10px]"></i>
+                                <h2 class="text-2xl sm:text-3xl lg:text-5xl font-outfit font-black tracking-tight mb-3 sm:mb-4 leading-snug break-keep">안녕하세요, <span id="welcome-name" class="text-brand-400">강사님</span><span class="text-brand-300"> 강사님</span>.</h2>
+                                <p class="text-neutral-300 sm:text-neutral-400 text-sm sm:text-base font-medium leading-relaxed max-w-lg mx-auto lg:mx-0 mb-6 sm:mb-8">배정된 강의의 실시간 학사 현황과 학생들의 학습 성과를 분석한 데이터입니다. 인공지능 기반 지표로 교육 운영을 더 명확하게 파악해 보세요.</p>
+                                <div class="flex flex-col sm:flex-row flex-wrap justify-center lg:justify-start gap-3 sm:gap-4">
+                                    <button type="button" onclick="location.href='/teacher/courses'" class="teacher-touch-target min-h-[48px] px-6 sm:px-8 py-3.5 sm:py-4 bg-brand-600 hover:bg-white hover:text-brand-900 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all duration-500 flex items-center justify-center gap-3 shadow-xl shadow-brand-600/20 w-full sm:w-auto">
+                                        강의실 입장하기 <i class="fas fa-arrow-right text-[10px] sm:text-xs"></i>
                                     </button>
-                                    <div class="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-3 backdrop-blur-sm">
-                                        <i class="fas fa-calendar-day text-brand-400"></i>
-                                        <span id="welcome-date" class="text-xs font-black uppercase tracking-widest text-neutral-300">-</span>
+                                    <div class="px-4 sm:px-6 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center gap-3 backdrop-blur-sm w-full sm:w-auto">
+                                        <i class="fas fa-calendar-day text-brand-400 text-sm"></i>
+                                        <span id="welcome-date" class="text-[11px] sm:text-xs font-black tracking-wide sm:tracking-widest text-neutral-200 sm:text-neutral-300 normal-case">-</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-6 w-full lg:w-auto">
-                                <div class="p-8 bg-white/5 border border-white/10 rounded-4xl backdrop-blur-md text-center hover:bg-white group/stat transition-all duration-500 cursor-default">
-                                    <span class="block text-[10px] font-black uppercase text-neutral-500 tracking-[0.3em] mb-3 group-hover/stat:text-brand-600 transition-colors">Managed Students</span>
-                                    <span class="text-5xl font-outfit font-black group-hover/stat:text-neutral-900 transition-colors" id="stat-total-students">0</span>
-                                    <span class="block text-[10px] font-black text-neutral-500 uppercase mt-2">Active Learners</span>
+                            <div class="grid grid-cols-2 gap-3 sm:gap-6 w-full lg:w-auto lg:min-w-[280px] shrink-0">
+                                <div class="p-4 sm:p-8 bg-white/5 border border-white/10 rounded-2xl sm:rounded-4xl backdrop-blur-md text-center hover:bg-white group/stat transition-all duration-500 cursor-default">
+                                    <span class="block text-[9px] sm:text-[10px] font-black uppercase text-neutral-500 tracking-[0.15em] sm:tracking-[0.3em] mb-2 sm:mb-3 group-hover/stat:text-brand-600 transition-colors leading-tight">Managed Students</span>
+                                    <span class="text-3xl sm:text-4xl lg:text-5xl font-outfit font-black group-hover/stat:text-neutral-900 transition-colors tabular-nums" id="stat-total-students">0</span>
+                                    <span class="block text-[9px] sm:text-[10px] font-black text-neutral-500 uppercase mt-1 sm:mt-2 leading-tight">Active Learners</span>
                                 </div>
-                                <div class="p-8 bg-white/5 border border-white/10 rounded-4xl backdrop-blur-md text-center hover:bg-brand-600 group/stat transition-all duration-500 cursor-default">
-                                    <span class="block text-[10px] font-black uppercase text-neutral-500 tracking-[0.3em] mb-3 group-hover/stat:text-white transition-colors">Active Courses</span>
-                                    <span class="text-5xl font-outfit font-black group-hover/stat:text-white transition-colors" id="stat-my-courses">0</span>
-                                    <span class="block text-[10px] font-black text-neutral-500 uppercase mt-2 group-hover/stat:text-white/60 transition-colors">Running Now</span>
+                                <div class="p-4 sm:p-8 bg-white/5 border border-white/10 rounded-2xl sm:rounded-4xl backdrop-blur-md text-center hover:bg-brand-600 group/stat transition-all duration-500 cursor-default">
+                                    <span class="block text-[9px] sm:text-[10px] font-black uppercase text-neutral-500 tracking-[0.15em] sm:tracking-[0.3em] mb-2 sm:mb-3 group-hover/stat:text-white transition-colors leading-tight">Active Courses</span>
+                                    <span class="text-3xl sm:text-4xl lg:text-5xl font-outfit font-black group-hover/stat:text-white transition-colors tabular-nums" id="stat-my-courses">0</span>
+                                    <span class="block text-[9px] sm:text-[10px] font-black text-neutral-500 uppercase mt-1 sm:mt-2 group-hover/stat:text-white/60 transition-colors leading-tight">Running Now</span>
                                 </div>
                             </div>
                         </div>

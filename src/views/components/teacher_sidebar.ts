@@ -7,8 +7,8 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
 <div id="teacherSidebarBackdrop" class="fixed inset-0 bg-black/60 z-30 lg:hidden hidden transition-opacity backdrop-blur-sm" aria-hidden="true"></div>
 
 <!-- 모바일: 사이드바 열기 버튼 -->
-<button type="button" id="teacherSidebarToggle" aria-label="메뉴 열기" class="lg:hidden fixed top-4 left-4 z-50 w-11 h-11 flex items-center justify-center rounded-2xl bg-gray-900 text-white shadow-xl hover:bg-gray-800 border border-white/10 transition">
-  <i class="fas fa-bars"></i>
+<button type="button" id="teacherSidebarToggle" aria-label="메뉴 열기" class="lg:hidden fixed z-50 w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-2xl bg-gray-900 text-white shadow-xl hover:bg-gray-800 active:bg-gray-950 border border-white/10 transition touch-manipulation left-[max(1rem,env(safe-area-inset-left,0px))] top-[max(1rem,env(safe-area-inset-top,0px))]">
+  <i class="fas fa-bars text-lg"></i>
 </button>
 
 <!-- 사이드바 래퍼 -->
@@ -162,6 +162,13 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
 </div>
 
 <style>
+/* 모바일: 고정 햄버거 버튼과 상단 헤더 타이틀 겹침 방지 (강사 레이아웃 공통) */
+@media (max-width: 1023px) {
+    body > div.flex.h-screen > main header.sticky,
+    body > div.flex.h-screen > div.flex-1 header.sticky {
+        padding-left: calc(env(safe-area-inset-left, 0px) + 4.75rem) !important;
+    }
+}
 /* Bento Sidebar Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
