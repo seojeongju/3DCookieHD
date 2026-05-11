@@ -797,8 +797,8 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                           <button type="button" data-plan-doc-list-reload="${item.id}" class="w-full text-left px-3 py-2 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 transition">
                             <i class="fas fa-rotate-right mr-1.5 text-slate-400"></i>저장문서 목록 새로고침
                           </button>
-                          <button type="button" id="planDocUpdateBtn-${item.id}" data-plan-update-btn="${item.id}" class="w-full text-left px-3 py-2 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                            <i class="fas fa-pen-to-square mr-1.5 text-blue-500"></i>선택 문서 덮어쓰기
+                          <button type="button" id="planDocSaveAsNewBtn-${item.id}" data-plan-save-as-new-btn="${item.id}" class="w-full text-left px-3 py-2 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 transition">
+                            <i class="fas fa-copy mr-1.5 text-blue-500"></i>새 문서로 저장
                           </button>
                           <button type="button" id="planDocDeleteBtn-${item.id}" data-plan-delete-btn="${item.id}" class="w-full text-left px-3 py-2 rounded-xl text-xs font-black text-rose-700 hover:bg-rose-50 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                             <i class="fas fa-trash mr-1.5"></i>선택 문서 삭제
@@ -1761,7 +1761,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         el.readOnly = true;
       });
       // 저장/수정/작성/삭제는 클릭 시 blockIfMinutesAdminOnly에서 알림만 띄움 (disabled 시 알림이 안 뜸)
-      panel.querySelectorAll('[data-plan-save-btn="minutes"], [data-plan-update-btn="minutes"], [data-plan-new-btn="minutes"], [data-plan-delete-btn="minutes"]').forEach(function(btn) {
+      panel.querySelectorAll('[data-plan-save-btn="minutes"], [data-plan-save-as-new-btn="minutes"], [data-plan-new-btn="minutes"], [data-plan-delete-btn="minutes"]').forEach(function(btn) {
         btn.classList.add('opacity-60', 'cursor-not-allowed');
         btn.setAttribute('title', '평가계획 회의록 수정에 대한 권한이 없습니다.');
       });
@@ -5299,10 +5299,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (selected) sel.value = selected;
       if (selected && sel.value !== selected) sel.value = '';
       var hasSelected = !!(sel.value || '').trim();
-      var updateBtn = document.getElementById('planDocUpdateBtn-' + tabId);
       var deleteBtn = document.getElementById('planDocDeleteBtn-' + tabId);
-      if (updateBtn) updateBtn.disabled = !hasSelected;
       if (deleteBtn) deleteBtn.disabled = !hasSelected;
+      var saveBtn = document.querySelector('[data-plan-save-btn="' + tabId + '"]');
+      if (saveBtn) {
+        saveBtn.setAttribute('title', hasSelected ? '현재 선택 문서에 저장합니다.' : '새 문서를 생성합니다.');
+      }
     }
 
     function getCurriculumIdForPlanTab(tabId) {
@@ -5399,10 +5401,16 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
-    async function saveDocument(tabId) {
+    async function saveDocument(tabId, opts) {
+      opts = opts || {};
       if (blockIfMinutesAdminOnly(tabId)) return;
       if (!selectedCourseId) {
         alert('먼저 과정을 선택해 주세요.');
+        return;
+      }
+      var currentDocId = String(selectedDocIdByTab[tabId] || '').trim();
+      if (!opts.forceNew && currentDocId) {
+        await updateDocument(tabId, { fromSave: true });
         return;
       }
       const form = getDocForm(tabId);
@@ -5426,8 +5434,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const json = await res.json();
         if (!json?.success) throw new Error(json?.error || 'save failed');
         setStatus(tabId, '저장 완료', false);
+        var savedId = (json && json.data && json.data.id != null) ? String(json.data.id) : '';
         if (json && json.data && json.data.id != null) {
-          selectedDocIdByTab[tabId] = String(json.data.id);
+          selectedDocIdByTab[tabId] = savedId;
           await loadDocumentList(tabId, selectedDocIdByTab[tabId]);
         } else {
           await loadDocumentList(tabId, selectedDocIdByTab[tabId] || '');
@@ -5436,7 +5445,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         setUpdatedAt(tabId, stamp);
         var tabName = TAB_NAMES[tabId] || tabId;
-        showPlanToast('[' + tabName + '] 새 저장문서를 만들었습니다.', false);
+        showPlanToast('[' + tabName + ']' + (opts.forceNew ? ' 새 문서로 저장했습니다.' : ' 새 저장문서를 만들었습니다.'), false);
       } catch (e) {
         console.error(e);
         setStatus(tabId, '저장 실패', true);
@@ -5456,7 +5465,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       setStatus(tabId, '새 문서 작성 중', false);
     }
 
-    async function updateDocument(tabId) {
+    async function updateDocument(tabId, opts) {
+      opts = opts || {};
       if (blockIfMinutesAdminOnly(tabId)) return;
       if (!selectedCourseId) {
         alert('먼저 과정을 선택해 주세요.');
@@ -5464,11 +5474,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       var docId = String(selectedDocIdByTab[tabId] || '').trim();
       if (!docId) {
+        if (opts.fromSave) {
+          await saveDocument(tabId, { forceNew: true });
+          return;
+        }
         alert('수정할 저장문서를 먼저 선택해 주세요.');
         return;
       }
       const form = getDocForm(tabId);
-      setStatus(tabId, '수정 저장 중...', false);
+      setStatus(tabId, opts.fromSave ? '저장 중...' : '수정 저장 중...', false);
       try {
         const res = await authFetch('/api/ncs/plan-documents/' + encodeURIComponent(docId), {
           method: 'PUT',
@@ -5487,18 +5501,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
         const json = await res.json();
         if (!json?.success) throw new Error(json?.error || 'update failed');
-        setStatus(tabId, '수정 저장 완료', false);
+        setStatus(tabId, opts.fromSave ? '저장 완료' : '수정 저장 완료', false);
         await loadDocumentList(tabId, docId);
         const now = new Date();
         const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         setUpdatedAt(tabId, stamp);
         var tabName = TAB_NAMES[tabId] || tabId;
-        showPlanToast('[' + tabName + '] 선택 문서를 수정 저장했습니다.', false);
+        showPlanToast('[' + tabName + ']' + (opts.fromSave ? ' 현재 문서를 저장했습니다.' : ' 선택 문서를 수정 저장했습니다.'), false);
       } catch (e) {
         console.error(e);
-        setStatus(tabId, '수정 저장 실패', true);
+        setStatus(tabId, opts.fromSave ? '저장 실패' : '수정 저장 실패', true);
         var errMsg = (e && e.message) ? String(e.message) : '알 수 없는 오류';
-        alert('문서 수정에 실패했습니다.\\n' + errMsg);
+        alert((opts.fromSave ? '문서 저장에 실패했습니다.\\n' : '문서 수정에 실패했습니다.\\n') + errMsg);
       }
     }
 
@@ -5756,12 +5770,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           await startNewDocument(tabId);
         });
       });
-      document.querySelectorAll('[data-plan-update-btn]').forEach(function(btn) {
+      document.querySelectorAll('[data-plan-save-as-new-btn]').forEach(function(btn) {
         btn.addEventListener('click', async function() {
-          const tabId = btn.getAttribute('data-plan-update-btn');
+          const tabId = btn.getAttribute('data-plan-save-as-new-btn');
           if (!tabId) return;
           closePlanMoreMenu(tabId);
-          await updateDocument(tabId);
+          await saveDocument(tabId, { forceNew: true });
         });
       });
       document.querySelectorAll('[data-plan-delete-btn]').forEach(function(btn) {
