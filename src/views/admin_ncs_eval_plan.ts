@@ -498,8 +498,14 @@ const NCS_PLAN_PRINT_STYLES = `
   color: #94a3b8;
 }
 #questionInputText:empty::before {
-  content: "문항 내용을 입력하세요.";
+  content: "문항 본문을 입력하세요.";
   color: #94a3b8;
+}
+#questionInputImagePane:empty::before {
+  content: "상단 「이미지 삽입」으로 이 영역에 자료 이미지를 넣을 수 있습니다.";
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.45;
 }
 #tools_notes:empty::before {
   content: "비고를 입력하세요.";
@@ -1001,13 +1007,13 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <button type="button" id="questionsImageDeleteBtn" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition"><i class="fas fa-trash mr-1"></i>이미지 삭제</button>
                       <button type="button" id="questionsFileAttachBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-black text-slate-700 hover:bg-slate-100 transition"><i class="fas fa-paperclip mr-1"></i>파일첨부</button>
                     </div>
-                    <div class="text-[11px] text-slate-500">문항 작성란에서 이미지 즉시표시/리사이즈/삭제를 지원합니다.</div>
+                    <div class="text-[11px] text-slate-500">왼쪽은 <strong class="text-slate-700">참고 이미지</strong>, 오른쪽은 <strong class="text-slate-700">문항 본문</strong>입니다. 이미지는 왼쪽에만 삽입됩니다(선택 후 삭제 버튼).</div>
                   </div>
 
                   <div class="p-4 bg-white overflow-x-auto">
                     <table class="w-full min-w-[980px] border border-black text-xs">
                       <tr>
-                        <td class="border border-black text-center font-black text-3xl py-6" colspan="8">평가 문항제작</td>
+                        <td class="border border-black text-center font-black text-3xl py-6" colspan="8">평가 문항 제작</td>
                       </tr>
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold w-20">과정명</td>
@@ -1063,7 +1069,16 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <input id="questionInputKeyword" class="px-2 py-1 border border-slate-200 rounded bg-white md:col-span-2" placeholder="평가기준/키워드" />
                             <button type="button" id="questionAddRowBtn" class="px-2 py-1 rounded bg-sky-600 text-white font-black hover:bg-sky-700 transition md:col-span-1">문항 추가</button>
                           </div>
-                          <div id="questionInputText" contenteditable="true" class="w-full min-h-[120px] px-3 py-2 border border-slate-200 rounded bg-white whitespace-pre-wrap leading-relaxed"></div>
+                          <div id="questionInputComposer" class="flex flex-col lg:flex-row gap-0 border border-slate-200 rounded-lg overflow-hidden bg-white min-h-[140px]">
+                            <div class="lg:w-[min(42%,300px)] lg:max-w-[min(42%,300px)] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-slate-50/50 flex flex-col">
+                              <div class="text-[10px] font-black text-slate-500 uppercase tracking-wider px-2 py-1 border-b border-slate-100 bg-slate-100/80">참고 이미지</div>
+                              <div id="questionInputImagePane" contenteditable="true" class="flex-1 min-h-[100px] max-h-[min(48vh,400px)] overflow-y-auto px-2 py-2 outline-none text-sm leading-relaxed focus:bg-white focus:ring-inset focus:ring-2 focus:ring-sky-200/80 whitespace-pre-wrap"></div>
+                            </div>
+                            <div class="flex-1 min-w-0 flex flex-col min-h-[120px]">
+                              <div class="text-[10px] font-black text-slate-500 uppercase tracking-wider px-2 py-1 border-b border-slate-100 bg-white">문항 본문</div>
+                              <div id="questionInputText" contenteditable="true" class="flex-1 min-h-[120px] px-3 py-2 outline-none whitespace-pre-wrap leading-relaxed focus:bg-slate-50/50"></div>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                       <tr>
@@ -1900,26 +1915,71 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       return questionMarkdownToEditorHtml(text);
     }
 
+    var NCS_Q_BUNDLE_START = '<!--qimg-->';
+    var NCS_Q_BUNDLE_MID = '<!--/qimg--><!--qbody-->';
+    var NCS_Q_BUNDLE_END = '<!--/qbody-->';
+
+    function packQuestionComposerHtml(imgHtml, bodyHtml) {
+      var i = String(imgHtml || '').trim();
+      var b = String(bodyHtml || '').trim();
+      if (!i && !b) return '';
+      return NCS_Q_BUNDLE_START + i + NCS_Q_BUNDLE_MID + b + NCS_Q_BUNDLE_END;
+    }
+
+    function unpackQuestionComposerHtml(raw) {
+      var text = String(raw || '');
+      var i = '';
+      var b = '';
+      if (text.indexOf(NCS_Q_BUNDLE_START) === 0 && text.indexOf(NCS_Q_BUNDLE_END) > 0) {
+        var mid = text.indexOf(NCS_Q_BUNDLE_MID);
+        if (mid > 0) {
+          i = text.slice(NCS_Q_BUNDLE_START.length, mid);
+          b = text.slice(mid + NCS_Q_BUNDLE_MID.length, text.length - NCS_Q_BUNDLE_END.length);
+          return { imageHtml: i, bodyHtml: b };
+        }
+      }
+      b = text;
+      return { imageHtml: '', bodyHtml: b };
+    }
+
     function getQuestionInputValue() {
-      var el = document.getElementById('questionInputText');
-      if (!el) return '';
-      if (el.isContentEditable) return String(el.innerHTML || '');
-      return String(el.value || '');
+      var imgEl = document.getElementById('questionInputImagePane');
+      var txtEl = document.getElementById('questionInputText');
+      var imgHtml = imgEl && imgEl.isContentEditable ? String(imgEl.innerHTML || '').trim() : '';
+      var bodyHtml = txtEl && txtEl.isContentEditable ? String(txtEl.innerHTML || '').trim() : '';
+      if (!imgEl || !txtEl) {
+        var el = txtEl || imgEl;
+        if (!el) return '';
+        if (el.isContentEditable) return String(el.innerHTML || '');
+        return String(el.value || '');
+      }
+      return packQuestionComposerHtml(imgHtml, bodyHtml);
     }
 
     function setQuestionInputValue(value) {
-      var el = document.getElementById('questionInputText');
-      if (!el) return;
+      var imgEl = document.getElementById('questionInputImagePane');
+      var txtEl = document.getElementById('questionInputText');
       var next = value != null ? String(value) : '';
-      if (el.isContentEditable) {
-        el.innerHTML = normalizeQuestionContentForEditor(next);
-      } else {
-        el.value = next;
-      }
+      var parts = unpackQuestionComposerHtml(next);
+      var bodyNorm = normalizeQuestionContentForEditor(parts.bodyHtml);
+      var imgNorm = parts.imageHtml || '';
+      if (imgEl && imgEl.isContentEditable) imgEl.innerHTML = imgNorm;
+      if (txtEl && txtEl.isContentEditable) txtEl.innerHTML = bodyNorm;
+      else if (txtEl) txtEl.value = bodyNorm;
     }
 
     function questionInputHasContent() {
-      var el = document.getElementById('questionInputText');
+      var imgEl = document.getElementById('questionInputImagePane');
+      var txtEl = document.getElementById('questionInputText');
+      if (imgEl && txtEl) {
+        var imgPlain = String(imgEl.textContent || '').trim();
+        var bodyPlain = String(txtEl.textContent || '').trim();
+        if (imgPlain || bodyPlain) return true;
+        if (imgEl.querySelector('img') || imgEl.querySelector('.minutes-image-resizable')) return true;
+        if (txtEl.querySelector('img') || txtEl.querySelector('.minutes-image-resizable')) return true;
+        return false;
+      }
+      var el = txtEl || imgEl;
       if (!el) return false;
       var plain = String(el.textContent || '').trim();
       if (plain) return true;
@@ -1954,6 +2014,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function questionContentToDisplayHtml(raw) {
       var text = String(raw || '');
       if (!text.trim()) return '-';
+      if (text.indexOf('<!--qimg-->') === 0) return text;
       if (/<[a-z][\\s\\S]*>/i.test(text)) return text;
       if (/!\[[^\]]*\]\([^)]+\)/.test(text)) return questionMarkdownToEditorHtml(text);
       return '<div class="whitespace-pre-wrap">' + escapeHtml(text) + '</div>';
@@ -5380,7 +5441,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         // 탭별 입력 영역으로 스크롤
         var focusEl = null;
         if (tabId === 'schedule') focusEl = document.getElementById('scheduleInputDate') || document.getElementById('scheduleSubjectSelect');
-        else if (tabId === 'questions') focusEl = document.getElementById('questionInputText') || document.getElementById('questionsSubjectSelect');
+        else if (tabId === 'questions') focusEl = document.getElementById('questionInputText') || document.getElementById('questionInputImagePane') || document.getElementById('questionsSubjectSelect');
         else if (tabId === 'tools') focusEl = document.getElementById('tools_notes') || document.getElementById('toolsSubjectSelect');
         else if (tabId === 'rubric') focusEl = document.getElementById('rubric_subject_name');
         else if (tabId === 'achievement') focusEl = document.getElementById('achievement_subject_name');
@@ -6248,7 +6309,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var questionsImageDeleteBtn = document.getElementById('questionsImageDeleteBtn');
       var questionsImageInsertInput = document.getElementById('questionsImageInsertInput');
       if (questionsImageInsertBtn && questionsImageInsertInput) {
-        questionsImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('questionInputText', 'questions'); });
+        questionsImageInsertBtn.addEventListener('click', function() { openNcsPlanImageInsertModal('questionInputImagePane', 'questions'); });
       }
       var selectedQuestionImageBox = null;
       function clearSelectedQuestionImage() {
@@ -6259,7 +6320,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (!selectedQuestionImageBox) return;
         selectedQuestionImageBox.remove();
         selectedQuestionImageBox = null;
-        var editor = document.getElementById('questionInputText');
+        var editor = document.getElementById('questionInputImagePane') || document.getElementById('questionInputText');
         if (editor) editor.focus();
       }
       if (questionsImageDeleteBtn) {
@@ -6271,9 +6332,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           removeSelectedQuestionImage();
         });
       }
-      var questionInputEditor = document.getElementById('questionInputText');
-      if (questionInputEditor) {
-        questionInputEditor.addEventListener('click', function(ev) {
+      var questionInputComposer = document.getElementById('questionInputComposer');
+      if (questionInputComposer) {
+        questionInputComposer.addEventListener('click', function(ev) {
           var target = ev.target;
           var box = target && target.closest ? target.closest('.minutes-image-resizable') : null;
           if (box) {
@@ -6284,7 +6345,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           }
           clearSelectedQuestionImage();
         });
-        questionInputEditor.addEventListener('keydown', function(ev) {
+        questionInputComposer.addEventListener('keydown', function(ev) {
           var key = String(ev.key || '').toLowerCase();
           if (!selectedQuestionImageBox) return;
           if (key === 'delete' || key === 'backspace') {
@@ -6296,7 +6357,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       document.addEventListener('click', function(ev) {
         var target = ev.target;
         if (!selectedQuestionImageBox) return;
-        if (target && target.closest && (target.closest('#questionInputText') || target.closest('#questionsImageDeleteBtn'))) return;
+        if (target && target.closest && (target.closest('#questionInputComposer') || target.closest('#questionsImageDeleteBtn'))) return;
         clearSelectedQuestionImage();
       });
 
@@ -6330,7 +6391,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             ? await uploadMinutesFile(f, true)
             : await uploadNcsEvalPlanFile(f, true, folder);
           if (data && data.url) {
-            var targetId = lastFocusedEditableId || imageInsertContext.targetId || '';
+            var targetId = folder === 'questions'
+              ? 'questionInputImagePane'
+              : (lastFocusedEditableId || imageInsertContext.targetId || '');
             var targetEl = targetId ? document.getElementById(targetId) : null;
             if (!insertImageIntoEditable(targetEl, data.url)) {
               var fallbackEl = document.getElementById(imageInsertContext.targetId || '');
