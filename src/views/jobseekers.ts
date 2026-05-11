@@ -8,31 +8,9 @@ export const jobseekersListHtml = `
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>인재풀 - 와우쓰리디홍대센터</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: {
-                50: '#f0f7ff',
-                100: '#e0effe',
-                200: '#baddfd',
-                300: '#7dbcfb',
-                400: '#3a9bf7',
-                500: '#5b9bd5',
-                600: '#4a90e2',
-                700: '#2d5fa3',
-                800: '#1e4278',
-                900: '#132d54'
-              }
-            }
-          }
-        }
-      }
-    </script>
-</head>
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
 <body class="bg-gray-50">
     <!-- 네비게이션 -->
     ${navigationHtml('jobseekers')}

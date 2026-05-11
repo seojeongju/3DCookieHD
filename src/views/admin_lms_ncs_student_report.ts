@@ -4,8 +4,8 @@ export const adminLmsNcsStudentReportHtml = `
 <head>
     <meta charset="UTF-8">
     <title>NCS 능력단위 평가 결과 통지서</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; }
         @media print {

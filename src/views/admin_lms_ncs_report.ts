@@ -4,8 +4,8 @@ export const adminLmsNcsReportHtml = `
 <head>
     <meta charset="UTF-8">
     <title>NCS 능력단위 평가 결과 집계표</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<style>
         @media print {
             .no-print { display: none; }
             body { padding: 0; background: white; }

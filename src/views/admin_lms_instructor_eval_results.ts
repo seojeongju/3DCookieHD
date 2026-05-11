@@ -18,8 +18,8 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>교강사직무능력평가 결과 - 와우쓰리디</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         .custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
         .tab-btn{ padding:0.75rem 1.5rem; font-weight:700; border-radius:1rem; transition:all 0.2s; }

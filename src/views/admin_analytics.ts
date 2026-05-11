@@ -11,21 +11,10 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>사이트 접속정보 - 교육행정 시스템</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: { 50: '#f0f7ff', 100: '#e0effe', 500: '#5b9bd5', 600: '#4a90e2' }
-            }
-          }
-        }
-      }
-    </script>
-</head>
+    </head>
 <body class="bg-gray-50 font-sans">
     <div class="flex h-screen overflow-hidden">
         ${sidebar}

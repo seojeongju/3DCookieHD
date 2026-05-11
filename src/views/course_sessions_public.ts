@@ -12,20 +12,9 @@ export const courseSessionsListHtml = `
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>교육 과정 안내 - 와우쓰리디홍대센터</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: { 50: '#f0f7ff', 100: '#e0effe', 500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3' }
-            }
-          }
-        }
-      }
-    </script>
-</head>
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
 <body class="bg-gray-50">
     ` + _navigationHtml('course-sessions') + `
 
@@ -191,21 +180,9 @@ export function courseSessionDetailHtml(id: string, source: 'session' | 'general
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>과정 상세 - 와우쓰리디홍대센터</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@100..900&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: { sans: ['Pretendard', 'sans-serif'] },
-            colors: {
-              primary: { 50: '#f0f7ff', 100: '#e0effe', 500: '#5b9bd5', 600: '#4a90e2', 700: '#2d5fa3' }
-            }
-          }
-        }
-      }
-    </script>
     <style>
         .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); }
         .info-grid-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #f0f7ff; color: #4a90e2; }

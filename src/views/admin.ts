@@ -7,21 +7,11 @@ export const adminDashboardHtml = `
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 대시보드 - 와우쓰리디홍대센터</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: { sans: ['Inter', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif'] },
-            borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
-          }
-        }
-      }
-    </script>
     <style>
         .fc-event { cursor: pointer; border-radius: 4px; border: none; font-size: 0.8em; }
         .fc-header-toolbar { margin-bottom: 0.5rem !important; }
@@ -47,28 +37,6 @@ export const adminDashboardHtml = `
         .fc-event-consultation-hrd { background-color: #e11d48 !important; border-color: #be123c !important; color: white !important; }
         .fc-event-schedule { background-color: #a855f7 !important; border-color: #9333ea !important; color: white !important; }
     </style>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: {
-                50: '#f0f7ff',
-                100: '#e0effe',
-                200: '#baddfd',
-                300: '#7dbcfb',
-                400: '#3a9bf7',
-                500: '#5b9bd5',
-                600: '#4a90e2',
-                700: '#2d5fa3',
-                800: '#1e4278',
-                900: '#132d54'
-              }
-            }
-          }
-        }
-      }
-    </script>
     <style>
         .sidebar-menu-item.active {
             background-color: #eff6ff;

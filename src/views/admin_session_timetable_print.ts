@@ -12,8 +12,8 @@ export function adminSessionTimetablePrintHtml(sessionId: number): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>훈련세부시간표 출력</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<style>
         @page { size: A4 landscape; margin: 10mm; }
         body { font-family: 'Malgun Gothic', 'Pretendard', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         @media print {

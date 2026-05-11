@@ -651,8 +651,8 @@ app.get('/terms', (c) => {
                     <meta charset="UTF-8">
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
                             <title>이용약관 - 와우쓰리디홍대센터</title>
-                            <script src="https://cdn.tailwindcss.com"></script>
-                            <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                            <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
                             </head>
                             <body class="bg-gray-50">
                                 ${navigationHtml('')}
@@ -743,8 +743,8 @@ app.get('/privacy', (c) => {
                                 <meta charset="UTF-8">
                                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                         <title>개인정보보호정책 - 와우쓰리디홍대센터</title>
-                                        <script src="https://cdn.tailwindcss.com"></script>
-                                        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                        <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
                                         </head>
                                         <body class="bg-gray-50">
                                             ${navigationHtml('')}
@@ -858,8 +858,8 @@ app.get('/partnership', (c) => {
                                             <meta charset="UTF-8">
                                                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                     <title>제휴제안 - 와우쓰리디홍대센터</title>
-                                                    <script src="https://cdn.tailwindcss.com"></script>
-                                                    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
                                                     </head>
                                                     <body class="bg-gray-50">
                                                         ${navigationHtml('')}
@@ -982,8 +982,8 @@ app.get('/sitemap', (c) => {
                                                         <meta charset="UTF-8">
                                                             <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                 <title>사이트맵 - 와우쓰리디홍대센터</title>
-                                                                <script src="https://cdn.tailwindcss.com"></script>
-                                                                <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
                                                                 </head>
                                                                 <body class="bg-gray-50">
                                                                     ${navigationHtml('')}
@@ -1122,31 +1122,9 @@ app.get('/student-admin', (c) => {
                                                                     <meta charset="UTF-8">
                                                                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                             <title>학생학사행정시스템 - 와우쓰리디홍대센터</title>
-                                                                            <script src="https://cdn.tailwindcss.com"></script>
-                                                                            <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                                                                                <script>
-                                                                                    tailwind.config = {
-                                                                                        theme: {
-                                                                                        extend: {
-                                                                                        colors: {
-                                                                                        primary: {
-                                                                                        50: '#f0f7ff',
-                                                                                    100: '#e0effe',
-                                                                                    200: '#baddfd',
-                                                                                    300: '#7dbcfb',
-                                                                                    400: '#3a9bf7',
-                                                                                    500: '#5b9bd5',
-                                                                                    600: '#4a90e2',
-                                                                                    700: '#2d5fa3',
-                                                                                    800: '#1e4278',
-                                                                                    900: '#132d54'
-                  }
-                }
-              }
-            }
-          }
-                                                                                </script>
-                                                                            </head>
+                                                                            <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                                </head>
                                                                             <body class="bg-gray-50">
                                                                                 ${navigationHtml('')}
 
@@ -1305,31 +1283,9 @@ app.get('/teacher-admin', (c) => {
                                                                                 <meta charset="UTF-8">
                                                                                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                                         <title>강사학사행정시스템 - 와우쓰리디홍대센터</title>
-                                                                                        <script src="https://cdn.tailwindcss.com"></script>
-                                                                                        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                                                                                            <script>
-                                                                                                tailwind.config = {
-                                                                                                    theme: {
-                                                                                                    extend: {
-                                                                                                    colors: {
-                                                                                                    primary: {
-                                                                                                    50: '#f0f7ff',
-                                                                                                100: '#e0effe',
-                                                                                                200: '#baddfd',
-                                                                                                300: '#7dbcfb',
-                                                                                                400: '#3a9bf7',
-                                                                                                500: '#5b9bd5',
-                                                                                                600: '#4a90e2',
-                                                                                                700: '#2d5fa3',
-                                                                                                800: '#1e4278',
-                                                                                                900: '#132d54'
-                  }
-                }
-              }
-            }
-          }
-                                                                                            </script>
-                                                                                        </head>
+                                                                                        <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                                            </head>
                                                                                         <body class="bg-gray-50">
                                                                                             ${navigationHtml('')}
 
@@ -1599,31 +1555,9 @@ app.get('/greeting', (c) => {
                                                                                             <meta charset="UTF-8">
                                                                                                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                                                     <title>인사말 - 와우쓰리디홍대센터</title>
-                                                                                                    <script src="https://cdn.tailwindcss.com"></script>
-                                                                                                    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                                                                                                        <script>
-                                                                                                            tailwind.config = {
-                                                                                                                theme: {
-                                                                                                                extend: {
-                                                                                                                colors: {
-                                                                                                                primary: {
-                                                                                                                50: '#f0f7ff',
-                                                                                                            100: '#e0effe',
-                                                                                                            200: '#baddfd',
-                                                                                                            300: '#7dbcfb',
-                                                                                                            400: '#3a9bf7',
-                                                                                                            500: '#5b9bd5',
-                                                                                                            600: '#4a90e2',
-                                                                                                            700: '#2d5fa3',
-                                                                                                            800: '#1e4278',
-                                                                                                            900: '#132d54'
-                  }
-                }
-              }
-            }
-          }
-                                                                                                        </script>
-                                                                                                    </head>
+                                                                                                    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                                                        </head>
                                                                                                     <body class="bg-gray-50">
                                                                                                         ${navigationHtml('greeting')}
 
@@ -1811,31 +1745,9 @@ app.get('/facilities', (c) => {
                                                                                                                     <meta charset="UTF-8">
                                                                                                                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                                                                             <title>시설현황 - 와우쓰리디홍대센터</title>
-                                                                                                                            <script src="https://cdn.tailwindcss.com"></script>
-                                                                                                                            <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                                                                                                                                <script>
-                                                                                                                                    tailwind.config = {
-                                                                                                                                        theme: {
-                                                                                                                                        extend: {
-                                                                                                                                        colors: {
-                                                                                                                                        primary: {
-                                                                                                                                        50: '#f0f7ff',
-                                                                                                                                    100: '#e0effe',
-                                                                                                                                    200: '#baddfd',
-                                                                                                                                    300: '#7dbcfb',
-                                                                                                                                    400: '#3a9bf7',
-                                                                                                                                    500: '#5b9bd5',
-                                                                                                                                    600: '#4a90e2',
-                                                                                                                                    700: '#2d5fa3',
-                                                                                                                                    800: '#1e4278',
-                                                                                                                                    900: '#132d54'
-                  }
-                }
-              }
-            }
-          }
-                                                                                                                                </script>
-                                                                                                                            </head>
+                                                                                                                            <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                                                                                </head>
                                                                                                                             <body class="bg-gray-50">
                                                                                                                                 ${navigationHtml('facilities')}
 
@@ -2210,31 +2122,9 @@ app.get('/locations', (c) => {
                                                                                                                                 <meta charset="UTF-8">
                                                                                                                                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                                                                                         <title>지점안내 - 와우쓰리디홍대센터</title>
-                                                                                                                                        <script src="https://cdn.tailwindcss.com"></script>
-                                                                                                                                        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                                                                                                                                            <script>
-                                                                                                                                                tailwind.config = {
-                                                                                                                                                    theme: {
-                                                                                                                                                    extend: {
-                                                                                                                                                    colors: {
-                                                                                                                                                    primary: {
-                                                                                                                                                    50: '#f0f7ff',
-                                                                                                                                                100: '#e0effe',
-                                                                                                                                                200: '#baddfd',
-                                                                                                                                                300: '#7dbcfb',
-                                                                                                                                                400: '#3a9bf7',
-                                                                                                                                                500: '#5b9bd5',
-                                                                                                                                                600: '#4a90e2',
-                                                                                                                                                700: '#2d5fa3',
-                                                                                                                                                800: '#1e4278',
-                                                                                                                                                900: '#132d54'
-                  }
-                }
-              }
-            }
-          }
-                                                                                                                                            </script>
-                                                                                                                                        </head>
+                                                                                                                                        <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                                                                                            </head>
                                                                                                                                         <body class="bg-gray-50">
                                                                                                                                             ${navigationHtml('locations')}
 
@@ -2687,31 +2577,9 @@ app.get('/online-consulting', (c) => {
                                                                                                                                             <meta charset="UTF-8">
                                                                                                                                                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                                                                                                     <title>온라인상담신청 - 와우쓰리디홍대센터</title>
-                                                                                                                                                    <script src="https://cdn.tailwindcss.com"></script>
-                                                                                                                                                    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                                                                                                                                                        <script>
-                                                                                                                                                            tailwind.config = {
-                                                                                                                                                                theme: {
-                                                                                                                                                                extend: {
-                                                                                                                                                                colors: {
-                                                                                                                                                                primary: {
-                                                                                                                                                                50: '#f0f7ff',
-                                                                                                                                                            100: '#e0effe',
-                                                                                                                                                            200: '#baddfd',
-                                                                                                                                                            300: '#7dbcfb',
-                                                                                                                                                            400: '#3a9bf7',
-                                                                                                                                                            500: '#5b9bd5',
-                                                                                                                                                            600: '#4a90e2',
-                                                                                                                                                            700: '#2d5fa3',
-                                                                                                                                                            800: '#1e4278',
-                                                                                                                                                            900: '#132d54'
-                  }
-                }
-              }
-            }
-          }
-                                                                                                                                                        </script>
-                                                                                                                                                    </head>
+                                                                                                                                                    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                                                                                                        </head>
                                                                                                                                                     <body class="bg-gray-50">
                                                                                                                                                         ${navigationHtml('consulting')}
 
@@ -2892,31 +2760,9 @@ app.get('/corporate-education', (c) => {
                                                                                                                                                         <meta charset="UTF-8">
                                                                                                                                                             <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                                                                                                                 <title>기업단체교육 - 와우쓰리디홍대센터</title>
-                                                                                                                                                                <script src="https://cdn.tailwindcss.com"></script>
-                                                                                                                                                                <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                                                                                                                                                                    <script>
-                                                                                                                                                                        tailwind.config = {
-                                                                                                                                                                            theme: {
-                                                                                                                                                                            extend: {
-                                                                                                                                                                            colors: {
-                                                                                                                                                                            primary: {
-                                                                                                                                                                            50: '#f0f7ff',
-                                                                                                                                                                        100: '#e0effe',
-                                                                                                                                                                        200: '#baddfd',
-                                                                                                                                                                        300: '#7dbcfb',
-                                                                                                                                                                        400: '#3a9bf7',
-                                                                                                                                                                        500: '#5b9bd5',
-                                                                                                                                                                        600: '#4a90e2',
-                                                                                                                                                                        700: '#2d5fa3',
-                                                                                                                                                                        800: '#1e4278',
-                                                                                                                                                                        900: '#132d54'
-                  }
-                }
-              }
-            }
-          }
-                                                                                                                                                                    </script>
-                                                                                                                                                                </head>
+                                                                                                                                                                <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                                                                                                                    </head>
                                                                                                                                                                 <body class="bg-gray-50">
                                                                                                                                                                     ${navigationHtml('courses')}
 
@@ -3113,31 +2959,9 @@ app.get('/university-education', (c) => {
                                                                                                                                                                     <meta charset="UTF-8">
                                                                                                                                                                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                                                                                                                                                             <title>대학맞춤교육 - 와우쓰리디홍대센터</title>
-                                                                                                                                                                            <script src="https://cdn.tailwindcss.com"></script>
-                                                                                                                                                                            <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-                                                                                                                                                                                <script>
-                                                                                                                                                                                    tailwind.config = {
-                                                                                                                                                                                        theme: {
-                                                                                                                                                                                        extend: {
-                                                                                                                                                                                        colors: {
-                                                                                                                                                                                        primary: {
-                                                                                                                                                                                        50: '#f0f7ff',
-                                                                                                                                                                                    100: '#e0effe',
-                                                                                                                                                                                    200: '#baddfd',
-                                                                                                                                                                                    300: '#7dbcfb',
-                                                                                                                                                                                    400: '#3a9bf7',
-                                                                                                                                                                                    500: '#5b9bd5',
-                                                                                                                                                                                    600: '#4a90e2',
-                                                                                                                                                                                    700: '#2d5fa3',
-                                                                                                                                                                                    800: '#1e4278',
-                                                                                                                                                                                    900: '#132d54'
-                  }
-                }
-              }
-            }
-          }
-                                                                                                                                                                                </script>
-                                                                                                                                                                            </head>
+                                                                                                                                                                            <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+                                                                                                                                                                                </head>
                                                                                                                                                                             <body class="bg-gray-50">
                                                                                                                                                                                 ${navigationHtml('courses')}
 

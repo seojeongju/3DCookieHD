@@ -9,39 +9,9 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>나의 강의 관리 - 강사 대시보드</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              outfit: ['Outfit', 'sans-serif'],
-            },
-            colors: {
-              brand: {
-                50: '#f5f7ff', 100: '#ebf0fe', 200: '#dce5fe', 300: '#c2d1fd', 400: '#9db4fb',
-                500: '#758ef8', 600: '#4f69f2', 700: '#3e52e0', 800: '#3543b5', 900: '#2f3b90',
-              },
-              neutral: {
-                50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8',
-                500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a',
-              }
-            },
-            borderRadius: {
-              '4xl': '2.5rem',
-              '5xl': '3rem',
-            },
-            boxShadow: {
-              'premium': '0 20px 50px -12px rgba(0, 0, 0, 0.05)',
-              'premium-hover': '0 30px 60px -12px rgba(79, 105, 242, 0.15)',
-            }
-          }
-        }
-      }
-    </script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .font-outfit { font-family: 'Outfit', sans-serif; }

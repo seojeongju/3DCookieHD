@@ -5,8 +5,8 @@ export const adminHrdAttendancePrintHtml = `
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>월간 출석부 출력</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
+    <link rel="stylesheet" href="/static/tailwind-app.css">
+<style>
         @media print {
             body { -webkit-print-color-adjust: exact; }
             .no-print { display: none !important; }
