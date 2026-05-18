@@ -265,7 +265,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                 return 'bg-gray-50 text-gray-600 ring-gray-100';
             }
             tbody.innerHTML = pageData.map(c => \`
-                <tr class="hover:bg-primary-50/30 transition-all duration-300 group cursor-pointer" onclick="location.href='/admin/courses/\${c.id}/lms/attendance?type=\${c.type}'">
+                <tr class="hover:bg-primary-50/30 transition-all duration-300 group cursor-pointer" onclick="location.href='/admin/courses/\${c.id}/lms/attendance?type=\${c.type}&session_id=\${c.id}'">
                     <td class="px-8 py-7 min-w-0 max-w-[320px] break-words align-top">
                         <div class="flex flex-col">
                             <div class="font-black text-gray-900 group-hover:text-primary-600 transition-colors text-sm lg:text-base mb-1.5 break-words">\${c.title}</div>
@@ -312,7 +312,7 @@ export const adminHrdAttendanceHtml = (sidebar = hrdSidebar('attendance')) => `
                         </div>
                     </td>
                     <td class="px-8 py-7 text-right whitespace-nowrap align-top">
-                        <a href="/admin/courses/\${c.id}/lms/attendance?type=\${c.type}" class="inline-flex items-center px-5 py-2.5 bg-white border-2 border-gray-100 rounded-2xl text-[11px] font-black text-gray-700 hover:border-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm active:scale-95 whitespace-nowrap">
+                        <a href="/admin/courses/\${c.id}/lms/attendance?type=\${c.type}&session_id=\${c.id}" class="inline-flex items-center px-5 py-2.5 bg-white border-2 border-gray-100 rounded-2xl text-[11px] font-black text-gray-700 hover:border-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm active:scale-95 whitespace-nowrap">
                             출결 관리 <i class="fas fa-arrow-right-long ml-2 text-[10px]"></i>
                         </a>
                     </td>

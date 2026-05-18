@@ -296,7 +296,7 @@ courses.get('/:id', async (c) => {
 
         let session: any = null;
 
-        // 대시보드 등에서 /courses/{숫자}/lms?session_id=회차PK 로 넘기면 경로 숫자와 courses.id 충돌과 무관하게 해당 회차만 사용
+        // 대시보드 등에서 /courses/{숫자}/lms?session_id=회차PK 로 넘기면 경로 숫자와 courses.id 충돌 없이 정확한 회차 사용
         const sessionIdQ = c.req.query('session_id');
         const explicitSid =
           sessionIdQ != null && String(sessionIdQ).trim() !== ''
@@ -306,8 +306,13 @@ courses.get('/:id', async (c) => {
           session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(explicitSid).first<any>();
         }
 
-        // LMS URL은 /admin/courses/{id}/lms … 에서 id가 대부분 courses.id(개설 과정 PK)이다.
-        // course_sessions.id·approved_courses.id 와 숫자가 겹치면 s.id = ? 만 조회하면 엉뚱한 회차가 선택된다.
+        // [핵심 수정] type=hrd 진입 시 rawId가 session.id일 가능성이 가장 높으므로 항상 먼저 직접 조회
+        // isRegisteredLmsCourseId 체크를 먼저 하면 courses.id와 session.id가 겹칠 때 엉뚱한 회차가 선택됨
+        if (!session) {
+          session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(rawId).first<any>();
+        }
+
+        // s.id 직접 조회 실패 시 — rawId가 courses.id(LMS 과정)인 경우에만 lms_course_id로 연결된 회차 조회
         const isLmsCourse = !session && (await isRegisteredLmsCourseId(DB, rawId));
         if (!session && isLmsCourse) {
           session = await DB.prepare(
@@ -320,14 +325,7 @@ courses.get('/:id', async (c) => {
             .first<any>();
         }
 
-        // courses 행이 없을 때만 회차 PK로 직접 조회
-        if (!session && !isLmsCourse) {
-          session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(rawId).first<any>();
-        }
-
-        // lms_course_id 미연결 시 제목 LIKE 로 회차를 붙이면 다른 과정 회차가 매칭되어 헤더·수강생·일정이 서로 엇갈림 (수정: 사용 안 함)
-
-        // courses 행이 없을 때만 approved_course_id(승인과정 PK)로 최신 회차
+        // s.id·lms_course_id 모두 실패 시 approved_course_id(승인과정 PK)로 최신 회차 폴백
         if (!session && !isLmsCourse) {
           session = await DB.prepare(
             `${selectSessionJoin}
@@ -339,8 +337,8 @@ courses.get('/:id', async (c) => {
             .first<any>();
         }
 
-        // 레거시: lms_course_id 컬럼만 일치하는 경우(위에서 이미 처리했으나 이중 안전)
-        if (!session && !isLmsCourse) {
+        // 최후 안전망: lms_course_id 레거시 매칭
+        if (!session) {
           session = await DB.prepare(
             `${selectSessionJoin}
             WHERE s.lms_course_id = ?
