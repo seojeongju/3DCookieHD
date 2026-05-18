@@ -96,12 +96,39 @@ export const adminHrdAttendanceTraineePrintHtml = `
             return phone;
         }
 
-        function attendanceSymbol(status, checkInTime) {
+        function formatTime(t) {
+            if (!t) return '';
+            return (''+t).substring(0, 5);
+        }
+
+        function attendanceSymbol(status, checkInTime, checkOutTime) {
             if (status === 'present') return '<span class="status-o">○</span>';
             if (status === 'absent') return '<span class="status-x">X</span>';
-            if (status === 'absent_under_50') return '<span class="status-under50">◐</span>';
-            if (status === 'late') return '<span class="status-late">지각' + (checkInTime ? '(' + (checkInTime + '').substring(0, 5) + ')' : '') + '</span>';
-            if (status === 'early_leave') return '<span class="status-late">조퇴</span>';
+            if (status === 'absent_under_50') {
+                // 50%미만결석: 입실/퇴실시간이 있으면 함께 표시
+                const inT = formatTime(checkInTime);
+                const outT = formatTime(checkOutTime);
+                const timeStr = inT ? '(' + inT + (outT ? '~' + outT : '') + ')' : '';
+                return '<span class="status-under50">◐' + timeStr + '</span>';
+            }
+            if (status === 'late') {
+                // 지각: 입실시간 표시
+                const inT = formatTime(checkInTime);
+                return '<span class="status-late">지각' + (inT ? '(' + inT + ')' : '') + '</span>';
+            }
+            if (status === 'early_leave') {
+                // 조퇴: 퇴실시간 표시
+                const outT = formatTime(checkOutTime);
+                return '<span class="status-late">조퇴' + (outT ? '(' + outT + ')' : '') + '</span>';
+            }
+            if (status === 'late_and_early') {
+                // 지각+조퇴: 입실/퇴실시간 모두 표시
+                const inT = formatTime(checkInTime);
+                const outT = formatTime(checkOutTime);
+                let timeStr = '';
+                if (inT || outT) timeStr = '(' + (inT || '-') + '~' + (outT || '-') + ')';
+                return '<span class="status-late">지각+조퇴' + timeStr + '</span>';
+            }
             if (status === 'public_leave') return '공결';
             return '';
         }
@@ -127,7 +154,8 @@ export const adminHrdAttendanceTraineePrintHtml = `
                 const attendanceMap = {};
                 (attendance || []).forEach(a => {
                     const key = a.enrollment_id + '_' + a.date;
-                    attendanceMap[key] = { status: a.status, check_in_time: a.check_in_time };
+                    // check_out_time도 저장하여 조퇴/지각+조퇴 시 퇴실시간을 표시할 수 있도록 함
+                    attendanceMap[key] = { status: a.status, check_in_time: a.check_in_time, check_out_time: a.check_out_time };
                 });
 
                 const theadRow1 = document.getElementById('theadRow1');
@@ -149,7 +177,8 @@ export const adminHrdAttendanceTraineePrintHtml = `
                     trainingDays.forEach(day => {
                         const key = st.enrollment_id + '_' + day.date;
                         const att = attendanceMap[key];
-                        const sym = att ? attendanceSymbol(att.status, att.check_in_time) : '';
+                        // check_out_time도 전달하여 조퇴/지각+조퇴 시간을 표시
+                        const sym = att ? attendanceSymbol(att.status, att.check_in_time, att.check_out_time) : '';
                         dayCells += '<td class="col-day">' + sym + '</td>';
                     });
                     return '<tr>' +

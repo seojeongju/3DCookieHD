@@ -2271,7 +2271,7 @@ app.get('/attendance/monthly', async (c) => {
             students = studentsRes.results || [];
 
             const logsRes = await c.env.DB.prepare(`
-                SELECT al.enrollment_id, al.date, al.status
+                SELECT al.enrollment_id, al.date, al.status, al.check_in_time, al.check_out_time
                 FROM attendance_logs al
                 WHERE al.enrollment_id IN (SELECT id FROM course_session_enrollments WHERE session_id = ?)
                 AND strftime('%Y-%m', al.date) = ?
@@ -2289,7 +2289,7 @@ app.get('/attendance/monthly', async (c) => {
             students = studentsRes.results || [];
 
             const logsRes = await c.env.DB.prepare(`
-                SELECT al.enrollment_id, al.date, al.status
+                SELECT al.enrollment_id, al.date, al.status, al.check_in_time, al.check_out_time
                 FROM attendance_logs al
                 JOIN enrollments e ON al.enrollment_id = e.id
                 WHERE e.course_id = ? AND strftime('%Y-%m', al.date) = ?
@@ -2300,11 +2300,15 @@ app.get('/attendance/monthly', async (c) => {
         // 3. 데이터 병합
         const data = students.map((s: any) => {
             const studentLogs = logs.filter((l: any) => l.enrollment_id === s.enrollment_id);
-            // 날짜별 상태 맵 생성
-            const attendanceMap: Record<number, string> = {};
-            studentLogs.forEach(l => {
+            // 날짜별 상태 + 시간 맵 생성 (지각/조퇴 시간 표시용)
+            const attendanceMap: Record<number, { status: string; checkIn?: string; checkOut?: string }> = {};
+            studentLogs.forEach((l: any) => {
                 const day = parseInt(l.date.split('-')[2]);
-                attendanceMap[day] = l.status;
+                attendanceMap[day] = {
+                    status: l.status,
+                    checkIn: l.check_in_time || '',
+                    checkOut: l.check_out_time || ''
+                };
             });
             return {
                 id: s.id,

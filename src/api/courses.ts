@@ -367,6 +367,8 @@ courses.get('/:id', async (c) => {
           const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
 
           let displayTitle = fullTitle;
+          // HRD 회차의 경우, LMS 과정 타이틀로 덮어쓰지 않고 회차 고유의 이름을 사용합니다.
+          /* 
           const lmsIdForTitle =
             session.lms_course_id != null && String(session.lms_course_id).trim() !== ''
               ? Number(session.lms_course_id)
@@ -378,6 +380,7 @@ courses.get('/:id', async (c) => {
             const t = ctr?.t != null ? String(ctr.t).trim() : '';
             if (t) displayTitle = t;
           }
+          */
 
           const studentCountResult = await DB.prepare(
             'SELECT COUNT(*) as count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'

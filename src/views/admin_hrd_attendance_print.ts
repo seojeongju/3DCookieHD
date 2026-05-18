@@ -20,10 +20,11 @@ export const adminHrdAttendancePrintHtml = `
             font-size: 11px;
             border: 1px solid #e5e7eb;
         }
-        .status-present { color: #166534; font-weight: bold; } /* O */
-        .status-late { color: #d97706; font-weight: bold; } /* L */
-        .status-early_leave { color: #d97706; font-weight: bold; } /* E (same as Late for simplicity or distinct?) */
-        .status-absent { color: #dc2626; font-weight: bold; } /* X */
+        .status-present { color: #166534; font-weight: bold; } /* 입실 */
+        .status-late { color: #d97706; font-weight: bold; font-size: 10px; } /* 지각/조퇴 */
+        .status-early_leave { color: #ea580c; font-weight: bold; font-size: 10px; } /* 조퇴 */
+        .status-absent { color: #dc2626; font-weight: bold; } /* 결석 */
+        .status-under50 { color: #b45309; font-size: 10px; } /* 50%미만 */
     </style>
 </head>
 <body class="bg-gray-100 font-sans p-8">
@@ -181,15 +182,39 @@ export const adminHrdAttendancePrintHtml = `
                 let dayCells = '';
                 let present = 0, late = 0, absent = 0;
 
+                function fmt(t) { return t ? (''+t).substring(0, 5) : ''; }
+
                 for (let i = 1; i <= daysInMonth; i++) {
-                    const status = student.attendance[i];
+                    const entry = student.attendance[i];
+                    // API에서 객체({ status, checkIn, checkOut }) 또는 문자열(레거시) 중 하나
+                    const status = entry ? (typeof entry === 'object' ? entry.status : entry) : null;
+                    const checkIn = entry && typeof entry === 'object' ? fmt(entry.checkIn) : '';
+                    const checkOut = entry && typeof entry === 'object' ? fmt(entry.checkOut) : '';
+
                     let symbol = '';
                     let className = '';
 
-                    if (status === 'present') { symbol = 'O'; className = 'status-present'; present++; }
-                    else if (status === 'late') { symbol = 'L'; className = 'status-late'; late++; }
-                    else if (status === 'early_leave') { symbol = 'E'; className = 'status-early_leave'; late++; }
-                    else if (status === 'absent') { symbol = 'X'; className = 'status-absent'; absent++; }
+                    if (status === 'present') {
+                        symbol = '○'; className = 'status-present'; present++;
+                    } else if (status === 'late') {
+                        // 지각: 입실시간 표시
+                        symbol = '지각' + (checkIn ? '(' + checkIn + ')' : ''); className = 'status-late'; late++;
+                    } else if (status === 'early_leave') {
+                        // 조퇴: 퇴실시간 표시
+                        symbol = '조퇴' + (checkOut ? '(' + checkOut + ')' : ''); className = 'status-early_leave'; late++;
+                    } else if (status === 'late_and_early') {
+                        // 지각+조퇴: 입실/퇴실시간 모두 표시
+                        const timeStr = (checkIn || checkOut) ? '(' + (checkIn || '-') + '~' + (checkOut || '-') + ')' : '';
+                        symbol = '지+조' + timeStr; className = 'status-late'; late++;
+                    } else if (status === 'absent') {
+                        symbol = 'X'; className = 'status-absent'; absent++;
+                    } else if (status === 'absent_under_50') {
+                        // 50%미만: 시간 있으면 표시
+                        const timeStr = (checkIn || checkOut) ? '(' + (checkIn || '') + (checkOut ? '~' + checkOut : '') + ')' : '';
+                        symbol = '◐' + timeStr; className = 'status-under50'; absent++;
+                    } else if (status === 'public_leave') {
+                        symbol = '공'; className = 'status-late';
+                    }
                     
                     // Weekend check? (Optional, but good for visual)
                     const date = new Date(year, month - 1, i);
