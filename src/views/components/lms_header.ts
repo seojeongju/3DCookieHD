@@ -280,29 +280,31 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
                 try {
                     const token = localStorage.getItem('token');
                     const urlParams = new URLSearchParams(window.location.search);
+                    const sidQ = urlParams.get('session_id');
                     let type = urlParams.get('type') || '';
                     if (typeof type !== 'string') type = '';
-                    
-                    // LMS 페이지인 경우 기본적으로 HRD(회차) 모드로 동작
-                    if (!type && window.location.pathname.includes('/lms')) {
-                        type = 'hrd';
-                    }
                     if (type && type.startsWith('hrd')) type = 'hrd';
-                    if (type === 'undefined') type = 'hrd';
+                    if (type === 'undefined') type = '';
+                    if (!type && window.location.pathname.includes('/lms')) type = 'hrd';
 
-                    let apiUrl = '/api/courses/' + courseId;
-                    const apiQs = new URLSearchParams();
-                    if (type) apiQs.set('type', type);
-                    const sidQ = urlParams.get('session_id');
-                    if (sidQ) apiQs.set('session_id', sidQ);
-                    const qStr = apiQs.toString();
-                    if (qStr) apiUrl += '?' + qStr;
+                    // session_id 파라미터가 있으면 HRD 전용 API로 직접 조회 (ID 충돌 완전 우회)
+                    let apiUrl;
+                    if (sidQ && type === 'hrd') {
+                        apiUrl = '/api/hrd/sessions/' + encodeURIComponent(sidQ);
+                    } else {
+                        apiUrl = '/api/courses/' + courseId;
+                        const apiQs = new URLSearchParams();
+                        if (type) apiQs.set('type', type);
+                        if (sidQ) apiQs.set('session_id', sidQ);
+                        const qStr = apiQs.toString();
+                        if (qStr) apiUrl += '?' + qStr;
+                    }
 
                     let response = await fetch(apiUrl, {
                         headers: { 'Authorization': 'Bearer ' + token }
                     });
-                    
-                    // 404인 경우 HRD 회차일 수 있으므로 type=hrd로 재시도
+
+                    // 404인 경우 기존 /api/courses/ 방식으로 폴백
                     if (response.status === 404) {
                         apiUrl = '/api/courses/' + courseId + '?type=hrd' + (sidQ ? '&session_id=' + encodeURIComponent(sidQ) : '');
                         response = await fetch(apiUrl, {

@@ -1733,6 +1733,58 @@ app.get('/facilities/:id/items', async (c) => {
 // 출석 관리 API
 // ============================================
 
+// HRD 회차 단건 조회 — LMS 헤더 전용 (session.id로 정확히 한 회차만 반환)
+app.get('/sessions/:id', async (c) => {
+    try {
+        const sid = parseInt(c.req.param('id'), 10);
+        if (isNaN(sid) || sid < 1) return c.json({ success: false, error: '잘못된 회차 ID입니다.' }, 400);
+
+        const DB = c.env.DB;
+        const session: any = await DB.prepare(`
+            SELECT s.*,
+                   a.name as approved_course_name,
+                   a.instructor_name as approved_instructor_name,
+                   a.daily_hours, a.total_hours, a.total_days,
+                   cat.name as category_name
+            FROM course_sessions s
+            LEFT JOIN approved_courses a ON s.approved_course_id = a.id
+            LEFT JOIN course_categories cat ON a.category_id = cat.id
+            WHERE s.id = ?
+        `).bind(sid).first();
+
+        if (!session) return c.json({ success: false, error: '회차를 찾을 수 없습니다.' }, 404);
+
+        const courseName = session.approved_course_name || '미지정 과정';
+        const sessionNum = session.session_number || '1';
+        const sessionNameSuffix = session.session_name ? ` - ${session.session_name}` : '';
+        const fullTitle = `${courseName} (${sessionNum}회차)${sessionNameSuffix}`;
+
+        const studentCount = await DB.prepare(
+            'SELECT COUNT(*) as cnt FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved","enrolled")'
+        ).bind(sid).first<{ cnt: number }>();
+
+        return c.json({
+            success: true,
+            data: {
+                id: session.id,
+                title: fullTitle,
+                name: fullTitle,
+                category: session.category_name || '국비지원',
+                status: session.status || 'active',
+                start_date: session.training_start_date,
+                end_date: session.training_end_date,
+                start_time: session.training_time_start,
+                end_time: session.training_time_end,
+                teacher_name: session.instructor_name || session.approved_instructor_name,
+                current_students: studentCount?.cnt ?? 0,
+            }
+        });
+    } catch (e: any) {
+        console.error('HRD session detail error:', e);
+        return c.json({ success: false, error: e.message }, 500);
+    }
+});
+
 // 출석 현황 조회 (특정 날짜, 특정 과정)
 app.get('/attendance', authMiddleware, async (c) => {
     try {
