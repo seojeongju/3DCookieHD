@@ -36,13 +36,11 @@ export const teacherDashboardHtml = `
         <main class="flex-1 overflow-y-auto bg-[#f1f3f5] custom-scrollbar relative">
             <div class="absolute inset-0 bg-[radial-gradient(#d1d5db_1px,transparent_1px)] [background-size:40px_40px] opacity-20 pointer-events-none"></div>
             
-            <!-- 상단 헤더 (모바일: 타이틀·배지 줄바꿈, 터치 영역 확대) -->
+            <!-- 상단 헤더 -->
             <header class="sticky top-0 z-40 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 bg-white/80 backdrop-blur-md border-b border-gray-100 flex flex-wrap justify-between items-start sm:items-center gap-3 sm:gap-4">
                 <div class="flex flex-col min-w-0 flex-1 basis-[min(100%,14rem)]">
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                        <h1 class="text-lg sm:text-xl lg:text-2xl font-outfit font-black text-neutral-900 tracking-tight truncate">
-                            강사 대시보드
-                        </h1>
+                        <h1 class="text-lg sm:text-xl lg:text-2xl font-outfit font-black text-neutral-900 tracking-tight truncate">강사 대시보드</h1>
                         <span class="text-[9px] sm:text-[10px] bg-brand-600 text-white px-2.5 sm:px-3 py-1 rounded-full uppercase tracking-widest font-black border border-brand-500 shadow-md shadow-brand-100 shrink-0 self-start sm:self-center max-w-full">PRO HUB</span>
                     </div>
                     <p class="text-[10px] sm:text-[11px] font-bold text-neutral-400 uppercase tracking-[0.18em] sm:tracking-[0.2em] mt-1.5 leading-snug">Education AI Management Terminal</p>
@@ -94,16 +92,30 @@ export const teacherDashboardHtml = `
                                     </div>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-3 sm:gap-6 w-full lg:w-auto lg:min-w-[280px] shrink-0">
-                                <div class="p-4 sm:p-8 bg-white/5 border border-white/10 rounded-2xl sm:rounded-4xl backdrop-blur-md text-center hover:bg-white group/stat transition-all duration-500 cursor-default">
-                                    <span class="block text-[9px] sm:text-[10px] font-black uppercase text-neutral-500 tracking-[0.15em] sm:tracking-[0.3em] mb-2 sm:mb-3 group-hover/stat:text-brand-600 transition-colors leading-tight">Managed Students</span>
-                                    <span class="text-3xl sm:text-4xl lg:text-5xl font-outfit font-black group-hover/stat:text-neutral-900 transition-colors tabular-nums" id="stat-total-students">0</span>
-                                    <span class="block text-[9px] sm:text-[10px] font-black text-neutral-500 uppercase mt-1 sm:mt-2 leading-tight">Active Learners</span>
+                            <!-- 히어로 우측 stat: 학생수 + (진행중 | 종료) -->
+                            <div class="flex flex-col gap-3 sm:gap-4 w-full lg:w-auto lg:min-w-[300px] shrink-0">
+                                <!-- 관리 학생 수 -->
+                                <div class="p-4 sm:p-6 bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl backdrop-blur-md text-center hover:bg-white group/stat transition-all duration-500 cursor-default">
+                                    <span class="block text-[9px] sm:text-[10px] font-black uppercase text-neutral-500 tracking-[0.15em] sm:tracking-[0.3em] mb-1 sm:mb-2 group-hover/stat:text-brand-600 transition-colors leading-tight">Managed Students</span>
+                                    <span class="text-3xl sm:text-4xl font-outfit font-black group-hover/stat:text-neutral-900 transition-colors tabular-nums" id="stat-total-students">0</span>
+                                    <span class="block text-[9px] sm:text-[10px] font-black text-neutral-500 uppercase mt-1 leading-tight">Active Learners</span>
                                 </div>
-                                <div class="p-4 sm:p-8 bg-white/5 border border-white/10 rounded-2xl sm:rounded-4xl backdrop-blur-md text-center hover:bg-brand-600 group/stat transition-all duration-500 cursor-default">
-                                    <span class="block text-[9px] sm:text-[10px] font-black uppercase text-neutral-500 tracking-[0.15em] sm:tracking-[0.3em] mb-2 sm:mb-3 group-hover/stat:text-white transition-colors leading-tight">Active Courses</span>
-                                    <span class="text-3xl sm:text-4xl lg:text-5xl font-outfit font-black group-hover/stat:text-white transition-colors tabular-nums" id="stat-my-courses">0</span>
-                                    <span class="block text-[9px] sm:text-[10px] font-black text-neutral-500 uppercase mt-1 sm:mt-2 group-hover/stat:text-white/60 transition-colors leading-tight">Running Now</span>
+                                <!-- 진행중 | 종료 2-in-1 -->
+                                <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                                    <div class="p-4 sm:p-5 bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl backdrop-blur-md text-center hover:bg-emerald-500 group/running transition-all duration-500 cursor-pointer" onclick="location.href='/teacher/courses'">
+                                        <span class="flex items-center justify-center gap-1 text-[9px] font-black uppercase text-neutral-500 tracking-widest mb-1.5 group-hover/running:text-white transition-colors">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span> 진행중
+                                        </span>
+                                        <span class="text-2xl sm:text-3xl font-outfit font-black text-white tabular-nums" id="stat-running-courses">0</span>
+                                        <span class="block text-[9px] font-black text-neutral-500 uppercase mt-1 group-hover/running:text-white/70 transition-colors leading-tight">Running</span>
+                                    </div>
+                                    <div class="p-4 sm:p-5 bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl backdrop-blur-md text-center hover:bg-neutral-600 group/done transition-all duration-500 cursor-pointer" onclick="location.href='/teacher/courses'">
+                                        <span class="flex items-center justify-center gap-1 text-[9px] font-black uppercase text-neutral-500 tracking-widest mb-1.5 group-hover/done:text-white transition-colors">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-neutral-400 inline-block"></span> 종료
+                                        </span>
+                                        <span class="text-2xl sm:text-3xl font-outfit font-black text-white tabular-nums" id="stat-completed-courses">0</span>
+                                        <span class="block text-[9px] font-black text-neutral-500 uppercase mt-1 group-hover/done:text-white/70 transition-colors leading-tight">Finished</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -112,18 +124,35 @@ export const teacherDashboardHtml = `
 
                 <!-- 핵심 매트릭스 (Glass Cards) -->
                 <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 section-fade-in" style="animation-delay: 0.2s">
+                    <!-- 진행중 + 종료 2-in-1 카드 -->
                     <div onclick="location.href='/teacher/courses'" class="glass border border-white/60 rounded-5xl p-8 shadow-premium hover:shadow-premium-hover transition-all duration-700 cursor-pointer group">
-                        <div class="flex justify-between items-start mb-10">
+                        <div class="flex justify-between items-start mb-6">
                             <div class="w-14 h-14 rounded-3xl bg-brand-50 text-brand-600 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-all duration-500 shadow-inner">
-                                <i class="fas fa-school text-xl"></i>
+                                <i class="fas fa-layer-group text-xl"></i>
                             </div>
-                            <span class="px-3 py-1 bg-brand-50 text-brand-600 text-[10px] font-black rounded-xl uppercase tracking-widest border border-brand-100">Status</span>
+                            <span class="px-3 py-1 bg-brand-50 text-brand-600 text-[10px] font-black rounded-xl uppercase tracking-widest border border-brand-100">Overview</span>
                         </div>
-                        <h3 class="text-xs font-black text-neutral-400 uppercase tracking-[0.2em] mb-2">학사 운영 현황</h3>
-                        <p class="text-2xl font-outfit font-black text-neutral-900 tracking-tight group-hover:text-brand-600 transition-colors">나의 강의 관리</p>
-                        <div class="mt-6 flex items-baseline gap-2">
-                            <span id="card-my-courses" class="text-4xl font-outfit font-black text-neutral-900">-</span>
-                            <span class="text-xs font-bold text-neutral-400 uppercase tracking-widest">Courses</span>
+                        <h3 class="text-xs font-black text-neutral-400 uppercase tracking-[0.2em] mb-4">강의 현황</h3>
+                        <div class="flex items-stretch gap-4">
+                            <div class="flex-1 flex flex-col">
+                                <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 진행중
+                                </span>
+                                <div class="flex items-baseline gap-1">
+                                    <span id="card-running-courses" class="text-4xl font-outfit font-black text-neutral-900 group-hover:text-brand-600 transition-colors">-</span>
+                                    <span class="text-xs font-bold text-neutral-400">개</span>
+                                </div>
+                            </div>
+                            <div class="w-px bg-neutral-100 self-stretch"></div>
+                            <div class="flex-1 flex flex-col">
+                                <span class="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-neutral-400"></span> 종료
+                                </span>
+                                <div class="flex items-baseline gap-1">
+                                    <span id="card-completed-courses" class="text-4xl font-outfit font-black text-neutral-500">-</span>
+                                    <span class="text-xs font-bold text-neutral-400">개</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -176,7 +205,7 @@ export const teacherDashboardHtml = `
                 <!-- 메인 분석 그리드 -->
                 <div class="grid grid-cols-12 gap-8 section-fade-in" style="animation-delay: 0.3s">
                     
-                    <!-- 성과 분석 차트 영역 (Left Wide) -->
+                    <!-- 성과 분석 차트 영역 -->
                     <div class="col-span-12 lg:col-span-8 bg-white rounded-5xl p-10 border border-neutral-100 shadow-premium relative overflow-hidden group">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
                             <div>
@@ -212,11 +241,11 @@ export const teacherDashboardHtml = `
                         </div>
                     </div>
 
-                    <!-- 사이드 학사 관리 영역 (Right Nano) -->
+                    <!-- 사이드 학사 관리 영역 -->
                     <div class="col-span-12 lg:col-span-4 space-y-8">
                         
                         <!-- 학사 알림 피드 -->
-                        <div class="bg-white rounded-5xl p-10 border border-neutral-100 shadow-premium flex flex-col h-full">
+                        <div class="bg-white rounded-5xl p-10 border border-neutral-100 shadow-premium flex flex-col">
                             <div class="flex justify-between items-center mb-8">
                                 <div>
                                     <h3 class="text-xl font-outfit font-black text-neutral-900 tracking-tight">학사 타임라인</h3>
@@ -266,21 +295,36 @@ export const teacherDashboardHtml = `
                     </div>
                 </div>
 
-                <!-- 배정 과정 리스트 (Premium Table Style) -->
+                <!-- 담당 강의 디렉토리 (세그먼트 탭 + 컴팩트 Row 카드) -->
                 <section class="section-fade-in" style="animation-delay: 0.4s">
                     <div class="bg-white rounded-5xl border border-neutral-100 shadow-premium overflow-hidden">
-                        <div class="px-10 py-8 border-b border-neutral-50 flex justify-between items-center bg-neutral-50/30">
+                        <div class="px-6 sm:px-10 py-6 sm:py-8 border-b border-neutral-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-neutral-50/30">
                             <div>
-                                <h3 class="text-2xl font-outfit font-black text-neutral-900 tracking-tight">담당 강의 디렉토리</h3>
+                                <h3 class="text-xl sm:text-2xl font-outfit font-black text-neutral-900 tracking-tight">담당 강의 디렉토리</h3>
                                 <p class="text-[10px] font-black text-neutral-400 uppercase tracking-widest mt-1">Full curriculum assignment overview</p>
                             </div>
-                            <button onclick="location.href='/teacher/courses'" class="px-6 py-3 bg-white border border-neutral-100 rounded-2xl text-[10px] font-black text-neutral-500 hover:text-brand-600 hover:border-brand-200 transition-all shadow-sm">
-                                전체 목록 보기 <i class="fas fa-chevron-right ml-2 text-[8px]"></i>
-                            </button>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <!-- 세그먼트 탭 컨트롤 -->
+                                <div class="glass p-1 rounded-2xl border border-white/60 flex gap-1.5 shadow-sm">
+                                    <button type="button" id="dash-tab-btn-running" onclick="switchDashCourseTab('running')"
+                                        class="px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center gap-1.5 bg-brand-600 text-white shadow-lg">
+                                        <i class="fas fa-play text-[8px]"></i> 진행중
+                                        <span id="dash-running-badge" class="bg-white/25 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">0</span>
+                                    </button>
+                                    <button type="button" id="dash-tab-btn-completed" onclick="switchDashCourseTab('completed')"
+                                        class="px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center gap-1.5 text-neutral-400 hover:text-neutral-700">
+                                        <i class="fas fa-check text-[8px]"></i> 종료
+                                        <span id="dash-completed-badge" class="bg-neutral-100 text-neutral-500 text-[8px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">0</span>
+                                    </button>
+                                </div>
+                                <button onclick="location.href='/teacher/courses'" class="px-5 py-2.5 bg-white border border-neutral-100 rounded-2xl text-[10px] font-black text-neutral-500 hover:text-brand-600 hover:border-brand-200 transition-all shadow-sm whitespace-nowrap">
+                                    전체 보기 <i class="fas fa-chevron-right ml-1 text-[8px]"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="p-10">
-                            <div id="recent-courses-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 min-h-[100px]">
-                                <div class="col-span-full py-10 flex flex-col items-center justify-center opacity-30">
+                        <div class="p-5 sm:p-8 lg:p-10">
+                            <div id="recent-courses-list" class="space-y-3 min-h-[120px]">
+                                <div class="flex flex-col items-center justify-center py-16 opacity-30">
                                     <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
                                     <p class="text-xs font-bold uppercase tracking-widest">Streaming course data...</p>
                                 </div>
@@ -297,176 +341,259 @@ export const teacherDashboardHtml = `
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        // 전역 상태
+        var dashAllCourses = [];
+        var dashRunningCourses = [];
+        var dashCompletedCourses = [];
+        var dashActiveCourseTab = 'running';
+
+        document.addEventListener('DOMContentLoaded', function() {
             updateTime();
             setInterval(updateTime, 1000);
             loadDashboardData();
         });
 
         function updateTime() {
-            const now = new Date();
-            const timeEl = document.getElementById('current-time');
+            var now = new Date();
+            var timeEl = document.getElementById('current-time');
             if (timeEl) timeEl.textContent = now.toLocaleTimeString('en-US', { hour12: false });
-            const dateEl = document.getElementById('welcome-date');
+            var dateEl = document.getElementById('welcome-date');
             if (dateEl) dateEl.textContent = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
         }
 
+        function switchDashCourseTab(tab) {
+            dashActiveCourseTab = tab;
+            ['running', 'completed'].forEach(function(t) {
+                var btn = document.getElementById('dash-tab-btn-' + t);
+                if (!btn) return;
+                if (t === tab) {
+                    btn.className = 'px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center gap-1.5 bg-brand-600 text-white shadow-lg';
+                } else {
+                    btn.className = 'px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center gap-1.5 text-neutral-400 hover:text-neutral-700';
+                }
+            });
+            var toRender = tab === 'running' ? dashRunningCourses : dashCompletedCourses;
+            renderCourses(toRender, tab);
+        }
+
         async function loadDashboardData() {
-            // 즉시 사용자 정보 로드하여 깜빡임 방지
-            const userStr = localStorage.getItem('user');
+            // 즉시 사용자 정보 로드
+            var userStr = localStorage.getItem('user');
             if (userStr) {
                 try {
-                    const user = JSON.parse(userStr);
-                    const headerName = document.getElementById('header-user-name');
-                    const welcomeName = document.getElementById('welcome-name');
+                    var user = JSON.parse(userStr);
+                    var headerName = document.getElementById('header-user-name');
+                    var welcomeName = document.getElementById('welcome-name');
                     if (headerName) headerName.textContent = user.name || '강사님';
                     if (welcomeName) welcomeName.textContent = user.name || '강사님';
-                } catch (e) {}
+                } catch(e) {}
             }
 
             try {
-                const token = localStorage.getItem('token');
+                var token = localStorage.getItem('token');
                 if (!token) { window.location.href = '/login'; return; }
 
-                const response = await fetch('/api/dashboard/teacher-stats', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const result = await response.json();
+                // 강의 목록 + 기존 stats를 병렬 로드
+                var results = await Promise.allSettled([
+                    fetch('/api/courses?limit=500', { headers: { 'Authorization': 'Bearer ' + token } }),
+                    fetch('/api/dashboard/teacher-stats', { headers: { 'Authorization': 'Bearer ' + token } })
+                ]);
 
-                if (result.success && result.data) {
-                    const d = result.data;
-                    
-                    // Stats Update
-                    document.getElementById('stat-total-students').textContent = d.totalStudents || 0;
-                    document.getElementById('stat-my-courses').textContent = d.myCourses || 0;
-                    document.getElementById('card-total-students').textContent = d.totalStudents || 0;
-                    document.getElementById('card-my-courses').textContent = d.myCourses || 0;
-                    document.getElementById('card-pending-grading').textContent = d.pendingGrading || 0;
-                    document.getElementById('card-attendance-rate').textContent = (d.avgAttendance || 0) + '%';
+                // --- 강의 목록 처리 ---
+                if (results[0].status === 'fulfilled') {
+                    var coursesResult = await results[0].value.json();
+                    if (coursesResult.success) {
+                        dashAllCourses = coursesResult.data || [];
+                        dashRunningCourses = dashAllCourses.filter(function(c) {
+                            return ['active', 'open', 'upcoming', 'recruiting'].includes(c.status || '');
+                        });
+                        dashCompletedCourses = dashAllCourses.filter(function(c) {
+                            return ['completed', 'closed'].includes(c.status || '');
+                        });
 
-                    // Render Lists
-                    renderAlerts(d.pendingGradingList || []);
-                    renderCourses(d.assignedCourses || []);
-                    
-                    // Chart
-                    initChart(d.avgAttendance);
+                        var runCount = dashRunningCourses.length;
+                        var doneCount = dashCompletedCourses.length;
+                        var totalStudents = dashAllCourses.reduce(function(acc, c) { return acc + (c.current_students || 0); }, 0);
+
+                        // 히어로 섹션 stat 업데이트
+                        var el;
+                        el = document.getElementById('stat-running-courses'); if (el) el.textContent = runCount;
+                        el = document.getElementById('stat-completed-courses'); if (el) el.textContent = doneCount;
+                        el = document.getElementById('stat-total-students'); if (el) el.textContent = totalStudents;
+
+                        // 핵심 매트릭스 카드
+                        el = document.getElementById('card-running-courses'); if (el) el.textContent = runCount;
+                        el = document.getElementById('card-completed-courses'); if (el) el.textContent = doneCount;
+                        el = document.getElementById('card-total-students'); if (el) el.textContent = totalStudents;
+
+                        // 디렉토리 탭 뱃지
+                        el = document.getElementById('dash-running-badge'); if (el) el.textContent = runCount;
+                        el = document.getElementById('dash-completed-badge'); if (el) el.textContent = doneCount;
+
+                        // 기본: 진행중 탭 렌더링
+                        renderCourses(dashRunningCourses, 'running');
+                    }
                 }
-            } catch (err) {
-                console.error('Terminal load error:', err);
+
+                // --- teacher-stats 처리 ---
+                if (results[1].status === 'fulfilled') {
+                    var statsResult = await results[1].value.json();
+                    if (statsResult.success && statsResult.data) {
+                        var d = statsResult.data;
+                        el = document.getElementById('card-attendance-rate'); if (el) el.textContent = (d.avgAttendance || 0) + '%';
+                        el = document.getElementById('card-pending-grading'); if (el) el.textContent = d.pendingGrading || 0;
+                        renderAlerts(d.pendingGradingList || []);
+                        initChart(d.avgAttendance);
+                    } else {
+                        renderAlerts([]);
+                        initChart(null);
+                    }
+                } else {
+                    renderAlerts([]);
+                    initChart(null);
+                }
+
+            } catch(err) {
+                console.error('Dashboard load error:', err);
+                renderAlerts([]);
+                renderCourses([], 'running');
             }
         }
 
         function renderAlerts(alerts) {
-            const list = document.getElementById('alerts-list');
-            const badge = document.getElementById('alerts-count-badge');
-            const count = document.getElementById('alerts-count');
+            var list = document.getElementById('alerts-list');
+            var badge = document.getElementById('alerts-count-badge');
+            var count = document.getElementById('alerts-count');
+            if (!list) return;
             
             if (!alerts || alerts.length === 0) {
                 list.innerHTML = '<div class="py-12 text-center opacity-30 flex flex-col items-center"><i class="fas fa-check-circle text-4xl mb-4"></i><p class="text-[10px] font-black uppercase tracking-widest">All tasks completed</p></div>';
-                badge.classList.add('hidden');
+                if (badge) badge.classList.add('hidden');
                 return;
             }
-
-            badge.classList.remove('hidden');
-            count.textContent = alerts.length;
+            if (badge) badge.classList.remove('hidden');
+            if (count) count.textContent = alerts.length;
             
-            list.innerHTML = alerts.slice(0, 5).map(item => \`
-                <div class="p-6 bg-neutral-50 hover:bg-white border border-neutral-100 hover:shadow-xl rounded-3xl transition-all duration-500 cursor-pointer group" onclick="location.href='/teacher/courses?tab=exams'">
-                    <div class="flex items-center gap-5">
-                        <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                            <i class="fas fa-file-signature text-lg"></i>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <h4 class="font-outfit font-black text-neutral-800 truncate text-sm mb-0.5 group-hover:text-brand-600">\${item.exam_title || '시험'}</h4>
-                            <p class="text-[10px] font-medium text-neutral-400 uppercase tracking-widest">\${item.student_name} · \${(item.submitted_at || '').split('T')[0]}</p>
-                        </div>
-                        <i class="fas fa-chevron-right text-[10px] text-neutral-200 group-hover:text-brand-400"></i>
-                    </div>
-                </div>
-            \`).join('');
+            list.innerHTML = alerts.slice(0, 5).map(function(item) {
+                return '<div class="p-5 bg-neutral-50 hover:bg-white border border-neutral-100 hover:shadow-xl rounded-3xl transition-all duration-500 cursor-pointer group" onclick="location.href=\'/teacher/courses?tab=exams\'">' +
+                    '<div class="flex items-center gap-4">' +
+                        '<div class="w-11 h-11 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">' +
+                            '<i class="fas fa-file-signature text-base"></i>' +
+                        '</div>' +
+                        '<div class="min-w-0 flex-1">' +
+                            '<h4 class="font-outfit font-black text-neutral-800 truncate text-sm mb-0.5 group-hover:text-brand-600">' + (item.exam_title || '시험') + '</h4>' +
+                            '<p class="text-[10px] font-medium text-neutral-400 uppercase tracking-widest">' + (item.student_name || '') + ' · ' + ((item.submitted_at || '').split('T')[0]) + '</p>' +
+                        '</div>' +
+                        '<i class="fas fa-chevron-right text-[10px] text-neutral-200 group-hover:text-brand-400"></i>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
-        function renderCourses(courses) {
-            const list = document.getElementById('recent-courses-list');
+        function renderCourses(courses, tab) {
+            var list = document.getElementById('recent-courses-list');
+            if (!list) return;
+
             if (!courses || courses.length === 0) {
-                list.innerHTML = '<div class="col-span-full py-20 text-center opacity-20"><i class="fas fa-box-open text-5xl mb-6"></i><p class="font-black text-xs uppercase tracking-[0.2em]">Assignment database is empty</p></div>';
+                var msg = tab === 'completed' ? '종료된 강의가 없습니다.' : '진행중인 강의가 없습니다.';
+                var icon = tab === 'completed' ? 'fa-box-archive' : 'fa-chalkboard-teacher';
+                list.innerHTML = '<div class="flex flex-col items-center justify-center py-16 opacity-30"><i class="fas ' + icon + ' text-4xl mb-4"></i><p class="font-black text-xs uppercase tracking-[0.2em]">' + msg + '</p></div>';
                 return;
             }
 
-            list.innerHTML = courses.slice(0, 6).map(course => {
-                const isRunning = course.status === 'active' || course.status === 'open';
-                return \`
-                <div class="group bg-neutral-50 border border-neutral-100 hover:border-brand-200 hover:bg-white p-8 rounded-5xl transition-all duration-700 hover:shadow-premium relative overflow-hidden">
-                    <div class="flex justify-between items-start mb-8 relative z-10">
-                        <div class="w-14 h-14 rounded-3xl bg-white flex items-center justify-center text-neutral-400 group-hover:text-brand-600 shadow-sm border border-neutral-100 transition-all group-hover:scale-110">
-                            <i class="fas \${course.category === '국비지원' ? 'fa-landmark' : 'fa-certificate'} text-xl"></i>
-                        </div>
-                        <div class="flex flex-col items-end">
-                            <span class="px-3 py-1 bg-white border border-neutral-200 text-neutral-400 text-[9px] font-black rounded-lg uppercase tracking-widest group-hover:border-brand-100 group-hover:text-brand-600 transition-colors">\${course.status || 'READY'}</span>
-                            \${isRunning ? '<span class="text-[8px] font-black text-brand-500 animate-pulse mt-1 tracking-widest">LIVE TRACKING</span>' : ''}
-                        </div>
-                    </div>
-                    <div class="relative z-10">
-                        <h4 class="text-lg font-outfit font-black text-neutral-900 tracking-tight line-clamp-2 leading-snug group-hover:text-brand-700 transition-colors mb-6 h-12">\${course.title}</h4>
-                        <div class="flex justify-between items-center pt-6 border-t border-neutral-100/60">
-                            <div class="flex flex-col">
-                                <span class="text-xs font-black text-neutral-800">\${course.enrolled_count || 0}<span class="text-[10px] text-neutral-400 ml-1">Studs</span></span>
-                                <span class="text-[9px] font-black text-neutral-300 uppercase tracking-widest">Capacity</span>
-                            </div>
-                            <button onclick="location.href='/teacher/courses/' + \${course.id} + '/lms' + (\${course.is_hrd ? '?type=hrd' : ''})" class="w-10 h-10 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-400 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all">
-                                <i class="fas fa-door-open text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            \`;}).join('');
+            list.innerHTML = courses.slice(0, 8).map(function(course) {
+                var isRunning = ['active', 'open', 'upcoming', 'recruiting'].includes(course.status || '');
+                var isCompleted = ['completed', 'closed'].includes(course.status || '');
+
+                var iconClass = 'fa-book-reader';
+                var cat = (course.category || '');
+                if (cat.indexOf('3D') !== -1 || cat.indexOf('프린트') !== -1 || cat.indexOf('쿠키') !== -1) iconClass = 'fa-cubes';
+                else if (cat.indexOf('국비') !== -1 || cat.indexOf('지원') !== -1 || cat.indexOf('HRD') !== -1) iconClass = 'fa-landmark';
+                else if (cat.indexOf('자격') !== -1 || cat.indexOf('면허') !== -1) iconClass = 'fa-graduation-cap';
+                else if (cat.indexOf('취업') !== -1) iconClass = 'fa-briefcase';
+
+                var pingBg = 'bg-neutral-400', dotBg = 'bg-neutral-500';
+                var statusLabel = 'READY', statusTextClass = 'text-neutral-500';
+                if (isRunning) { pingBg = 'bg-emerald-400'; dotBg = 'bg-emerald-500'; statusLabel = 'RUNNING'; statusTextClass = 'text-emerald-500'; }
+                else if (isCompleted) { pingBg = 'bg-neutral-300'; dotBg = 'bg-neutral-400'; statusLabel = 'FINISHED'; statusTextClass = 'text-neutral-400'; }
+
+                var safeTitle = (course.title || 'Untitled').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                var safeCat = (course.category || 'General').replace(/'/g, "&#39;");
+                var startDate = (course.start_date || 'TBD').split('T')[0];
+                var enrolledCount = course.current_students || 0;
+                var maxStudents = course.max_students || 0;
+                var progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : (enrolledCount > 0 ? 100 : 0);
+                var lmsUrl = '/teacher/courses/' + course.id + '/lms' + (course.is_hrd ? '?type=hrd' : '');
+
+                var progressBar = maxStudents > 0 
+                    ? '<div class="hidden sm:flex flex-col w-24 items-end gap-1"><span class="text-[9px] font-black text-neutral-400 uppercase tracking-wider">' + progressPercent + '% Full</span><div class="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden"><div class="bg-gradient-to-r from-brand-400 to-brand-600 h-full transition-all duration-1000" style="width:' + progressPercent + '%"></div></div></div>'
+                    : '';
+
+                return '<div class="group bg-white rounded-3xl border border-neutral-100/80 p-5 hover:shadow-md transition-all duration-400 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">' +
+                    '<div class="flex items-center gap-4 min-w-0 flex-1">' +
+                        '<div class="w-12 h-12 rounded-2xl bg-neutral-50 flex items-center justify-center shadow-inner border border-neutral-100/80 shrink-0 relative">' +
+                            '<i class="fas ' + iconClass + ' text-lg text-neutral-400 group-hover:text-brand-500 transition-colors duration-300"></i>' +
+                            '<span class="absolute -top-1 -right-1 flex h-3 w-3">' +
+                                '<span class="animate-ping absolute inline-flex h-full w-full rounded-full ' + pingBg + ' opacity-75"></span>' +
+                                '<span class="relative inline-flex rounded-full h-3 w-3 ' + dotBg + '"></span>' +
+                            '</span>' +
+                        '</div>' +
+                        '<div class="min-w-0 flex-1">' +
+                            '<div class="flex items-center gap-2 mb-1 flex-wrap">' +
+                                '<span class="px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-500 text-[9px] font-black tracking-wider uppercase">' + safeCat + '</span>' +
+                                '<span class="text-[9px] font-black uppercase tracking-wider ' + statusTextClass + '">' + statusLabel + '</span>' +
+                            '</div>' +
+                            '<h4 class="text-sm font-outfit font-black text-neutral-900 tracking-tight truncate leading-snug group-hover:text-brand-600 transition-colors duration-300" title="' + safeTitle + '">' + safeTitle + '</h4>' +
+                            '<div class="flex items-center gap-3 mt-1.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest flex-wrap">' +
+                                '<span><i class="fas fa-users mr-1"></i>' + enrolledCount + '<span class="text-neutral-300 ml-1">/ ' + (maxStudents || '∞') + '</span></span>' +
+                                '<span><i class="fas fa-calendar-day mr-1"></i>' + startDate + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-3 shrink-0 justify-end border-t border-neutral-50 pt-3 sm:border-t-0 sm:pt-0">' +
+                        progressBar +
+                        '<button onclick="location.href=\'' + lmsUrl + '\'" class="px-4 py-2.5 bg-neutral-900 text-white rounded-2xl hover:bg-brand-600 transition-all duration-300 font-black text-[10px] tracking-wider uppercase flex items-center gap-2">' +
+                            '<i class="fas fa-door-open text-[10px]"></i> 입장' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
-function initChart(avg) {
-    const canvas = document.getElementById('performanceChart');
-    const empty = document.getElementById('performanceChartEmpty');
-    if (!canvas) return;
-
-    if (avg == null) { empty.classList.remove('hidden'); canvas.style.display = 'none'; return; }
-    empty.classList.add('hidden');
-    canvas.style.display = 'block';
-
-    const ctx = canvas.getContext('2d');
-    const grad = ctx.createLinearGradient(0, 0, 0, 300);
-    grad.addColorStop(0, 'rgba(79, 105, 242, 0.4)');
-    grad.addColorStop(1, 'rgba(79, 105, 242, 0)');
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-            datasets: [{
-                label: 'Attendance',
-                data: [avg - 2, avg - 1, avg + 1, avg, avg + 3, avg - 1, avg + 2],
-                borderColor: '#4f69f2',
-                borderWidth: 6,
-                backgroundColor: grad,
-                fill: true,
-                tension: 0.5,
-                pointRadius: 0,
-                pointHoverRadius: 8,
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: '#4f69f2',
-                pointHoverBorderWidth: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { cornerRadius: 15, padding: 15, titleFont: { size: 14, weight: '900' }, bodyFont: { size: 12, weight: '700' } } },
-            scales: {
-                y: { display: false, min: 0, max: 105 },
-                x: { border: { display: false }, grid: { display: false }, ticks: { font: { size: 10, family: 'Outfit', weight: '900' }, color: '#94a3b8', padding: 15 } }
-            }
+        function initChart(avg) {
+            var canvas = document.getElementById('performanceChart');
+            var empty = document.getElementById('performanceChartEmpty');
+            if (!canvas) return;
+            if (avg == null) { if (empty) empty.classList.remove('hidden'); canvas.style.display = 'none'; return; }
+            if (empty) empty.classList.add('hidden');
+            canvas.style.display = 'block';
+            var ctx = canvas.getContext('2d');
+            var grad = ctx.createLinearGradient(0, 0, 0, 300);
+            grad.addColorStop(0, 'rgba(79, 105, 242, 0.4)');
+            grad.addColorStop(1, 'rgba(79, 105, 242, 0)');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
+                    datasets: [{
+                        label: 'Attendance',
+                        data: [avg-2, avg-1, avg+1, avg, avg+3, avg-1, avg+2],
+                        borderColor: '#4f69f2', borderWidth: 6, backgroundColor: grad, fill: true, tension: 0.5,
+                        pointRadius: 0, pointHoverRadius: 8, pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#4f69f2', pointHoverBorderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { cornerRadius: 15, padding: 15, titleFont: { size: 14, weight: '900' }, bodyFont: { size: 12, weight: '700' } } },
+                    scales: {
+                        y: { display: false, min: 0, max: 105 },
+                        x: { border: { display: false }, grid: { display: false }, ticks: { font: { size: 10, family: 'Outfit', weight: '900' }, color: '#94a3b8', padding: 15 } }
+                    }
+                }
+            });
         }
-    });
-}
-</script>
+    </script>
     </body>
     </html>
         `;
