@@ -87,18 +87,39 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 <div class="max-w-[1600px] mx-auto">
                     <!-- Dashboard Stats Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                        <!-- 진행중 / 종료 2-in-1 카드 -->
                         <div class="glass border border-white/50 rounded-4xl p-8 shadow-premium flex flex-col justify-between group hover:border-brand-200 transition-all duration-500 hover:shadow-premium-hover">
-                            <div class="flex justify-between items-start mb-8">
+                            <div class="flex justify-between items-start mb-6">
                                 <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center group-hover:bg-brand-600 group-hover:text-white transition-all duration-500 shadow-sm">
-                                    <i class="fas fa-book-open text-lg"></i>
+                                    <i class="fas fa-layer-group text-lg"></i>
                                 </div>
-                                <span class="text-[10px] font-black text-brand-500 uppercase tracking-widest bg-brand-50/50 px-2 py-1 rounded-lg">Current</span>
+                                <span class="text-[10px] font-black text-brand-500 uppercase tracking-widest bg-brand-50/50 px-2 py-1 rounded-lg">Overview</span>
                             </div>
                             <div>
-                                <h3 class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">진행중인 강의</h3>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-5xl font-outfit font-black text-neutral-900" id="activeCoursesCount">0</span>
-                                    <span class="text-sm font-bold text-neutral-400 tracking-tight">개 과정</span>
+                                <h3 class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">강의 현황</h3>
+                                <div class="flex items-stretch gap-4">
+                                    <!-- 진행중 -->
+                                    <div class="flex-1 flex flex-col cursor-pointer" onclick="switchCourseTab('running')" title="진행중인 강의 탭으로 이동">
+                                        <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 진행중
+                                        </span>
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-4xl font-outfit font-black text-neutral-900 group-hover:text-brand-600 transition-colors duration-300" id="activeCoursesCount">0</span>
+                                            <span class="text-xs font-bold text-neutral-400">개</span>
+                                        </div>
+                                    </div>
+                                    <!-- 구분선 -->
+                                    <div class="w-px bg-neutral-100 self-stretch"></div>
+                                    <!-- 종료 -->
+                                    <div class="flex-1 flex flex-col cursor-pointer" onclick="switchCourseTab('completed')" title="종료된 강의 탭으로 이동">
+                                        <span class="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-neutral-400"></span> 종료
+                                        </span>
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-4xl font-outfit font-black text-neutral-500" id="completedCoursesCount">0</span>
+                                            <span class="text-xs font-bold text-neutral-400">개</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -322,6 +343,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
 
             checkLogin();
             showTabHintIfNeeded();
+            loadStats();
             loadCourses();
         });
 
@@ -352,6 +374,36 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             }
         }
 
+        // 탭 필터와 무관하게 전체 과정 통계(진행중/종료/학생수)를 항상 정확하게 계산
+        async function loadStats() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/courses?limit=500', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    const all = result.data || [];
+                    const activeCount = all.filter(c =>
+                        ['active', 'open', 'upcoming', 'recruiting'].includes(c.status || '')
+                    ).length;
+                    const completedCount = all.filter(c =>
+                        ['completed', 'closed'].includes(c.status || '')
+                    ).length;
+                    const totalStudents = all.reduce((acc, c) => acc + (c.current_students || 0), 0);
+
+                    const activeEl = document.getElementById('activeCoursesCount');
+                    const completedEl = document.getElementById('completedCoursesCount');
+                    const studentsEl = document.getElementById('totalStudentsCount');
+                    if (activeEl) activeEl.textContent = String(activeCount);
+                    if (completedEl) completedEl.textContent = String(completedCount);
+                    if (studentsEl) studentsEl.textContent = String(totalStudents);
+                }
+            } catch (e) {
+                // 통계 로드 실패 시 무시
+            }
+        }
+
         async function loadCourses(page = 1) {
             try {
                 currentPage = page;
@@ -376,18 +428,6 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                     const pageNum = p.page != null ? p.page : currentPage;
                     
                     setTeacherCoursesSearchResultText(total + ' COURSES FOUND');
-                    
-                    const activeCountEl = document.getElementById('activeCoursesCount');
-                    const totalStudentsEl = document.getElementById('totalStudentsCount');
-                    
-                    if (activeCountEl) {
-                        const activeCount = (result.data || []).filter(c => c.status === 'active' || c.status === 'open').length;
-                        activeCountEl.textContent = activeCount;
-                    }
-                    if (totalStudentsEl) {
-                        const totalStudents = (result.data || []).reduce((acc, c) => acc + (c.current_students || 0), 0);
-                        totalStudentsEl.textContent = totalStudents;
-                    }
 
                     if (p.limit) {
                         limit = p.limit;
