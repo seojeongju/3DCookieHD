@@ -552,7 +552,7 @@ export const teacherDashboardHtml = `
                     '</div>' +
                     '<div class="flex items-center gap-3 shrink-0 justify-end border-t border-neutral-50 pt-3 sm:border-t-0 sm:pt-0">' +
                         progressBar +
-                        '<button onclick="location.href=\'' + lmsUrl + '\'" class="px-4 py-2.5 bg-neutral-900 text-white rounded-2xl hover:bg-brand-600 transition-all duration-300 font-black text-[10px] tracking-wider uppercase flex items-center gap-2">' +
+                        '<button onclick="location.href=\\\'' + lmsUrl + '\\\'" class="px-4 py-2.5 bg-neutral-900 text-white rounded-2xl hover:bg-brand-600 transition-all duration-300 font-black text-[10px] tracking-wider uppercase flex items-center gap-2">' +
                             '<i class="fas fa-door-open text-[10px]"></i> 입장' +
                         '</button>' +
                     '</div>' +
