@@ -192,8 +192,19 @@ courses.get('/', async (c) => {
         completed: 'completed',
         closed: 'completed'
       };
+
+      // KST 기준 오늘 날짜 문자열 (YYYY-MM-DD)
+      const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
       const hrdList = (hrdRows.results || []).map((r: any) => {
-        const normStatus = statusMap[r.session_status] || r.session_status || 'active';
+        let normStatus = statusMap[r.session_status] || r.session_status || 'active';
+
+        // 훈련 종료일이 오늘보다 이전이면 DB status와 무관하게 completed로 자동 처리
+        const endDate = (r.training_end_date || '').slice(0, 10);
+        if (endDate && endDate < nowKst) {
+          normStatus = 'completed';
+        }
+
         const title = (r.course_name || '') + (r.session_number != null ? ' (' + r.session_number + '회차)' : '') + (r.session_name ? ' - ' + r.session_name : '');
         return {
           id: r.id,
@@ -201,6 +212,7 @@ courses.get('/', async (c) => {
           category: r.category_name || '국비지원',
           status: normStatus,
           start_date: r.training_start_date || null,
+          end_date: endDate || null,
           thumbnail_url: null,
           current_students: enrollmentCounts.get(r.id) ?? 0,
           max_students: 0,
@@ -211,7 +223,20 @@ courses.get('/', async (c) => {
         };
       });
 
-      let merged = [...legacyList.map((c: any) => ({ ...c, is_hrd: false })), ...hrdList];
+      // legacy courses도 end_date 기준 자동 상태 보정 (end_date가 오늘 이전이면 completed)
+      const legacyNormalized = legacyList.map((course: any) => {
+        const courseEndDate = (course.end_date || '').slice(0, 10);
+        let courseStatus = course.status || '';
+        if (courseEndDate && courseEndDate < nowKst) {
+          // 이미 completed/closed 외 상태이고 종료일이 지난 경우 completed로 보정
+          if (!['completed', 'closed'].includes(courseStatus)) {
+            courseStatus = 'completed';
+          }
+        }
+        return { ...course, status: courseStatus, is_hrd: false };
+      });
+
+      let merged = [...legacyNormalized, ...hrdList];
       if (filter.category) {
         merged = merged.filter((c: any) => (c.category || '') === filter.category);
       }
