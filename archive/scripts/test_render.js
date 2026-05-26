@@ -1,6 +1,6 @@
 
-import { teacherSidebar } from './src/views/components/teacher_sidebar';
-import { teacherCoursesHtml } from './src/views/teacher_courses';
+import { teacherSidebar } from '../../src/views/components/teacher_sidebar.ts';
+import { teacherCoursesHtml } from '../../src/views/teacher_courses.ts';
 
 try {
     const rendered = teacherCoursesHtml('courses');

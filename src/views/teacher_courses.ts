@@ -494,10 +494,10 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                         '</div>' +
                         '<!-- 액션 버튼 -->' +
                         '<div class="flex items-center gap-2.5 ml-auto md:ml-0">' +
-                            '<button onclick=\'viewCourseDetail("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\' class="px-5 py-3 bg-neutral-950 text-white rounded-2xl hover:bg-brand-600 transition-all duration-350 font-black text-[10px] tracking-wider uppercase flex items-center gap-2 group-hover:shadow-lg group-hover:shadow-brand-100">' +
+                            '<button onclick=\\\'viewCourseDetail("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\\' class="px-5 py-3 bg-neutral-950 text-white rounded-2xl hover:bg-brand-600 transition-all duration-350 font-black text-[10px] tracking-wider uppercase flex items-center gap-2 group-hover:shadow-lg group-hover:shadow-brand-100">' +
                                 '<i class="fas fa-door-open text-[10px]"></i> 강의실 입장' +
                             '</button>' +
-                            '<button onclick=\'manageCourse("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\' class="w-10 h-10 bg-neutral-50 text-neutral-600 rounded-2xl hover:bg-white hover:shadow-md hover:text-brand-600 transition-all border border-neutral-100 flex items-center justify-center shrink-0">' +
+                            '<button onclick=\\\'manageCourse("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\\' class="w-10 h-10 bg-neutral-50 text-neutral-600 rounded-2xl hover:bg-white hover:shadow-md hover:text-brand-600 transition-all border border-neutral-100 flex items-center justify-center shrink-0">' +
                                 '<i class="fas fa-cog"></i>' +
                             '</button>' +
                         '</div>' +
