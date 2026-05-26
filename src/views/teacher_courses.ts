@@ -504,13 +504,6 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                     '</div>' +
                 '</div>';
             }).join('');
-        }                                  '<button onclick=\\'viewCourseDetail("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\' class="flex-1 px-8 py-5 bg-neutral-900 text-white rounded-3xl hover:bg-brand-600 transition-all duration-500 font-black text-[11px] tracking-[0.2em] uppercase flex items-center justify-center gap-2 group-hover:shadow-2xl group-hover:shadow-brand-200"><i class="fas fa-door-open"></i> 강의실 입장</button>' +
-                                    '<button onclick=\\'manageCourse("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\' class="w-16 h-16 bg-neutral-50 text-neutral-800 rounded-3xl hover:bg-white hover:shadow-xl hover:text-brand-600 transition-all border border-neutral-100 flex items-center justify-center"><i class="fas fa-cog text-xl"></i></button>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>';
-            }).join('');
         }
 
         function renderPagination(pg) {
