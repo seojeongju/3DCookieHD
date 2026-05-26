@@ -465,11 +465,21 @@ app.get('/student/classroom/:id', (c) => c.html(studentClassroomHtml(c.req.param
 
 
 // Teacher Dashboard
-app.get('/teacher', (c) => c.html(teacherDashboardHtml));
-app.get('/teacher/portfolios', (c) => c.html(teacherPortfoliosHtml));
-app.get('/teacher/profile', (c) => c.html(teacherProfileHtml));
+app.get('/teacher', (c) => {
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return c.html(teacherDashboardHtml);
+});
+app.get('/teacher/portfolios', (c) => {
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return c.html(teacherPortfoliosHtml);
+});
+app.get('/teacher/profile', (c) => {
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return c.html(teacherProfileHtml);
+});
 app.get('/teacher/courses', (c) => {
     const tab = c.req.query('tab');
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
     return c.html(teacherCoursesHtml(tab));
 });
 app.get('/teacher/students', (c) => c.redirect('/teacher/courses?tab=students'));
