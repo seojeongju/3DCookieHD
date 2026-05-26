@@ -87,7 +87,7 @@ courses.get('/', async (c) => {
       params.push(filter.category);
     }
 
-    if (filter.status) {
+    if (filter.status && !isTeacher) {
       if (filter.status === 'running') {
         conditions.push("c.status IN ('active', 'open', 'upcoming', 'recruiting')");
       } else if (filter.status === 'completed') {

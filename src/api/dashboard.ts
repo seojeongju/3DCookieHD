@@ -224,9 +224,20 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
         let legacyCourses: any[] = [];
         try {
             const coursesResult = await DB.prepare(
-                "SELECT id, title, category, status, max_students FROM courses WHERE teacher_id = ?"
+                "SELECT id, title, category, status, max_students, end_date FROM courses WHERE teacher_id = ?"
             ).bind(teacherId).all();
-            legacyCourses = coursesResult.results || [];
+            
+            const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            legacyCourses = (coursesResult.results || []).map((course: any) => {
+                const courseEndDate = (course.end_date || '').slice(0, 10);
+                let courseStatus = course.status || '';
+                if (courseEndDate && courseEndDate < nowKst) {
+                    if (!['completed', 'closed'].includes(courseStatus)) {
+                        courseStatus = 'completed';
+                    }
+                }
+                return { ...course, status: courseStatus };
+            });
         } catch (e) {
             console.error('Legacy courses fetch error:', e);
         }
