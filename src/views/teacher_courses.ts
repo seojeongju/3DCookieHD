@@ -176,10 +176,25 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                         </div>
                     </div>
 
+                    <!-- 강의 상태 구분 탭 (Glassmorphic Segmented Control) -->
+                    <div class="mb-8 flex justify-center sm:justify-start">
+                        <div class="glass p-1.5 rounded-3xl border border-white/60 flex gap-2 w-full sm:w-auto shadow-premium transition-all duration-500">
+                            <button type="button" onclick="switchCourseTab('all')" id="tabBtn-all" class="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 bg-brand-600 text-white shadow-xl shadow-brand-100">
+                                <i class="fas fa-th-large text-xs"></i> 전체
+                            </button>
+                            <button type="button" onclick="switchCourseTab('running')" id="tabBtn-running" class="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850">
+                                <i class="fas fa-play text-xs text-emerald-500"></i> 진행중인 강의
+                            </button>
+                            <button type="button" onclick="switchCourseTab('completed')" id="tabBtn-completed" class="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850">
+                                <i class="fas fa-check text-xs text-neutral-400"></i> 종료된 강의
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Filter Dock: 모바일은 검색·요약만 고정 높이, 상세 필터는 접기 -->
-                    <div id="teacherCoursesFilterDock" data-collapsed-mobile="true" class="glass border border-white/60 rounded-2xl lg:rounded-[3rem] p-3 sm:p-4 lg:p-4 mb-8 lg:mb-12 shadow-premium relative lg:sticky lg:top-24 z-20 transition-all duration-500 border-white/80 hover:shadow-premium-hover grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_auto] lg:items-center gap-3 lg:gap-4">
+                    <div id="teacherCoursesFilterDock" data-collapsed-mobile="true" class="glass border border-white/60 rounded-2xl lg:rounded-[3rem] p-3 sm:p-4 lg:p-4 mb-8 lg:mb-12 shadow-premium relative lg:sticky lg:top-24 z-20 transition-all duration-500 border-white/80 hover:shadow-premium-hover grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2.8fr)_auto] lg:items-center gap-3 lg:gap-4">
                         <!-- 검색 (항상 노출 · 단일 입력) -->
-                        <div class="relative group min-w-0 lg:col-start-3 lg:row-start-1">
+                        <div class="relative group min-w-0 lg:col-start-2 lg:row-start-1">
                             <i class="fas fa-search absolute left-4 lg:left-7 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-brand-500 transition-colors text-sm lg:text-base pointer-events-none"></i>
                             <input type="text" id="searchInput" placeholder="나의 강의 제목으로 검색해보세요"
                                    class="w-full min-h-[44px] pl-11 lg:pl-16 pr-4 py-2.5 lg:py-4 bg-neutral-50/50 border border-neutral-100 rounded-xl lg:rounded-[1.5rem] focus:bg-white focus:ring-4 lg:focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-bold text-neutral-900 text-sm touch-manipulation"
@@ -210,16 +225,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                                 </select>
                                 <i class="fas fa-chevron-down absolute right-4 lg:right-6 top-1/2 -translate-y-1/2 text-neutral-300 pointer-events-none text-[8px] group-hover:text-brand-500 transition-colors"></i>
                             </div>
-                            <div class="relative group w-full sm:flex-1 min-w-0 lg:col-start-2 lg:row-start-1 lg:min-w-[140px] lg:max-w-[240px]">
-                                <select id="statusFilter" onchange="loadCourses()" class="w-full min-h-[44px] pl-4 sm:pl-6 pr-10 py-2.5 lg:py-4 bg-neutral-50/50 border border-neutral-100 rounded-xl lg:rounded-[1.5rem] focus:bg-white focus:ring-4 lg:focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-neutral-800 text-xs appearance-none cursor-pointer touch-manipulation">
-                                    <option value="">전체 운영상태</option>
-                                    <option value="active">강의중 (Active)</option>
-                                    <option value="recruiting">모집중 (Recruiting)</option>
-                                    <option value="completed">종료 (Closed)</option>
-                                </select>
-                                <i class="fas fa-chevron-down absolute right-4 lg:right-6 top-1/2 -translate-y-1/2 text-neutral-300 pointer-events-none text-[8px] group-hover:text-brand-500 transition-colors"></i>
-                            </div>
-                            <div class="flex flex-wrap items-center justify-between gap-3 sm:justify-end lg:flex-nowrap w-full sm:flex-1 lg:w-auto lg:col-start-4 lg:row-start-1 lg:justify-end border-t border-neutral-100/90 lg:border-t-0 pt-3 sm:pt-3 lg:pt-0 mt-1 lg:mt-0 lg:pl-6 lg:border-l lg:border-neutral-100">
+                            <div class="flex flex-wrap items-center justify-between gap-3 sm:justify-end lg:flex-nowrap w-full sm:flex-1 lg:w-auto lg:col-start-3 lg:row-start-1 lg:justify-end border-t border-neutral-100/90 lg:border-t-0 pt-3 sm:pt-3 lg:pt-0 mt-1 lg:mt-0 lg:pl-6 lg:border-l lg:border-neutral-100">
                                 <div class="flex flex-col items-start sm:items-end gap-1">
                                     <span class="js-teacher-courses-search-result hidden lg:block text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] text-right w-full">Searching...</span>
                                     <div class="flex items-center gap-2 flex-wrap justify-end">
@@ -239,8 +245,8 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                         </div>
                     </div>
 
-                    <!-- 과정 목록 Grid -->
-                    <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-10 mb-20 min-h-[400px]">
+                    <!-- 과정 목록 Grid (가로형 Row 카드 디자인 최적화) -->
+                    <div id="coursesContainer" class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-20 min-h-[400px]">
                         <div class="col-span-full flex flex-col items-center justify-center py-40">
                             <div class="relative w-20 h-20 mb-10">
                                 <div class="absolute inset-0 border-4 border-brand-100 rounded-full"></div>
@@ -264,6 +270,22 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
     <script>
         let currentPage = 1;
         let limit = 12;
+        let activeStatusTab = 'all';
+
+        function switchCourseTab(tab) {
+            activeStatusTab = tab;
+            const tabs = ['all', 'running', 'completed'];
+            tabs.forEach(t => {
+                const btn = document.getElementById('tabBtn-' + t);
+                if (!btn) return;
+                if (t === tab) {
+                    btn.className = "flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 bg-brand-600 text-white shadow-xl shadow-brand-100";
+                } else {
+                    btn.className = "flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850";
+                }
+            });
+            loadCourses(1);
+        }
 
         function setRowsPerPageTeacherCourses(n) {
             limit = n;
@@ -335,7 +357,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 currentPage = page;
                 const token = localStorage.getItem('token');
                 const category = document.getElementById('categoryFilter').value;
-                const status = document.getElementById('statusFilter').value;
+                const status = activeStatusTab === 'all' ? '' : activeStatusTab;
                 const search = document.getElementById('searchInput').value;
 
                 let url = '/api/courses?page=' + page + '&limit=' + limit;
@@ -414,38 +436,75 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 const maxStudents = course.max_students || 0;
                 const progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : (enrolledCount > 0 ? 100 : 0);
                 
-                let s = { label: 'PREPARING', class: 'bg-neutral-800 text-neutral-400', p: false };
-                if (course.status === 'active' || course.status === 'open') s = { label: 'RUNNING', class: 'bg-emerald-600 shadow-emerald-100', p: true };
-                else if (course.status === 'upcoming' || course.status === 'recruiting') s = { label: 'RECRUITING', class: 'bg-brand-600 shadow-brand-100', p: false };
-                else if (course.status === 'completed' || course.status === 'closed') s = { label: 'FINISHED', class: 'bg-neutral-200 text-neutral-600', p: false };
-
                 const safeTitle = (course.title || 'Untitled').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                 const safeCat = (course.category || 'General').replace(/'/g, "&#39;");
 
-                const thumb = course.thumbnail_url 
-                    ? '<img src="' + course.thumbnail_url + '" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">'
-                    : '<div class="w-full h-full bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center"><i class="fas fa-layer-group text-5xl text-neutral-300"></i></div>';
+                // 카테고리별 세련된 다이내믹 아이콘 매핑
+                let iconClass = 'fa-book-reader';
+                if (safeCat.includes('3D') || safeCat.includes('프린트') || safeCat.includes('쿠키')) iconClass = 'fa-cubes text-brand-600';
+                else if (safeCat.includes('국비') || safeCat.includes('지원') || safeCat.includes('HRD')) iconClass = 'fa-landmark text-amber-600';
+                else if (safeCat.includes('자격') || safeCat.includes('면허') || safeCat.includes('시험')) iconClass = 'fa-graduation-cap text-emerald-600';
+                else if (safeCat.includes('취업')) iconClass = 'fa-briefcase text-purple-600';
 
-                return '<div class="group bg-white rounded-5xl border border-neutral-100 hover:shadow-premium-hover transition-all duration-700 flex flex-col">' +
-                        '<div class="relative aspect-[16/11] overflow-hidden rounded-t-[3rem]">' +
-                            thumb +
-                            '<div class="absolute top-6 left-6 z-10"><span class="px-4 py-2 rounded-2xl glass border border-white/40 text-[10px] font-black text-neutral-900 tracking-widest shadow-xl uppercase">' + safeCat + '</span></div>' +
-                            '<div class="absolute top-6 right-6 z-10">' +
-                                '<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full ' + s.class + ' shadow-xl text-white">' +
-                                (s.p ? '<div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>' : '') +
-                                '<span class="text-[9px] font-black uppercase tracking-widest leading-none">' + s.label + '</span></div>' +
+                // 상태별 펄스 배지 스타일 정의
+                let s = { label: 'PREPARING', textClass: 'text-neutral-500', pingBg: 'bg-neutral-400', dotBg: 'bg-neutral-500' };
+                if (course.status === 'active' || course.status === 'open') {
+                    s = { label: 'RUNNING', textClass: 'text-emerald-500', pingBg: 'bg-emerald-400', dotBg: 'bg-emerald-500' };
+                } else if (course.status === 'upcoming' || course.status === 'recruiting') {
+                    s = { label: 'RECRUITING', textClass: 'text-brand-500', pingBg: 'bg-brand-400', dotBg: 'bg-brand-500' };
+                } else if (course.status === 'completed' || course.status === 'closed') {
+                    s = { label: 'FINISHED', textClass: 'text-neutral-400', pingBg: 'bg-neutral-300', dotBg: 'bg-neutral-400' };
+                }
+
+                const startDate = (course.start_date || 'TBD').split('T')[0];
+
+                return '<div class="group bg-white rounded-3xl border border-neutral-150/70 p-6 hover:shadow-premium transition-all duration-500 flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">' +
+                    '<!-- 왼쪽: 아이콘 및 기본 정보 -->' +
+                    '<div class="flex items-center gap-4 min-w-0 flex-1">' +
+                        '<!-- 세련된 컴팩트 아이콘 블록 -->' +
+                        '<div class="w-14 h-14 rounded-2xl bg-neutral-50 flex items-center justify-center shadow-inner border border-neutral-100/80 transition-all duration-500 group-hover:scale-105 shrink-0 relative">' +
+                            '<i class="fas ' + iconClass + ' text-xl"></i>' +
+                            '<!-- 상태 모서리 펄스 배지 -->' +
+                            '<span class="absolute -top-1 -right-1 flex h-3 w-3">' +
+                                '<span class="animate-ping absolute inline-flex h-full w-full rounded-full ' + s.pingBg + ' opacity-75"></span>' +
+                                '<span class="relative inline-flex rounded-full h-3 w-3 ' + s.dotBg + '"></span>' +
+                            '</span>' +
+                        '</div>' +
+                        '<!-- 중앙 정보 영역 -->' +
+                        '<div class="min-w-0 flex-1">' +
+                            '<div class="flex items-center gap-2 mb-1.5 flex-wrap">' +
+                                '<span class="px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-500 text-[9px] font-black tracking-wider uppercase">' + safeCat + '</span>' +
+                                '<span class="text-[9px] font-black uppercase tracking-wider ' + s.textClass + '">' + s.label + '</span>' +
+                            '</div>' +
+                            '<h3 class="text-base font-outfit font-black text-neutral-900 tracking-tight truncate leading-snug group-hover:text-brand-600 transition-colors duration-300" title="' + safeTitle + '">' + safeTitle + '</h3>' +
+                            '<div class="flex items-center gap-4 mt-2 text-[10px] font-bold text-neutral-400 uppercase tracking-widest flex-wrap">' +
+                                '<span><i class="fas fa-users mr-1"></i> ' + enrolledCount + ' <span class="text-[9px] text-neutral-300">/ ' + (maxStudents || '∞') + '</span></span>' +
+                                '<span><i class="fas fa-calendar-day mr-1"></i> ' + startDate + '</span>' +
                             '</div>' +
                         '</div>' +
-                        '<div class="p-8 lg:p-10 flex-1 flex flex-col">' +
-                            '<h3 class="text-xl font-outfit font-black text-neutral-900 tracking-tight line-clamp-2 leading-snug group-hover:text-brand-600 transition-colors duration-300 mb-8 h-14">' + safeTitle + '</h3>' +
-                            '<div class="mt-auto">' +
-                                '<div class="flex justify-between items-end mb-6 font-outfit">' +
-                                    '<div class="flex flex-col"><span class="text-2xl font-black text-neutral-900">' + enrolledCount + '<span class="text-xs text-neutral-400 ml-1">/ ' + (maxStudents || '∞') + '</span></span><span class="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Enrolled</span></div>' +
-                                    '<div class="flex flex-col items-end"><span class="text-sm font-black text-neutral-800">' + (course.start_date || 'TBD').split('T')[0] + '</span><span class="text-[9px] font-black text-neutral-400 uppercase tracking-widest">Start Date</span></div>' +
-                                '</div>' +
-                                '<div class="w-full bg-neutral-100 h-2.5 rounded-full overflow-hidden mb-8 card-inner-shadow"><div class="bg-gradient-to-r from-brand-400 to-brand-700 h-full transition-all duration-1000 ease-out" style="width:' + progressPercent + '%"></div></div>' +
-                                '<div class="flex gap-4">' +
-                                    '<button onclick=\\'viewCourseDetail("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\' class="flex-1 px-8 py-5 bg-neutral-900 text-white rounded-3xl hover:bg-brand-600 transition-all duration-500 font-black text-[11px] tracking-[0.2em] uppercase flex items-center justify-center gap-2 group-hover:shadow-2xl group-hover:shadow-brand-200"><i class="fas fa-door-open"></i> 강의실 입장</button>' +
+                    '</div>' +
+                    '<!-- 오른쪽: 게이지 바 & 액션 버튼 그룹 -->' +
+                    '<div class="flex items-center gap-6 shrink-0 justify-between md:justify-end border-t border-neutral-50 pt-4 md:border-t-0 md:pt-0">' +
+                        '<!-- 컴팩트 진행률 라인 -->' +
+                        '<div class="hidden sm:flex flex-col w-28 items-end gap-1.5">' +
+                            '<span class="text-[9px] font-black text-neutral-400 uppercase tracking-wider">' + progressPercent + '% Enrolled</span>' +
+                            '<div class="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden card-inner-shadow">' +
+                                '<div class="bg-gradient-to-r from-brand-400 to-brand-600 h-full transition-all duration-1000 ease-out" style="width:' + progressPercent + '%"></div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<!-- 액션 버튼 -->' +
+                        '<div class="flex items-center gap-2.5 ml-auto md:ml-0">' +
+                            '<button onclick=\'viewCourseDetail("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\' class="px-5 py-3 bg-neutral-950 text-white rounded-2xl hover:bg-brand-600 transition-all duration-350 font-black text-[10px] tracking-wider uppercase flex items-center gap-2 group-hover:shadow-lg group-hover:shadow-brand-100">' +
+                                '<i class="fas fa-door-open text-[10px]"></i> 강의실 입장' +
+                            '</button>' +
+                            '<button onclick=\'manageCourse("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\' class="w-10 h-10 bg-neutral-50 text-neutral-600 rounded-2xl hover:bg-white hover:shadow-md hover:text-brand-600 transition-all border border-neutral-100 flex items-center justify-center shrink-0">' +
+                                '<i class="fas fa-cog"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }                                  '<button onclick=\\'viewCourseDetail("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\' class="flex-1 px-8 py-5 bg-neutral-900 text-white rounded-3xl hover:bg-brand-600 transition-all duration-500 font-black text-[11px] tracking-[0.2em] uppercase flex items-center justify-center gap-2 group-hover:shadow-2xl group-hover:shadow-brand-200"><i class="fas fa-door-open"></i> 강의실 입장</button>' +
                                     '<button onclick=\\'manageCourse("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\' class="w-16 h-16 bg-neutral-50 text-neutral-800 rounded-3xl hover:bg-white hover:shadow-xl hover:text-brand-600 transition-all border border-neutral-100 flex items-center justify-center"><i class="fas fa-cog text-xl"></i></button>' +
                                 '</div>' +
                             '</div>' +

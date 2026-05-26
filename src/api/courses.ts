@@ -88,8 +88,14 @@ courses.get('/', async (c) => {
     }
 
     if (filter.status) {
-      conditions.push('c.status = ?');
-      params.push(filter.status);
+      if (filter.status === 'running') {
+        conditions.push("c.status IN ('active', 'open', 'upcoming', 'recruiting')");
+      } else if (filter.status === 'completed') {
+        conditions.push("c.status IN ('completed', 'closed')");
+      } else {
+        conditions.push('c.status = ?');
+        params.push(filter.status);
+      }
     }
 
     if (filter.campus_id) {
@@ -210,7 +216,17 @@ courses.get('/', async (c) => {
         merged = merged.filter((c: any) => (c.category || '') === filter.category);
       }
       if (filter.status) {
-        merged = merged.filter((c: any) => (c.status || '') === filter.status);
+        if (filter.status === 'running') {
+          merged = merged.filter((c: any) => 
+            ['active', 'open', 'upcoming', 'recruiting'].includes(c.status || '')
+          );
+        } else if (filter.status === 'completed') {
+          merged = merged.filter((c: any) => 
+            ['completed', 'closed'].includes(c.status || '')
+          );
+        } else {
+          merged = merged.filter((c: any) => (c.status || '') === filter.status);
+        }
       }
       if (filter.search) {
         const term = (filter.search || '').toLowerCase();
