@@ -11,6 +11,19 @@ module.exports = {
         '4xl': '2rem',
       },
       colors: {
+        brand: {
+          50: '#f0f5ff',
+          100: '#e5edff',
+          200: '#cddbff',
+          300: '#b4c4ff',
+          400: '#8ca2ff',
+          500: '#5b75f2',
+          600: '#4f69f2',
+          705: '#3f54d1', // brand-700 대용
+          700: '#3f54d1',
+          800: '#2e3ea8',
+          900: '#1b2566',
+        },
         primary: {
           50: '#f0f7ff',
           100: '#e0effe',
