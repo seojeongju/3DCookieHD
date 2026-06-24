@@ -100,13 +100,12 @@ export function datesToTrainingDayLabels(dates: string[]): TrainingDayLabel[] {
   });
 }
 
-/** session_timetable 기반 훈련일 목록 (운영기간 내로 제한, 없으면 평일 fallback) */
-export async function getSessionTrainingDates(
+/** session_timetable에 등록된 훈련일 (운영기간 내) */
+export async function getTimetableTrainingDates(
   DB: D1Database,
   sessionId: number,
   trainingStart: string | null | undefined,
-  trainingEnd: string | null | undefined,
-  daysOfWeek?: string | null
+  trainingEnd: string | null | undefined
 ): Promise<string[]> {
   const start = normalizeTrainingDate(trainingStart);
   const end = normalizeTrainingDate(trainingEnd);
@@ -127,17 +126,37 @@ export async function getSessionTrainingDates(
   query += ' ORDER BY training_date ASC';
 
   const { results } = await DB.prepare(query).bind(...binds).all();
-  const dates = (results || [])
+  return (results || [])
     .map((r: { training_date?: string }) => normalizeTrainingDate(r.training_date))
     .filter(Boolean);
+}
 
+/** 운영기간 + 요일 패턴으로 전체 훈련일 생성 */
+export function generateScheduledTrainingDates(
+  trainingStart: string | null | undefined,
+  trainingEnd: string | null | undefined,
+  daysOfWeek?: string | null
+): string[] {
+  const start = normalizeTrainingDate(trainingStart);
+  const end = normalizeTrainingDate(trainingEnd);
+  if (!start || !end) return [];
+
+  const fromDays = generateTrainingDatesFromDaysOfWeek(start, end, daysOfWeek);
+  if (fromDays.length > 0) return fromDays;
+  return generateWeekdayTrainingDates(start, end);
+}
+
+/** session_timetable 기반 훈련일 목록 (운영기간 내로 제한, 없으면 평일 fallback) */
+export async function getSessionTrainingDates(
+  DB: D1Database,
+  sessionId: number,
+  trainingStart: string | null | undefined,
+  trainingEnd: string | null | undefined,
+  daysOfWeek?: string | null
+): Promise<string[]> {
+  const dates = await getTimetableTrainingDates(DB, sessionId, trainingStart, trainingEnd);
   if (dates.length > 0) return dates;
-  if (start && end) {
-    const fromDays = generateTrainingDatesFromDaysOfWeek(start, end, daysOfWeek);
-    if (fromDays.length > 0) return fromDays;
-    return generateWeekdayTrainingDates(start, end);
-  }
-  return [];
+  return generateScheduledTrainingDates(trainingStart, trainingEnd, daysOfWeek);
 }
 
 export async function getTrainingLogDatesForCourse(
@@ -152,7 +171,7 @@ export async function getTrainingLogDatesForCourse(
     .filter(Boolean);
 }
 
-/** 훈련일지용: 시간표 훈련일 + 기존 일지 날짜(과거 일지 유지) */
+/** 훈련일지용: 운영기간 전체 훈련일 + 시간표일 + 기존 일지 날짜 */
 export async function getSessionTrainingDatesForLogs(
   DB: D1Database,
   sessionId: number,
@@ -161,17 +180,10 @@ export async function getSessionTrainingDatesForLogs(
   daysOfWeek: string | null | undefined,
   lmsCourseId: number | null | undefined
 ): Promise<string[]> {
-  const timetableDates = await getSessionTrainingDates(
-    DB,
-    sessionId,
-    trainingStart,
-    trainingEnd,
-    daysOfWeek
-  );
-  if (!lmsCourseId) return timetableDates;
-
-  const logDates = await getTrainingLogDatesForCourse(DB, lmsCourseId);
-  return mergeTrainingDates([timetableDates, logDates]);
+  const scheduledDates = generateScheduledTrainingDates(trainingStart, trainingEnd, daysOfWeek);
+  const timetableDates = await getTimetableTrainingDates(DB, sessionId, trainingStart, trainingEnd);
+  const logDates = lmsCourseId ? await getTrainingLogDatesForCourse(DB, lmsCourseId) : [];
+  return mergeTrainingDates([scheduledDates, timetableDates, logDates]);
 }
 
 /** 운영기간 변경 시 범위 밖 시간표 정리 (출결·훈련일지는 삭제하지 않음) */

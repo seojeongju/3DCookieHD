@@ -4,7 +4,7 @@ import { successResponse, errorResponse, forbiddenResponse } from '../utils/resp
 import { authMiddleware } from '../middleware/auth';
 import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
-import { datesToTrainingDayLabels, getSessionTrainingDates, getSessionTrainingDatesForLogs } from '../utils/session_training_dates';
+import { datesToTrainingDayLabels, getSessionTrainingDates, getSessionTrainingDatesForLogs, normalizeTrainingDate } from '../utils/session_training_dates';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -2630,14 +2630,16 @@ app.delete('/counseling/:id', authMiddleware, async (c) => {
 // 훈련 일지용 일일 시간표 조회 (자동완성용, 강의 후 설문지 과목/강사 로드)
 app.get('/training-logs/daily-schedule', authMiddleware, async (c) => {
     try {
-        const courseId = c.req.query('courseId'); // session_id
-        const date = c.req.query('date');
+        const courseIdParam = c.req.query('courseId');
+        const sessionIdParam = c.req.query('session_id');
+        const date = normalizeTrainingDate(c.req.query('date'));
 
-        if (!courseId || !date) return errorResponse(c, 'courseId and date are required', 400);
+        if (!courseIdParam || !date) return errorResponse(c, 'courseId and date are required', 400);
 
-        // 시간표에서 해당 날짜의 교시별 과목, 담당강사 조회
-        // session_timetable <-> ncs_approved_curriculum (subject) <-> users (instructor)
-        const query = `
+        const sessionId = sessionIdParam ? Number(sessionIdParam) : Number(courseIdParam);
+        if (isNaN(sessionId)) return errorResponse(c, '유효한 courseId(session_id)가 필요합니다.', 400);
+
+        const scheduleQuery = `
             SELECT 
                 st.period_number,
                 st.subject_id,
@@ -2651,11 +2653,37 @@ app.get('/training-logs/daily-schedule', authMiddleware, async (c) => {
             LEFT JOIN ncs_approved_curriculum c ON st.subject_id = c.id
             LEFT JOIN users u ON st.instructor_id = u.id
             WHERE st.session_id = ? AND st.training_date = ?
+              AND (st.is_excluded IS NULL OR st.is_excluded = 0)
             ORDER BY st.period_number ASC
         `;
 
-        const { results } = await c.env.DB.prepare(query).bind(courseId, date).all();
-        return c.json({ success: true, data: results });
+        let { results } = await c.env.DB.prepare(scheduleQuery).bind(sessionId, date).all();
+
+        if (!results || (results as unknown[]).length === 0) {
+            const findFallbackDate = async (sameWeekday: boolean): Promise<string | null> => {
+                const row = await c.env.DB.prepare(`
+                    SELECT training_date FROM session_timetable
+                    WHERE session_id = ?
+                      AND training_date <= ?
+                      AND (is_excluded IS NULL OR is_excluded = 0)
+                      ${sameWeekday ? "AND CAST(strftime('%w', training_date) AS INTEGER) = CAST(strftime('%w', ?) AS INTEGER)" : ''}
+                    GROUP BY training_date
+                    ORDER BY training_date DESC
+                    LIMIT 1
+                `).bind(...(sameWeekday ? [sessionId, date, date] : [sessionId, date])).first() as { training_date?: string } | null;
+                return normalizeTrainingDate(row?.training_date) || null;
+            };
+
+            let fallbackDate = await findFallbackDate(true);
+            if (!fallbackDate) fallbackDate = await findFallbackDate(false);
+
+            if (fallbackDate) {
+                const fallback = await c.env.DB.prepare(scheduleQuery).bind(sessionId, fallbackDate).all();
+                results = fallback.results;
+            }
+        }
+
+        return c.json({ success: true, data: results || [] });
     } catch (e: any) {
         return errorResponse(c, e.message, 500);
     }
@@ -3095,7 +3123,7 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
         if (isNaN(rawId)) return errorResponse(c, '유효한 courseId를 입력해 주세요.', 400);
 
         const session: any = await c.env.DB.prepare(`
-            SELECT s.id, s.status, s.training_start_date, s.training_end_date, s.days_of_week
+            SELECT s.id, s.status, s.training_start_date, s.training_end_date, s.days_of_week, s.excluded_dates
             FROM course_sessions s
             WHERE s.id = ?
         `).bind(rawId).first();
@@ -3113,7 +3141,15 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
             session.training_end_date,
             session.days_of_week,
             lmsCourseId
-        );
+        ).then((list) => {
+            const excluded = (session.excluded_dates || '')
+                .split(',')
+                .map((d: string) => normalizeTrainingDate(d.trim()))
+                .filter(Boolean);
+            if (excluded.length === 0) return list;
+            const excludedSet = new Set(excluded);
+            return list.filter((d) => !excludedSet.has(d));
+        });
 
         return c.json({
             success: true,

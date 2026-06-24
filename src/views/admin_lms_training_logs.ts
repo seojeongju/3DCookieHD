@@ -339,7 +339,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                     </div>
                     <div class="flex flex-col sm:flex-row gap-2 sm:justify-between mt-2 mb-2">
                          <button type="button" id="btnLoadAttendance" onclick="loadDailyAttendance()" class="text-xs text-rose-600 hover:text-rose-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-rose-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-users-viewfinder"></i> <span id="btnLoadAttText">출석 기록 불러오기</span></button>
-                         <button type="button" onclick="loadDailySchedule()" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-indigo-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
+                         <button type="button" onclick="loadDailySchedule(true)" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-indigo-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
                     </div>
             
                     <!-- Footer Lists -->
@@ -423,9 +423,13 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             if (!dateStr) return '-';
             try {
                 var dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-                var d = new Date(dateStr);
-                if (isNaN(d.getTime())) return dateStr;
-                return dateStr + ' (' + dayNames[d.getDay()] + ')';
+                var parts = String(dateStr).substring(0, 10).split('-');
+                if (parts.length !== 3) return dateStr;
+                var y = parseInt(parts[0], 10);
+                var m = parseInt(parts[1], 10);
+                var d = parseInt(parts[2], 10);
+                var dow = dayNames[new Date(y, m - 1, d).getDay()];
+                return parts[0] + '-' + parts[1] + '-' + parts[2] + ' (' + dow + ')';
             } catch (e) { return dateStr; }
         }
 
@@ -478,7 +482,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             if (elFallback && elFallback.style.display !== 'none' && elFallback.value) {
                 if (elDate) elDate.value = elFallback.value;
             }
-            loadDailySchedule();
+            loadDailySchedule(false);
             loadDailyAttendance();
         }
 
@@ -1165,28 +1169,28 @@ async function printLog(id) {
         // Schedule Functions (New)
         // --------------------------------------------------------------------------------------------------------------------------------
         // --------------------------------------------------------------------------------------------------------------------------------
-        async function loadDailySchedule() {
+        async function loadDailySchedule(preserveExisting) {
             const dateInput = document.getElementById('logDate');
             if (!courseId || !dateInput || !dateInput.value) {
-                // alert('훈련 일자를 선택해주세요.');
                 return;
             }
             
-            // 기존 내용 보존 처리
             const existingData = [];
-            for (let i = 1; i <= 8; i++) {
-                const subj = document.querySelector('input[name="sch_subject_' + i + '"]');
-                const inst = document.querySelector('input[name="sch_instructor_' + i + '"]');
-                const cont = document.querySelector('input[name="sch_content_' + i + '"]');
-                const note = document.querySelector('input[name="sch_note_' + i + '"]');
-                if (subj || inst || cont || note) {
-                    existingData.push({
-                        period: i,
-                        subject: subj ? subj.value : '',
-                        instructor: inst ? inst.value : '',
-                        content: cont ? cont.value : '',
-                        note: note ? note.value : ''
-                    });
+            if (preserveExisting) {
+                for (let i = 1; i <= 8; i++) {
+                    const subj = document.querySelector('input[name="sch_subject_' + i + '"]');
+                    const inst = document.querySelector('input[name="sch_instructor_' + i + '"]');
+                    const cont = document.querySelector('input[name="sch_content_' + i + '"]');
+                    const note = document.querySelector('input[name="sch_note_' + i + '"]');
+                    if (subj || inst || cont || note) {
+                        existingData.push({
+                            period: i,
+                            subject: subj ? subj.value : '',
+                            instructor: inst ? inst.value : '',
+                            content: cont ? cont.value : '',
+                            note: note ? note.value : ''
+                        });
+                    }
                 }
             }
             
@@ -1194,20 +1198,20 @@ async function printLog(id) {
             if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-gray-400 font-bold animate-pulse">시간표 불러오는 중...</td></tr>';
 
             try {
-                const res = await fetch('/api/hrd/training-logs/daily-schedule?courseId=' + courseId + '&date=' + dateInput.value, {
+                const res = await fetch('/api/hrd/training-logs/daily-schedule?courseId=' + encodeURIComponent(courseId) + '&session_id=' + encodeURIComponent(courseId) + '&date=' + encodeURIComponent(dateInput.value), {
                      headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await res.json();
                 if (result.success) {
-                    renderScheduleTable(result.data, existingData.length > 0 ? existingData : null);
+                    renderScheduleTable(result.data, preserveExisting && existingData.length > 0 ? existingData : null);
                 } else {
                      if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-rose-400 font-bold">시간표 조회 실패</td></tr>';
-                     setTimeout(function() { renderScheduleTable(null, existingData.length > 0 ? existingData : null); }, 1000);
+                     setTimeout(function() { renderScheduleTable(null, preserveExisting && existingData.length > 0 ? existingData : null); }, 1000);
                 }
             } catch (e) {
                 console.error(e);
                 if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-rose-400 font-bold">오류 발생</td></tr>';
-                setTimeout(function() { renderScheduleTable(null, existingData.length > 0 ? existingData : null); }, 1000);
+                setTimeout(function() { renderScheduleTable(null, preserveExisting && existingData.length > 0 ? existingData : null); }, 1000);
             }
         }
 
@@ -1440,16 +1444,11 @@ async function printLog(id) {
                                 dates.forEach(function(d) {
                                     var opt = document.createElement('option');
                                     opt.value = d;
-                                    var label = d;
-                                    try {
-                                        var dayNames = ['일','월','화','수','목','금','토'];
-                                        var day = dayNames[new Date(d).getDay()];
-                                        label = d + ' (' + day + ')';
-                                    } catch(e) {}
-                                    opt.textContent = label;
+                                    opt.textContent = formatLogDateLabel(d);
                                     if (d === selected) opt.selected = true;
                                     elDateSelect.appendChild(opt);
                                 });
+                                window.trainingLogDates = dates.slice();
                                 elDateSelect.style.display = '';
                                 if (elDateFallback) elDateFallback.style.display = 'none';
                                 if (elDate) elDate.value = selected;
@@ -1477,7 +1476,7 @@ async function printLog(id) {
             });
 
             if (elDate && elDate.value) {
-                loadDailySchedule();
+                loadDailySchedule(false);
                 loadDailyAttendance();
             } else {
                 renderScheduleTable(null, null);
@@ -1607,10 +1606,10 @@ async function printLog(id) {
                     const details = JSON.parse(log.schedule_details_json);
                     renderScheduleTable(null, details); 
                 } catch(e) {
-                    loadDailySchedule();
+                    loadDailySchedule(false);
                 }
             } else {
-                loadDailySchedule(); 
+                loadDailySchedule(false); 
             }
 
             const elTitle = document.getElementById('modalTitle');
