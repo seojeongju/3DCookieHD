@@ -280,7 +280,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <td class="border border-gray-800 p-2 text-center font-medium" id="institution-name-display">쓰리디쿠키 홍대센터</td>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-24">훈련일</td>
                             <td class="border border-gray-800 p-1 text-center bg-white">
-                                <select id="logDateSelect" size="1" class="w-full text-center font-bold bg-white outline-none cursor-pointer text-gray-800 hover:text-indigo-600 border-0 py-1" style="display:none;"></select>
+                                <select id="logDateSelect" class="w-full text-center font-bold bg-white outline-none cursor-pointer text-gray-800 hover:text-indigo-600 border-0 py-1" style="display:none;"></select>
                                 <input type="date" id="logDateFallback" class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600" style="display:none;">
                                 <input type="hidden" id="logDate">
                             </td>
@@ -407,6 +407,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         var sessionId = sessionIdFromQuery ? parseInt(sessionIdFromQuery, 10) : null;
         var courseId = null;
         window.trainingLogDates = window.trainingLogDates || [];
+        window.hrdSessionMeta = window.hrdSessionMeta || null;
         var user = JSON.parse(localStorage.getItem('user') || '{}');
         var token = localStorage.getItem('token');
         var assignedUnits = [];
@@ -489,6 +490,70 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             loadDailyAttendance();
         }
 
+        function normalizeTrainingDatesList(raw) {
+            if (!raw) return [];
+            if (Array.isArray(raw)) {
+                return raw.map(function(d) { return String(d).substring(0, 10); }).filter(function(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d); });
+            }
+            if (typeof raw === 'string') {
+                try {
+                    var parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) return normalizeTrainingDatesList(parsed);
+                } catch (e) {}
+                if (raw.indexOf(',') >= 0) {
+                    return raw.split(',').map(function(d) { return d.trim().substring(0, 10); }).filter(function(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d); });
+                }
+                if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return [raw.substring(0, 10)];
+            }
+            return [];
+        }
+
+        function mergeTrainingDateLists() {
+            var merged = {};
+            for (var i = 0; i < arguments.length; i++) {
+                var list = arguments[i] || [];
+                for (var j = 0; j < list.length; j++) {
+                    var d = String(list[j]).substring(0, 10);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) merged[d] = true;
+                }
+            }
+            return Object.keys(merged).sort();
+        }
+
+        function generateClientTrainingDates(meta) {
+            if (!meta) return [];
+            var start = (meta.training_start_date || meta.start_date || '').toString().substring(0, 10);
+            var end = (meta.training_end_date || meta.end_date || '').toString().substring(0, 10);
+            if (!start || !end) return [];
+            var dayMap = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+            var allowed = [];
+            var dows = (meta.days_of_week || '').split(/[,/|]/);
+            for (var i = 0; i < dows.length; i++) {
+                var key = dows[i].trim();
+                if (dayMap[key] !== undefined) allowed.push(dayMap[key]);
+            }
+            if (allowed.length === 0 && meta.session_name && /주말/.test(meta.session_name)) {
+                allowed = [0, 6];
+            }
+            if (allowed.length === 0) allowed = [1, 2, 3, 4, 5];
+            var partsS = start.split('-');
+            var partsE = end.split('-');
+            if (partsS.length !== 3 || partsE.length !== 3) return [];
+            var cur = new Date(parseInt(partsS[0], 10), parseInt(partsS[1], 10) - 1, parseInt(partsS[2], 10));
+            var endD = new Date(parseInt(partsE[0], 10), parseInt(partsE[1], 10) - 1, parseInt(partsE[2], 10));
+            var out = [];
+            while (cur <= endD) {
+                if (allowed.indexOf(cur.getDay()) >= 0) {
+                    var y = cur.getFullYear();
+                    var m = String(cur.getMonth() + 1).padStart(2, '0');
+                    var dd = String(cur.getDate()).padStart(2, '0');
+                    out.push(y + '-' + m + '-' + dd);
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+            return out;
+        }
+
         async function resolveSessionContext() {
             if (!pathCourseId) return null;
             var apiUrl = '/api/courses/' + pathCourseId + '?type=hrd';
@@ -498,6 +563,13 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             if (result.success && result.data && result.data.id) {
                 sessionId = Number(result.data.id);
                 courseId = sessionId;
+                window.hrdSessionMeta = {
+                    id: sessionId,
+                    training_start_date: result.data.training_start_date || result.data.start_date,
+                    training_end_date: result.data.training_end_date || result.data.end_date,
+                    days_of_week: result.data.days_of_week,
+                    session_name: result.data.session_name
+                };
                 var dh = result.data.daily_hours;
                 if (dh != null && Number(dh) > 0) {
                     globalDailyHours = Number(dh);
@@ -1405,6 +1477,11 @@ async function printLog(id) {
             if (elContent) elContent.value = '';
             if (elHours) elHours.value = (globalDailyHours != null && globalDailyHours > 0) ? String(Number(globalDailyHours)) : '';
             if (elDate) elDate.value = '';
+            if (elDateSelect) {
+                elDateSelect.innerHTML = '';
+                elDateSelect.style.display = 'none';
+            }
+            if (elDateFallback) elDateFallback.style.display = 'none';
 
             if (elAuthor) {
                 elAuthor.innerHTML = '<option value="">선택</option>';
@@ -1472,18 +1549,36 @@ async function printLog(id) {
 
         async function loadTrainingLogDates() {
             if (!pathCourseId) return [];
+            if (!window.hrdSessionMeta) {
+                try { await resolveSessionContext(); } catch (e) {}
+            }
+            var apiDates = [];
             try {
                 var datesRes = await fetch(buildTrainingDatesApiUrl(), { headers: { 'Authorization': 'Bearer ' + token } });
                 var datesJson = await datesRes.json();
-                if (datesJson.success && datesJson.data && Array.isArray(datesJson.data.dates)) {
-                    if (datesJson.data.session_id) sessionId = Number(datesJson.data.session_id);
-                    window.trainingLogDates = datesJson.data.dates;
-                    return datesJson.data.dates;
+                if (datesJson.success && datesJson.data) {
+                    if (datesJson.data.session_id) {
+                        sessionId = Number(datesJson.data.session_id);
+                        courseId = sessionId;
+                    }
+                    if (!window.hrdSessionMeta && datesJson.data.training_start_date) {
+                        window.hrdSessionMeta = {
+                            id: sessionId,
+                            training_start_date: datesJson.data.training_start_date,
+                            training_end_date: datesJson.data.training_end_date,
+                            days_of_week: datesJson.data.days_of_week,
+                            session_name: datesJson.data.session_name
+                        };
+                    }
+                    apiDates = normalizeTrainingDatesList(datesJson.data.dates);
                 }
             } catch (e) {
                 console.error('training dates load failed', e);
             }
-            return [];
+            var clientDates = generateClientTrainingDates(window.hrdSessionMeta);
+            var merged = mergeTrainingDateLists(apiDates, clientDates);
+            window.trainingLogDates = merged;
+            return merged;
         }
 
         function populateTrainingDateSelect(dates, preferredDate) {

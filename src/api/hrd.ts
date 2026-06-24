@@ -3147,6 +3147,8 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
                 session_id: sessionId,
                 training_start_date: session.training_start_date,
                 training_end_date: session.training_end_date,
+                days_of_week: session.days_of_week,
+                session_name: session.session_name,
                 status: session.status,
                 is_closed: isClosed
             }

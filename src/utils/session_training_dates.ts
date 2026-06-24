@@ -212,6 +212,23 @@ export async function getTrainingLogDatesForCourse(
     .filter(Boolean);
 }
 
+/** training_logs.course_id는 LMS courses.id 또는 HRD session.id 둘 다 사용됨 */
+export async function getTrainingLogDatesForSession(
+  DB: D1Database,
+  sessionId: number,
+  lmsCourseId?: number | null
+): Promise<string[]> {
+  const ids: number[] = [sessionId];
+  if (lmsCourseId != null && lmsCourseId > 0 && lmsCourseId !== sessionId) ids.push(lmsCourseId);
+  const placeholders = ids.map(() => '?').join(',');
+  const { results } = await DB.prepare(
+    `SELECT DISTINCT date FROM training_logs WHERE course_id IN (${placeholders}) ORDER BY date ASC`
+  ).bind(...ids).all();
+  return (results || [])
+    .map((r: { date?: string }) => normalizeTrainingDate(r.date))
+    .filter(Boolean);
+}
+
 export async function getTimetableWeekdays(
   DB: D1Database,
   sessionId: number
@@ -248,10 +265,14 @@ export async function getSessionTrainingDatesForLogs(
   const timetableWeekdays = await getTimetableWeekdays(DB, sessionId);
   const effectiveDays = inferDaysOfWeekFromSessionMeta(daysOfWeek, sessionName, timetableWeekdays);
   const scheduledDates = generateScheduledTrainingDates(start, end, effectiveDays);
-  const logDates = lmsCourseId ? await getTrainingLogDatesForCourse(DB, lmsCourseId) : [];
+  const logDates = await getTrainingLogDatesForSession(DB, sessionId, lmsCourseId);
 
   // 훈련일지 작성: 운영기간 내 전체 훈련일 표시 (공강 excluded_dates는 드롭다운에서 제외하지 않음)
-  return mergeTrainingDates([scheduledDates, timetableDates, logDates]);
+  const merged = mergeTrainingDates([scheduledDates, timetableDates, logDates]);
+  if (merged.length === 0 && start && end) {
+    return generateScheduledTrainingDates(start, end, effectiveDays || '월,화,수,목,금');
+  }
+  return merged;
 }
 
 /** 운영기간 변경 시 범위 밖 시간표 정리 (출결·훈련일지는 삭제하지 않음) */
