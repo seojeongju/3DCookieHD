@@ -402,10 +402,10 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
     <script>
         var urlParams = new URLSearchParams(window.location.search);
         var pathParts = window.location.pathname.split('/');
-        var pathCourseId = pathParts[3] ? parseInt(pathParts[3]) : null;
+        var pathCourseId = pathParts[3] ? parseInt(pathParts[3], 10) : null;
         var sessionIdFromQuery = urlParams.get('session_id');
-        var sessionId = sessionIdFromQuery ? parseInt(sessionIdFromQuery) : pathCourseId;
-        var courseId = sessionId;
+        var sessionId = sessionIdFromQuery ? parseInt(sessionIdFromQuery, 10) : null;
+        var courseId = null;
         window.trainingLogDates = window.trainingLogDates || [];
         var user = JSON.parse(localStorage.getItem('user') || '{}');
         var token = localStorage.getItem('token');
@@ -489,25 +489,30 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             loadDailyAttendance();
         }
 
+        async function resolveSessionContext() {
+            if (!pathCourseId) return null;
+            var apiUrl = '/api/courses/' + pathCourseId + '?type=hrd';
+            if (sessionIdFromQuery) apiUrl += '&session_id=' + encodeURIComponent(sessionIdFromQuery);
+            var res = await fetch(apiUrl, { headers: { 'Authorization': 'Bearer ' + token } });
+            var result = await res.json();
+            if (result.success && result.data && result.data.id) {
+                sessionId = Number(result.data.id);
+                courseId = sessionId;
+                var dh = result.data.daily_hours;
+                if (dh != null && Number(dh) > 0) {
+                    globalDailyHours = Number(dh);
+                    var elH = document.getElementById('logHours');
+                    if (elH) elH.value = globalDailyHours;
+                }
+                return result.data;
+            }
+            return null;
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                if (sessionId || pathCourseId) {
-                   var initCourseUrl = '/api/courses/' + (pathCourseId || sessionId) + '?type=hrd';
-                   if (sessionId) initCourseUrl += '&session_id=' + encodeURIComponent(sessionId);
-                   var res = await fetch(initCourseUrl, { headers: { 'Authorization': 'Bearer ' + token } });
-                   var result = await res.json();
-                   if (result.success && result.data) {
-                       if (result.data.id) {
-                           sessionId = Number(result.data.id);
-                           courseId = sessionId;
-                       }
-                       var dh = result.data.daily_hours;
-                       if (dh != null && dh > 0) {
-                           globalDailyHours = Number(dh);
-                           var elH = document.getElementById('logHours');
-                           if (elH) elH.value = globalDailyHours;
-                       }
-                   }
+                if (pathCourseId) {
+                   await resolveSessionContext();
                    await loadTrainingLogDates();
                 }
             } catch(e) {}
@@ -617,7 +622,7 @@ async function loadLogs(page = 1) {
                 assignedHoursFromApi = null;
                 if (courseId) {
                     try {
-                        var courseRes = await fetch('/api/courses/' + courseId + '?type=hrd', { headers: { 'Authorization': 'Bearer ' + token } });
+                        var courseRes = await fetch('/api/courses/' + pathCourseId + '?type=hrd&session_id=' + encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer ' + token } });
                         var courseJson = await courseRes.json();
                         if (courseJson.success && courseJson.data && courseJson.data.daily_hours != null && Number(courseJson.data.daily_hours) > 0) {
                             var dh = Number(courseJson.data.daily_hours);
@@ -1208,7 +1213,9 @@ async function printLog(id) {
             if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-gray-400 font-bold animate-pulse">시간표 불러오는 중...</td></tr>';
 
             try {
-                const res = await fetch('/api/hrd/training-logs/daily-schedule?courseId=' + encodeURIComponent(courseId) + '&session_id=' + encodeURIComponent(courseId) + '&date=' + encodeURIComponent(dateInput.value), {
+                const scheduleCourseId = pathCourseId || courseId;
+                const scheduleSessionId = sessionId || courseId;
+                const res = await fetch('/api/hrd/training-logs/daily-schedule?courseId=' + encodeURIComponent(scheduleCourseId) + '&session_id=' + encodeURIComponent(scheduleSessionId) + '&date=' + encodeURIComponent(dateInput.value), {
                      headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await res.json();
@@ -1427,23 +1434,9 @@ async function printLog(id) {
                 }
             }
 
-            if (sessionId) {
+            if (pathCourseId) {
                 try {
-                    var courseApiUrl = '/api/courses/' + (pathCourseId || sessionId) + '?type=hrd';
-                    if (sessionId) courseApiUrl += '&session_id=' + encodeURIComponent(sessionId);
-                    var res = await fetch(courseApiUrl, { headers: { 'Authorization': 'Bearer ' + token } });
-                    var result = await res.json();
-                    if (result.success && result.data) {
-                        if (result.data.id) {
-                            sessionId = Number(result.data.id);
-                            courseId = sessionId;
-                        }
-                        var dh = result.data.daily_hours;
-                        if (dh != null && Number(dh) > 0) {
-                            globalDailyHours = Number(dh);
-                            if (elHours) elHours.value = String(Number(dh));
-                        }
-                    }
+                    await resolveSessionContext();
                     var dates = await loadTrainingLogDates();
                     populateTrainingDateSelect(dates, null);
                 } catch (e) {
@@ -1472,13 +1465,13 @@ async function printLog(id) {
         }
         
         function buildTrainingDatesApiUrl() {
-            var qs = 'courseId=' + encodeURIComponent(pathCourseId || sessionId || '');
+            var qs = 'courseId=' + encodeURIComponent(pathCourseId || '');
             if (sessionId) qs += '&session_id=' + encodeURIComponent(sessionId);
             return '/api/hrd/training-logs/training-dates?' + qs;
         }
 
         async function loadTrainingLogDates() {
-            if (!sessionId) return [];
+            if (!pathCourseId) return [];
             try {
                 var datesRes = await fetch(buildTrainingDatesApiUrl(), { headers: { 'Authorization': 'Bearer ' + token } });
                 var datesJson = await datesRes.json();

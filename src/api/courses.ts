@@ -337,6 +337,7 @@ courses.get('/:id', async (c) => {
         `;
 
         let session: any = null;
+        const isLmsCourse = await isRegisteredLmsCourseId(DB, rawId);
 
         // 대시보드 등에서 /courses/{숫자}/lms?session_id=회차PK 로 넘기면 경로 숫자와 courses.id 충돌 없이 정확한 회차 사용
         const sessionIdQ = c.req.query('session_id');
@@ -345,29 +346,34 @@ courses.get('/:id', async (c) => {
             ? parseInt(String(sessionIdQ), 10)
             : NaN;
         if (Number.isFinite(explicitSid) && explicitSid >= 1) {
-          session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(explicitSid).first<any>();
+          if (isLmsCourse) {
+            session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ? AND s.lms_course_id = ?`)
+              .bind(explicitSid, rawId).first<any>();
+            if (!session) {
+              session = await DB.prepare(
+                `${selectSessionJoin} WHERE s.lms_course_id = ? ORDER BY COALESCE(s.session_number, 999999) DESC, s.id DESC LIMIT 1`
+              ).bind(rawId).first<any>();
+            }
+          } else {
+            session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(explicitSid).first<any>();
+          }
         }
 
-        // [핵심 수정] type=hrd 진입 시 rawId가 session.id일 가능성이 가장 높으므로 항상 먼저 직접 조회
-        // isRegisteredLmsCourseId 체크를 먼저 하면 courses.id와 session.id가 겹칠 때 엉뚱한 회차가 선택됨
-        if (!session) {
-          session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(rawId).first<any>();
-        }
-
-        // s.id 직접 조회 실패 시 — rawId가 courses.id(LMS 과정)인 경우에만 lms_course_id로 연결된 회차 조회
-        const isLmsCourse = !session && (await isRegisteredLmsCourseId(DB, rawId));
+        // courses.id(LMS)와 course_sessions.id가 겹치면 lms_course_id 연결 회차를 session PK 매칭보다 우선
         if (!session && isLmsCourse) {
           session = await DB.prepare(
             `${selectSessionJoin}
             WHERE s.lms_course_id = ?
-            ORDER BY COALESCE(s.session_number, 999999) ASC, s.id ASC
+            ORDER BY COALESCE(s.session_number, 999999) DESC, s.id DESC
             LIMIT 1`
-          )
-            .bind(rawId)
-            .first<any>();
+          ).bind(rawId).first<any>();
         }
 
-        // s.id·lms_course_id 모두 실패 시 approved_course_id(승인과정 PK)로 최신 회차 폴백
+        if (!session) {
+          session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(rawId).first<any>();
+        }
+
+        // s.id 직접 조회 실패 시 approved_course_id(승인과정 PK)로 최신 회차 폴백
         if (!session && !isLmsCourse) {
           session = await DB.prepare(
             `${selectSessionJoin}

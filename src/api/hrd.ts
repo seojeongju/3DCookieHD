@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { Bindings, JWTPayload, Variables } from '../types';
 import { successResponse, errorResponse, forbiddenResponse } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
-import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { resolveSessionToLmsCourseId, resolveTrainingLogSession } from '../utils/sessionCourseResolution';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { datesToTrainingDayLabels, getSessionTrainingDates, getSessionTrainingDatesForLogs, normalizeTrainingDate } from '../utils/session_training_dates';
 
@@ -2636,8 +2636,9 @@ app.get('/training-logs/daily-schedule', authMiddleware, async (c) => {
 
         if (!courseIdParam || !date) return errorResponse(c, 'courseId and date are required', 400);
 
-        const sessionId = sessionIdParam ? Number(sessionIdParam) : Number(courseIdParam);
-        if (isNaN(sessionId)) return errorResponse(c, '유효한 courseId(session_id)가 필요합니다.', 400);
+        const session = await resolveTrainingLogSession(c.env.DB, courseIdParam, sessionIdParam);
+        if (!session) return errorResponse(c, '회차를 찾을 수 없습니다.', 404);
+        const sessionId = Number(session.id);
 
         const scheduleQuery = `
             SELECT 
@@ -3119,38 +3120,8 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
         const courseIdParam = c.req.query('courseId');
         if (!courseIdParam) return errorResponse(c, 'courseId가 필요합니다.', 400);
         const sessionIdParam = c.req.query('session_id');
-        const rawId = Number(courseIdParam);
-        if (isNaN(rawId)) return errorResponse(c, '유효한 courseId를 입력해 주세요.', 400);
 
-        const explicitSid = sessionIdParam ? Number(sessionIdParam) : NaN;
-        const sessionSelect = `
-            SELECT s.id, s.status, s.training_start_date, s.training_end_date, s.days_of_week, s.excluded_dates, s.session_name
-            FROM course_sessions s
-        `;
-
-        let session: any = null;
-        if (Number.isFinite(explicitSid) && explicitSid >= 1) {
-            session = await c.env.DB.prepare(`${sessionSelect} WHERE s.id = ?`).bind(explicitSid).first();
-        }
-        if (!session) {
-            session = await c.env.DB.prepare(`${sessionSelect} WHERE s.id = ?`).bind(rawId).first();
-        }
-        if (!session) {
-            session = await c.env.DB.prepare(`
-                ${sessionSelect}
-                WHERE s.approved_course_id = ?
-                ORDER BY s.session_number DESC, s.id DESC
-                LIMIT 1
-            `).bind(rawId).first();
-        }
-        if (!session) {
-            session = await c.env.DB.prepare(`
-                ${sessionSelect}
-                WHERE s.lms_course_id = ?
-                ORDER BY COALESCE(s.session_number, 999999) ASC, s.id ASC
-                LIMIT 1
-            `).bind(rawId).first();
-        }
+        const session = await resolveTrainingLogSession(c.env.DB, courseIdParam, sessionIdParam);
         if (!session) return errorResponse(c, '회차를 찾을 수 없습니다.', 404);
 
         const sessionId = Number(session.id);
