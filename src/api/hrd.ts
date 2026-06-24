@@ -3119,42 +3119,61 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
         const courseIdParam = c.req.query('courseId');
         if (!courseIdParam) return errorResponse(c, 'courseId가 필요합니다.', 400);
         const sessionIdParam = c.req.query('session_id');
-        const rawId = sessionIdParam ? Number(sessionIdParam) : Number(courseIdParam);
+        const rawId = Number(courseIdParam);
         if (isNaN(rawId)) return errorResponse(c, '유효한 courseId를 입력해 주세요.', 400);
 
-        const session: any = await c.env.DB.prepare(`
-            SELECT s.id, s.status, s.training_start_date, s.training_end_date, s.days_of_week, s.excluded_dates
+        const explicitSid = sessionIdParam ? Number(sessionIdParam) : NaN;
+        const sessionSelect = `
+            SELECT s.id, s.status, s.training_start_date, s.training_end_date, s.days_of_week, s.excluded_dates, s.session_name
             FROM course_sessions s
-            WHERE s.id = ?
-        `).bind(rawId).first();
+        `;
+
+        let session: any = null;
+        if (Number.isFinite(explicitSid) && explicitSid >= 1) {
+            session = await c.env.DB.prepare(`${sessionSelect} WHERE s.id = ?`).bind(explicitSid).first();
+        }
+        if (!session) {
+            session = await c.env.DB.prepare(`${sessionSelect} WHERE s.id = ?`).bind(rawId).first();
+        }
+        if (!session) {
+            session = await c.env.DB.prepare(`
+                ${sessionSelect}
+                WHERE s.approved_course_id = ?
+                ORDER BY s.session_number DESC, s.id DESC
+                LIMIT 1
+            `).bind(rawId).first();
+        }
+        if (!session) {
+            session = await c.env.DB.prepare(`
+                ${sessionSelect}
+                WHERE s.lms_course_id = ?
+                ORDER BY COALESCE(s.session_number, 999999) ASC, s.id ASC
+                LIMIT 1
+            `).bind(rawId).first();
+        }
         if (!session) return errorResponse(c, '회차를 찾을 수 없습니다.', 404);
 
+        const sessionId = Number(session.id);
         const today = new Date().toISOString().substring(0, 10);
         const isClosed = ['completed', 'closed'].includes(String(session.status)) ||
             (session.training_end_date && String(session.training_end_date).substring(0, 10) < today);
 
-        const lmsCourseId = await resolveSessionToLmsCourseId(c.env.DB, rawId);
+        const lmsCourseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
         const dates = await getSessionTrainingDatesForLogs(
             c.env.DB,
-            rawId,
+            sessionId,
             session.training_start_date,
             session.training_end_date,
             session.days_of_week,
-            lmsCourseId
-        ).then((list) => {
-            const excluded = (session.excluded_dates || '')
-                .split(',')
-                .map((d: string) => normalizeTrainingDate(d.trim()))
-                .filter(Boolean);
-            if (excluded.length === 0) return list;
-            const excludedSet = new Set(excluded);
-            return list.filter((d) => !excludedSet.has(d));
-        });
+            lmsCourseId,
+            session.session_name
+        );
 
         return c.json({
             success: true,
             data: {
                 dates,
+                session_id: sessionId,
                 training_start_date: session.training_start_date,
                 training_end_date: session.training_end_date,
                 status: session.status,

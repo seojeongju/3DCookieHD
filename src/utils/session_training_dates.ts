@@ -1,7 +1,58 @@
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
+const DAY_NAME_TO_NUM: Record<string, number> = {
+  일: 0,
+  월: 1,
+  화: 2,
+  수: 3,
+  목: 4,
+  금: 5,
+  토: 6,
+};
+
 export function normalizeTrainingDate(d: string | null | undefined): string {
   return (d || '').toString().substring(0, 10);
+}
+
+function parseLocalDateFromYmd(dateStr: string): Date | null {
+  const normalized = normalizeTrainingDate(dateStr);
+  const parts = normalized.split('-');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(day)) return null;
+  return new Date(y, m, day);
+}
+
+/** days_of_week 문자열 정규화 (토요일→토, 공백 제거 등) */
+export function normalizeDaysOfWeek(daysOfWeek: string | null | undefined): string {
+  const alias: Record<string, string> = {
+    일요일: '일', 월요일: '월', 화요일: '화', 수요일: '수', 목요일: '목', 금요일: '금', 토요일: '토',
+    sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토',
+  };
+  return (daysOfWeek || '')
+    .split(/[,/|]/)
+    .map((s) => s.trim())
+    .map((s) => alias[s.toLowerCase()] || alias[s] || s)
+    .filter((s) => DAY_NAME_TO_NUM[s] !== undefined)
+    .join(',');
+}
+
+export function inferDaysOfWeekFromSessionMeta(
+  daysOfWeek: string | null | undefined,
+  sessionName: string | null | undefined,
+  timetableWeekdays?: number[]
+): string {
+  const normalized = normalizeDaysOfWeek(daysOfWeek);
+  if (normalized) return normalized;
+  const name = (sessionName || '').toString();
+  if (/주말/.test(name)) return '토,일';
+  if (timetableWeekdays && timetableWeekdays.length > 0) {
+    const numToDay = ['일', '월', '화', '수', '목', '금', '토'];
+    return timetableWeekdays.map((n) => numToDay[n]).filter(Boolean).join(',');
+  }
+  return '';
 }
 
 export function isDateInTrainingRange(
@@ -26,16 +77,6 @@ export function filterDatesByTrainingRange(
   return dates.filter((d) => isDateInTrainingRange(d, start, end));
 }
 
-const DAY_NAME_TO_NUM: Record<string, number> = {
-  일: 0,
-  월: 1,
-  화: 2,
-  수: 3,
-  목: 4,
-  금: 5,
-  토: 6,
-};
-
 export function generateWeekdayTrainingDates(start: string, end: string): string[] {
   return generateTrainingDatesFromDaysOfWeek(start, end, '월,화,수,목,금');
 }
@@ -46,7 +87,7 @@ export function generateTrainingDatesFromDaysOfWeek(
   end: string,
   daysOfWeek: string | null | undefined
 ): string[] {
-  const allowedDays = (daysOfWeek || '')
+  const allowedDays = normalizeDaysOfWeek(daysOfWeek)
     .split(',')
     .map((s) => s.trim())
     .map((s) => DAY_NAME_TO_NUM[s])
@@ -54,12 +95,12 @@ export function generateTrainingDatesFromDaysOfWeek(
 
   if (allowedDays.length === 0) return [];
 
-  const dates: string[] = [];
-  const startD = new Date(start);
-  const endD = new Date(end);
-  if (isNaN(startD.getTime()) || isNaN(endD.getTime())) return dates;
+  const startD = parseLocalDateFromYmd(start);
+  const endD = parseLocalDateFromYmd(end);
+  if (!startD || !endD) return [];
 
-  for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+  const dates: string[] = [];
+  for (let d = new Date(startD.getTime()); d <= endD; d.setDate(d.getDate() + 1)) {
     if (!allowedDays.includes(d.getDay())) continue;
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -171,6 +212,20 @@ export async function getTrainingLogDatesForCourse(
     .filter(Boolean);
 }
 
+export async function getTimetableWeekdays(
+  DB: D1Database,
+  sessionId: number
+): Promise<number[]> {
+  const { results } = await DB.prepare(`
+    SELECT DISTINCT CAST(strftime('%w', training_date) AS INTEGER) AS dow
+    FROM session_timetable
+    WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
+  `).bind(sessionId).all();
+  return (results || [])
+    .map((r: { dow?: number }) => Number(r.dow))
+    .filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+}
+
 /** 훈련일지용: 운영기간 전체 훈련일 + 시간표일 + 기존 일지 날짜 */
 export async function getSessionTrainingDatesForLogs(
   DB: D1Database,
@@ -178,11 +233,24 @@ export async function getSessionTrainingDatesForLogs(
   trainingStart: string | null | undefined,
   trainingEnd: string | null | undefined,
   daysOfWeek: string | null | undefined,
-  lmsCourseId: number | null | undefined
+  lmsCourseId: number | null | undefined,
+  sessionName?: string | null
 ): Promise<string[]> {
-  const scheduledDates = generateScheduledTrainingDates(trainingStart, trainingEnd, daysOfWeek);
-  const timetableDates = await getTimetableTrainingDates(DB, sessionId, trainingStart, trainingEnd);
+  let start = normalizeTrainingDate(trainingStart);
+  let end = normalizeTrainingDate(trainingEnd);
+
+  const timetableDates = await getTimetableTrainingDates(DB, sessionId, start || null, end || null);
+  if ((!start || !end) && timetableDates.length > 0) {
+    if (!start) start = timetableDates[0];
+    if (!end) end = timetableDates[timetableDates.length - 1];
+  }
+
+  const timetableWeekdays = await getTimetableWeekdays(DB, sessionId);
+  const effectiveDays = inferDaysOfWeekFromSessionMeta(daysOfWeek, sessionName, timetableWeekdays);
+  const scheduledDates = generateScheduledTrainingDates(start, end, effectiveDays);
   const logDates = lmsCourseId ? await getTrainingLogDatesForCourse(DB, lmsCourseId) : [];
+
+  // 훈련일지 작성: 운영기간 내 전체 훈련일 표시 (공강 excluded_dates는 드롭다운에서 제외하지 않음)
   return mergeTrainingDates([scheduledDates, timetableDates, logDates]);
 }
 

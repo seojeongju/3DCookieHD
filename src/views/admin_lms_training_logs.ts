@@ -280,7 +280,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <td class="border border-gray-800 p-2 text-center font-medium" id="institution-name-display">쓰리디쿠키 홍대센터</td>
                             <td class="border border-gray-800 bg-gray-100 font-bold p-2 text-center w-24">훈련일</td>
                             <td class="border border-gray-800 p-1 text-center bg-white">
-                                <select id="logDateSelect" class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600 border-0 py-1" style="display:none;"></select>
+                                <select id="logDateSelect" size="1" class="w-full text-center font-bold bg-white outline-none cursor-pointer text-gray-800 hover:text-indigo-600 border-0 py-1" style="display:none;"></select>
                                 <input type="date" id="logDateFallback" class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600" style="display:none;">
                                 <input type="hidden" id="logDate">
                             </td>
@@ -402,8 +402,11 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
     <script>
         var urlParams = new URLSearchParams(window.location.search);
         var pathParts = window.location.pathname.split('/');
-        var rawId = pathParts[3];
-        var courseId = urlParams.get('session_id') || (rawId ? parseInt(rawId) : rawId);
+        var pathCourseId = pathParts[3] ? parseInt(pathParts[3]) : null;
+        var sessionIdFromQuery = urlParams.get('session_id');
+        var sessionId = sessionIdFromQuery ? parseInt(sessionIdFromQuery) : pathCourseId;
+        var courseId = sessionId;
+        window.trainingLogDates = window.trainingLogDates || [];
         var user = JSON.parse(localStorage.getItem('user') || '{}');
         var token = localStorage.getItem('token');
         var assignedUnits = [];
@@ -488,10 +491,16 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                if (courseId) {
-                   var res = await fetch('/api/courses/' + courseId + '?type=hrd');
+                if (sessionId || pathCourseId) {
+                   var initCourseUrl = '/api/courses/' + (pathCourseId || sessionId) + '?type=hrd';
+                   if (sessionId) initCourseUrl += '&session_id=' + encodeURIComponent(sessionId);
+                   var res = await fetch(initCourseUrl, { headers: { 'Authorization': 'Bearer ' + token } });
                    var result = await res.json();
                    if (result.success && result.data) {
+                       if (result.data.id) {
+                           sessionId = Number(result.data.id);
+                           courseId = sessionId;
+                       }
                        var dh = result.data.daily_hours;
                        if (dh != null && dh > 0) {
                            globalDailyHours = Number(dh);
@@ -499,6 +508,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                            if (elH) elH.value = globalDailyHours;
                        }
                    }
+                   await loadTrainingLogDates();
                 }
             } catch(e) {}
 
@@ -1417,56 +1427,28 @@ async function printLog(id) {
                 }
             }
 
-            if (courseId) {
+            if (sessionId) {
                 try {
-                    var res = await fetch('/api/courses/' + courseId + '?type=hrd', { headers: { 'Authorization': 'Bearer ' + token } });
+                    var courseApiUrl = '/api/courses/' + (pathCourseId || sessionId) + '?type=hrd';
+                    if (sessionId) courseApiUrl += '&session_id=' + encodeURIComponent(sessionId);
+                    var res = await fetch(courseApiUrl, { headers: { 'Authorization': 'Bearer ' + token } });
                     var result = await res.json();
                     if (result.success && result.data) {
+                        if (result.data.id) {
+                            sessionId = Number(result.data.id);
+                            courseId = sessionId;
+                        }
                         var dh = result.data.daily_hours;
                         if (dh != null && Number(dh) > 0) {
                             globalDailyHours = Number(dh);
                             if (elHours) elHours.value = String(Number(dh));
                         }
                     }
-                    var datesRes = await fetch('/api/hrd/training-logs/training-dates?courseId=' + encodeURIComponent(courseId) + '&session_id=' + encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer ' + token } });
-                    var datesJson = await datesRes.json();
-                    if (datesJson.success && datesJson.data) {
-                        var dates = datesJson.data.dates || [];
-                        if (dates.length > 0) {
-                            if (elDateSelect) {
-                                elDateSelect.innerHTML = '';
-                                var today = new Date().toISOString().substring(0, 10);
-                                var selected = today;
-                                if (dates.indexOf(today) < 0) {
-                                    var pastOrToday = dates.filter(function(d) { return d <= today; });
-                                    selected = pastOrToday.length > 0 ? pastOrToday[pastOrToday.length - 1] : dates[0];
-                                }
-                                dates.forEach(function(d) {
-                                    var opt = document.createElement('option');
-                                    opt.value = d;
-                                    opt.textContent = formatLogDateLabel(d);
-                                    if (d === selected) opt.selected = true;
-                                    elDateSelect.appendChild(opt);
-                                });
-                                window.trainingLogDates = dates.slice();
-                                elDateSelect.style.display = '';
-                                if (elDateFallback) elDateFallback.style.display = 'none';
-                                if (elDate) elDate.value = selected;
-                            }
-                        } else {
-                            if (elDateSelect) elDateSelect.style.display = 'none';
-                            if (elDateFallback) {
-                                elDateFallback.style.display = '';
-                                var start = datesJson.data.training_start_date || '';
-                                var end = datesJson.data.training_end_date || '';
-                                if (start) elDateFallback.min = start.substring(0, 10);
-                                if (end) elDateFallback.max = end.substring(0, 10);
-                                elDateFallback.valueAsDate = new Date();
-                                if (elDate) elDate.value = elDateFallback.value;
-                            }
-                        }
-                    }
-                } catch (e) {}
+                    var dates = await loadTrainingLogDates();
+                    populateTrainingDateSelect(dates, null);
+                } catch (e) {
+                    console.error('openLogModal init failed', e);
+                }
             }
 
             ['logAttPresent', 'logAttAbsent', 'logAttLate', 'logAttEarly',
@@ -1489,6 +1471,64 @@ async function printLog(id) {
             if (elModal) elModal.classList.remove('hidden');
         }
         
+        function buildTrainingDatesApiUrl() {
+            var qs = 'courseId=' + encodeURIComponent(pathCourseId || sessionId || '');
+            if (sessionId) qs += '&session_id=' + encodeURIComponent(sessionId);
+            return '/api/hrd/training-logs/training-dates?' + qs;
+        }
+
+        async function loadTrainingLogDates() {
+            if (!sessionId) return [];
+            try {
+                var datesRes = await fetch(buildTrainingDatesApiUrl(), { headers: { 'Authorization': 'Bearer ' + token } });
+                var datesJson = await datesRes.json();
+                if (datesJson.success && datesJson.data && Array.isArray(datesJson.data.dates)) {
+                    if (datesJson.data.session_id) sessionId = Number(datesJson.data.session_id);
+                    window.trainingLogDates = datesJson.data.dates;
+                    return datesJson.data.dates;
+                }
+            } catch (e) {
+                console.error('training dates load failed', e);
+            }
+            return [];
+        }
+
+        function populateTrainingDateSelect(dates, preferredDate) {
+            var elDateSelect = document.getElementById('logDateSelect');
+            var elDateFallback = document.getElementById('logDateFallback');
+            var elDate = document.getElementById('logDate');
+            if (!dates || dates.length === 0) {
+                if (elDateSelect) elDateSelect.style.display = 'none';
+                if (elDateFallback) {
+                    elDateFallback.style.display = '';
+                    elDateFallback.valueAsDate = new Date();
+                    if (elDate) elDate.value = elDateFallback.value;
+                }
+                return null;
+            }
+            if (elDateSelect) {
+                elDateSelect.innerHTML = '';
+                var today = new Date().toISOString().substring(0, 10);
+                var selected = preferredDate || today;
+                if (dates.indexOf(selected) < 0) {
+                    var pastOrToday = dates.filter(function(d) { return d <= today; });
+                    selected = pastOrToday.length > 0 ? pastOrToday[pastOrToday.length - 1] : dates[0];
+                }
+                dates.forEach(function(d) {
+                    var opt = document.createElement('option');
+                    opt.value = d;
+                    opt.textContent = formatLogDateLabel(d);
+                    if (d === selected) opt.selected = true;
+                    elDateSelect.appendChild(opt);
+                });
+                elDateSelect.style.display = '';
+                if (elDateFallback) elDateFallback.style.display = 'none';
+                if (elDate) elDate.value = selected;
+                return selected;
+            }
+            return null;
+        }
+
         function setModalCourseName() {
             const el = document.getElementById('logCourseName');
             if (!el) return;
@@ -1524,21 +1564,11 @@ async function printLog(id) {
             window.notTrainingDay = false;
             var notTrainingNoticeEl = document.getElementById('logNotTrainingDayNotice');
             if (notTrainingNoticeEl) notTrainingNoticeEl.classList.add('hidden');
-            if (elDateSelect && elDateSelect.style.display !== 'none') {
-                if (elDateSelect.querySelector('option[value="' + log.date + '"]')) {
-                    elDateSelect.value = log.date;
-                } else {
-                    var opt = document.createElement('option');
-                    opt.value = log.date;
-                    opt.textContent = log.date;
-                    opt.selected = true;
-                    elDateSelect.appendChild(opt);
-                }
-            } else if (elDateFallback) {
-                elDateFallback.style.display = '';
-                elDateFallback.value = log.date;
-                if (elDateSelect) elDateSelect.style.display = 'none';
-            }
+            var dates = window.trainingLogDates && window.trainingLogDates.length > 0
+                ? window.trainingLogDates
+                : await loadTrainingLogDates();
+            populateTrainingDateSelect(dates, log.date);
+            if (elDate) elDate.value = log.date;
             if (elContent) elContent.value = log.content || '';
             if (elHours) elHours.value = (log.training_hours != null && log.training_hours !== '') ? String(Number(log.training_hours)) : '';
 
