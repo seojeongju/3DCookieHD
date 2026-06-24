@@ -400,8 +400,10 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
     </div>
 
     <script>
-        var rawId = window.location.pathname.split('/')[3];
-        var courseId = rawId ? parseInt(rawId) : rawId;
+        var urlParams = new URLSearchParams(window.location.search);
+        var pathParts = window.location.pathname.split('/');
+        var rawId = pathParts[3];
+        var courseId = urlParams.get('session_id') || (rawId ? parseInt(rawId) : rawId);
         var user = JSON.parse(localStorage.getItem('user') || '{}');
         var token = localStorage.getItem('token');
         var assignedUnits = [];
@@ -1231,8 +1233,13 @@ async function printLog(id) {
                 const result = await res.json();
                 
                 if (result.success && result.data) {
-                    // 훈련일 여부 체크
-                    window.notTrainingDay = result.data.is_training_day === false;
+                    const dateVal = dateInput.value;
+                    const dateSelectEl = document.getElementById('logDateSelect');
+                    const isListedTrainingDay = dateSelectEl && dateSelectEl.style.display !== 'none'
+                        && Array.from(dateSelectEl.options).some(function(o) { return o.value === dateVal; });
+
+                    // 훈련일지 모달: 드롭다운에 있는 날짜는 과거일 포함 항상 작성 가능
+                    window.notTrainingDay = !isListedTrainingDay && result.data.is_training_day === false;
                     const notTrainingNoticeEl = document.getElementById('logNotTrainingDayNotice');
                     if (notTrainingNoticeEl) {
                         notTrainingNoticeEl.classList.toggle('hidden', !window.notTrainingDay);
@@ -1417,7 +1424,7 @@ async function printLog(id) {
                             if (elHours) elHours.value = String(Number(dh));
                         }
                     }
-                    var datesRes = await fetch('/api/hrd/training-logs/training-dates?courseId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } });
+                    var datesRes = await fetch('/api/hrd/training-logs/training-dates?courseId=' + encodeURIComponent(courseId) + '&session_id=' + encodeURIComponent(courseId), { headers: { 'Authorization': 'Bearer ' + token } });
                     var datesJson = await datesRes.json();
                     if (datesJson.success && datesJson.data) {
                         var dates = datesJson.data.dates || [];
@@ -1425,7 +1432,11 @@ async function printLog(id) {
                             if (elDateSelect) {
                                 elDateSelect.innerHTML = '';
                                 var today = new Date().toISOString().substring(0, 10);
-                                var selected = dates.indexOf(today) >= 0 ? today : dates[0];
+                                var selected = today;
+                                if (dates.indexOf(today) < 0) {
+                                    var pastOrToday = dates.filter(function(d) { return d <= today; });
+                                    selected = pastOrToday.length > 0 ? pastOrToday[pastOrToday.length - 1] : dates[0];
+                                }
                                 dates.forEach(function(d) {
                                     var opt = document.createElement('option');
                                     opt.value = d;
@@ -1511,6 +1522,9 @@ async function printLog(id) {
             if (elDate) elDate.value = log.date;
             var elDateSelect = document.getElementById('logDateSelect');
             var elDateFallback = document.getElementById('logDateFallback');
+            window.notTrainingDay = false;
+            var notTrainingNoticeEl = document.getElementById('logNotTrainingDayNotice');
+            if (notTrainingNoticeEl) notTrainingNoticeEl.classList.add('hidden');
             if (elDateSelect && elDateSelect.style.display !== 'none') {
                 if (elDateSelect.querySelector('option[value="' + log.date + '"]')) {
                     elDateSelect.value = log.date;

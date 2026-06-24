@@ -11,6 +11,7 @@ import { authMiddleware, requireAdmin, requireTeacher } from '../middleware/auth
 import { verifyCourseOwnership } from '../middleware/ownership';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
+import { getSessionTrainingDates, normalizeTrainingDate } from '../utils/session_training_dates';
 
 const courses = new Hono<{ Bindings: Bindings }>();
 
@@ -899,22 +900,24 @@ courses.get('/:id/attendance-info', async (c) => {
       return successResponse(c, { session_status: '', training_end_date: null, last_training_date: null });
     }
     const session = await getOne<any>(c.env.DB, `
-      SELECT cs.training_end_date, cs.status as session_status
+      SELECT cs.training_start_date, cs.training_end_date, cs.status as session_status
       FROM course_sessions cs
       WHERE cs.id = ?
     `, [courseId]);
     if (!session) {
       return successResponse(c, { session_status: '', training_end_date: null, last_training_date: null });
     }
-    const trainingEndDate = (session.training_end_date || '').toString().substring(0, 10);
+    const trainingEndDate = normalizeTrainingDate(session.training_end_date);
+    const trainingStartDate = normalizeTrainingDate(session.training_start_date);
     let lastTrainingDate = trainingEndDate;
-    const lastRow = await c.env.DB.prepare(`
-      SELECT training_date FROM session_timetable
-      WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
-      ORDER BY training_date DESC LIMIT 1
-    `).bind(courseId).first() as { training_date: string } | null;
-    if (lastRow && lastRow.training_date) {
-      lastTrainingDate = lastRow.training_date.toString().substring(0, 10);
+    const trainingDates = await getSessionTrainingDates(
+      c.env.DB,
+      Number(courseId),
+      trainingStartDate,
+      trainingEndDate
+    );
+    if (trainingDates.length > 0) {
+      lastTrainingDate = trainingDates[trainingDates.length - 1];
     }
     return successResponse(c, {
       session_status: session.session_status || '',
@@ -974,7 +977,7 @@ courses.get('/:id/attendance', async (c) => {
     if (isHrd) {
       // 0. 회차 정보 조회 (기본 시간 설정 + 마감 여부 + 훈련 기간)
       const session = await getOne<any>(c.env.DB, `
-        SELECT cs.training_time_start, cs.training_time_end, cs.training_start_date, cs.training_end_date, cs.status as session_status, ac.total_days, ac.total_hours, ac.daily_hours
+        SELECT cs.training_time_start, cs.training_time_end, cs.training_start_date, cs.training_end_date, cs.days_of_week, cs.status as session_status, ac.total_days, ac.total_hours, ac.daily_hours
         FROM course_sessions cs
         JOIN approved_courses ac ON cs.approved_course_id = ac.id
         WHERE cs.id = ?
@@ -1010,13 +1013,13 @@ courses.get('/:id/attendance', async (c) => {
         )
       `, [courseId]);
 
-      const { results: timetableRowsData } = await c.env.DB.prepare(`
-        SELECT DISTINCT training_date FROM session_timetable
-        WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
-        ORDER BY training_date ASC
-      `).bind(courseId).all() as { results: { training_date: string }[] };
-
-      allTimetableDates = (timetableRowsData || []).map((r: any) => (r.training_date || '').toString().substring(0, 10)).filter(Boolean);
+      allTimetableDates = await getSessionTrainingDates(
+        c.env.DB,
+        Number(courseId),
+        sessionDetails?.training_start_date,
+        sessionDetails?.training_end_date,
+        sessionDetails?.days_of_week
+      );
       timetableTotalDays = allTimetableDates.length;
       timetableProgressedDays = allTimetableDates.filter(d => d <= progressCap).length;
 

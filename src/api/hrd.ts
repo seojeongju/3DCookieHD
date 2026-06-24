@@ -4,6 +4,7 @@ import { successResponse, errorResponse, forbiddenResponse } from '../utils/resp
 import { authMiddleware } from '../middleware/auth';
 import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
+import { datesToTrainingDayLabels, getSessionTrainingDates, getSessionTrainingDatesForLogs } from '../utils/session_training_dates';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -855,6 +856,8 @@ app.get('/students/:id', async (c) => {
             SELECT 
                 cs.id as session_id,
                 cs.status as session_status,
+                cs.training_start_date,
+                cs.training_end_date,
                 cs.training_time_start,
                 cs.training_time_end,
                 ac.total_days,
@@ -865,13 +868,13 @@ app.get('/students/:id', async (c) => {
             JOIN approved_courses ac ON cs.approved_course_id = ac.id
             WHERE cse.user_id = ?
             ORDER BY cs.training_start_date DESC LIMIT 1
-        `).bind(id).first() as { session_id: number; session_status: string; training_time_start: string; training_time_end: string; total_days: number; total_hours: number; daily_hours: number } | undefined;
+        `).bind(id).first() as { session_id: number; session_status: string; training_start_date: string; training_end_date: string; training_time_start: string; training_time_end: string; total_days: number; total_hours: number; daily_hours: number } | undefined;
 
         let attendance_rate = 0;
         let advanced_attendance = null;
 
         if (activeCourseInfo) {
-            const { session_id, session_status, training_time_start, training_time_end, total_days, total_hours, daily_hours } = activeCourseInfo;
+            const { session_id, session_status, training_start_date, training_end_date, training_time_start, training_time_end, total_days, total_hours, daily_hours } = activeCourseInfo;
             // daily_hours가 명시된 경우 시간 기반(단기) 처리
             // daily_hours가 없을 때만 total_days/total_hours 기준으로 장기 판별
             const isLongTerm = !daily_hours && (total_days >= 10 && total_hours >= 40);
@@ -979,13 +982,12 @@ app.get('/students/:id', async (c) => {
                 // timetable 기반으로 분모 계산 + actualDailyMinutes 사용
                 const isClosed2 = (session_status || '') === 'closed';
                 const today2 = new Date().toISOString().split('T')[0];
-                const { results: timetableRows2 } = await c.env.DB.prepare(`
-                    SELECT DISTINCT training_date FROM session_timetable
-                    WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
-                    ORDER BY training_date ASC
-                `).bind(session_id).all() as { results: { training_date: string }[] };
-
-                const tblDates = (timetableRows2 || []).map((r: any) => (r.training_date || '').toString().substring(0, 10)).filter(Boolean);
+                const tblDates = await getSessionTrainingDates(
+                    c.env.DB,
+                    session_id,
+                    training_start_date,
+                    training_end_date
+                );
                 const tblTotalDays = tblDates.length;
                 const tblProgressedDays = isClosed2 ? tblTotalDays : tblDates.filter(d => d <= today2).length;
 
@@ -2096,7 +2098,7 @@ app.get('/attendance/print-form', async (c) => {
 
         // 1. 회차 정보 (과정명, 기간, 강사, 시간, 강의실)
         const sessionRow = await DB.prepare(`
-            SELECT s.id, s.session_number, s.session_name, s.training_start_date, s.training_end_date,
+            SELECT s.id, s.session_number, s.session_name, s.training_start_date, s.training_end_date, s.days_of_week,
                 s.instructor_name, s.training_time_start, s.training_time_end, s.location as session_location,
                 a.name as course_name, a.total_days, a.total_hours, a.daily_hours
             FROM course_sessions s
@@ -2133,46 +2135,16 @@ app.get('/attendance/print-form', async (c) => {
             trainingPeriod: trainingPeriod || '-',
         };
 
-        // 2. 훈련일(일차) 목록: session_timetable의 distinct training_date, 없으면 start~end 평일
-        let trainingDays: { dayNumber: number; date: string; dateShort: string; dayOfWeek: string }[] = [];
-        const dayRows = await DB.prepare(`
-            SELECT DISTINCT training_date FROM session_timetable WHERE session_id = ? AND(is_excluded IS NULL OR is_excluded = 0) ORDER BY training_date
-        `).bind(sessionId).all();
-
-        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-        if (dayRows.results && (dayRows.results as any[]).length > 0) {
-            trainingDays = (dayRows.results as any[]).map((r: any, i: number) => {
-                const d = r.training_date;
-                const [y, m, day] = d.split('-');
-                const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(day));
-                return {
-                    dayNumber: i + 1,
-                    date: d,
-                    dateShort: `${parseInt(m)}/${parseInt(day)}`,
-                    dayOfWeek: dayNames[dateObj.getDay()],
-                };
-            });
-        } else {
-            const start = sessionRow.training_start_date ? new Date(sessionRow.training_start_date) : null;
-            const end = sessionRow.training_end_date ? new Date(sessionRow.training_end_date) : null;
-            if (start && end) {
-                let n = 0;
-                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                    const day = d.getDay();
-                    if (day !== 0 && day !== 6) {
-                        n++;
-                        const y = d.getFullYear(), m = d.getMonth() + 1, dayNum = d.getDate();
-                        const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-                        trainingDays.push({
-                            dayNumber: n,
-                            date: dateStr,
-                            dateShort: `${m}/${dayNum}`,
-                            dayOfWeek: dayNames[day],
-                        });
-                    }
-                }
-            }
-        }
+        // 2. 훈련일(일차) 목록: session_timetable (운영기간 내), 없으면 start~end 평일
+        const trainingDays = datesToTrainingDayLabels(
+            await getSessionTrainingDates(
+                DB,
+                Number(sessionId),
+                sessionRow.training_start_date,
+                sessionRow.training_end_date,
+                sessionRow.days_of_week
+            )
+        );
 
         // 3. 수강생 (배정된 학생)
         const studentsRows = await DB.prepare(`
@@ -3118,11 +3090,12 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
     try {
         const courseIdParam = c.req.query('courseId');
         if (!courseIdParam) return errorResponse(c, 'courseId가 필요합니다.', 400);
-        const rawId = Number(courseIdParam);
+        const sessionIdParam = c.req.query('session_id');
+        const rawId = sessionIdParam ? Number(sessionIdParam) : Number(courseIdParam);
         if (isNaN(rawId)) return errorResponse(c, '유효한 courseId를 입력해 주세요.', 400);
 
         const session: any = await c.env.DB.prepare(`
-            SELECT s.id, s.status, s.training_start_date, s.training_end_date
+            SELECT s.id, s.status, s.training_start_date, s.training_end_date, s.days_of_week
             FROM course_sessions s
             WHERE s.id = ?
         `).bind(rawId).first();
@@ -3132,31 +3105,15 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
         const isClosed = ['completed', 'closed'].includes(String(session.status)) ||
             (session.training_end_date && String(session.training_end_date).substring(0, 10) < today);
 
-        const timetableRows: any = await c.env.DB.prepare(`
-            SELECT DISTINCT training_date FROM session_timetable
-            WHERE session_id = ? AND (is_excluded IS NULL OR is_excluded = 0)
-            ORDER BY training_date ASC
-        `).bind(rawId).all();
-        const datesFromTimetable = (timetableRows.results || []).map((r: any) => String(r.training_date || '').substring(0, 10)).filter(Boolean);
-
-        let dates: string[];
-        if (datesFromTimetable.length > 0) {
-            dates = datesFromTimetable;
-        } else {
-            const start = (session.training_start_date || '').toString().substring(0, 10);
-            const end = (session.training_end_date || '').toString().substring(0, 10);
-            if (!start || !end) {
-                dates = [];
-            } else {
-                dates = [];
-                const d = new Date(start);
-                const endD = new Date(end);
-                while (d <= endD) {
-                    dates.push(d.toISOString().substring(0, 10));
-                    d.setDate(d.getDate() + 1);
-                }
-            }
-        }
+        const lmsCourseId = await resolveSessionToLmsCourseId(c.env.DB, rawId);
+        const dates = await getSessionTrainingDatesForLogs(
+            c.env.DB,
+            rawId,
+            session.training_start_date,
+            session.training_end_date,
+            session.days_of_week,
+            lmsCourseId
+        );
 
         return c.json({
             success: true,
