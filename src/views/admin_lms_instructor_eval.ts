@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 /** 교강사직무능력평가 목록: 과정·교과목별 원장/본인 평가 현황 */
@@ -14,12 +15,12 @@ export const adminLmsInstructorEvalHtml = (sidebar: string = hrdSidebar('courses
     <style>.custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}</style>
 </head>
 <body class="bg-slate-50 overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
         ${sidebar}
-        <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
-                ${lmsHeaderHtml('instructor-eval')}
-                <div class="bg-white border-b border-slate-200 sticky top-[6.5rem] z-30">
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('instructor-eval'))}
+            ${lmsScrollMainOpen()}
+                <div class="bg-white border-b border-slate-200 sticky top-0 z-20">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                         <div>
                             <h2 class="text-xl font-black text-slate-800 tracking-tight">교강사직무능력평가</h2>

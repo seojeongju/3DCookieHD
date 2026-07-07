@@ -24,7 +24,7 @@ export const lmsHeaderHtml = (activeTab = 'dashboard', defaultType = '') => {
         .join('\n                        ');
     return `
     <!-- Top Navigation -->
-    <nav class="bg-white shadow-md sticky top-0 z-50 overflow-x-hidden max-w-[100vw]">
+    <nav class="bg-white shadow-md z-50 overflow-x-hidden max-w-[100vw]">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-w-0">
             <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center sm:gap-4 py-3 sm:h-auto sm:min-h-[4.5rem] sm:py-0">
                 <div class="flex items-start gap-3 min-w-0 flex-1">

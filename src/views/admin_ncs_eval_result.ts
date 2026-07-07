@@ -1,6 +1,7 @@
 import { hrdSidebar } from './components/hrd_sidebar';
 import { lmsHeaderHtml } from './components/lms_header';
 import { lmsNcsSubnavTabsHtml } from './components/lms_ncs_subnav';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 
 function resultPageScript(useFixedCourseId: boolean) {
   return `
@@ -550,11 +551,11 @@ export const adminLmsNcsEvalResultHtml = (sidebar: string = hrdSidebar('courses'
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body class="bg-slate-50 overflow-hidden">
-  <div class="flex h-screen overflow-hidden">
+  <div class="${LMS_SHELL_ROOT_CLASS}">
     ${sidebar}
-    <div class="flex-1 overflow-y-auto custom-scrollbar">
-      ${lmsHeaderHtml('ncs-eval', 'hrd')}
-      ${lmsNcsSubnavTabsHtml('result')}
+    <div class="${LMS_SHELL_COLUMN_CLASS}">
+      ${lmsFixedHeaderBlock(`${lmsHeaderHtml('ncs-eval', 'hrd')}${lmsNcsSubnavTabsHtml('result')}`)}
+      ${lmsScrollMainOpen()}
       <section class="px-6 py-6 border-b border-slate-200/60 bg-white">
         <h2 class="text-2xl font-black tracking-tight text-slate-900">NCS평가결과</h2>
         <p class="text-sm text-slate-500 mt-1">과정 단위로 1차/2차/3차 평가 결과를 탭에서 확인합니다.</p>
@@ -565,6 +566,7 @@ export const adminLmsNcsEvalResultHtml = (sidebar: string = hrdSidebar('courses'
         </section>
         ${resultTabsHtml()}
       </main>
+            </div>
     </div>
   </div>
   ${resultPageScript(true)}

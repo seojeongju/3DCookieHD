@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) => `
@@ -19,12 +20,12 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
     </style>
 </head>
 <body class="bg-slate-50 overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
         ${sidebar}
         
-        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
-                ${lmsHeaderHtml('students')}
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('students'))}
+            ${lmsScrollMainOpen()}
 
                 <!-- 메인: 인박스 벤토 그리드 -->
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

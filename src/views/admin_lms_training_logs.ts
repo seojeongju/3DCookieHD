@@ -1,5 +1,6 @@
 
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')) => `
@@ -139,16 +140,16 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         }
     </style>
 </head>
-<body class="bg-gray-50 overflow-x-hidden">
-    <div class="flex h-screen min-h-0 overflow-hidden">
+<body class="bg-gray-50 overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
         ${sidebar}
         
-        <div class="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden relative">
-            <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
-                ${lmsHeaderHtml('training-logs', 'hrd')}
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('training-logs', 'hrd'))}
+            ${lmsScrollMainOpen()}
 
     <!-- 서브 헤더 (훈련일지 전용) -->
-     <div class="bg-white border-b border-gray-200 sticky top-[6.5rem] z-30">
+     <div class="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <h1 class="text-xl font-bold text-gray-800">훈련일지 관리</h1>
             <div class="flex flex-wrap gap-2 items-center">

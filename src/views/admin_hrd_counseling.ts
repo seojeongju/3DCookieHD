@@ -1,5 +1,6 @@
 import { hrdSidebar } from './components/hrd_sidebar';
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 
 export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdSidebar(courseId ? 'courses' : 'counseling')): string {
     const isLmsMode = !!courseId;
@@ -47,14 +48,19 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     </style>
 </head>
-<body class="bg-[#f8fafc] text-[#1e293b]">
-    <div class="flex h-screen overflow-hidden">
+<body class="bg-[#f8fafc] text-[#1e293b]${isLmsMode ? ' overflow-hidden' : ''}">
+    <div class="${isLmsMode ? LMS_SHELL_ROOT_CLASS : 'flex h-screen overflow-hidden'}">
         <!-- 사이드바 -->
         ${sidebar}
 
         <!-- 메인 컨텐츠 -->
+        ${isLmsMode ? `
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('counseling', 'hrd'))}
+            ${lmsScrollMainOpen()}
+        ` : `
         <main class="flex-1 overflow-y-auto">
-            ${isLmsMode ? lmsHeaderHtml('counseling', 'hrd') : ''}
+        `}
             
             <!-- 고정 헤더 -->
             <header class="sticky top-0 z-30 glass-effect bg-white/80 border-b border-gray-200">
@@ -177,7 +183,12 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                     </div>
                 </div>
             </div>
+        ${isLmsMode ? `
+            </div>
+        </div>
+        ` : `
         </main>
+        `}
     </div>
 
     <!-- 고도화된 상담 작성/수정 모달 -->

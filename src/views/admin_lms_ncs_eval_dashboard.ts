@@ -1,5 +1,6 @@
 import { lmsHeaderHtml } from './components/lms_header';
 import { lmsNcsSubnavTabsHtml } from './components/lms_ncs_subnav';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, LMS_SHELL_SCROLL_CLASS, lmsFixedHeaderBlock } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('courses')) => `
@@ -13,14 +14,11 @@ export const adminLmsNcsEvalDashboardHtml = (sidebar: string = hrdSidebar('cours
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-slate-50 overflow-hidden">
-  <div class="flex h-screen overflow-hidden">
+  <div class="${LMS_SHELL_ROOT_CLASS}">
     ${sidebar}
-    <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-      <div class="shrink-0">
-        ${lmsHeaderHtml('ncs-eval-dashboard', 'hrd')}
-        ${lmsNcsSubnavTabsHtml('dashboard')}
-      </div>
-      <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-100 min-w-0">
+    <div class="${LMS_SHELL_COLUMN_CLASS}">
+      ${lmsFixedHeaderBlock(`${lmsHeaderHtml('ncs-eval-dashboard', 'hrd')}${lmsNcsSubnavTabsHtml('dashboard')}`)}
+      <div class="${LMS_SHELL_SCROLL_CLASS} bg-slate-100">
         <header class="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
           <div class="px-4 sm:px-6 lg:px-8 py-4 max-w-[1600px] mx-auto w-full">
             <div class="flex flex-wrap items-start justify-between gap-4">

@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 /** 강의후 설문 조사 결과: 과정정보 테이블 + 섹션별 구분(교육만족도/솔루션·강사/교육내용/주관식) + 원형 차트 + 인쇄 */
@@ -28,12 +29,12 @@ export const adminLmsSurveyResultsHtml = (sidebar: string = hrdSidebar('courses'
         }
     </style>
 </head>
-<body class="bg-slate-50">
-    <div class="flex min-h-screen">
-        <div class="print-no">${sidebar}</div>
-        <div class="flex-1 flex flex-col min-w-0">
-            <div class="print-no">${lmsHeaderHtml('surveys')}</div>
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0 p-6 md:p-10 results-print-area">
+<body class="bg-slate-50 overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
+        <div class="print-no shrink-0">${sidebar}</div>
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            <div class="print-no">${lmsFixedHeaderBlock(lmsHeaderHtml('surveys'))}</div>
+            ${lmsScrollMainOpen('p-6 md:p-10 results-print-area')}
                 <div class="max-w-4xl mx-auto">
                     <div class="print-no flex items-center justify-between mb-6">
                         <a href="#" id="resultsBackLink" class="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md border border-slate-200/60 rounded-xl text-slate-700 font-black text-sm hover:bg-slate-100 transition shadow-sm">

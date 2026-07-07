@@ -1,5 +1,6 @@
 
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) => `
@@ -27,12 +28,12 @@ export const adminLmsAttendanceHtml = (sidebar: string = hrdSidebar('courses')) 
     </style>
 </head>
 <body class="bg-gray-50 font-sans overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
         ${sidebar}
         
-        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
-                ${lmsHeaderHtml('attendance')}
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('attendance'))}
+            ${lmsScrollMainOpen()}
 
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">

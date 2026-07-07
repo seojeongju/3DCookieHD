@@ -1,5 +1,6 @@
 
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) => `
@@ -25,12 +26,12 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
     </style>
 </head>
 <body class="bg-gray-50 overflow-hidden lms-dash-root">
-    <div class="flex h-screen overflow-hidden min-w-0 max-w-[100vw]">
+    <div class="${LMS_SHELL_ROOT_CLASS} max-w-[100vw]">
         ${sidebar}
         
-        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
-                ${lmsHeaderHtml('dashboard')}
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('dashboard'))}
+            ${lmsScrollMainOpen()}
 
                 <!-- 메인 컨텐츠 -->
                 <div class="max-w-7xl mx-auto w-full min-w-0 px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">

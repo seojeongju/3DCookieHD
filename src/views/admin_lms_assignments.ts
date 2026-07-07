@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 export const adminLmsAssignmentsHtml = (sidebar: string = hrdSidebar('courses')) => `
@@ -18,15 +19,15 @@ export const adminLmsAssignmentsHtml = (sidebar: string = hrdSidebar('courses'))
     </style>
 </head>
 <body class="bg-gray-50 overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
         ${sidebar}
         
-        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
-                ${lmsHeaderHtml('assignments')}
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('assignments'))}
+            ${lmsScrollMainOpen()}
 
     <!-- 서브 헤더 -->
-    <div class="bg-white border-b border-gray-200 sticky top-[6.5rem] z-30">
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-bold text-gray-800">과제 관리</h2>

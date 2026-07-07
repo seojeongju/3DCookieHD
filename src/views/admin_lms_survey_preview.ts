@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 /** 강의 후 설문지 미리보기 페이지 (교육과정·교육과목·담당교사·설문작성일 + 4개 섹션) */
@@ -13,12 +14,12 @@ export const adminLmsSurveyPreviewHtml = (sidebar: string = hrdSidebar('courses'
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
         ${sidebar}
-        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto p-6 md:p-10">
-                ${lmsHeaderHtml('surveys')}
-                <div class="max-w-4xl mx-auto mt-8">
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('surveys'))}
+            ${lmsScrollMainOpen('p-6 md:p-10')}
+                <div class="max-w-4xl mx-auto">
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         <div class="p-8 md:p-10">
                             <h1 id="preview-title" class="text-2xl md:text-3xl font-black text-center text-gray-900 mb-4 opacity-30">불러오는 중...</h1>

@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 /** 수업평가 15문항 (긍정화정도 5=강함 ~ 1=약함) */
@@ -45,11 +46,11 @@ export const adminLmsInstructorEvalFormHtml = (sidebar: string = hrdSidebar('cou
     <style>.custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}</style>
 </head>
 <body class="bg-slate-50 overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
         ${sidebar}
-        <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
-                ${lmsHeaderHtml('instructor-eval')}
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('instructor-eval'))}
+            ${lmsScrollMainOpen()}
                 <main class="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
                     <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
                         <div class="p-6 md:p-10">

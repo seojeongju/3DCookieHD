@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { teacherSidebar } from './components/teacher_sidebar';
 
 /**
@@ -24,11 +25,11 @@ export function teacherStudentConsultationHtml(courseId: string, studentId: stri
     </style>
 </head>
 <body class="bg-slate-50 overflow-hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
         ${teacherSidebar('students')}
-        <div class="flex-1 flex flex-col overflow-hidden relative min-w-0">
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0">
-                ${lmsHeaderHtml('students', 'hrd')}
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            ${lmsFixedHeaderBlock(lmsHeaderHtml('students', 'hrd'))}
+            ${lmsScrollMainOpen()}
 
                 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div class="mb-6">

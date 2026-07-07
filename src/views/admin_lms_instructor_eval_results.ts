@@ -1,4 +1,5 @@
 import { lmsHeaderHtml } from './components/lms_header';
+import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 import { hrdSidebar } from './components/hrd_sidebar';
 
 const QUESTION_LABELS = [
@@ -51,12 +52,12 @@ export const adminLmsInstructorEvalResultsHtml = (sidebar: string = hrdSidebar('
         .eval-subject-panel{ display:block; } /* accordion wraps this */
     </style>
 </head>
-<body class="bg-slate-50">
-    <div class="flex min-h-screen">
-        <div class="print-hide">${sidebar}</div>
-        <div class="flex-1 flex flex-col min-w-0">
-            <div class="print-hide">${lmsHeaderHtml('instructor-eval')}</div>
-            <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0 p-6 md:p-10 results-print-area">
+<body class="bg-slate-50 overflow-hidden">
+    <div class="${LMS_SHELL_ROOT_CLASS}">
+        <div class="print-hide shrink-0">${sidebar}</div>
+        <div class="${LMS_SHELL_COLUMN_CLASS}">
+            <div class="print-hide">${lmsFixedHeaderBlock(lmsHeaderHtml('instructor-eval'))}</div>
+            ${lmsScrollMainOpen('p-6 md:p-10 results-print-area')}
                 <div class="max-w-4xl mx-auto">
                     <div class="print-hide flex items-center justify-between mb-6">
                         <a href="#" id="backLink" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-sm hover:bg-slate-50"> <i class="fas fa-arrow-left"></i> 목록으로 </a>
