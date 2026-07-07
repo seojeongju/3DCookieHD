@@ -158,6 +158,7 @@ import { homeHtml } from './views/home';
 import { layoutHtml } from './views/components/layout';
 import { resetPasswordHtml } from './views/reset_password';
 import { getSeoHead, PUBLIC_PATHS } from './utils/seo';
+import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -421,6 +422,31 @@ app.get('/admin/education-gallery', (c) => c.html(adminEducationGalleryHtml(hrdS
 app.get('/admin/portfolio-gallery', (c) => c.html(adminPortfolioGalleryHtml(hrdSidebar('portfolio-gallery'))));
 app.get('/admin/inquiries', (c) => c.html(adminInquiriesHtml(hrdSidebar('inquiries'))));
 app.get('/admin/instructor-eval', (c) => c.html(adminInstructorEvalEntryHtml()));
+
+// HRD LMS URL canonical redirect (session_id 누락·회차 PK 혼동 보정)
+app.use('*', async (c, next) => {
+    const path = new URL(c.req.url).pathname;
+    const m = path.match(/^\/(admin|teacher|student)\/courses\/(\d+)\/lms(\/.*)?$/);
+    if (m && c.env.DB) {
+        try {
+            const search = new URL(c.req.url).search;
+            const redirect = await resolveLegacyHrdLmsRedirect(
+                c.env.DB,
+                m[1] as 'admin' | 'teacher' | 'student',
+                m[2],
+                path,
+                search
+            );
+            if (redirect) {
+                const current = path + search;
+                if (redirect !== current) return c.redirect(redirect, 302);
+            }
+        } catch (e) {
+            console.error('HRD LMS canonical redirect error:', e);
+        }
+    }
+    await next();
+});
 
 // 과정별 LMS 상세 관리 (LMS Dashboard & Inner Pages)
 app.get('/admin/courses/:id/lms', (c) => c.html(adminLmsDashboardHtml()));

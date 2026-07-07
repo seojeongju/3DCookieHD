@@ -4822,7 +4822,40 @@ function dashProgressLabel(schedulePayload: Record<string, any>, plan: Record<st
 }
 
 /** 강사: legacy courses 담당 또는 HRD 회차(session) 시간표·LMS 연결 기준 */
-async function teacherHasAccessToNcsPlanCourse(db: any, courseId: number, userId: number): Promise<boolean> {
+async function teacherHasAccessToNcsPlanCourse(
+    db: any,
+    courseId: number,
+    userId: number,
+    explicitSessionId?: number | null
+): Promise<boolean> {
+    if (explicitSessionId != null && Number.isFinite(explicitSessionId) && explicitSessionId >= 1) {
+        const ttExplicit = await db.prepare(
+            'SELECT 1 FROM session_timetable WHERE session_id = ? AND instructor_id = ? LIMIT 1'
+        ).bind(explicitSessionId, userId).first();
+        if (ttExplicit) return true;
+        const sessExplicit: any = await db.prepare(
+            'SELECT lms_course_id FROM course_sessions WHERE id = ?'
+        ).bind(explicitSessionId).first();
+        if (sessExplicit?.lms_course_id) {
+            const cExplicit: any = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?')
+                .bind(sessExplicit.lms_course_id).first();
+            if (cExplicit && cExplicit.teacher_id === userId) return true;
+        }
+    }
+
+    // LMS courses.id 가 session PK 와 숫자가 겹칠 수 있으므로 courses 등록 여부를 우선
+    if (await isRegisteredLmsCourseId(db, courseId)) {
+        const course: any = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(courseId).first();
+        if (course && course.teacher_id === userId) return true;
+        const ttLms = await db.prepare(
+            `SELECT 1 FROM session_timetable st
+             INNER JOIN course_sessions cs ON cs.id = st.session_id
+             WHERE cs.lms_course_id = ? AND st.instructor_id = ?
+             LIMIT 1`
+        ).bind(courseId, userId).first();
+        return !!ttLms;
+    }
+
     const session: any = await db.prepare('SELECT id, lms_course_id FROM course_sessions WHERE id = ?').bind(courseId).first();
     if (session) {
         const tt = await db.prepare(
@@ -4839,12 +4872,23 @@ async function teacherHasAccessToNcsPlanCourse(db: any, courseId: number, userId
     return !!(course && course.teacher_id === userId);
 }
 
-async function ensureNcsCoursePermission(c: any, courseIdRaw: string | number) {
+async function ensureNcsCoursePermission(
+    c: any,
+    courseIdRaw: string | number,
+    sessionIdRaw?: string | number | null
+) {
     const user = c.get('user') as JWTPayload;
     if (user.role !== 'teacher') return true;
     const courseId = parseInt(String(courseIdRaw), 10);
     if (!Number.isFinite(courseId) || courseId < 1) return false;
-    return teacherHasAccessToNcsPlanCourse(c.env.DB, courseId, user.userId);
+    const sidRaw = sessionIdRaw ?? c.req.query('session_id');
+    const sessionOverride = await resolveExplicitSessionOverride(c.env.DB, sidRaw);
+    return teacherHasAccessToNcsPlanCourse(
+        c.env.DB,
+        courseId,
+        user.userId,
+        sessionOverride?.sessionId ?? null
+    );
 }
 
 /** 강사는 평가계획 회의록(minutes) 저장·수정·삭제 불가 (열람만) */
@@ -5261,7 +5305,7 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
         const deniedMinutesPut = forbidTeacherMinutesMutation(c, docType);
         if (deniedMinutesPut) return deniedMinutesPut;
 
-        const allowed = await ensureNcsCoursePermission(c, courseId);
+        const allowed = await ensureNcsCoursePermission(c, courseId, c.req.query('session_id') ?? (body as any).session_id);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const dbPut = c.env.DB;

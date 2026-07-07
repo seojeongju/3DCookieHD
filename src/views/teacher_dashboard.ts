@@ -1,4 +1,5 @@
 import { teacherSidebar } from './components/teacher_sidebar';
+import { lmsEntryUrlClientScript } from '../utils/lmsEntryUrl';
 
 export const teacherDashboardHtml = `
 <!DOCTYPE html>
@@ -210,11 +211,11 @@ export const teacherDashboardHtml = `
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
                             <div>
                                 <h3 class="text-2xl font-outfit font-black text-neutral-900 tracking-tight mb-1">학습 효율 분석 시스템</h3>
-                                <p class="text-[10px] font-black text-neutral-400 uppercase tracking-[0.3em]">Week-over-week performance matrix</p>
+                                <p class="text-[10px] font-black text-neutral-400 uppercase tracking-[0.3em]">주간 성과 비교 (출석 · 학습완료)</p>
                             </div>
                             <div class="flex gap-3 bg-neutral-50 p-1.5 rounded-2xl border border-neutral-100">
-                                <button class="px-5 py-2.5 rounded-xl bg-white shadow-sm text-[10px] font-black text-brand-600 uppercase tracking-widest">Active Week</button>
-                                <button class="px-5 py-2.5 rounded-xl text-[10px] font-black text-neutral-400 hover:text-neutral-600 uppercase tracking-widest transition-colors">Historical Data</button>
+                                <button type="button" id="chart-mode-week" class="px-5 py-2.5 rounded-xl bg-white shadow-sm text-[10px] font-black text-brand-600 uppercase tracking-widest">이번 주</button>
+                                <button type="button" id="chart-mode-bars" class="px-5 py-2.5 rounded-xl text-[10px] font-black text-neutral-400 uppercase tracking-widest" disabled>막대 비교</button>
                             </div>
                         </div>
                         <div class="h-[350px] w-full relative">
@@ -230,14 +231,14 @@ export const teacherDashboardHtml = `
                            <div class="flex items-center gap-6">
                                <div class="flex items-center gap-2">
                                    <span class="w-3 h-3 rounded-full bg-brand-500 shadow-[0_0_8px_rgba(79,105,242,0.4)]"></span>
-                                   <span class="text-[10px] font-black uppercase tracking-widest">Attendance Rate</span>
+                                   <span class="text-[10px] font-black uppercase tracking-widest">출석률</span>
                                </div>
                                <div class="flex items-center gap-2">
                                    <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
-                                   <span class="text-[10px] font-black uppercase tracking-widest">Completion Avg</span>
+                                   <span class="text-[10px] font-black uppercase tracking-widest">학습완료율</span>
                                </div>
                            </div>
-                           <p class="text-[9px] font-bold uppercase tracking-widest italic opacity-60">* AI-generated insights based on real-time log analysis</p>
+                           <p class="text-[9px] font-bold uppercase tracking-widest italic opacity-60">* 이번 주 월~일 기준 출석·과제/시험 제출 현황</p>
                         </div>
                     </div>
 
@@ -341,6 +342,7 @@ export const teacherDashboardHtml = `
     </div>
 
     <script>
+        ${lmsEntryUrlClientScript()}
         // 전역 상태
         var dashAllCourses = [];
         var dashRunningCourses = [];
@@ -443,7 +445,7 @@ export const teacherDashboardHtml = `
                         el = document.getElementById('card-attendance-rate'); if (el) el.textContent = (d.avgAttendance || 0) + '%';
                         el = document.getElementById('card-pending-grading'); if (el) el.textContent = d.pendingGrading || 0;
                         renderAlerts(d.pendingGradingList || []);
-                        initChart(d.avgAttendance);
+                        initChart(d.weeklyPerformance);
                     } else {
                         renderAlerts([]);
                         initChart(null);
@@ -475,7 +477,7 @@ export const teacherDashboardHtml = `
             if (count) count.textContent = alerts.length;
             
             list.innerHTML = alerts.slice(0, 5).map(function(item) {
-                return '<div class="p-5 bg-neutral-50 hover:bg-white border border-neutral-100 hover:shadow-xl rounded-3xl transition-all duration-500 cursor-pointer group" onclick="location.href=\'/teacher/courses?tab=exams\'">' +
+                return '<a href="/teacher/courses?tab=exams" class="block p-5 bg-neutral-50 hover:bg-white border border-neutral-100 hover:shadow-xl rounded-3xl transition-all duration-500 cursor-pointer group no-underline text-inherit">' +
                     '<div class="flex items-center gap-4">' +
                         '<div class="w-11 h-11 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">' +
                             '<i class="fas fa-file-signature text-base"></i>' +
@@ -486,7 +488,7 @@ export const teacherDashboardHtml = `
                         '</div>' +
                         '<i class="fas fa-chevron-right text-[10px] text-neutral-200 group-hover:text-brand-400"></i>' +
                     '</div>' +
-                '</div>';
+                '</a>';
             }).join('');
         }
 
@@ -523,7 +525,7 @@ export const teacherDashboardHtml = `
                 var enrolledCount = course.current_students || 0;
                 var maxStudents = course.max_students || 0;
                 var progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : (enrolledCount > 0 ? 100 : 0);
-                var lmsUrl = '/teacher/courses/' + course.id + '/lms' + (course.is_hrd ? '?type=hrd' : '');
+                var lmsUrl = buildLmsEntryUrl(course);
 
                 var progressBar = maxStudents > 0 
                     ? '<div class="hidden sm:flex flex-col w-24 items-end gap-1"><span class="text-[9px] font-black text-neutral-400 uppercase tracking-wider">' + progressPercent + '% Full</span><div class="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden"><div class="bg-gradient-to-r from-brand-400 to-brand-600 h-full transition-all duration-1000" style="width:' + progressPercent + '%"></div></div></div>'
@@ -552,43 +554,103 @@ export const teacherDashboardHtml = `
                     '</div>' +
                     '<div class="flex items-center gap-3 shrink-0 justify-end border-t border-neutral-50 pt-3 sm:border-t-0 sm:pt-0">' +
                         progressBar +
-                        '<button onclick="location.href=\\\\\'' + lmsUrl + '\\\\\'" class="px-4 py-2.5 bg-neutral-900 text-white rounded-2xl hover:bg-brand-600 transition-all duration-300 font-black text-[10px] tracking-wider uppercase flex items-center gap-2">' +
+                        '<a href="' + escHtmlAttr(lmsUrl) + '" class="px-4 py-2.5 bg-neutral-900 text-white rounded-2xl hover:bg-brand-600 transition-all duration-300 font-black text-[10px] tracking-wider uppercase flex items-center gap-2 inline-flex">' +
                             '<i class="fas fa-door-open text-[10px]"></i> 입장' +
-                        '</button>' +
+                        '</a>' +
                     '</div>' +
                 '</div>';
             }).join('');
         }
 
-        function initChart(avg) {
+        var performanceChartInstance = null;
+
+        function initChart(weekly) {
             var canvas = document.getElementById('performanceChart');
             var empty = document.getElementById('performanceChartEmpty');
             if (!canvas) return;
-            if (avg == null) { if (empty) empty.classList.remove('hidden'); canvas.style.display = 'none'; return; }
+
+            var hasData = weekly && weekly.labels && weekly.labels.length
+                && ((weekly.attendance || []).some(function(v) { return v > 0; })
+                    || (weekly.completion || []).some(function(v) { return v > 0; }));
+
+            if (!hasData) {
+                if (performanceChartInstance) { performanceChartInstance.destroy(); performanceChartInstance = null; }
+                if (empty) empty.classList.remove('hidden');
+                canvas.style.display = 'none';
+                return;
+            }
+
             if (empty) empty.classList.add('hidden');
             canvas.style.display = 'block';
             var ctx = canvas.getContext('2d');
-            var grad = ctx.createLinearGradient(0, 0, 0, 300);
-            grad.addColorStop(0, 'rgba(79, 105, 242, 0.4)');
-            grad.addColorStop(1, 'rgba(79, 105, 242, 0)');
-            new Chart(ctx, {
-                type: 'line',
+            if (performanceChartInstance) performanceChartInstance.destroy();
+
+            performanceChartInstance = new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-                    datasets: [{
-                        label: 'Attendance',
-                        data: [avg-2, avg-1, avg+1, avg, avg+3, avg-1, avg+2],
-                        borderColor: '#4f69f2', borderWidth: 6, backgroundColor: grad, fill: true, tension: 0.5,
-                        pointRadius: 0, pointHoverRadius: 8, pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#4f69f2', pointHoverBorderWidth: 4
-                    }]
+                    labels: weekly.labels,
+                    datasets: [
+                        {
+                            label: '출석률',
+                            data: weekly.attendance || [],
+                            backgroundColor: 'rgba(79, 105, 242, 0.85)',
+                            borderColor: '#4f69f2',
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                            maxBarThickness: 36
+                        },
+                        {
+                            label: '학습완료율',
+                            data: weekly.completion || [],
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                            maxBarThickness: 36
+                        }
+                    ]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: { cornerRadius: 15, padding: 15, titleFont: { size: 14, weight: '900' }, bodyFont: { size: 12, weight: '700' } } },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            cornerRadius: 12,
+                            padding: 12,
+                            titleFont: { size: 13, weight: '700', family: 'Inter' },
+                            bodyFont: { size: 12, weight: '600', family: 'Inter' },
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ' ' + ctx.dataset.label + ': ' + (ctx.parsed.y ?? 0) + '%';
+                                }
+                            }
+                        }
+                    },
                     scales: {
-                        y: { display: false, min: 0, max: 105 },
-                        x: { border: { display: false }, grid: { display: false }, ticks: { font: { size: 10, family: 'Outfit', weight: '900' }, color: '#94a3b8', padding: 15 } }
+                        y: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                stepSize: 20,
+                                color: '#94a3b8',
+                                font: { size: 11, weight: '600', family: 'Inter' },
+                                callback: function(v) { return v + '%'; }
+                            },
+                            grid: { color: 'rgba(148, 163, 184, 0.2)', drawBorder: false }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 12, weight: '700', family: 'Outfit' },
+                                padding: 8
+                            },
+                            grid: { display: false }
+                        }
                     }
                 }
             });

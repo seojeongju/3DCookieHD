@@ -1,5 +1,6 @@
 
 import { hrdSidebar } from './components/hrd_sidebar';
+import { lmsEntryUrlClientScript } from '../utils/lmsEntryUrl';
 
 export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
 <!DOCTYPE html>
@@ -148,6 +149,7 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
     </div>
 
     <script>
+        ${lmsEntryUrlClientScript()}
         let allData = [];
         let filteredData = [];
         let currentPage = 1;
@@ -305,7 +307,7 @@ export const adminHrdGradesHtml = (sidebar = hrdSidebar('grades')) => `
                         <span class="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-black ring-1 ring-emerald-100 shadow-sm">\${c.max_score != null ? c.max_score : 0}점</span>
                     </td>
                     <td class="px-8 py-5 text-right whitespace-nowrap align-top">
-                        \${(c.session_id != null || c.id != null) ? '<a href="/admin/courses/' + (c.session_id != null ? c.session_id : c.id) + '/lms/grades" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">종합 성적표 <i class="fas fa-file-invoice ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
+                        \${(c.session_id != null || c.id != null) ? '<a href="' + escHtmlAttr(buildHrdLmsHref(c, 'grades')) + '" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">종합 성적표 <i class="fas fa-file-invoice ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
                     </td>
                 </tr>
             \`).join('');

@@ -1909,7 +1909,9 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
         }
 
         const coursesQuery = `
-            SELECT s.id, s.status, (a.name || ' (' || s.session_number || '회차' || CASE WHEN s.session_name IS NOT NULL AND TRIM(s.session_name) <> '' THEN ' - ' || s.session_name ELSE '' END || ')') as title, s.instructor_name as teacher_name, 'hrd' as type, s.created_at
+            SELECT s.id, s.status, s.lms_course_id,
+                   (a.name || ' (' || s.session_number || '회차' || CASE WHEN s.session_name IS NOT NULL AND TRIM(s.session_name) <> '' THEN ' - ' || s.session_name ELSE '' END || ')') as title,
+                   s.instructor_name as teacher_name, 'hrd' as type, s.created_at
             FROM course_sessions s
             JOIN approved_courses a ON s.approved_course_id = a.id
             WHERE 1=1
@@ -2019,6 +2021,8 @@ app.get('/attendance/summary', authMiddleware, async (c) => {
 
             return {
                 id: course.id,
+                session_id: course.type === 'hrd' ? course.id : null,
+                lms_course_id: course.type === 'hrd' ? (course.lms_course_id ?? null) : course.id,
                 title: course.title,
                 status: course.status,
                 status_label: statusLabels[course.status] || course.status || '-',
@@ -2837,6 +2841,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
 
                 return {
                     id: session.id,
+                    session_id: session.id,
                     title,
                     status: session.status,
                     status_label: statusLabel,
@@ -3793,6 +3798,7 @@ app.get('/grades/summary', authMiddleware, async (c) => {
                 return {
                     session_id: session.id,
                     id: session.id,
+                    lms_course_id: courseId,
                     title,
                     status: session.status,
                     status_label: statusLabels[session.status] || session.status || '-',
@@ -3984,6 +3990,7 @@ app.get('/surveys/summary', authMiddleware, async (c) => {
                 return {
                     session_id: session.id,
                     id: session.id,
+                    lms_course_id: courseId,
                     title,
                     status: session.status,
                     status_label: statusLabels[session.status] || session.status || '-',

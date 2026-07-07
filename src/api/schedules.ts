@@ -227,7 +227,7 @@ app.get('/integrated', async (c) => {
     try {
       const { results: sessions } = await DB.prepare(`
         SELECT s.id, s.session_number, s.status, s.training_start_date, s.training_end_date,
-               s.registered_at,
+               s.registered_at, s.lms_course_id,
                a.name as course_name
         FROM course_sessions s
         INNER JOIN approved_courses a ON a.id = s.approved_course_id
@@ -276,7 +276,8 @@ app.get('/integrated', async (c) => {
             type: 'course',
             status: sess.status,
             roomId: '회차',
-            sessionId: sess.id
+            sessionId: sess.id,
+            lmsCourseId: sess.lms_course_id ?? null
           }
         });
       }

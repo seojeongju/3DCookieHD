@@ -1,0 +1,145 @@
+import { getLatestCourseSessionRowForLmsCourseId, isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
+import { resolveSessionToLmsCourseId } from './sessionCourseResolution';
+
+export type LmsEntryRole = 'admin' | 'teacher' | 'student';
+
+export type LmsEntryCourse = {
+  id: number;
+  session_id?: number | null;
+  lms_course_id?: number | null;
+  is_hrd?: boolean;
+};
+
+/** HRD·일반 LMS 진입 URL (경로 = LMS courses.id, HRD는 session_id 쿼리 필수) */
+export function buildLmsEntryUrl(
+  role: LmsEntryRole,
+  course: LmsEntryCourse,
+  subPath?: string
+): string {
+  const sub = subPath ? `/${subPath.replace(/^\//, '')}` : '';
+  const base = `/${role}/courses/`;
+
+  if (course.is_hrd) {
+    const lmsId =
+      course.lms_course_id != null && Number(course.lms_course_id) > 0
+        ? Number(course.lms_course_id)
+        : Number(course.id);
+    const sid =
+      course.session_id != null && Number(course.session_id) > 0
+        ? Number(course.session_id)
+        : Number(course.id);
+    return `${base}${lmsId}/lms${sub}?type=hrd&session_id=${encodeURIComponent(String(sid))}`;
+  }
+
+  return `${base}${course.id}/lms${sub}`;
+}
+
+/**
+ * 레거시 북마크·잘못된 링크 보정
+ * - 경로 숫자가 course_sessions.id 인데 session_id 쿼리 없음 → lms_course_id + session_id 로 리다이렉트
+ * - 경로 숫자가 courses.id 인데 session_id 없음 → 연결 회차 session_id 추가
+ */
+export async function resolveLegacyHrdLmsRedirect(
+  db: D1Database,
+  role: LmsEntryRole,
+  pathId: string,
+  pathname: string,
+  rawSearch: string
+): Promise<string | null> {
+  const rawId = parseInt(pathId, 10);
+  if (!Number.isFinite(rawId) || rawId < 1) return null;
+
+  const search = rawSearch.startsWith('?') ? rawSearch.slice(1) : rawSearch;
+  const params = new URLSearchParams(search);
+  let type = (params.get('type') || '').trim().toLowerCase();
+  if (type.startsWith('hrd')) type = 'hrd';
+
+  const hasSessionId = params.get('session_id');
+  const subMatch = pathname.match(/\/lms(\/.*)?$/);
+  const subPath = subMatch?.[1] || '';
+
+  const isHrdPath = type === 'hrd' || pathname.includes('/lms');
+  if (!isHrdPath) return null;
+
+  const explicitSid =
+    hasSessionId != null && String(hasSessionId).trim() !== ''
+      ? parseInt(String(hasSessionId), 10)
+      : NaN;
+
+  // session_id가 있으나 경로 숫자가 LMS courses.id가 아닌 경우(회차 PK 혼동) 보정
+  if (Number.isFinite(explicitSid) && explicitSid >= 1) {
+    const session = await db
+      .prepare('SELECT id, lms_course_id FROM course_sessions WHERE id = ?')
+      .bind(explicitSid)
+      .first<{ id: number; lms_course_id: number | null }>();
+    if (session?.lms_course_id != null && Number(session.lms_course_id) > 0) {
+      const lmsId = Number(session.lms_course_id);
+      if (rawId !== lmsId) {
+        params.set('type', 'hrd');
+        params.set('session_id', String(session.id));
+        return `/${role}/courses/${lmsId}/lms${subPath}?${params.toString()}`;
+      }
+    }
+    return null;
+  }
+
+  const isLmsCourse = await isRegisteredLmsCourseId(db, rawId);
+
+  if (isLmsCourse) {
+    const session = await getLatestCourseSessionRowForLmsCourseId(db, rawId);
+    if (!session) return null;
+    params.set('type', 'hrd');
+    params.set('session_id', String(session.id));
+    return `/${role}/courses/${rawId}/lms${subPath}?${params.toString()}`;
+  }
+
+  const session = await db
+    .prepare('SELECT id, lms_course_id FROM course_sessions WHERE id = ?')
+    .bind(rawId)
+    .first<{ id: number; lms_course_id: number | null }>();
+  if (!session) return null;
+
+  let lmsId =
+    session.lms_course_id != null && Number(session.lms_course_id) > 0
+      ? Number(session.lms_course_id)
+      : null;
+  if (!lmsId) {
+    const resolved = await resolveSessionToLmsCourseId(db, session.id);
+    lmsId = resolved;
+  }
+  if (!lmsId) return null;
+
+  params.set('type', 'hrd');
+  params.set('session_id', String(session.id));
+  return `/${role}/courses/${lmsId}/lms${subPath}?${params.toString()}`;
+}
+
+/** 브라우저 인라인 스크립트용 (teacher/admin 뷰 템플릿) */
+export function lmsEntryUrlClientScript(): string {
+  return `
+function buildLmsEntryUrl(course, subPath) {
+  var role = (window.location.pathname.indexOf('/admin/') === 0) ? 'admin'
+    : (window.location.pathname.indexOf('/teacher/') === 0) ? 'teacher' : 'student';
+  var sub = subPath ? ('/' + String(subPath).replace(/^\\//, '')) : '';
+  if (course && course.is_hrd) {
+    var lmsId = (course.lms_course_id != null && Number(course.lms_course_id) > 0)
+      ? Number(course.lms_course_id) : Number(course.id);
+    var sid = (course.session_id != null && Number(course.session_id) > 0)
+      ? Number(course.session_id) : Number(course.id);
+    return '/' + role + '/courses/' + lmsId + '/lms' + sub + '?type=hrd&session_id=' + encodeURIComponent(String(sid));
+  }
+  return '/' + role + '/courses/' + Number(course.id) + '/lms' + sub;
+}
+function escHtmlAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+/** HRD hub row to LMS URL */
+function buildHrdLmsHref(row, subPath) {
+  if (!row) return '#';
+  var sid = (row.session_id != null && Number(row.session_id) > 0) ? Number(row.session_id)
+    : (row.id != null && Number(row.id) > 0 ? Number(row.id) : null);
+  if (!sid) return '#';
+  var lmsId = (row.lms_course_id != null && Number(row.lms_course_id) > 0) ? Number(row.lms_course_id) : sid;
+  return buildLmsEntryUrl({ id: lmsId, session_id: sid, lms_course_id: row.lms_course_id, is_hrd: true }, subPath);
+}`;
+}

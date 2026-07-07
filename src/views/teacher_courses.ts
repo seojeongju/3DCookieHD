@@ -1,4 +1,5 @@
 import { teacherSidebar } from './components/teacher_sidebar';
+import { lmsEntryUrlClientScript } from '../utils/lmsEntryUrl';
 
 function teacherCoursesHtmlInner(activeSubMenu?: string) {
     const tab = activeSubMenu && ['students', 'attendance', 'assignments', 'exams', 'grades', 'surveys', 'ncs', 'employment'].includes(activeSubMenu) ? activeSubMenu : undefined;
@@ -27,7 +28,34 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             50% { transform: translateY(-5px); }
         }
         .float-animation { animation: subtle-float 4s ease-in-out infinite; }
-        /* 나의 강의 관리: 모바일에서 상세 필터 접기 (검색만 상시 노출) */
+        /* 스티키 필터: 본문과 겹칠 때 내용이 비치지 않도록 불투명 배경 */
+        #teacherCoursesFilterDock {
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+        }
+        #teacherCoursesFilterDock.is-stuck {
+            box-shadow: 0 10px 40px -12px rgba(15, 23, 42, 0.18);
+            border-color: rgba(226, 232, 240, 0.95);
+        }
+        #coursesContainer {
+            position: relative;
+            z-index: 0;
+        }
+        .teacher-course-card {
+            min-width: 0;
+        }
+        .teacher-course-card .teacher-course-title {
+            word-break: keep-all;
+            overflow-wrap: anywhere;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .teacher-course-card .teacher-course-meta > span {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
         @media (max-width: 1023px) {
             #teacherCoursesFilterDock[data-collapsed-mobile="true"] #teacherCoursesFilterExtra {
                 display: none !important;
@@ -212,8 +240,9 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                         </div>
                     </div>
 
+                    <div id="teacherCoursesFilterSentinel" class="h-px w-full pointer-events-none" aria-hidden="true"></div>
                     <!-- Filter Dock: 모바일은 검색·요약만 고정 높이, 상세 필터는 접기 -->
-                    <div id="teacherCoursesFilterDock" data-collapsed-mobile="true" class="glass border border-white/60 rounded-2xl lg:rounded-[3rem] p-3 sm:p-4 lg:p-4 mb-8 lg:mb-12 shadow-premium relative lg:sticky lg:top-24 z-20 transition-all duration-500 border-white/80 hover:shadow-premium-hover grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2.8fr)_auto] lg:items-center gap-3 lg:gap-4">
+                    <div id="teacherCoursesFilterDock" data-collapsed-mobile="true" class="bg-white/95 border border-slate-200/60 rounded-2xl lg:rounded-[3rem] p-3 sm:p-4 lg:p-4 mb-8 lg:mb-12 shadow-sm relative lg:sticky lg:top-0 lg:z-30 transition-all duration-300 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2.8fr)_auto] lg:items-center gap-3 lg:gap-4">
                         <!-- 검색 (항상 노출 · 단일 입력) -->
                         <div class="relative group min-w-0 lg:col-start-2 lg:row-start-1">
                             <i class="fas fa-search absolute left-4 lg:left-7 top-1/2 -translate-y-1/2 text-neutral-300 group-focus-within:text-brand-500 transition-colors text-sm lg:text-base pointer-events-none"></i>
@@ -266,9 +295,9 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                         </div>
                     </div>
 
-                    <!-- 과정 목록 Grid (가로형 Row 카드 디자인 최적화) -->
-                    <div id="coursesContainer" class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-20 min-h-[400px]">
-                        <div class="col-span-full flex flex-col items-center justify-center py-40">
+                    <!-- 과정 목록 (컴팩트 단일 열 리스트) -->
+                    <div id="coursesContainer" class="flex flex-col gap-3 mb-12 min-h-[200px]">
+                        <div class="w-full flex flex-col items-center justify-center py-24">
                             <div class="relative w-20 h-20 mb-10">
                                 <div class="absolute inset-0 border-4 border-brand-100 rounded-full"></div>
                                 <div class="absolute inset-0 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
@@ -289,6 +318,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
     </div>
 
     <script>
+        ${lmsEntryUrlClientScript()}
         let currentPage = 1;
         let limit = 12;
         let activeStatusTab = 'all';
@@ -331,6 +361,13 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
 
             var dock = document.getElementById('teacherCoursesFilterDock');
             var filterToggle = document.getElementById('teacherCoursesFilterToggle');
+            var filterSentinel = document.getElementById('teacherCoursesFilterSentinel');
+            var mainScroll = document.querySelector('main');
+            if (dock && filterSentinel && mainScroll && 'IntersectionObserver' in window) {
+                new IntersectionObserver(function(entries) {
+                    dock.classList.toggle('is-stuck', !entries[0].isIntersecting);
+                }, { root: mainScroll, threshold: 0 }).observe(filterSentinel);
+            }
             if (dock && filterToggle) {
                 filterToggle.addEventListener('click', function() {
                     var collapsed = dock.getAttribute('data-collapsed-mobile') !== 'false';
@@ -451,7 +488,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
 
         function renderError(msg) {
             document.getElementById('coursesContainer').innerHTML = 
-                '<div class="col-span-full flex flex-col items-center justify-center py-40 glass rounded-5xl border-rose-100 shadow-2xl">' +
+                '<div class="w-full flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-rose-100 shadow-sm">' +
                 '<div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 mb-6"><i class="fas fa-exclamation-triangle text-2xl"></i></div>' +
                 '<h3 class="text-2xl font-black text-neutral-900">' + msg + '</h3>' +
                 '<p class="text-neutral-400 mt-2 font-medium">관리자에게 문의하거나 잠시 후 다시 시도해주세요.</p></div>';
@@ -461,88 +498,81 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             const container = document.getElementById('coursesContainer');
             if (!courses || courses.length === 0) {
                 container.innerHTML = 
-                    '<div class="col-span-full text-center py-40 glass rounded-5xl border-white/50 flex flex-col items-center">' +
-                        '<div class="w-24 h-24 rounded-[2.5rem] bg-neutral-50 flex items-center justify-center text-neutral-200 mb-8 float-animation shadow-inner">' +
-                            '<i class="fas fa-chalkboard-teacher text-5xl"></i>' +
+                    '<div class="w-full text-center py-20 bg-white rounded-2xl border border-slate-200/60 flex flex-col items-center shadow-sm">' +
+                        '<div class="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 mb-6">' +
+                            '<i class="fas fa-chalkboard-teacher text-3xl"></i>' +
                         '</div>' +
-                        '<h3 class="text-3xl font-outfit font-black text-neutral-900 mb-3 tracking-tight">배정된 강의가 없습니다</h3>' +
-                        '<p class="text-neutral-400 font-medium max-w-sm mx-auto">현재 배정된 강의가 없거나 필터 조건에 맞는 강의를 찾을 수 없습니다.</p>' +
+                        '<h3 class="text-lg font-outfit font-black text-slate-900 mb-2 tracking-tight">배정된 강의가 없습니다</h3>' +
+                        '<p class="text-slate-500 text-sm font-medium max-w-sm mx-auto">현재 배정된 강의가 없거나 필터 조건에 맞는 강의를 찾을 수 없습니다.</p>' +
                     '</div>';
                 return;
             }
 
-            container.innerHTML = courses.map(course => {
+            container.innerHTML = courses.map(function(course) {
                 const enrolledCount = course.current_students || 0;
                 const maxStudents = course.max_students || 0;
                 const progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : (enrolledCount > 0 ? 100 : 0);
+                const lmsUrl = buildLmsEntryUrl(course, getLmsTab() || undefined);
                 
-                const safeTitle = (course.title || 'Untitled').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-                const safeCat = (course.category || 'General').replace(/'/g, "&#39;");
+                const safeTitle = (course.title || '제목 없음').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                const safeCat = (course.category || '일반').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
-                // 카테고리별 세련된 다이내믹 아이콘 매핑
-                let iconClass = 'fa-book-reader';
-                if (safeCat.includes('3D') || safeCat.includes('프린트') || safeCat.includes('쿠키')) iconClass = 'fa-cubes text-brand-600';
-                else if (safeCat.includes('국비') || safeCat.includes('지원') || safeCat.includes('HRD')) iconClass = 'fa-landmark text-amber-600';
-                else if (safeCat.includes('자격') || safeCat.includes('면허') || safeCat.includes('시험')) iconClass = 'fa-graduation-cap text-emerald-600';
-                else if (safeCat.includes('취업')) iconClass = 'fa-briefcase text-purple-600';
+                let iconClass = 'fa-book-reader text-slate-400';
+                const cat = safeCat;
+                if (cat.indexOf('3D') !== -1 || cat.indexOf('프린트') !== -1 || cat.indexOf('쿠키') !== -1) iconClass = 'fa-cubes text-brand-600';
+                else if (cat.indexOf('국비') !== -1 || cat.indexOf('지원') !== -1 || cat.indexOf('HRD') !== -1) iconClass = 'fa-landmark text-amber-600';
+                else if (cat.indexOf('자격') !== -1 || cat.indexOf('면허') !== -1) iconClass = 'fa-graduation-cap text-emerald-600';
+                else if (cat.indexOf('취업') !== -1) iconClass = 'fa-briefcase text-purple-600';
 
-                // 상태별 펄스 배지 스타일 정의
-                let s = { label: 'PREPARING', textClass: 'text-neutral-500', pingBg: 'bg-neutral-400', dotBg: 'bg-neutral-500' };
+                let statusBadge = { label: '준비중', cls: 'bg-slate-100 text-slate-500' };
                 if (course.status === 'active' || course.status === 'open') {
-                    s = { label: 'RUNNING', textClass: 'text-emerald-500', pingBg: 'bg-emerald-400', dotBg: 'bg-emerald-500' };
+                    statusBadge = { label: '진행중', cls: 'bg-emerald-50 text-emerald-700' };
                 } else if (course.status === 'upcoming' || course.status === 'recruiting') {
-                    s = { label: 'RECRUITING', textClass: 'text-brand-500', pingBg: 'bg-brand-400', dotBg: 'bg-brand-500' };
+                    statusBadge = { label: '모집중', cls: 'bg-blue-50 text-blue-700' };
                 } else if (course.status === 'completed' || course.status === 'closed') {
-                    s = { label: 'FINISHED', textClass: 'text-neutral-400', pingBg: 'bg-neutral-300', dotBg: 'bg-neutral-400' };
+                    statusBadge = { label: '종료', cls: 'bg-slate-100 text-slate-500' };
                 }
 
-                const startDate = (course.start_date || 'TBD').split('T')[0];
+                const startDate = (course.start_date || '-').split('T')[0];
+                const endDate = (course.end_date || '').split('T')[0];
+                const dateLabel = endDate ? (startDate + ' ~ ' + endDate) : startDate;
+                const capLabel = maxStudents > 0 ? (enrolledCount + ' / ' + maxStudents + '명') : (enrolledCount + '명');
 
-                return '<div class="group bg-white rounded-3xl border border-neutral-150/70 p-6 hover:shadow-premium transition-all duration-500 flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">' +
-                    '<!-- 왼쪽: 아이콘 및 기본 정보 -->' +
-                    '<div class="flex items-center gap-4 min-w-0 flex-1">' +
-                        '<!-- 세련된 컴팩트 아이콘 블록 -->' +
-                        '<div class="w-14 h-14 rounded-2xl bg-neutral-50 flex items-center justify-center shadow-inner border border-neutral-100/80 transition-all duration-500 group-hover:scale-105 shrink-0 relative">' +
-                            '<i class="fas ' + iconClass + ' text-xl"></i>' +
-                            '<!-- 상태 모서리 펄스 배지 -->' +
-                            '<span class="absolute -top-1 -right-1 flex h-3 w-3">' +
-                                '<span class="animate-ping absolute inline-flex h-full w-full rounded-full ' + s.pingBg + ' opacity-75"></span>' +
-                                '<span class="relative inline-flex rounded-full h-3 w-3 ' + s.dotBg + '"></span>' +
-                            '</span>' +
+                return '<article class="teacher-course-card group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md hover:border-brand-200/80 p-3.5 sm:px-4 sm:py-3.5 transition-all duration-300">' +
+                    '<div class="flex items-start sm:items-center gap-3 min-w-0 flex-1">' +
+                        '<div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">' +
+                            '<i class="fas ' + iconClass + ' text-sm"></i>' +
                         '</div>' +
-                        '<!-- 중앙 정보 영역 -->' +
                         '<div class="min-w-0 flex-1">' +
-                            '<div class="flex items-center gap-2 mb-1.5 flex-wrap">' +
-                                '<span class="px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-500 text-[9px] font-black tracking-wider uppercase">' + safeCat + '</span>' +
-                                '<span class="text-[9px] font-black uppercase tracking-wider ' + s.textClass + '">' + s.label + '</span>' +
+                            '<div class="flex flex-wrap items-center gap-1.5 mb-1">' +
+                                '<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold">' + safeCat + '</span>' +
+                                '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold ' + statusBadge.cls + '">' + statusBadge.label + '</span>' +
                             '</div>' +
-                            '<h3 class="text-base font-outfit font-black text-neutral-900 tracking-tight truncate leading-snug group-hover:text-brand-600 transition-colors duration-300" title="' + safeTitle + '">' + safeTitle + '</h3>' +
-                            '<div class="flex items-center gap-4 mt-2 text-[10px] font-bold text-neutral-400 uppercase tracking-widest flex-wrap">' +
-                                '<span><i class="fas fa-users mr-1"></i> ' + enrolledCount + ' <span class="text-[9px] text-neutral-300">/ ' + (maxStudents || '∞') + '</span></span>' +
-                                '<span><i class="fas fa-calendar-day mr-1"></i> ' + startDate + '</span>' +
+                            '<h3 class="teacher-course-title text-sm sm:text-[15px] font-bold text-slate-900 leading-snug group-hover:text-brand-600 transition-colors" title="' + safeTitle + '">' + safeTitle + '</h3>' +
+                            '<div class="teacher-course-meta flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-[11px] font-medium text-slate-500">' +
+                                '<span class="inline-flex items-center gap-1"><i class="fas fa-users text-[10px] text-slate-400"></i>' + capLabel + '</span>' +
+                                '<span class="inline-flex items-center gap-1"><i class="fas fa-calendar-day text-[10px] text-slate-400"></i>' + dateLabel + '</span>' +
+                                (maxStudents > 0 ? '<span class="inline-flex items-center gap-1"><i class="fas fa-chart-line text-[10px] text-slate-400"></i>등록 ' + progressPercent + '%</span>' : '') +
                             '</div>' +
                         '</div>' +
                     '</div>' +
-                    '<!-- 오른쪽: 게이지 바 & 액션 버튼 그룹 -->' +
-                    '<div class="flex items-center gap-6 shrink-0 justify-between md:justify-end border-t border-neutral-50 pt-4 md:border-t-0 md:pt-0">' +
-                        '<!-- 컴팩트 진행률 라인 -->' +
-                        '<div class="hidden sm:flex flex-col w-28 items-end gap-1.5">' +
-                            '<span class="text-[9px] font-black text-neutral-400 uppercase tracking-wider">' + progressPercent + '% Enrolled</span>' +
-                            '<div class="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden card-inner-shadow">' +
-                                '<div class="bg-gradient-to-r from-brand-400 to-brand-600 h-full transition-all duration-1000 ease-out" style="width:' + progressPercent + '%"></div>' +
-                            '</div>' +
-                        '</div>' +
-                        '<!-- 액션 버튼 -->' +
-                        '<div class="flex items-center gap-2.5 ml-auto md:ml-0">' +
-                            '<button onclick=\\\'viewCourseDetail("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\\' class="px-5 py-3 bg-neutral-950 text-white rounded-2xl hover:bg-brand-600 transition-all duration-350 font-black text-[10px] tracking-wider uppercase flex items-center gap-2 group-hover:shadow-lg group-hover:shadow-brand-100">' +
-                                '<i class="fas fa-door-open text-[10px]"></i> 강의실 입장' +
-                            '</button>' +
-                            '<button onclick=\\\'manageCourse("' + course.id + '",' + (course.is_hrd ? "true" : "false") + ')\\\' class="w-10 h-10 bg-neutral-50 text-neutral-600 rounded-2xl hover:bg-white hover:shadow-md hover:text-brand-600 transition-all border border-neutral-100 flex items-center justify-center shrink-0">' +
-                                '<i class="fas fa-cog"></i>' +
-                            '</button>' +
-                        '</div>' +
+                    '<div class="flex items-center gap-2 shrink-0 sm:pl-2 border-t border-slate-100 pt-3 sm:border-t-0 sm:pt-0 sm:ml-auto">' +
+                        (maxStudents > 0
+                            ? '<div class="hidden md:flex flex-col w-20 items-end gap-1 mr-1">' +
+                                '<span class="text-[9px] font-bold text-slate-400">' + progressPercent + '%</span>' +
+                                '<div class="w-full bg-slate-100 h-1 rounded-full overflow-hidden">' +
+                                    '<div class="bg-brand-500 h-full transition-all" style="width:' + progressPercent + '%"></div>' +
+                                '</div>' +
+                              '</div>'
+                            : '') +
+                        '<a href="' + escHtmlAttr(lmsUrl) + '" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-brand-600 transition-colors font-bold text-xs whitespace-nowrap">' +
+                            '<i class="fas fa-door-open text-[10px]"></i> 강의실 입장' +
+                        '</a>' +
+                        '<a href="' + escHtmlAttr(lmsUrl) + '" class="w-9 h-9 inline-flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-white hover:text-brand-600 border border-slate-200 transition-colors shrink-0" title="강의실 설정">' +
+                            '<i class="fas fa-cog text-xs"></i>' +
+                        '</a>' +
                     '</div>' +
-                '</div>';
+                '</article>';
             }).join('');
         }
 
@@ -567,12 +597,10 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             return ['students', 'attendance', 'exams', 'surveys'].includes(t) ? (t === 'exams' ? 'cbt' : t) : '';
         }
 
-        function viewCourseDetail(cid, isHrd) {
-            let url = '/teacher/courses/' + cid + '/lms' + (getLmsTab() ? '/' + getLmsTab() : '');
-            if (isHrd) url += (url.includes('?') ? '&' : '?') + 'type=hrd';
-            window.location.href = url;
+        function viewCourseDetail(course) {
+            window.location.href = buildLmsEntryUrl(course, getLmsTab() || undefined);
         }
-        function manageCourse(cid, isHrd) { viewCourseDetail(cid, isHrd); }
+        function manageCourse(course) { viewCourseDetail(course); }
     </script>
 </body>
 </html>

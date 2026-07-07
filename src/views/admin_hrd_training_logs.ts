@@ -1,5 +1,6 @@
 
 import { hrdSidebar } from './components/hrd_sidebar';
+import { lmsEntryUrlClientScript } from '../utils/lmsEntryUrl';
 
 export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) => `
 <!DOCTYPE html>
@@ -146,6 +147,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
     </div>
 
     <script>
+        ${lmsEntryUrlClientScript()}
         let courseSummaryData = [];
         let filteredData = [];
         let currentPage = 1;
@@ -318,7 +320,7 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                         </div>
                     </td>
                     <td class="px-6 py-5 text-right whitespace-nowrap align-top">
-                        <a href="/admin/courses/\${c.id}/lms/training-logs" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">
+                        <a href="\${escHtmlAttr(buildHrdLmsHref(c, 'training-logs'))}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">
                             일지 관리 <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
                         </a>
                     </td>

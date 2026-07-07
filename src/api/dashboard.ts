@@ -7,6 +7,93 @@ import { getEffectiveSessionStatus } from '../utils/course_session_status';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+/** KST 기준 이번 주 월~일 날짜·라벨 */
+function getCurrentWeekDatesKst(): { labels: string[]; dates: string[] } {
+    const labels = ['월', '화', '수', '목', '금', '토', '일'];
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const dow = kstNow.getUTCDay();
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    const dates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(kstNow);
+        d.setUTCDate(kstNow.getUTCDate() + mondayOffset + i);
+        dates.push(d.toISOString().slice(0, 10));
+    }
+    return { labels, dates };
+}
+
+/** 강사 주간 출석·학습완료(제출) 추이 */
+async function buildTeacherWeeklyPerformance(
+    DB: D1Database,
+    teacherId: number,
+    totalStudents: number
+): Promise<{ labels: string[]; dates: string[]; attendance: number[]; completion: number[] }> {
+    const { labels, dates } = getCurrentWeekDatesKst();
+    const attendance: number[] = [];
+    const completion: number[] = [];
+
+    for (const date of dates) {
+        let attTotal = 0;
+        let attOk = 0;
+        let submitCount = 0;
+
+        try {
+            const hrdAtt = await DB.prepare(`
+                SELECT COUNT(*) as total,
+                    SUM(CASE WHEN al.status IN ('present','late','early_leave','public_leave') THEN 1 ELSE 0 END) as ok
+                FROM attendance_logs al
+                JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
+                JOIN session_timetable st ON cse.session_id = st.session_id AND st.instructor_id = ?
+                WHERE al.date = ?
+            `).bind(teacherId, date).first<{ total: number; ok: number }>();
+            attTotal += hrdAtt?.total ?? 0;
+            attOk += hrdAtt?.ok ?? 0;
+        } catch { /* ignore */ }
+
+        try {
+            const legAtt = await DB.prepare(`
+                SELECT COUNT(*) as total,
+                    SUM(CASE WHEN al.status IN ('present','late','early_leave','public_leave') THEN 1 ELSE 0 END) as ok
+                FROM attendance_logs al
+                JOIN enrollments e ON al.enrollment_id = e.id
+                JOIN courses c ON e.course_id = c.id AND c.teacher_id = ?
+                WHERE al.date = ?
+            `).bind(teacherId, date).first<{ total: number; ok: number }>();
+            attTotal += legAtt?.total ?? 0;
+            attOk += legAtt?.ok ?? 0;
+        } catch { /* ignore */ }
+
+        try {
+            const examSubs = await DB.prepare(`
+                SELECT COUNT(DISTINCT es.student_id) as cnt
+                FROM exam_submissions es
+                JOIN exams ex ON es.exam_id = ex.id
+                JOIN courses c ON ex.course_id = c.id
+                WHERE c.teacher_id = ? AND substr(es.submitted_at, 1, 10) = ?
+            `).bind(teacherId, date).first<{ cnt: number }>();
+            submitCount += examSubs?.cnt ?? 0;
+        } catch { /* ignore */ }
+
+        try {
+            const assignSubs = await DB.prepare(`
+                SELECT COUNT(DISTINCT s.student_id) as cnt
+                FROM assignment_submissions s
+                JOIN assignments a ON s.assignment_id = a.id
+                JOIN session_timetable st ON a.session_id = st.session_id AND st.instructor_id = ?
+                WHERE substr(s.submitted_at, 1, 10) = ?
+            `).bind(teacherId, date).first<{ cnt: number }>();
+            submitCount += assignSubs?.cnt ?? 0;
+        } catch { /* ignore */ }
+
+        attendance.push(attTotal > 0 ? Math.round((attOk / attTotal) * 100) : 0);
+        completion.push(
+            totalStudents > 0 ? Math.min(100, Math.round((submitCount / totalStudents) * 100)) : 0
+        );
+    }
+
+    return { labels, dates, attendance, completion };
+}
+
 app.get('/stats', async (c) => {
     try {
         const { DB } = c.env;
@@ -404,6 +491,8 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
             console.error('Pending grading fetch error:', e);
         }
 
+        const weeklyPerformance = await buildTeacherWeeklyPerformance(DB, teacherId, totalStudents);
+
         return c.json({
             success: true,
             data: {
@@ -411,6 +500,7 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                 totalStudents,
                 pendingGrading,
                 avgAttendance,
+                weeklyPerformance,
                 recentCourses: combinedCourses,
                 assignedCourses: combinedCourses,
                 pendingGradingList: pendingGradingList

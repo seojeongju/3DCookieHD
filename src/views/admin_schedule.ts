@@ -1,4 +1,5 @@
 import { hrdSidebar } from './components/hrd_sidebar';
+import { lmsEntryUrlClientScript } from '../utils/lmsEntryUrl';
 
 export const adminScheduleHtml = `
 <!DOCTYPE html>
@@ -200,6 +201,7 @@ export const adminScheduleHtml = `
     </div>
 
     <script>
+        ${lmsEntryUrlClientScript()}
         let calendar;
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -339,7 +341,11 @@ export const adminScheduleHtml = `
                 btnViewCourse.onclick = () => {
                     const sid = props.sessionId;
                     if (sid != null && sid !== '') {
-                        location.href = '/admin/courses/' + encodeURIComponent(String(sid)) + '/lms?type=hrd&session_id=' + encodeURIComponent(String(sid));
+                        location.href = buildHrdLmsHref({
+                            session_id: sid,
+                            id: sid,
+                            lms_course_id: props.lmsCourseId
+                        });
                     } else {
                         location.href = '/admin/courses/' + event.id.split('-')[1] + '/lms?type=hrd';
                     }

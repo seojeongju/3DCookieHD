@@ -12,6 +12,7 @@ import { verifyCourseOwnership } from '../middleware/ownership';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
 import { getSessionTrainingDates, normalizeTrainingDate } from '../utils/session_training_dates';
+import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 
 const courses = new Hono<{ Bindings: Bindings }>();
 
@@ -166,8 +167,8 @@ courses.get('/', async (c) => {
 
       const hrdRows = await c.env.DB.prepare(`
         SELECT DISTINCT s.id, s.session_number, s.session_name, s.status as session_status,
-               s.training_start_date, s.training_end_date, a.name as course_name,
-               cc.name as category_name
+               s.training_start_date, s.training_end_date, s.lms_course_id,
+               a.name as course_name, cc.name as category_name
         FROM session_timetable st
         INNER JOIN course_sessions s ON st.session_id = s.id
         INNER JOIN approved_courses a ON s.approved_course_id = a.id
@@ -197,32 +198,47 @@ courses.get('/', async (c) => {
       // KST 기준 오늘 날짜 문자열 (YYYY-MM-DD)
       const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-      const hrdList = (hrdRows.results || []).map((r: any) => {
-        let normStatus = statusMap[r.session_status] || r.session_status || 'active';
+      const hrdList: any[] = [];
+      for (const r of hrdRows.results || []) {
+        let normStatus = statusMap[(r as any).session_status] || (r as any).session_status || 'active';
 
-        // 훈련 종료일이 오늘보다 이전이면 DB status와 무관하게 completed로 자동 처리
-        const endDate = (r.training_end_date || '').slice(0, 10);
+        const endDate = ((r as any).training_end_date || '').slice(0, 10);
         if (endDate && endDate < nowKst) {
           normStatus = 'completed';
         }
 
-        const title = (r.course_name || '') + (r.session_number != null ? ' (' + r.session_number + '회차)' : '') + (r.session_name ? ' - ' + r.session_name : '');
-        return {
-          id: r.id,
+        const sessionId = Number((r as any).id);
+        let lmsCourseId =
+          (r as any).lms_course_id != null && Number((r as any).lms_course_id) > 0
+            ? Number((r as any).lms_course_id)
+            : null;
+        if (!lmsCourseId) {
+          lmsCourseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
+        }
+
+        const title =
+          ((r as any).course_name || '') +
+          ((r as any).session_number != null ? ' (' + (r as any).session_number + '회차)' : '') +
+          ((r as any).session_name ? ' - ' + (r as any).session_name : '');
+
+        hrdList.push({
+          id: lmsCourseId ?? sessionId,
+          session_id: sessionId,
+          lms_course_id: lmsCourseId,
           title,
-          category: r.category_name || '국비지원',
+          category: (r as any).category_name || '국비지원',
           status: normStatus,
-          start_date: r.training_start_date || null,
+          start_date: (r as any).training_start_date || null,
           end_date: endDate || null,
           thumbnail_url: null,
-          current_students: enrollmentCounts.get(r.id) ?? 0,
+          current_students: enrollmentCounts.get(sessionId) ?? 0,
           max_students: 0,
           teacher_name: null,
           campus_name: null,
           campus_region: null,
-          is_hrd: true
-        };
-      });
+          is_hrd: true,
+        });
+      }
 
       // legacy courses도 end_date 기준 자동 상태 보정 (end_date가 오늘 이전이면 completed)
       const legacyNormalized = legacyList.map((course: any) => {
@@ -237,7 +253,14 @@ courses.get('/', async (c) => {
         return { ...course, status: courseStatus, is_hrd: false };
       });
 
-      let merged = [...legacyNormalized, ...hrdList];
+      const hrdLmsIds = new Set(
+        hrdList
+          .map((h) => h.lms_course_id)
+          .filter((id): id is number => id != null && Number(id) > 0)
+      );
+      const legacyFiltered = legacyNormalized.filter((course: any) => !hrdLmsIds.has(course.id));
+
+      let merged = [...legacyFiltered, ...hrdList];
       if (filter.category) {
         merged = merged.filter((c: any) => (c.category || '') === filter.category);
       }

@@ -1,5 +1,6 @@
 
 import { hrdSidebar } from './components/hrd_sidebar';
+import { lmsEntryUrlClientScript } from '../utils/lmsEntryUrl';
 
 export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => `
 <!DOCTYPE html>
@@ -147,6 +148,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
     </div>
 
     <script>
+        ${lmsEntryUrlClientScript()}
         let allData = [];
         let filteredData = [];
         let currentPage = 1;
@@ -312,7 +314,7 @@ export const adminHrdAssignmentsHtml = (sidebar = hrdSidebar('assignments')) => 
                         </span>
                     </td>
                     <td class="px-8 py-5 text-right whitespace-nowrap align-top">
-                        \${(c.session_id != null) ? '<a href="/admin/courses/' + c.session_id + '/lms/assignments" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">과제 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
+                        \${(c.session_id != null) ? '<a href="' + escHtmlAttr(buildHrdLmsHref(c, 'assignments')) + '" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm hover:shadow-md active:scale-95 transform whitespace-nowrap">과제 관리 <i class="fas fa-arrow-right ml-2 text-[9px] opacity-50 group-hover:opacity-100"></i></a>' : '<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>'}
                     </td>
                 </tr>
             \`).join('');

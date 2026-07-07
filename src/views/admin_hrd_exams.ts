@@ -1,5 +1,6 @@
 
 import { hrdSidebar } from './components/hrd_sidebar';
+import { lmsEntryUrlClientScript } from '../utils/lmsEntryUrl';
 
 export type AdminHrdExamsOptions = { questionBankOnly?: boolean };
 
@@ -460,6 +461,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
     </style>
 
     <script>
+        ${lmsEntryUrlClientScript()}
         /* question-bank script v2 */
         let allData = [];
         let filteredData = [];
@@ -689,8 +691,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     </td>
                     <td class="px-8 py-5 text-right whitespace-nowrap align-top space-x-2">
                         \${(c.session_id != null) 
-                            ? \`<a href="/admin/courses/\${c.session_id}/lms/cbt" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm whitespace-nowrap">시험 관리</a>
-                               <a href="/admin/courses/\${c.session_id}/lms/cbt?tab=results" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm whitespace-nowrap">결과</a>\` 
+                            ? \`<a href="\${escHtmlAttr(cbtMgmtHref(c, false))}" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm whitespace-nowrap">시험 관리</a>
+                               <a href="\${escHtmlAttr(cbtMgmtHref(c, true))}" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm whitespace-nowrap">결과</a>\` 
                             : \`<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>\`}
                     </td>
                 </tr>
@@ -730,7 +732,12 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         }
         function ncsEvalDashboardHref() {
             const lid = lmsCourseIdForMgmtSession();
-            return lid ? '/admin/courses/' + lid + '/lms/ncs-eval-dashboard?type=hrd' : '#';
+            if (!lid || !mgmtSessionId) return '#';
+            return buildHrdLmsHref({ session_id: mgmtSessionId, lms_course_id: lid, id: mgmtSessionId }, 'ncs-eval-dashboard');
+        }
+        function cbtMgmtHref(c, withResults) {
+            var base = buildHrdLmsHref(c, 'cbt');
+            return withResults && base !== '#' ? (base + '&tab=results') : base;
         }
 
         function getQuestionTypeLabel(type) {
