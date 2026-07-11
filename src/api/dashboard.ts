@@ -4,6 +4,7 @@ import { Bindings } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { verifyToken } from '../utils/jwt';
 import { getEffectiveSessionStatus } from '../utils/course_session_status';
+import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -357,35 +358,58 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
         let hrdCourses: any[] = [];
         try {
             const hrdRows = await DB.prepare(`
-                SELECT DISTINCT s.id, s.session_number, s.status, s.training_start_date, s.training_end_date,
-                       a.name as course_name, cc.name as category_name
+                SELECT DISTINCT s.id, s.session_number, s.session_name, s.status, s.training_start_date, s.training_end_date,
+                       s.lms_course_id, a.name as course_name, cc.name as category_name
                 FROM session_timetable st
                 INNER JOIN course_sessions s ON st.session_id = s.id
                 INNER JOIN approved_courses a ON s.approved_course_id = a.id
                 LEFT JOIN course_categories cc ON a.category_id = cc.id
                 WHERE st.instructor_id = ?
-            `).bind(teacherId).all<{ id: number, session_number: number, status: string, training_start_date: string | null, training_end_date: string | null, course_name: string, category_name: string }>();
+            `).bind(teacherId).all<{
+                id: number;
+                session_number: number;
+                session_name: string | null;
+                status: string;
+                training_start_date: string | null;
+                training_end_date: string | null;
+                lms_course_id: number | null;
+                course_name: string;
+                category_name: string;
+            }>();
 
-            hrdCourses = (hrdRows.results || []).map(r => {
+            hrdCourses = [];
+            for (const r of hrdRows.results || []) {
+                const sessionId = Number(r.id);
+                let lmsCourseId =
+                    r.lms_course_id != null && Number(r.lms_course_id) > 0 ? Number(r.lms_course_id) : null;
+                if (!lmsCourseId) {
+                    lmsCourseId = await resolveSessionToLmsCourseId(DB, sessionId);
+                }
                 const sessionLabel = r.session_number != null ? ' (' + r.session_number + '회차)' : '';
-                const title = (r.course_name || '') + sessionLabel;
+                const nameSuffix = r.session_name ? ' - ' + r.session_name : '';
+                const title = (r.course_name || '') + sessionLabel + nameSuffix;
                 const effStatus = getEffectiveSessionStatus({
                     status: r.status,
                     training_start_date: r.training_start_date,
                     training_end_date: r.training_end_date,
                 });
-                return {
-                    id: r.id,
-                    title: title,
+                hrdCourses.push({
+                    id: lmsCourseId ?? sessionId,
+                    session_id: sessionId,
+                    lms_course_id: lmsCourseId,
+                    title,
                     category: r.category_name || '국비지원',
                     status: effStatus,
+                    start_date: r.training_start_date,
+                    end_date: r.training_end_date,
                     training_start_date: r.training_start_date,
                     training_end_date: r.training_end_date,
                     max_students: 0,
+                    current_students: 0,
                     is_hrd: true,
-                    enrolled_count: 0
-                };
-            });
+                    enrolled_count: 0,
+                });
+            }
 
             for (const hCourse of hrdCourses) {
                 try {
@@ -394,8 +418,9 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                         SELECT count(*) as cnt
                         FROM course_session_enrollments
                         WHERE session_id = ? AND status IN ('approved', 'enrolled')
-                    `).bind(hCourse.id).first<{ cnt: number }>();
+                    `).bind(hCourse.session_id).first<{ cnt: number }>();
                     hCourse.enrolled_count = enrollData?.cnt || 0;
+                    hCourse.current_students = enrollData?.cnt || 0;
                     totalStudents += enrollData?.cnt || 0;
 
                     // Attendance for HRD
@@ -405,7 +430,7 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                         FROM attendance_logs al
                         JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
                         WHERE cse.session_id = ?
-                    `).bind(hCourse.id).first<{ total_logs: number, present_cnt: number }>();
+                    `).bind(hCourse.session_id).first<{ total_logs: number, present_cnt: number }>();
 
                     if (hrdAtt && hrdAtt.total_logs > 0) {
                         const present = hrdAtt.present_cnt || 0;
@@ -414,7 +439,7 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                         avgAttendanceData.count += 1;
                     }
                 } catch (e) {
-                    console.error(`Error processing HRD course ${hCourse.id}:`, e);
+                    console.error(`Error processing HRD course ${hCourse.session_id}:`, e);
                 }
             }
         } catch (e) {

@@ -72,13 +72,19 @@ export async function resolveLegacyHrdLmsRedirect(
       .prepare('SELECT id, lms_course_id FROM course_sessions WHERE id = ?')
       .bind(explicitSid)
       .first<{ id: number; lms_course_id: number | null }>();
-    if (session?.lms_course_id != null && Number(session.lms_course_id) > 0) {
-      const lmsId = Number(session.lms_course_id);
-      if (rawId !== lmsId) {
-        params.set('type', 'hrd');
-        params.set('session_id', String(session.id));
-        return `/${role}/courses/${lmsId}/lms${subPath}?${params.toString()}`;
-      }
+    if (!session) return null;
+
+    let lmsId =
+      session.lms_course_id != null && Number(session.lms_course_id) > 0
+        ? Number(session.lms_course_id)
+        : null;
+    if (!lmsId) {
+      lmsId = await resolveSessionToLmsCourseId(db, session.id);
+    }
+    if (lmsId && rawId !== lmsId) {
+      params.set('type', 'hrd');
+      params.set('session_id', String(session.id));
+      return `/${role}/courses/${lmsId}/lms${subPath}?${params.toString()}`;
     }
     return null;
   }
@@ -118,17 +124,24 @@ export async function resolveLegacyHrdLmsRedirect(
 export function lmsEntryUrlClientScript(): string {
   return `
 function buildLmsEntryUrl(course, subPath) {
-  var role = (window.location.pathname.indexOf('/admin/') === 0) ? 'admin'
-    : (window.location.pathname.indexOf('/teacher/') === 0) ? 'teacher' : 'student';
+  var path = window.location.pathname || '';
+  var role = (path === '/admin' || path.indexOf('/admin/') === 0) ? 'admin'
+    : (path === '/teacher' || path.indexOf('/teacher/') === 0) ? 'teacher'
+    : (path === '/student' || path.indexOf('/student/') === 0) ? 'student'
+    : 'teacher';
   var sub = subPath ? ('/' + String(subPath).replace(/^\\//, '')) : '';
   if (course && course.is_hrd) {
     var lmsId = (course.lms_course_id != null && Number(course.lms_course_id) > 0)
       ? Number(course.lms_course_id) : Number(course.id);
     var sid = (course.session_id != null && Number(course.session_id) > 0)
       ? Number(course.session_id) : Number(course.id);
+    if (!Number.isFinite(lmsId) || lmsId < 1) return '#';
+    if (!Number.isFinite(sid) || sid < 1) return '#';
     return '/' + role + '/courses/' + lmsId + '/lms' + sub + '?type=hrd&session_id=' + encodeURIComponent(String(sid));
   }
-  return '/' + role + '/courses/' + Number(course.id) + '/lms' + sub;
+  var cid = Number(course && course.id);
+  if (!Number.isFinite(cid) || cid < 1) return '#';
+  return '/' + role + '/courses/' + cid + '/lms' + sub;
 }
 function escHtmlAttr(s) {
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
