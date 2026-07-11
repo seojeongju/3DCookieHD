@@ -1050,6 +1050,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 ID' }, 400);
     const body = await c.req.json<{
       status?: string;
+      session_number?: number;
       instructor_name?: string;
       target_audience?: string | string[];
       days_of_week?: string | string[];
@@ -1078,8 +1079,29 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     }>();
 
     const { DB } = c.env;
-    const existing = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(id).first();
+    const existing = await DB.prepare('SELECT id, approved_course_id, session_number FROM course_sessions WHERE id = ?').bind(id).first<{
+      id: number;
+      approved_course_id: number;
+      session_number: number | null;
+    }>();
     if (!existing) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+
+    let nextSessionNumber: number | undefined;
+    if (body.session_number != null && String(body.session_number).trim() !== '') {
+      const parsed = typeof body.session_number === 'number'
+        ? body.session_number
+        : parseInt(String(body.session_number), 10);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        return c.json({ success: false, error: '회차는 1 이상의 숫자여야 합니다' }, 400);
+      }
+      if (parsed !== existing.session_number) {
+        const dup = await DB.prepare(
+          'SELECT id FROM course_sessions WHERE approved_course_id = ? AND session_number = ? AND id != ?'
+        ).bind(existing.approved_course_id, parsed, id).first();
+        if (dup) return c.json({ success: false, error: '이미 같은 회차가 등록되어 있습니다' }, 400);
+        nextSessionNumber = parsed;
+      }
+    }
 
     const status = (body.status && STATUS_VALUES.includes(body.status as any)) ? body.status : undefined;
     const sessionName = (body.session_name || '').trim() || null;
@@ -1110,6 +1132,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     try {
       await DB.prepare(
         `UPDATE course_sessions SET
+          session_number = COALESCE(?, session_number),
           status = COALESCE(?, status), instructor_name = ?, target_audience = ?, days_of_week = ?, location = ?,
           training_start_date = ?, training_end_date = ?,
           training_time_start = ?, training_time_end = ?, lunch_time_start = ?, lunch_time_end = ?,
@@ -1120,7 +1143,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
           homepage_exposed = COALESCE(?, homepage_exposed), session_name = ?, access_code = ?, excluded_dates = ?
          WHERE id = ?`
       )
-        .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, sessionName, accessCode, body.excluded_dates || null, id)
+        .bind(nextSessionNumber ?? null, status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, trainingTimeStart, trainingTimeEnd, lunchTimeStart, lunchTimeEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, homepageExposed ?? null, sessionName, accessCode, body.excluded_dates || null, id)
         .run();
     } catch (err: unknown) {
       const msg = String(err && typeof err === 'object' && 'message' in err ? (err as Error).message : err);
@@ -1131,6 +1154,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
         try {
           await DB.prepare(
             `UPDATE course_sessions SET
+              session_number = COALESCE(?, session_number),
               status = COALESCE(?, status), instructor_name = ?, target_audience = ?, days_of_week = ?, location = ?,
               training_start_date = ?, training_end_date = ?,
               url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?,
@@ -1139,18 +1163,19 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
               main_slide_image_url = ?, course_list_image_url = ?, course_detail_description = ?
              WHERE id = ?`
           )
-            .bind(status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, id)
+            .bind(nextSessionNumber ?? null, status ?? null, instructorName, targetAudience, daysOfWeek, location, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, recruitmentStatus, representativeImageExposure, recruitmentGracePeriod, syllabusExposure, mainSlideImageUrl, courseListImageUrl, courseDetailDescription, id)
             .run();
         } catch (err2: unknown) {
           const msg2 = String(err2 && typeof err2 === 'object' && 'message' in err2 ? (err2 as Error).message : err2);
           if (/instructor_name|target_audience|days_of_week|location|no such column/i.test(msg2)) {
             await DB.prepare(
               `UPDATE course_sessions SET
+                session_number = COALESCE(?, session_number),
                 status = COALESCE(?, status), training_start_date = ?, training_end_date = ?,
                 url_ncs = ?, url_plan = ?, url_detail_plan = ?, registered_at = ?
                WHERE id = ?`
             )
-              .bind(status ?? null, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
+              .bind(nextSessionNumber ?? null, status ?? null, trainingStart, trainingEnd, urlNcs, urlPlan, urlDetailPlan, registeredAt, id)
               .run();
           } else throw err2;
         }

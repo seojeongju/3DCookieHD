@@ -80,7 +80,16 @@
                     container.innerHTML = '<span class="text-slate-500 text-sm">등록된 교직원이 없습니다.</span>';
                     return;
                 }
-                var list = json.data;
+                var rawList = json.data;
+                var seenNames = {};
+                var list = [];
+                rawList.forEach(function (p) {
+                    var key = String(p.name || '').trim().toLowerCase();
+                    if (!key) key = '__id_' + (p.id != null ? p.id : Math.random());
+                    if (seenNames[key]) return;
+                    seenNames[key] = true;
+                    list.push(p);
+                });
                 container.innerHTML = list.map(function (p) {
                     var name = (p.name || '').trim() || '(이름 없음)';
                     var id = p.id != null ? p.id : '';

@@ -3463,16 +3463,18 @@ app.put('/approved/registrations/:id/evaluation-teaching', authMiddleware, requi
     }
 });
 
-/** 강사 목록 조회 (교강사 배정용) */
+/** 강사 목록 조회 (교강사 배정용) — 동일 이름은 1건만 (배정이 이름 문자열 기준) */
 app.get('/approved/instructors', authMiddleware, requireAdmin, async (c) => {
     try {
         const { results } = await c.env.DB.prepare(
-            `SELECT u.id, u.name 
-             FROM users u 
-             LEFT JOIN hrd_instructors i ON u.id = i.user_id 
-             WHERE u.role = 'teacher' OR i.user_id IS NOT NULL
-             GROUP BY u.id
-             ORDER BY u.name ASC`
+            `SELECT u.id, TRIM(u.name) AS name
+             FROM users u
+             LEFT JOIN hrd_instructors i ON u.id = i.user_id
+             WHERE (u.role = 'teacher' OR i.user_id IS NOT NULL)
+               AND TRIM(COALESCE(u.name, '')) != ''
+               AND (u.status IS NULL OR u.status = '' OR u.status = 'active')
+             GROUP BY LOWER(TRIM(u.name))
+             ORDER BY TRIM(u.name) ASC`
         ).all();
 
         return c.json({ success: true, data: results || [] });

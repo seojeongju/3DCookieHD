@@ -838,7 +838,7 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1"><span class="text-red-500">*</span> 회차</label>
                                 <input type="number" id="sessionsFormSessionNumber" min="1" class="w-full max-w-xs px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="1">
-                                <p class="text-xs text-slate-500 mt-1">승인받은 과정별 회차는 중복될 수 없습니다.</p>
+                                <p class="text-xs text-slate-500 mt-1">원하는 회차 번호를 직접 입력하세요. 같은 승인과정 내 회차는 중복될 수 없습니다. (비어 있으면 다음 회차가 자동 제안됩니다)</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">회차별과정명</label>

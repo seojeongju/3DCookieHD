@@ -149,7 +149,16 @@
                     container.innerHTML = '<span class="text-slate-400">강사 목록을 불러올 수 없습니다. (직접 입력은 아래 없음)</span>';
                     return;
                 }
-                var list = Array.isArray(json.data) ? json.data : [];
+                var rawList = Array.isArray(json.data) ? json.data : [];
+                // 동일 이름 중복 제거 (배정값이 이름 문자열이라 체크박스가 이름당 1개여야 함)
+                var seenNames = {};
+                var list = [];
+                rawList.forEach(function (instr) {
+                    var key = String(instr.name || '').trim().toLowerCase();
+                    if (!key || seenNames[key]) return;
+                    seenNames[key] = true;
+                    list.push(instr);
+                });
                 instructorListCache = list;
                 var reLt = new RegExp('<', 'g');
                 if (list.length === 0) {
@@ -157,7 +166,7 @@
                     return;
                 }
                 container.innerHTML = list.map(function (instr) {
-                    var name = (instr.name || '').replace(reLt, '&lt;');
+                    var name = String(instr.name || '').trim().replace(reLt, '&lt;');
                     var idAttr = 'sessions-instructor-' + (instr.id || Math.random().toString(36).slice(2));
                     return '<label class="inline-flex items-center gap-2 cursor-pointer hover:text-emerald-600"><input type="checkbox" class="sessions-instructor-cb rounded text-emerald-600" data-name="' + name.replace(/"/g, '&quot;') + '" id="' + idAttr + '"> ' + name + '</label>';
                 }).join('');
@@ -354,7 +363,11 @@
                 setSessionCourseDetailContent(d.course_detail_description || '');
                 if (formIdEl) formIdEl.value = id;
                 if (id && approvedSel) approvedSel.disabled = true;
-                if (id && numEl) numEl.readOnly = true;
+                // 회차는 개설·수정 모두 직접 설정 가능 (중복만 서버에서 검사)
+                if (numEl) {
+                    numEl.readOnly = false;
+                    numEl.removeAttribute('readonly');
+                }
                 loadApprovedCourseDetail(d.approved_course_id).then(function () { updateSessionNamePreview(); });
                 setTabPlanUrls(d.url_plan || null, d.url_detail_plan || null, id);
                 calculateDailyHours();
@@ -370,10 +383,8 @@
         var approvedCourseId = approvedCourseEl ? approvedCourseEl.value : '';
         var sessionNumberEl = document.getElementById('sessionsFormSessionNumber');
         var sessionNumber = sessionNumberEl ? parseInt(sessionNumberEl.value, 10) : NaN;
-        if (!id) {
-            if (!approvedCourseId) { alert('승인받은 과정을 선택하세요.'); return; }
-            if (isNaN(sessionNumber) || sessionNumber < 1) { alert('회차를 입력하세요 (1 이상).'); return; }
-        }
+        if (!approvedCourseId) { alert('승인받은 과정을 선택하세요.'); return; }
+        if (isNaN(sessionNumber) || sessionNumber < 1) { alert('회차를 입력하세요 (1 이상).'); return; }
         var status = document.getElementById('sessionsFormStatus').value || 'recruiting';
         var instructorName = getSelectedInstructorNames();
         var targetAudience = [];
@@ -417,6 +428,7 @@
             url = '/api/course-sessions/' + id;
             method = 'PUT';
             payload = {
+                session_number: sessionNumber,
                 status: status,
                 instructor_name: instructorName,
                 target_audience: targetAudience.length ? targetAudience : null,
@@ -506,8 +518,32 @@
 
     form.addEventListener('submit', submitForm);
 
+    function suggestNextSessionNumber(approvedCourseId, force) {
+        var numEl = document.getElementById('sessionsFormSessionNumber');
+        if (!numEl || !approvedCourseId) return;
+        // 이미 사용자가 입력한 값이 있으면 덮어쓰지 않음 (신규 개설 시 추천만)
+        if (!force && String(numEl.value || '').trim() !== '') return;
+        fetch('/api/course-sessions?approved_course_id=' + encodeURIComponent(approvedCourseId) + '&limit=500', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (!json.success || !json.data) return;
+                var list = Array.isArray(json.data) ? json.data : (json.data.list || []);
+                var maxNum = 0;
+                list.forEach(function (s) { if (s.session_number != null && s.session_number > maxNum) maxNum = s.session_number; });
+                numEl.value = maxNum + 1;
+                updateSessionNamePreview();
+            })
+            .catch(function () {
+                if (!String(numEl.value || '').trim()) numEl.value = '1';
+            });
+    }
+
     var approvedSel = document.getElementById('sessionsFormApprovedCourse');
-    if (approvedSel) approvedSel.addEventListener('change', function () { loadApprovedCourseDetail(this.value || ''); });
+    if (approvedSel) approvedSel.addEventListener('change', function () {
+        var cid = this.value || '';
+        loadApprovedCourseDetail(cid);
+        if (!editId && cid) suggestNextSessionNumber(cid, false);
+    });
     var sessionNameInput = document.getElementById('sessionsFormSessionName');
     if (sessionNameInput) sessionNameInput.addEventListener('input', updateSessionNamePreview);
     if (sessionNameInput) sessionNameInput.addEventListener('change', updateSessionNamePreview);
@@ -1017,19 +1053,7 @@
             var sel = document.getElementById('sessionsFormApprovedCourse');
             if (sel) sel.value = approvedCourseIdFromQuery;
             loadApprovedCourseDetail(approvedCourseIdFromQuery);
-            var numEl = document.getElementById('sessionsFormSessionNumber');
-            if (numEl) {
-                fetch('/api/course-sessions?approved_course_id=' + encodeURIComponent(approvedCourseIdFromQuery) + '&limit=500', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
-                    .then(function (r) { return r.json(); })
-                    .then(function (json) {
-                        if (!json.success || !json.data) return;
-                        var list = Array.isArray(json.data) ? json.data : (json.data.list || []);
-                        var maxNum = 0;
-                        list.forEach(function (s) { if (s.session_number != null && s.session_number > maxNum) maxNum = s.session_number; });
-                        numEl.value = maxNum + 1;
-                    })
-                    .catch(function () { numEl.value = numEl.value || '1'; });
-            }
+            suggestNextSessionNumber(approvedCourseIdFromQuery, false);
         }
     });
 
