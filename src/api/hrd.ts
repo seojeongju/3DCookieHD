@@ -3226,71 +3226,150 @@ app.post('/training-logs', async (c) => {
 
         } else {
             // 등록: course_id가 회차(course_sessions.id)일 수 있으므로 courses.id로 해석
+            // 클라이언트가 session_id / lms_course_id를 함께내면 PK 충돌을 피함
             const rawId = course_id == null ? null : Number(course_id);
-            if (rawId == null || isNaN(rawId)) {
+            const bodySessionId = body.session_id != null && String(body.session_id).trim() !== ''
+                ? Number(body.session_id) : NaN;
+            const bodyLmsCourseId = body.lms_course_id != null && String(body.lms_course_id).trim() !== ''
+                ? Number(body.lms_course_id) : NaN;
+
+            if ((rawId == null || isNaN(rawId)) && !(Number.isFinite(bodySessionId) && bodySessionId >= 1)) {
                 return errorResponse(c, '과정(회차)을 선택해 주세요.', 400);
             }
 
             let resolvedCourseId: number | null = null;
             let resolvedViaSession = false;
+            let sessionPkForLink: number | null =
+                Number.isFinite(bodySessionId) && bodySessionId >= 1 ? bodySessionId : null;
 
             try {
-                const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
-                if (existsInCourses) {
-                    resolvedCourseId = rawId;
-                } else {
-                    resolvedViaSession = true;
-                    const session: any = await c.env.DB.prepare(`
-                        SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
-                        FROM course_sessions s
-                        JOIN approved_courses a ON s.approved_course_id = a.id
-                        WHERE s.id = ?
-                    `).bind(rawId).first();
+                // 1) 클라이언트가 보낸 LMS courses.id가 유효하면 우선 사용
+                if (Number.isFinite(bodyLmsCourseId) && bodyLmsCourseId >= 1) {
+                    const lmsExists = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(bodyLmsCourseId).first();
+                    if (lmsExists) {
+                        resolvedCourseId = bodyLmsCourseId;
+                        if (sessionPkForLink != null) {
+                            resolvedViaSession = true;
+                            try {
+                                await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ? AND (lms_course_id IS NULL OR lms_course_id != ?)')
+                                    .bind(bodyLmsCourseId, sessionPkForLink, bodyLmsCourseId).run();
+                            } catch (_) { }
+                        }
+                    }
+                }
 
+                // 2) session_id로 회차의 lms_course_id 조회 (PK 충돌 없는 경로)
+                if (resolvedCourseId == null && sessionPkForLink != null) {
+                    const sessionRow: any = await c.env.DB.prepare(
+                        'SELECT id, lms_course_id FROM course_sessions WHERE id = ?'
+                    ).bind(sessionPkForLink).first();
+                    if (sessionRow && sessionRow.lms_course_id != null && Number(sessionRow.lms_course_id) > 0) {
+                        const linkedCourse = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?')
+                            .bind(sessionRow.lms_course_id).first();
+                        if (linkedCourse) {
+                            resolvedCourseId = Number(sessionRow.lms_course_id);
+                            resolvedViaSession = true;
+                        }
+                    }
+                }
+
+                // 3) resolveTrainingLogSession으로 회차 확정 후 LMS 연결
+                if (resolvedCourseId == null) {
+                    const courseParam = Number.isFinite(bodyLmsCourseId) && bodyLmsCourseId >= 1
+                        ? bodyLmsCourseId
+                        : (rawId as number);
+                    const session = await resolveTrainingLogSession(
+                        c.env.DB,
+                        courseParam,
+                        Number.isFinite(bodySessionId) ? bodySessionId : (rawId as number)
+                    );
                     if (session) {
-                        const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-                        // 이미 연결된 LMS 과정이 있으면, 제목 일치 + 다른 회차에 연결돼 있지 않을 때만 사용
-                        if (session.lms_course_id != null && session.lms_course_id > 0) {
-                            const existingCourse: any = await c.env.DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(session.lms_course_id).first();
-                            const titleOk = existingCourse && existingCourse.title != null && (
-                                String(existingCourse.title).trim() === expectedTitle ||
-                                String(existingCourse.title).trim() === `${session.course_name || '과정'} (${session.session_number}회차)`.trim()
-                            );
-                            const otherSession: any = await c.env.DB.prepare(
-                                'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-                            ).bind(session.lms_course_id, rawId).first();
-                            if (titleOk && !otherSession) resolvedCourseId = Number(session.lms_course_id);
-                            else if (existingCourse || otherSession) {
-                                try {
-                                    await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, rawId).run();
-                                } catch (_) { }
-                            }
+                        sessionPkForLink = Number(session.id);
+                        resolvedViaSession = true;
+                        if (session.lms_course_id != null && Number(session.lms_course_id) > 0) {
+                            const linkedOk = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?')
+                                .bind(session.lms_course_id).first();
+                            if (linkedOk) resolvedCourseId = Number(session.lms_course_id);
                         }
-                        if (resolvedCourseId == null) {
-                            const existingCourse: any = await c.env.DB.prepare(
-                                'SELECT id FROM courses WHERE title = ? LIMIT 1'
-                            ).bind(expectedTitle).first();
+                    }
+                }
 
-                            const usedByOther: any = existingCourse ? await c.env.DB.prepare(
-                                'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-                            ).bind(existingCourse.id, rawId).first() : null;
+                // 4) 레거시: course_id가 courses.id에 있으면 그대로 사용 (회차 PK와 충돌 주의)
+                if (resolvedCourseId == null && rawId != null && !isNaN(rawId)) {
+                    // rawId가 session PK이면 courses 직접 매칭보다 회차 해석 우선
+                    const asSession: any = await c.env.DB.prepare(
+                        'SELECT id, lms_course_id FROM course_sessions WHERE id = ?'
+                    ).bind(rawId).first();
+                    if (asSession) {
+                        sessionPkForLink = Number(asSession.id);
+                        resolvedViaSession = true;
+                        if (asSession.lms_course_id != null && Number(asSession.lms_course_id) > 0) {
+                            const linkedOk = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?')
+                                .bind(asSession.lms_course_id).first();
+                            if (linkedOk) resolvedCourseId = Number(asSession.lms_course_id);
+                        }
+                    }
+                }
 
-                            if (existingCourse && !usedByOther) {
-                                resolvedCourseId = existingCourse.id;
-                                console.log('[Training Log] Using existing LMS course:', resolvedCourseId, expectedTitle);
-                            } else {
-                                const insert = await c.env.DB.prepare(`
-                                    INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')
-                                `).bind(expectedTitle).run();
-                                const newCourseId = insert.meta?.last_row_id;
-                                if (newCourseId == null) {
-                                    return errorResponse(c, 'LMS 과정 생성에 실패했습니다.', 500);
+                if (resolvedCourseId == null && rawId != null && !isNaN(rawId)) {
+                    const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+                    if (existsInCourses && !sessionPkForLink) {
+                        resolvedCourseId = rawId;
+                    } else if (sessionPkForLink != null && resolvedCourseId == null) {
+                        resolvedViaSession = true;
+                        const session: any = await c.env.DB.prepare(`
+                            SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
+                            FROM course_sessions s
+                            JOIN approved_courses a ON s.approved_course_id = a.id
+                            WHERE s.id = ?
+                        `).bind(sessionPkForLink).first();
+
+                        if (session) {
+                            const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+                            if (session.lms_course_id != null && session.lms_course_id > 0) {
+                                const existingCourse: any = await c.env.DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(session.lms_course_id).first();
+                                const titleOk = existingCourse && existingCourse.title != null && (
+                                    String(existingCourse.title).trim() === expectedTitle ||
+                                    String(existingCourse.title).trim() === `${session.course_name || '과정'} (${session.session_number}회차)`.trim()
+                                );
+                                const otherSession: any = await c.env.DB.prepare(
+                                    'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
+                                ).bind(session.lms_course_id, sessionPkForLink).first();
+                                if (titleOk && !otherSession) resolvedCourseId = Number(session.lms_course_id);
+                                else if (existingCourse || otherSession) {
+                                    try {
+                                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, sessionPkForLink).run();
+                                    } catch (_) { }
                                 }
-                                resolvedCourseId = Number(newCourseId);
-                                console.log('[Training Log] Created new LMS course:', resolvedCourseId, expectedTitle);
                             }
-                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                            if (resolvedCourseId == null) {
+                                const existingCourse: any = await c.env.DB.prepare(
+                                    'SELECT id FROM courses WHERE title = ? LIMIT 1'
+                                ).bind(expectedTitle).first();
+
+                                const usedByOther: any = existingCourse ? await c.env.DB.prepare(
+                                    'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
+                                ).bind(existingCourse.id, sessionPkForLink).first() : null;
+
+                                if (existingCourse && !usedByOther) {
+                                    resolvedCourseId = existingCourse.id;
+                                    console.log('[Training Log] Using existing LMS course:', resolvedCourseId, expectedTitle);
+                                } else {
+                                    const insert = await c.env.DB.prepare(`
+                                        INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')
+                                    `).bind(expectedTitle).run();
+                                    const newCourseId = insert.meta?.last_row_id;
+                                    if (newCourseId == null) {
+                                        return errorResponse(c, 'LMS 과정 생성에 실패했습니다.', 500);
+                                    }
+                                    resolvedCourseId = Number(newCourseId);
+                                    console.log('[Training Log] Created new LMS course:', resolvedCourseId, expectedTitle);
+                                }
+                                await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, sessionPkForLink).run();
+                            }
                         }
+                    } else if (existsInCourses) {
+                        resolvedCourseId = rawId;
                     }
                 }
             } catch (queryErr) {
@@ -3302,18 +3381,18 @@ app.post('/training-logs', async (c) => {
                 return errorResponse(c, '선택한 과정(회차)을 찾을 수 없습니다. 유효한 과정 또는 회차를 선택해 주세요.', 400);
             }
 
-            // 등록 직전 한 번 더: 이 과정이 다른 회차에 연결돼 있으면 사용 금지 → 이 회차 전용 과정 새로 생성 (회차 4 일지가 회차 12에 보이는 문제 방지)
-            if (resolvedViaSession) {
+            // 등록 직전 한 번 더: 이 과정이 다른 회차에 연결돼 있으면 사용 금지 → 이 회차 전용 과정 새로 생성
+            if (resolvedViaSession && sessionPkForLink != null) {
                 const other: any = await c.env.DB.prepare(
                     'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-                ).bind(resolvedCourseId, rawId).first();
+                ).bind(resolvedCourseId, sessionPkForLink).first();
                 if (other) {
                     const session: any = await c.env.DB.prepare(`
                         SELECT s.session_number, s.session_name, a.name as course_name
                         FROM course_sessions s
                         JOIN approved_courses a ON s.approved_course_id = a.id
                         WHERE s.id = ?
-                    `).bind(rawId).first();
+                    `).bind(sessionPkForLink).first();
                     const expectedTitle = `${session?.course_name || '과정'} (${session?.session_number}회차${session?.session_name ? ' - ' + session.session_name : ''})`.trim();
                     const insert = await c.env.DB.prepare(
                         `INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')`
@@ -3321,7 +3400,7 @@ app.post('/training-logs', async (c) => {
                     const newId = insert.meta?.last_row_id;
                     if (newId != null) {
                         resolvedCourseId = Number(newId);
-                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, sessionPkForLink).run();
                     }
                 }
             }

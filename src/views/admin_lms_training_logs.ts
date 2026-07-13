@@ -228,7 +228,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                 <button type="button" onclick="closeLogModal()" class="text-gray-400 hover:text-gray-600 transition-colors w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full hover:bg-gray-200 shrink-0 touch-manipulation" aria-label="닫기"><i class="fas fa-times text-lg"></i></button>
             </div>
 
-            <form id="logForm" onsubmit="handleSaveLog(event)" class="p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto overflow-x-hidden flex-1 min-h-0 custom-scrollbar bg-white min-w-0">
+            <form id="logForm" onsubmit="event.preventDefault(); if(window.handleSaveLog){window.handleSaveLog(event);} return false;" class="p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto overflow-x-hidden flex-1 min-h-0 custom-scrollbar bg-white min-w-0">
                 <input type="hidden" id="logId">
                 
                 <!-- 훈련일 아님 안내 -->
@@ -1981,12 +1981,6 @@ async function printLog(id) {
         async function handleSaveLog(e) {
             e.preventDefault();
 
-            var dateVal = syncLogDateFromUi();
-            if (window.notTrainingDay && !isListedTrainingDate(dateVal)) {
-                alert('훈련일이 아닙니다. 해당 날짜에는 일지 저장이 불가합니다.');
-                return;
-            }
-
             var submitBtn = document.getElementById('logFormSubmitBtn');
             if (submitBtn && submitBtn.disabled) return;
             if (submitBtn) {
@@ -1994,127 +1988,168 @@ async function printLog(id) {
                 submitBtn.textContent = '저장 중...';
             }
 
-            const idVal = document.getElementById('logId').value;
-            dateVal = syncLogDateFromUi();
-            const contentVal = document.getElementById('logContent').value;
-            const hoursVal = document.getElementById('logHours').value;
+            try {
+                // 회차/과정 컨텍스트 재확인
+                if (!courseId && (sessionId || pathCourseId)) {
+                    try { await resolveSessionContext(); } catch (ctxErr) { console.error(ctxErr); }
+                }
 
-            if (!dateVal) {
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장하기'; }
-                alert('훈련일을 선택해 주세요.');
-                return;
-            }
-            if (!isListedTrainingDate(dateVal)) {
-                // 목록이 비어 있으면 한 번 더 로드 후 재검증 (레이스/메타 누락 대비)
-                try {
-                    var refreshed = await loadTrainingLogDates();
-                    if (refreshed && refreshed.length > 0) {
-                        window.trainingLogDates = refreshed;
-                    }
-                } catch (reloadErr) {}
-                if (!isListedTrainingDate(dateVal)) {
-                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장하기'; }
-                    alert('선택한 날짜가 이 과정의 훈련일이 아닙니다. 훈련일을 다시 선택해 주세요.');
+                var dateVal = syncLogDateFromUi() || normalizeTrainingDateClient(readRawTrainingLogDate());
+                if (!dateVal) {
+                    var dateEl = document.getElementById('logDate');
+                    var selEl = document.getElementById('logDateSelect');
+                    dateVal = normalizeTrainingDateClient(
+                        (dateEl && dateEl.value) ||
+                        (selEl && selEl.value) ||
+                        window.selectedTrainingLogDate ||
+                        ''
+                    );
+                }
+
+                if (!dateVal) {
+                    alert('훈련일을 선택해 주세요.');
                     return;
                 }
-            }
+                window.selectedTrainingLogDate = dateVal;
+                var dateSyncEl = document.getElementById('logDate');
+                if (dateSyncEl) dateSyncEl.value = dateVal;
 
-            // New Fields Collection (ES5-safe: no optional chaining)
-            var logAttPresent = document.getElementById('logAttPresent');
-            var logAttAbsent = document.getElementById('logAttAbsent');
-            var logAttLate = document.getElementById('logAttLate');
-            var logAttEarly = document.getElementById('logAttEarly');
-            var logInstructions = document.getElementById('logInstructions');
-            var logListLate = document.getElementById('logListLate');
-            var logListAbsent = document.getElementById('logListAbsent');
-            var logListEarly = document.getElementById('logListEarly');
-            var logListPublic = document.getElementById('logListPublic');
-            var logListUnder50 = document.getElementById('logListUnder50');
-            var logListLateEarly = document.getElementById('logListLateEarly');
-            var attSummary = {
-                present: (logAttPresent && logAttPresent.value) || '',
-                absent: (logAttAbsent && logAttAbsent.value) || '',
-                late: (logAttLate && logAttLate.value) || '',
-                early: (logAttEarly && logAttEarly.value) || '',
-                instructions: (logInstructions && logInstructions.value) || '',
-                late_list: (logListLate && logListLate.value) || '',
-                absent_list: (logListAbsent && logListAbsent.value) || '',
-                early_list: (logListEarly && logListEarly.value) || '',
-                public_list: (logListPublic && logListPublic.value) || '',
-                under50_list: (logListUnder50 && logListUnder50.value) || '',
-                late_early_list: (logListLateEarly && logListLateEarly.value) || ''
-            };
-
-            // 시간표 데이터 수집 (ES5-safe: no optional chaining, no template literal in emitted script)
-            var scheduleDetails = [];
-            for (var i = 1; i <= 8; i++) {
-                var subjEl = document.querySelector('input[name="sch_subject_' + i + '"]');
-                var instEl = document.querySelector('input[name="sch_instructor_' + i + '"]');
-                var contEl = document.querySelector('input[name="sch_content_' + i + '"]');
-                var noteEl = document.querySelector('input[name="sch_note_' + i + '"]');
-                var subj = (subjEl && subjEl.value) || '';
-                var inst = (instEl && instEl.value) || '';
-                var cont = (contEl && contEl.value) || '';
-                var note = (noteEl && noteEl.value) || '';
-                if (subj || inst || cont || note) {
-                    scheduleDetails.push({
-                        period: i,
-                        subject: subj,
-                        instructor: inst,
-                        content: cont,
-                        note: note
-                    });
+                // 목록 검증은 안내만 — UI에서 고른 유효 날짜면 저장 허용
+                if (!isListedTrainingDate(dateVal)) {
+                    try {
+                        var refreshed = await loadTrainingLogDates();
+                        if (refreshed && refreshed.length > 0) window.trainingLogDates = refreshed;
+                    } catch (reloadErr) {}
                 }
-            }
+                if (window.notTrainingDay && !isListedTrainingDate(dateVal)) {
+                    alert('훈련일이 아닙니다. 해당 날짜에는 일지 저장이 불가합니다.');
+                    return;
+                }
 
-            var p1Subject = '-';
-            if (scheduleDetails.length > 0) {
-                var p1 = scheduleDetails.find(function(s) { return s.period == 1 || s.period === '1'; });
-                if (p1 && p1.subject) p1Subject = p1.subject;
-            }
+                if (!courseId && !pathCourseId && !sessionId) {
+                    alert('과정 정보를 불러오지 못했습니다. 페이지를 새로고침해 주세요.');
+                    return;
+                }
 
-            var elAuthor = document.getElementById('logAuthorId');
-            var authorId = null;
-            if (user && (user.role === 'admin') && elAuthor && elAuthor.value) {
-                authorId = elAuthor.value === '' ? null : (parseInt(elAuthor.value, 10) || null);
-            }
-            if (authorId == null && user && user.id) authorId = user.id;
+                var idEl = document.getElementById('logId');
+                var contentEl = document.getElementById('logContent');
+                var hoursEl = document.getElementById('logHours');
+                var idVal = idEl ? idEl.value : '';
+                var contentVal = contentEl ? contentEl.value : '';
+                var hoursVal = hoursEl ? hoursEl.value : '';
 
-            var data = {
-                id: idVal ? parseInt(idVal) : null,
-                course_id: parseInt(courseId),
-                instructor_id: authorId,
-                date: dateVal,
-                topic: p1Subject,
-                content: contentVal,
-                teaching_method: '주입식/실습', 
-                ncs_unit_id: null,
-                training_hours: parseFloat(hoursVal) || 0,
-                ncs_elements_json: null,
-                schedule_details_json: JSON.stringify(scheduleDetails),
-                attendance_summary_json: JSON.stringify(attSummary)
-            };
+                var logAttPresent = document.getElementById('logAttPresent');
+                var logAttAbsent = document.getElementById('logAttAbsent');
+                var logAttLate = document.getElementById('logAttLate');
+                var logAttEarly = document.getElementById('logAttEarly');
+                var logInstructions = document.getElementById('logInstructions');
+                var logListLate = document.getElementById('logListLate');
+                var logListAbsent = document.getElementById('logListAbsent');
+                var logListEarly = document.getElementById('logListEarly');
+                var logListPublic = document.getElementById('logListPublic');
+                var logListUnder50 = document.getElementById('logListUnder50');
+                var logListLateEarly = document.getElementById('logListLateEarly');
+                var attSummary = {
+                    present: (logAttPresent && logAttPresent.value) || '',
+                    absent: (logAttAbsent && logAttAbsent.value) || '',
+                    late: (logAttLate && logAttLate.value) || '',
+                    early: (logAttEarly && logAttEarly.value) || '',
+                    instructions: (logInstructions && logInstructions.value) || '',
+                    late_list: (logListLate && logListLate.value) || '',
+                    absent_list: (logListAbsent && logListAbsent.value) || '',
+                    early_list: (logListEarly && logListEarly.value) || '',
+                    public_list: (logListPublic && logListPublic.value) || '',
+                    under50_list: (logListUnder50 && logListUnder50.value) || '',
+                    late_early_list: (logListLateEarly && logListLateEarly.value) || ''
+                };
 
-            try {
-                const res = await fetch('/api/hrd/training-logs', {
+                var scheduleDetails = [];
+                for (var i = 1; i <= 8; i++) {
+                    var subjEl = document.querySelector('input[name="sch_subject_' + i + '"]');
+                    var instEl = document.querySelector('input[name="sch_instructor_' + i + '"]');
+                    var contEl = document.querySelector('input[name="sch_content_' + i + '"]');
+                    var noteEl = document.querySelector('input[name="sch_note_' + i + '"]');
+                    var subj = (subjEl && subjEl.value) || '';
+                    var inst = (instEl && instEl.value) || '';
+                    var cont = (contEl && contEl.value) || '';
+                    var note = (noteEl && noteEl.value) || '';
+                    if (subj || inst || cont || note) {
+                        scheduleDetails.push({
+                            period: i,
+                            subject: subj,
+                            instructor: inst,
+                            content: cont,
+                            note: note
+                        });
+                    }
+                }
+
+                var p1Subject = '-';
+                if (scheduleDetails.length > 0) {
+                    for (var si = 0; si < scheduleDetails.length; si++) {
+                        if (scheduleDetails[si].period == 1 || scheduleDetails[si].period === '1') {
+                            if (scheduleDetails[si].subject) p1Subject = scheduleDetails[si].subject;
+                            break;
+                        }
+                    }
+                }
+
+                var elAuthor = document.getElementById('logAuthorId');
+                var authorId = null;
+                if (user && (user.role === 'admin') && elAuthor && elAuthor.value) {
+                    authorId = elAuthor.value === '' ? null : (parseInt(elAuthor.value, 10) || null);
+                }
+                if (authorId == null && user && user.id) authorId = user.id;
+
+                // courseId = HRD 회차 PK, pathCourseId = LMS courses.id
+                var saveCourseId = courseId || sessionId || pathCourseId;
+                if (!saveCourseId || isNaN(Number(saveCourseId))) {
+                    alert('과정(회차) 정보가 없습니다. 페이지를 새로고침해 주세요.');
+                    return;
+                }
+
+                var data = {
+                    id: idVal ? parseInt(idVal, 10) : null,
+                    course_id: parseInt(String(saveCourseId), 10),
+                    session_id: sessionId || courseId || null,
+                    lms_course_id: pathCourseId || null,
+                    instructor_id: authorId,
+                    date: dateVal,
+                    topic: p1Subject,
+                    content: contentVal,
+                    teaching_method: '주입식/실습',
+                    ncs_unit_id: null,
+                    training_hours: parseFloat(hoursVal) || 0,
+                    ncs_elements_json: null,
+                    schedule_details_json: JSON.stringify(scheduleDetails),
+                    attendance_summary_json: JSON.stringify(attSummary)
+                };
+
+                var res = await fetch('/api/hrd/training-logs', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
                     },
                     body: JSON.stringify(data)
                 });
-                const result = await res.json();
-                if (result.success) {
-                    alert(result.message);
+                var result = null;
+                try {
+                    result = await res.json();
+                } catch (parseErr) {
+                    alert('저장 응답을 해석할 수 없습니다. (HTTP ' + res.status + ')');
+                    return;
+                }
+                if (result && result.success) {
+                    alert(result.message || '저장되었습니다.');
                     closeLogModal();
                     loadLogs(currentPage);
                 } else {
-                    alert('저장 실패: ' + result.error);
+                    alert('저장 실패: ' + ((result && (result.error || result.message)) || ('HTTP ' + res.status)));
                 }
-            } catch (e) {
-                console.error(e);
-                alert('오류가 발생했습니다.');
+            } catch (err) {
+                console.error('[handleSaveLog]', err);
+                alert('오류가 발생했습니다: ' + (err && err.message ? err.message : String(err)));
             } finally {
                 if (submitBtn) {
                     submitBtn.disabled = false;
