@@ -586,10 +586,72 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         }
 
         function onTrainingDateChange() {
+            if (window._skipTrainingDateChange) return;
             var d = syncLogDateFromUi();
             if (d) window.selectedTrainingLogDate = d;
             resetLogFormInteractiveState();
-            loadDailySchedule(false);
+            // 날짜 변경 시 해당일 저장본이 있으면 수정 모드로 전환
+            findExistingLogForDate(d).then(function(existing) {
+                if (existing && existing.id) {
+                    window._skipTrainingDateChange = true;
+                    return editLog(existing.id).then(function() {
+                        window._skipTrainingDateChange = false;
+                    }, function() {
+                        window._skipTrainingDateChange = false;
+                    });
+                }
+                var elId = document.getElementById('logId');
+                if (elId) elId.value = '';
+                var elTitle = document.getElementById('modalTitle');
+                if (elTitle) elTitle.textContent = '훈련일지 작성';
+                var elContent = document.getElementById('logContent');
+                if (elContent) elContent.value = '';
+                ['logAttPresent', 'logAttAbsent', 'logAttLate', 'logAttEarly',
+                 'logInstructions', 'logListLate', 'logListAbsent', 'logListEarly', 'logListPublic', 'logListUnder50', 'logListLateEarly'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                loadDailySchedule(false);
+            }).catch(function(err) {
+                console.error('onTrainingDateChange', err);
+                loadDailySchedule(false);
+            });
+        }
+
+        async function findExistingLogForDate(dateStr) {
+            var d = normalizeTrainingDateClient(dateStr);
+            if (!d) return null;
+
+            var cached = window.lastTrainingLogs || [];
+            for (var i = 0; i < cached.length; i++) {
+                if (cached[i] && normalizeTrainingDateClient(cached[i].date) === d && cached[i].id) {
+                    return cached[i];
+                }
+            }
+
+            var listCourseId = pathCourseId || courseId || sessionId;
+            if (!listCourseId) return null;
+            var url = '/api/hrd/training-logs?courseId=' + encodeURIComponent(listCourseId)
+                + '&page=1&limit=50'
+                + '&startDate=' + encodeURIComponent(d)
+                + '&endDate=' + encodeURIComponent(d);
+            var sid = sessionId || courseId;
+            if (sid) url += '&session_id=' + encodeURIComponent(sid);
+
+            try {
+                var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                var result = await res.json();
+                if (result.success && Array.isArray(result.data)) {
+                    for (var j = 0; j < result.data.length; j++) {
+                        if (normalizeTrainingDateClient(result.data[j].date) === d && result.data[j].id) {
+                            return result.data[j];
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('findExistingLogForDate', e);
+            }
+            return null;
         }
 
         function normalizeTrainingDatesList(raw) {
@@ -1730,7 +1792,21 @@ async function printLog(id) {
                 if (el) el.value = '';
             });
 
-            if (syncLogDateFromUi()) {
+            // 기본 선택 날짜에 이미 저장된 일지가 있으면 '작성' 대신 '수정'으로 연다
+            var dateVal = syncLogDateFromUi();
+            if (dateVal) {
+                try {
+                    var existing = await findExistingLogForDate(dateVal);
+                    if (existing && existing.id) {
+                        window._skipTrainingDateChange = true;
+                        await editLog(existing.id);
+                        window._skipTrainingDateChange = false;
+                        return;
+                    }
+                } catch (existErr) {
+                    console.error('openLogModal existing lookup', existErr);
+                    window._skipTrainingDateChange = false;
+                }
                 loadDailySchedule(false);
             } else {
                 renderScheduleTable(null, null);
