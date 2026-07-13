@@ -110,13 +110,19 @@ export function generateTrainingDatesFromDaysOfWeek(
   return dates;
 }
 
-export function mergeTrainingDates(...lists: string[][]): string[] {
+export function mergeTrainingDates(...lists: Array<string[] | string[][] | null | undefined>): string[] {
   const merged = new Set<string>();
-  for (const list of lists) {
-    for (const d of list) {
-      const normalized = normalizeTrainingDate(d);
-      if (normalized) merged.add(normalized);
+  const addDate = (d: unknown) => {
+    if (Array.isArray(d)) {
+      for (const nested of d) addDate(nested);
+      return;
     }
+    const normalized = normalizeTrainingDate(d as string);
+    if (normalized && /^\d{4}-\d{2}-\d{2}$/.test(normalized)) merged.add(normalized);
+  };
+  for (const list of lists) {
+    if (!list) continue;
+    addDate(list);
   }
   return Array.from(merged).sort();
 }
@@ -268,7 +274,8 @@ export async function getSessionTrainingDatesForLogs(
   const logDates = await getTrainingLogDatesForSession(DB, sessionId, lmsCourseId);
 
   // 훈련일지 작성: 운영기간 내 전체 훈련일 표시 (공강 excluded_dates는 드롭다운에서 제외하지 않음)
-  const merged = mergeTrainingDates([scheduledDates, timetableDates, logDates]);
+  // 주의: mergeTrainingDates는 가변 인자(...lists) — 배열로 한 번 감싸면 날짜가 1개만 남음
+  const merged = mergeTrainingDates(scheduledDates, timetableDates, logDates);
   if (merged.length === 0 && start && end) {
     return generateScheduledTrainingDates(start, end, effectiveDays || '월,화,수,목,금');
   }

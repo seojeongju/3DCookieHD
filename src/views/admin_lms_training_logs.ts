@@ -495,33 +495,66 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             });
         }
 
+        function normalizeTrainingDateClient(dateVal) {
+            if (dateVal == null || dateVal === '') return '';
+            var d = String(dateVal).trim().substring(0, 10);
+            return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : '';
+        }
+
+        function syncLogDateFromUi() {
+            var elDate = document.getElementById('logDate');
+            var elSelect = document.getElementById('logDateSelect');
+            var elFallback = document.getElementById('logDateFallback');
+            var raw = '';
+            if (elSelect && elSelect.style.display !== 'none' && elSelect.value) {
+                raw = elSelect.value;
+            } else if (elFallback && elFallback.style.display !== 'none' && elFallback.value) {
+                raw = elFallback.value;
+            } else if (elDate && elDate.value) {
+                raw = elDate.value;
+            } else if (elSelect && elSelect.value) {
+                raw = elSelect.value;
+            } else if (elFallback && elFallback.value) {
+                raw = elFallback.value;
+            }
+            var normalized = normalizeTrainingDateClient(raw);
+            if (elDate && normalized) elDate.value = normalized;
+            return normalized;
+        }
+
         function isListedTrainingDate(dateVal) {
-            if (!dateVal) return false;
-            if (window.trainingLogDates && window.trainingLogDates.indexOf(dateVal) >= 0) return true;
+            var d = normalizeTrainingDateClient(dateVal);
+            if (!d) return false;
+            var listed = window.trainingLogDates || [];
+            for (var i = 0; i < listed.length; i++) {
+                if (normalizeTrainingDateClient(listed[i]) === d) return true;
+            }
             var dateSelectEl = document.getElementById('logDateSelect');
-            return !!(dateSelectEl && dateSelectEl.style.display !== 'none'
-                && Array.from(dateSelectEl.options).some(function(o) { return o.value === dateVal; }));
+            if (dateSelectEl && dateSelectEl.options && dateSelectEl.options.length > 0) {
+                for (var j = 0; j < dateSelectEl.options.length; j++) {
+                    if (normalizeTrainingDateClient(dateSelectEl.options[j].value) === d) return true;
+                }
+            }
+            var generated = generateClientTrainingDates(window.hrdSessionMeta);
+            for (var k = 0; k < generated.length; k++) {
+                if (normalizeTrainingDateClient(generated[k]) === d) return true;
+            }
+            return false;
         }
 
         function pickDefaultTrainingDate(dates, preferredDate) {
             if (!dates || dates.length === 0) return null;
-            if (preferredDate && dates.indexOf(preferredDate) >= 0) return preferredDate;
-            var today = new Date().toISOString().substring(0, 10);
+            var preferred = normalizeTrainingDateClient(preferredDate);
+            if (preferred && dates.indexOf(preferred) >= 0) return preferred;
+            var now = new Date();
+            var today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
             if (dates.indexOf(today) >= 0) return today;
             var pastOrToday = dates.filter(function(d) { return d <= today; });
             return pastOrToday.length > 0 ? pastOrToday[pastOrToday.length - 1] : dates[0];
         }
 
         function onTrainingDateChange() {
-            var elDate = document.getElementById('logDate');
-            var elSelect = document.getElementById('logDateSelect');
-            var elFallback = document.getElementById('logDateFallback');
-            if (elSelect && elSelect.style.display !== 'none' && elSelect.value) {
-                if (elDate) elDate.value = elSelect.value;
-            }
-            if (elFallback && elFallback.style.display !== 'none' && elFallback.value) {
-                if (elDate) elDate.value = elFallback.value;
-            }
+            syncLogDateFromUi();
             resetLogFormInteractiveState();
             loadDailySchedule(false);
         }
@@ -558,17 +591,22 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
         function generateClientTrainingDates(meta) {
             if (!meta) return [];
-            var start = (meta.training_start_date || meta.start_date || '').toString().substring(0, 10);
-            var end = (meta.training_end_date || meta.end_date || '').toString().substring(0, 10);
+            var start = normalizeTrainingDateClient(meta.training_start_date || meta.start_date);
+            var end = normalizeTrainingDateClient(meta.training_end_date || meta.end_date);
             if (!start || !end) return [];
-            var dayMap = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+            var dayMap = {
+                '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                '일요일': 0, '월요일': 1, '화요일': 2, '수요일': 3, '목요일': 4, '금요일': 5, '토요일': 6,
+                'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6
+            };
             var allowed = [];
             var dows = (meta.days_of_week || '').split(/[,/|]/);
             for (var i = 0; i < dows.length; i++) {
                 var key = dows[i].trim();
-                if (dayMap[key] !== undefined) allowed.push(dayMap[key]);
+                var mapped = dayMap[key] !== undefined ? dayMap[key] : dayMap[key.toLowerCase()];
+                if (mapped !== undefined) allowed.push(mapped);
             }
-            if (allowed.length === 0 && meta.session_name && /주말/.test(meta.session_name)) {
+            if (allowed.length === 0 && meta.session_name && /주말/.test(String(meta.session_name))) {
                 allowed = [0, 6];
             }
             if (allowed.length === 0) allowed = [1, 2, 3, 4, 5];
@@ -1606,16 +1644,16 @@ async function printLog(id) {
                         sessionId = Number(datesJson.data.session_id);
                         courseId = sessionId;
                     }
-                    if (!window.hrdSessionMeta && datesJson.data.training_start_date) {
-                        window.hrdSessionMeta = {
-                            id: sessionId,
-                            training_start_date: datesJson.data.training_start_date,
-                            training_end_date: datesJson.data.training_end_date,
-                            days_of_week: datesJson.data.days_of_week,
-                            session_name: datesJson.data.session_name
-                        };
-                    }
                     apiDates = normalizeTrainingDatesList(datesJson.data.dates);
+                    if (datesJson.data.training_start_date || datesJson.data.training_end_date || datesJson.data.days_of_week || datesJson.data.session_name) {
+                        window.hrdSessionMeta = Object.assign({}, window.hrdSessionMeta || {}, {
+                            id: sessionId,
+                            training_start_date: datesJson.data.training_start_date || (window.hrdSessionMeta && window.hrdSessionMeta.training_start_date),
+                            training_end_date: datesJson.data.training_end_date || (window.hrdSessionMeta && window.hrdSessionMeta.training_end_date),
+                            days_of_week: datesJson.data.days_of_week != null ? datesJson.data.days_of_week : (window.hrdSessionMeta && window.hrdSessionMeta.days_of_week),
+                            session_name: datesJson.data.session_name || (window.hrdSessionMeta && window.hrdSessionMeta.session_name)
+                        });
+                    }
                 }
             } catch (e) {
                 console.error('training dates load failed', e);
@@ -1631,6 +1669,7 @@ async function printLog(id) {
             var elDateFallback = document.getElementById('logDateFallback');
             var elDate = document.getElementById('logDate');
             dates = mergeTrainingDateLists(dates || [], generateClientTrainingDates(window.hrdSessionMeta));
+            window.trainingLogDates = dates;
             if (!dates || dates.length === 0) {
                 if (elDateSelect) elDateSelect.style.display = 'none';
                 if (elDateFallback) {
@@ -1640,9 +1679,10 @@ async function printLog(id) {
                     if (fallbackDate) {
                         elDateFallback.value = fallbackDate;
                     } else {
-                        elDateFallback.valueAsDate = new Date();
+                        var nowFb = new Date();
+                        elDateFallback.value = nowFb.getFullYear() + '-' + String(nowFb.getMonth() + 1).padStart(2, '0') + '-' + String(nowFb.getDate()).padStart(2, '0');
                     }
-                    if (elDate) elDate.value = elDateFallback.value;
+                    if (elDate) elDate.value = normalizeTrainingDateClient(elDateFallback.value);
                 }
                 return elDate ? elDate.value : null;
             }
@@ -1659,8 +1699,7 @@ async function printLog(id) {
                 });
                 elDateSelect.style.display = '';
                 if (elDateFallback) elDateFallback.style.display = 'none';
-                if (elDate) elDate.value = selected;
-                window.trainingLogDates = dates;
+                if (elDate) elDate.value = selected || '';
                 return selected;
             }
             return null;
@@ -1696,14 +1735,18 @@ async function printLog(id) {
             const elHours = document.getElementById('logHours');
 
             if (elId) elId.value = log.id;
-            if (elDate) elDate.value = log.date;
+            var logDateNormalized = normalizeTrainingDateClient(log.date);
+            if (elDate) elDate.value = logDateNormalized;
             var elDateSelect = document.getElementById('logDateSelect');
             var elDateFallback = document.getElementById('logDateFallback');
             var dates = window.trainingLogDates && window.trainingLogDates.length > 0
                 ? window.trainingLogDates
                 : await loadTrainingLogDates();
-            populateTrainingDateSelect(dates, log.date);
-            if (elDate) elDate.value = log.date;
+            if (logDateNormalized) {
+                dates = mergeTrainingDateLists(dates, [logDateNormalized]);
+            }
+            populateTrainingDateSelect(dates, logDateNormalized);
+            if (elDate) elDate.value = logDateNormalized || syncLogDateFromUi();
             if (elContent) elContent.value = log.content || '';
             if (elHours) elHours.value = (log.training_hours != null && log.training_hours !== '') ? String(Number(log.training_hours)) : '';
 
@@ -1809,7 +1852,8 @@ async function printLog(id) {
 
         async function handleSaveLog(e) {
             e.preventDefault();
-            
+
+            var dateVal = syncLogDateFromUi();
             if (window.notTrainingDay && !isListedTrainingDate(dateVal)) {
                 alert('훈련일이 아닙니다. 해당 날짜에는 일지 저장이 불가합니다.');
                 return;
@@ -1823,19 +1867,28 @@ async function printLog(id) {
             }
 
             const idVal = document.getElementById('logId').value;
-            const dateVal = (document.getElementById('logDate') && document.getElementById('logDate').value) ? document.getElementById('logDate').value.trim() : '';
+            dateVal = syncLogDateFromUi();
             const contentVal = document.getElementById('logContent').value;
             const hoursVal = document.getElementById('logHours').value;
 
             if (!dateVal) {
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장'; }
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장하기'; }
                 alert('훈련일을 선택해 주세요.');
                 return;
             }
             if (!isListedTrainingDate(dateVal)) {
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장'; }
-                alert('선택한 날짜가 이 과정의 훈련일이 아닙니다. 훈련일을 다시 선택해 주세요.');
-                return;
+                // 목록이 비어 있으면 한 번 더 로드 후 재검증 (레이스/메타 누락 대비)
+                try {
+                    var refreshed = await loadTrainingLogDates();
+                    if (refreshed && refreshed.length > 0) {
+                        window.trainingLogDates = refreshed;
+                    }
+                } catch (reloadErr) {}
+                if (!isListedTrainingDate(dateVal)) {
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '저장하기'; }
+                    alert('선택한 날짜가 이 과정의 훈련일이 아닙니다. 훈련일을 다시 선택해 주세요.');
+                    return;
+                }
             }
 
             // New Fields Collection (ES5-safe: no optional chaining)
