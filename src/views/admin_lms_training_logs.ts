@@ -776,7 +776,15 @@ async function loadLogs(page = 1) {
     if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-24 text-center text-gray-400 font-medium whitespace-pre-line border-dashed border-2 m-4 rounded-3xl bg-gray-50/50">로딩 중...</td></tr>';
     if (groupedWrap) groupedWrap.innerHTML = '<div class="text-center py-16 text-gray-400 text-sm font-bold">로딩 중...</div>';
 
-    var listUrl = '/api/hrd/training-logs?courseId=' + courseId + '&page=' + page + '&limit=10';
+    // 저장과 동일하게 LMS 과정 ID + session_id로 조회 (회차 PK만 쓰면 저장본이 안 보임)
+    var listCourseId = pathCourseId || courseId || sessionId;
+    if (!listCourseId) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-16 text-center text-rose-400 font-medium">과정 정보가 없습니다. 페이지를 새로고침해 주세요.</td></tr>';
+        return;
+    }
+    var listUrl = '/api/hrd/training-logs?courseId=' + encodeURIComponent(listCourseId) + '&page=' + page + '&limit=10';
+    var listSessionId = sessionId || courseId;
+    if (listSessionId) listUrl += '&session_id=' + encodeURIComponent(listSessionId);
     var fs = document.getElementById('logFilterStart');
     var fe = document.getElementById('logFilterEnd');
     var sVal = (fs && fs.value) ? String(fs.value).trim() : '';
@@ -990,7 +998,7 @@ async function printLog(id) {
             fetch('/api/hrd/training-logs/' + id, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
             fetch('/api/course-sessions/' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
             fetch('/api/enrollments?course_id=' + courseId + '&type=hrd&limit=500', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
-            fetch('/api/hrd/training-logs?courseId=' + courseId, { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
+            fetch('/api/hrd/training-logs?courseId=' + encodeURIComponent(pathCourseId || courseId) + (sessionId || courseId ? '&session_id=' + encodeURIComponent(sessionId || courseId) : ''), { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
         ]);
 
         if (!logRes.success) throw new Error(logRes.error || '일지 로드 실패');

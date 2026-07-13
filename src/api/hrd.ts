@@ -2887,6 +2887,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
 app.get('/training-logs', async (c) => {
     try {
         const courseIdParam = c.req.query('courseId');
+        const sessionIdParam = c.req.query('session_id');
         const startDate = c.req.query('startDate');
         const endDate = c.req.query('endDate');
 
@@ -2904,99 +2905,74 @@ app.get('/training-logs', async (c) => {
         }
 
         let resolvedCourseId: number | null = null;
-
+        let sessionPk: number | null = null;
         let assignedDailyHours: number | null = null;
 
-        // 1. 회차(session) 우선: URL이 회차 ID이면 해당 회차 전용 LMS 과정으로 해석 (복사로 만든 신규 회차가 다른 회차 일지를 보는 문제 방지)
-        const sessionRow: any = await c.env.DB.prepare(`
-            SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name, a.daily_hours, a.total_hours, a.total_days
-            FROM course_sessions s
-            JOIN approved_courses a ON s.approved_course_id = a.id
-            WHERE s.id = ?
-        `).bind(rawId).first();
+        // 저장 API와 동일: session_id + LMS courseId로 회차·과정 해석
+        const session = await resolveTrainingLogSession(c.env.DB, courseIdParam, sessionIdParam);
+        if (session) {
+            sessionPk = Number(session.id);
+            const sessionDetail: any = await c.env.DB.prepare(`
+                SELECT s.id, s.session_number, s.session_name, s.lms_course_id,
+                       a.name as course_name, a.daily_hours, a.total_hours, a.total_days
+                FROM course_sessions s
+                LEFT JOIN approved_courses a ON s.approved_course_id = a.id
+                WHERE s.id = ?
+            `).bind(sessionPk).first();
 
-        if (sessionRow) {
-            const session = sessionRow;
-            if (session.daily_hours != null && session.daily_hours > 0) {
-                assignedDailyHours = Number(session.daily_hours);
-            }
-            if (assignedDailyHours == null && session.total_hours != null && session.total_days != null && Number(session.total_days) > 0) {
-                const th = Number(session.total_hours);
-                const td = Number(session.total_days);
-                if (th > 0) assignedDailyHours = Math.round((th / td) * 10) / 10;
-            }
-            const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-            // 이미 연결된 LMS 과정이 있으면, 제목 일치 + 다른 회차에 연결돼 있지 않을 때만 사용
-            if (session.lms_course_id != null && session.lms_course_id > 0) {
-                const existingCourse: any = await c.env.DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(session.lms_course_id).first();
-                const titleMatches = existingCourse && existingCourse.title != null && (
-                    String(existingCourse.title).trim() === expectedTitle ||
-                    String(existingCourse.title).trim() === `${session.course_name || '과정'} (${session.session_number}회차)`.trim()
-                );
-                const otherSession: any = await c.env.DB.prepare(
-                    'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-                ).bind(session.lms_course_id, rawId).first();
-                const notUsedByOther = !otherSession;
-                if (titleMatches && notUsedByOther) {
-                    resolvedCourseId = Number(session.lms_course_id);
-                } else if (existingCourse || otherSession) {
-                    try {
-                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, rawId).run();
-                    } catch (_) { }
+            if (sessionDetail) {
+                if (sessionDetail.daily_hours != null && sessionDetail.daily_hours > 0) {
+                    assignedDailyHours = Number(sessionDetail.daily_hours);
+                } else if (sessionDetail.total_hours != null && sessionDetail.total_days != null && Number(sessionDetail.total_days) > 0) {
+                    const th = Number(sessionDetail.total_hours);
+                    const td = Number(sessionDetail.total_days);
+                    if (th > 0) assignedDailyHours = Math.round((th / td) * 10) / 10;
                 }
-            }
-            if (resolvedCourseId == null) {
-                const lmsCourse: any = await c.env.DB.prepare(
-                    'SELECT id FROM courses WHERE title = ? LIMIT 1'
-                ).bind(expectedTitle).first();
 
-                if (lmsCourse) {
-                    // 이 과정이 이미 다른 회차에 연결돼 있으면 사용하지 않음 (회차 12에 회차 4 일지가 보이는 문제 방지)
-                    const otherSession: any = await c.env.DB.prepare(
-                        'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-                    ).bind(lmsCourse.id, rawId).first();
-                    if (!otherSession) {
-                        resolvedCourseId = lmsCourse.id;
-                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
+                // URL path의 LMS courses.id가 유효하면 저장과 동일하게 우선
+                const inCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+                if (inCourses) {
+                    resolvedCourseId = rawId;
+                    if (sessionDetail.lms_course_id == null || Number(sessionDetail.lms_course_id) !== rawId) {
+                        try {
+                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?')
+                                .bind(rawId, sessionPk).run();
+                        } catch (_) { }
+                    }
+                } else if (sessionDetail.lms_course_id != null && Number(sessionDetail.lms_course_id) > 0) {
+                    const linked = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?')
+                        .bind(sessionDetail.lms_course_id).first();
+                    if (linked) resolvedCourseId = Number(sessionDetail.lms_course_id);
+                }
+
+                if (resolvedCourseId == null) {
+                    const expectedTitle = `${sessionDetail.course_name || '과정'} (${sessionDetail.session_number}회차${sessionDetail.session_name ? ' - ' + sessionDetail.session_name : ''})`.trim();
+                    const byTitle: any = await c.env.DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(expectedTitle).first();
+                    if (byTitle) {
+                        resolvedCourseId = Number(byTitle.id);
+                        try {
+                            await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?')
+                                .bind(resolvedCourseId, sessionPk).run();
+                        } catch (_) { }
                     }
                 }
-            }
-            // 여전히 없으면: 이 회차 전용 LMS 과정을 새로 만들어서 1:1 연결 (과정 4에서 등록한 일지가 과정 12에 안 보이게)
-            if (resolvedCourseId == null) {
-                try {
-                    const insert = await c.env.DB.prepare(
-                        'INSERT INTO courses (title, category, status) VALUES (?, \'국비지원\', \'active\')'
-                    ).bind(expectedTitle).run();
-                    const newId = insert.meta?.last_row_id;
-                    if (newId != null) {
-                        resolvedCourseId = Number(newId);
-                        await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolvedCourseId, rawId).run();
-                    }
-                } catch (_) { }
             }
         } else {
-            // 2. 회차가 아니면 courses.id로 해석 (직접 과정 ID로 들어온 경우)
             const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
-            if (existsInCourses) {
-                resolvedCourseId = rawId;
-                const sessionWithCourse: any = await c.env.DB.prepare(`
-                    SELECT a.daily_hours FROM course_sessions s
-                    JOIN approved_courses a ON s.approved_course_id = a.id
-                    WHERE s.lms_course_id = ?
-                    LIMIT 1
-                `).bind(rawId).first();
-                if (sessionWithCourse && sessionWithCourse.daily_hours != null && sessionWithCourse.daily_hours > 0) {
-                    assignedDailyHours = Number(sessionWithCourse.daily_hours);
-                }
-            }
+            if (existsInCourses) resolvedCourseId = rawId;
         }
 
         if (resolvedCourseId == null) {
             return c.json({ success: true, data: [], assignedDailyHours: assignedDailyHours ?? undefined });
         }
 
-        let countQuery = "SELECT COUNT(*) as total FROM training_logs t WHERE t.course_id = ?";
-        const countParams: any[] = [resolvedCourseId];
+        // 레거시: 예전에 course_id에 회차 PK로 저장된 일지도 함께 조회
+        const courseIds = [resolvedCourseId];
+        if (sessionPk != null && sessionPk !== resolvedCourseId) courseIds.push(sessionPk);
+        const placeholders = courseIds.map(() => '?').join(',');
+
+        let countQuery = `SELECT COUNT(*) as total FROM training_logs t WHERE t.course_id IN (${placeholders})`;
+        const countParams: any[] = [...courseIds];
         if (startDate && endDate) {
             countQuery += " AND t.date BETWEEN ? AND ?";
             countParams.push(startDate, endDate);
@@ -3010,9 +2986,9 @@ app.get('/training-logs', async (c) => {
             FROM training_logs t
             LEFT JOIN ncs_units u ON t.ncs_unit_id = u.id
             LEFT JOIN users usr ON t.instructor_id = usr.id
-            WHERE t.course_id = ?
+            WHERE t.course_id IN (${placeholders})
         `;
-        const params: any[] = [resolvedCourseId];
+        const params: any[] = [...courseIds];
 
         if (startDate && endDate) {
             query += " AND t.date BETWEEN ? AND ?";
@@ -3024,7 +3000,7 @@ app.get('/training-logs', async (c) => {
 
         const { results } = await c.env.DB.prepare(query).bind(...params).all();
 
-        const out: { success: boolean; data: any; pagination?: any; assignedDailyHours?: number } = {
+        const out: { success: boolean; data: any; pagination?: any; assignedDailyHours?: number; resolved_course_id?: number; session_id?: number } = {
             success: true,
             data: results,
             pagination: {
@@ -3032,8 +3008,10 @@ app.get('/training-logs', async (c) => {
                 limit,
                 total,
                 totalPages: Math.ceil(total / limit)
-            }
+            },
+            resolved_course_id: resolvedCourseId
         };
+        if (sessionPk != null) out.session_id = sessionPk;
         if (assignedDailyHours != null) out.assignedDailyHours = assignedDailyHours;
         return c.json(out);
     } catch (e: any) {
