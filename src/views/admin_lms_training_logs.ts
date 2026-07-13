@@ -283,7 +283,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                             <td class="border border-gray-800 p-1 text-center bg-white">
                                 <select id="logDateSelect" class="w-full text-center font-bold bg-white outline-none cursor-pointer text-gray-800 hover:text-indigo-600 border-0 py-1" style="display:none;"></select>
                                 <input type="date" id="logDateFallback" class="w-full text-center font-bold bg-transparent outline-none cursor-pointer text-gray-800 hover:text-indigo-600" style="display:none;">
-                                <input type="hidden" id="logDate">
+                                <input type="hidden" id="logDate" value="">
                             </td>
                         </tr>
                         <tr>
@@ -339,8 +339,8 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                     </table>
                     </div>
                     <div class="flex flex-col sm:flex-row gap-2 sm:justify-between mt-2 mb-2">
-                         <button type="button" id="btnLoadAttendance" onclick="loadDailyAttendance()" class="text-xs text-rose-600 hover:text-rose-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-rose-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-users-viewfinder"></i> <span id="btnLoadAttText">출석 기록 불러오기</span></button>
-                         <button type="button" onclick="loadDailySchedule(true)" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-indigo-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
+                         <button type="button" id="btnLoadAttendance" onclick="if(window.loadDailyAttendance){window.loadDailyAttendance();}else{alert('페이지를 새로고침 후 다시 시도해 주세요.');}" class="text-xs text-rose-600 hover:text-rose-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-rose-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-users-viewfinder"></i> <span id="btnLoadAttText">출석 기록 불러오기</span></button>
+                         <button type="button" id="btnLoadSchedule" onclick="if(window.loadDailySchedule){window.loadDailySchedule(true);}else{alert('페이지를 새로고침 후 다시 시도해 주세요.');}" class="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold px-2 py-2.5 sm:py-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg bg-indigo-50/50 sm:bg-transparent touch-manipulation"><i class="fas fa-sync-alt"></i> 시간표 불러오기</button>
                     </div>
             
                     <!-- Footer Lists -->
@@ -402,13 +402,17 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
     <script>
         var urlParams = new URLSearchParams(window.location.search);
-        var pathParts = window.location.pathname.split('/');
-        var pathCourseId = pathParts[3] ? parseInt(pathParts[3], 10) : null;
+        var pathParts = window.location.pathname.split('/').filter(function(p) { return !!p; });
+        var coursesIdx = pathParts.indexOf('courses');
+        var pathCourseIdRaw = (coursesIdx >= 0 && pathParts[coursesIdx + 1]) ? parseInt(pathParts[coursesIdx + 1], 10) : NaN;
+        var pathCourseId = (!isNaN(pathCourseIdRaw) && pathCourseIdRaw > 0) ? pathCourseIdRaw : null;
         var sessionIdFromQuery = urlParams.get('session_id');
-        var sessionId = sessionIdFromQuery ? parseInt(sessionIdFromQuery, 10) : null;
+        var sessionIdRaw = sessionIdFromQuery ? parseInt(sessionIdFromQuery, 10) : NaN;
+        var sessionId = (!isNaN(sessionIdRaw) && sessionIdRaw > 0) ? sessionIdRaw : null;
         var courseId = null;
         window.trainingLogDates = window.trainingLogDates || [];
         window.hrdSessionMeta = window.hrdSessionMeta || null;
+        window.selectedTrainingLogDate = window.selectedTrainingLogDate || null;
         var user = JSON.parse(localStorage.getItem('user') || '{}');
         var token = localStorage.getItem('token');
         var assignedUnits = [];
@@ -497,29 +501,51 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
 
         function normalizeTrainingDateClient(dateVal) {
             if (dateVal == null || dateVal === '') return '';
-            var d = String(dateVal).trim().substring(0, 10);
-            return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : '';
+            var s = String(dateVal).trim();
+            var m = s.match(/(\d{4}-\d{2}-\d{2})/);
+            return m ? m[1] : '';
         }
 
         function syncLogDateFromUi() {
-            var elDate = document.getElementById('logDate');
-            var elSelect = document.getElementById('logDateSelect');
-            var elFallback = document.getElementById('logDateFallback');
-            var raw = '';
-            if (elSelect && elSelect.style.display !== 'none' && elSelect.value) {
-                raw = elSelect.value;
-            } else if (elFallback && elFallback.style.display !== 'none' && elFallback.value) {
-                raw = elFallback.value;
-            } else if (elDate && elDate.value) {
-                raw = elDate.value;
-            } else if (elSelect && elSelect.value) {
-                raw = elSelect.value;
-            } else if (elFallback && elFallback.value) {
-                raw = elFallback.value;
+            var modal = document.getElementById('logModal');
+            var root = modal || document;
+            var elDate = root.querySelector('#logDate') || document.getElementById('logDate');
+            var elSelect = root.querySelector('#logDateSelect') || document.getElementById('logDateSelect');
+            var elFallback = root.querySelector('#logDateFallback') || document.getElementById('logDateFallback');
+            var candidates = [];
+
+            if (elSelect) {
+                if (elSelect.value) candidates.push(elSelect.value);
+                if (elSelect.selectedIndex >= 0 && elSelect.options[elSelect.selectedIndex]) {
+                    var opt = elSelect.options[elSelect.selectedIndex];
+                    if (opt.value) candidates.push(opt.value);
+                    if (opt.textContent) candidates.push(opt.textContent);
+                }
+                // display와 무관하게 옵션이 있으면 선택값/첫 옵션 사용
+                if (!elSelect.value && elSelect.options && elSelect.options.length > 0) {
+                    var first = elSelect.options[0];
+                    if (first && first.value) candidates.push(first.value);
+                }
             }
-            var normalized = normalizeTrainingDateClient(raw);
-            if (elDate && normalized) elDate.value = normalized;
-            return normalized;
+            if (elFallback && elFallback.value) candidates.push(elFallback.value);
+            if (elDate && elDate.value) candidates.push(elDate.value);
+            if (window.selectedTrainingLogDate) candidates.push(window.selectedTrainingLogDate);
+
+            for (var i = 0; i < candidates.length; i++) {
+                var normalized = normalizeTrainingDateClient(candidates[i]);
+                if (normalized) {
+                    if (elDate) elDate.value = normalized;
+                    if (elSelect && elSelect.options && elSelect.options.length > 0) {
+                        try { elSelect.value = normalized; } catch (e) {}
+                    }
+                    if (elFallback && elFallback.style.display !== 'none') {
+                        elFallback.value = normalized;
+                    }
+                    window.selectedTrainingLogDate = normalized;
+                    return normalized;
+                }
+            }
+            return '';
         }
 
         function isListedTrainingDate(dateVal) {
@@ -554,7 +580,8 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         }
 
         function onTrainingDateChange() {
-            syncLogDateFromUi();
+            var d = syncLogDateFromUi();
+            if (d) window.selectedTrainingLogDate = d;
             resetLogFormInteractiveState();
             loadDailySchedule(false);
         }
@@ -1334,10 +1361,29 @@ async function printLog(id) {
         // --------------------------------------------------------------------------------------------------------------------------------
         async function loadDailySchedule(preserveExisting) {
             var dateVal = syncLogDateFromUi();
+            if (!dateVal) {
+                try {
+                    if (pathCourseId) {
+                        await resolveSessionContext();
+                        var datesReload = await loadTrainingLogDates();
+                        if (datesReload && datesReload.length > 0) {
+                            populateTrainingDateSelect(datesReload, window.selectedTrainingLogDate || null);
+                            dateVal = syncLogDateFromUi();
+                        }
+                    }
+                } catch (e) {
+                    console.error('schedule date resolve failed', e);
+                }
+            }
             if (!courseId && (sessionId || pathCourseId)) {
                 try { await resolveSessionContext(); } catch (e) {}
             }
-            if (!courseId || !dateVal) {
+            if (!dateVal) {
+                showToast('먼저 훈련일을 선택해 주세요.', 'warn');
+                return;
+            }
+            if (!courseId) {
+                showToast('과정 정보를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', 'warn');
                 return;
             }
             
@@ -1372,23 +1418,48 @@ async function printLog(id) {
                 const result = await res.json();
                 if (result.success) {
                     renderScheduleTable(result.data, preserveExisting && existingData.length > 0 ? existingData : null);
+                    showToast('시간표를 불러왔습니다. (' + dateVal + ')', 'success');
                 } else {
                      if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-rose-400 font-bold">시간표 조회 실패</td></tr>';
                      setTimeout(function() { renderScheduleTable(null, preserveExisting && existingData.length > 0 ? existingData : null); }, 1000);
+                     showToast((result && result.error) ? result.error : '시간표 조회에 실패했습니다.', 'error');
                 }
             } catch (e) {
                 console.error(e);
                 if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-rose-400 font-bold">오류 발생</td></tr>';
                 setTimeout(function() { renderScheduleTable(null, preserveExisting && existingData.length > 0 ? existingData : null); }, 1000);
+                showToast('시간표 불러오기 중 오류가 발생했습니다.', 'error');
             }
         }
 
         async function loadDailyAttendance() {
             var dateVal = syncLogDateFromUi();
+            if (!dateVal) {
+                // 훈련일 목록이 아직 안 채워진 경우 재로드 후 기본일 사용
+                try {
+                    if (pathCourseId) {
+                        await resolveSessionContext();
+                        var datesReload = await loadTrainingLogDates();
+                        if (datesReload && datesReload.length > 0) {
+                            populateTrainingDateSelect(datesReload, window.selectedTrainingLogDate || null);
+                            dateVal = syncLogDateFromUi();
+                        }
+                    }
+                } catch (e) {
+                    console.error('attendance date resolve failed', e);
+                }
+            }
             if (!courseId && (sessionId || pathCourseId)) {
                 try { await resolveSessionContext(); } catch (e) {}
             }
             if (!dateVal) {
+                console.warn('[loadDailyAttendance] no date', {
+                    selected: window.selectedTrainingLogDate,
+                    listed: window.trainingLogDates,
+                    select: (document.getElementById('logDateSelect') || {}).value,
+                    fallback: (document.getElementById('logDateFallback') || {}).value,
+                    hidden: (document.getElementById('logDate') || {}).value
+                });
                 showToast('먼저 훈련일을 선택해 주세요.', 'warn');
                 return;
             }
@@ -1695,6 +1766,7 @@ async function printLog(id) {
                         elDateFallback.value = nowFb.getFullYear() + '-' + String(nowFb.getMonth() + 1).padStart(2, '0') + '-' + String(nowFb.getDate()).padStart(2, '0');
                     }
                     if (elDate) elDate.value = normalizeTrainingDateClient(elDateFallback.value);
+                    window.selectedTrainingLogDate = elDate ? elDate.value : normalizeTrainingDateClient(elDateFallback.value);
                 }
                 return elDate ? elDate.value : null;
             }
@@ -1712,6 +1784,10 @@ async function printLog(id) {
                 elDateSelect.style.display = '';
                 if (elDateFallback) elDateFallback.style.display = 'none';
                 if (elDate) elDate.value = selected || '';
+                if (selected) {
+                    elDateSelect.value = selected;
+                    window.selectedTrainingLogDate = selected;
+                }
                 return selected;
             }
             return null;
@@ -2006,6 +2082,16 @@ async function printLog(id) {
                 }
             }
         }
+
+        // 인라인 onclick / 이벤트 리스너가 최신 함수를 쓰도록 마지막에 재할당
+        window.syncLogDateFromUi = syncLogDateFromUi;
+        window.loadDailyAttendance = loadDailyAttendance;
+        window.loadDailySchedule = loadDailySchedule;
+        window.openLogModal = openLogModal;
+        window.closeLogModal = closeLogModal;
+        window.editLog = editLog;
+        window.handleSaveLog = handleSaveLog;
+        window.onTrainingDateChange = onTrainingDateChange;
     </script>
             </div>
         </div>
