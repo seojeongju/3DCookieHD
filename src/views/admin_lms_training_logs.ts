@@ -503,10 +503,17 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
             var s = String(dateVal).trim()
                 .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-')
                 .replace(/[./]/g, '-');
-            var m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-            if (!m) return '';
+            // 주의: 이 파일은 백틱 템플릿 문자열이므로 \\d 대신 [0-9] 사용
+            var m = s.match(/([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})/);
+            if (!m) {
+                // 최후 폴백: 앞 10자가 날짜 형태면 그대로 사용
+                var head = s.substring(0, 10);
+                if (head.length === 10 && head.charAt(4) === '-' && head.charAt(7) === '-') return head;
+                return '';
+            }
             var mm = String(parseInt(m[2], 10)).padStart(2, '0');
             var dd = String(parseInt(m[3], 10)).padStart(2, '0');
+            if (mm === 'NaN' || dd === 'NaN' || parseInt(m[2], 10) < 1 || parseInt(m[3], 10) < 1) return '';
             return m[1] + '-' + mm + '-' + dd;
         }
 
@@ -588,7 +595,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
         function normalizeTrainingDatesList(raw) {
             if (!raw) return [];
             if (Array.isArray(raw)) {
-                return raw.map(function(d) { return String(d).substring(0, 10); }).filter(function(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d); });
+                return raw.map(function(d) { return String(d).substring(0, 10); }).filter(function(d) { return /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d); });
             }
             if (typeof raw === 'string') {
                 try {
@@ -596,9 +603,9 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                     if (Array.isArray(parsed)) return normalizeTrainingDatesList(parsed);
                 } catch (e) {}
                 if (raw.indexOf(',') >= 0) {
-                    return raw.split(',').map(function(d) { return d.trim().substring(0, 10); }).filter(function(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d); });
+                    return raw.split(',').map(function(d) { return d.trim().substring(0, 10); }).filter(function(d) { return /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d); });
                 }
-                if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return [raw.substring(0, 10)];
+                if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(raw)) return [raw.substring(0, 10)];
             }
             return [];
         }
@@ -609,7 +616,7 @@ export const adminLmsTrainingLogsHtml = (sidebar: string = hrdSidebar('courses')
                 var list = arguments[i] || [];
                 for (var j = 0; j < list.length; j++) {
                     var d = String(list[j]).substring(0, 10);
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) merged[d] = true;
+                    if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d)) merged[d] = true;
                 }
             }
             return Object.keys(merged).sort();
