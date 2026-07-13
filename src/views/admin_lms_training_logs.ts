@@ -1281,6 +1281,8 @@ async function printLog(id) {
         window.closeLogModal = closeLogModal;
         window.editLog = editLog;
         window.handleSaveLog = handleSaveLog;
+        window.loadDailyAttendance = loadDailyAttendance;
+        window.loadDailySchedule = loadDailySchedule;
 
         async function calculateNcsProgress() {
             try {
@@ -1331,8 +1333,11 @@ async function printLog(id) {
         // --------------------------------------------------------------------------------------------------------------------------------
         // --------------------------------------------------------------------------------------------------------------------------------
         async function loadDailySchedule(preserveExisting) {
-            const dateInput = document.getElementById('logDate');
-            if (!courseId || !dateInput || !dateInput.value) {
+            var dateVal = syncLogDateFromUi();
+            if (!courseId && (sessionId || pathCourseId)) {
+                try { await resolveSessionContext(); } catch (e) {}
+            }
+            if (!courseId || !dateVal) {
                 return;
             }
             
@@ -1361,7 +1366,7 @@ async function printLog(id) {
             try {
                 const scheduleCourseId = pathCourseId || courseId;
                 const scheduleSessionId = sessionId || courseId;
-                const res = await fetch('/api/hrd/training-logs/daily-schedule?courseId=' + encodeURIComponent(scheduleCourseId) + '&session_id=' + encodeURIComponent(scheduleSessionId) + '&date=' + encodeURIComponent(dateInput.value), {
+                const res = await fetch('/api/hrd/training-logs/daily-schedule?courseId=' + encodeURIComponent(scheduleCourseId) + '&session_id=' + encodeURIComponent(scheduleSessionId) + '&date=' + encodeURIComponent(dateVal), {
                      headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await res.json();
@@ -1379,9 +1384,16 @@ async function printLog(id) {
         }
 
         async function loadDailyAttendance() {
-            const dateInput = document.getElementById('logDate');
-            if (!courseId || !dateInput || !dateInput.value) {
+            var dateVal = syncLogDateFromUi();
+            if (!courseId && (sessionId || pathCourseId)) {
+                try { await resolveSessionContext(); } catch (e) {}
+            }
+            if (!dateVal) {
                 showToast('먼저 훈련일을 선택해 주세요.', 'warn');
+                return;
+            }
+            if (!courseId) {
+                showToast('과정 정보를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', 'warn');
                 return;
             }
 
@@ -1391,16 +1403,13 @@ async function printLog(id) {
             if (btnText) btnText.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-1"></i> 불러오는 중...';
             
             try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const isHrd = urlParams.get('type') === 'hrd' ? '&type=hrd' : '';
-                const dateVal = dateInput.value;
-                const res = await fetch('/api/courses/' + courseId + '/attendance?date=' + dateVal + isHrd, {
+                // 훈련일지 페이지의 courseId는 HRD 회차 ID이므로 항상 type=hrd로 조회
+                const res = await fetch('/api/courses/' + courseId + '/attendance?date=' + encodeURIComponent(dateVal) + '&type=hrd', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await res.json();
                 
                 if (result.success && result.data) {
-                    const dateVal = dateInput.value;
                     const isListedTrainingDay = isListedTrainingDate(dateVal);
 
                     // 훈련일지 모달: 드롭다운/일정에 있는 날짜는 과거일 포함 항상 작성 가능
@@ -1596,13 +1605,16 @@ async function printLog(id) {
                     await resolveSessionContext();
                     var dates = await loadTrainingLogDates();
                     populateTrainingDateSelect(dates, null);
+                    syncLogDateFromUi();
                 } catch (e) {
                     console.error('openLogModal init failed', e);
                     var fallbackDates = generateClientTrainingDates(window.hrdSessionMeta);
                     if (fallbackDates.length > 0) populateTrainingDateSelect(fallbackDates, null);
+                    syncLogDateFromUi();
                 }
             } else {
                 populateTrainingDateSelect([], null);
+                syncLogDateFromUi();
             }
 
             ['logAttPresent', 'logAttAbsent', 'logAttLate', 'logAttEarly',
@@ -1611,7 +1623,7 @@ async function printLog(id) {
                 if (el) el.value = '';
             });
 
-            if (elDate && elDate.value) {
+            if (syncLogDateFromUi()) {
                 loadDailySchedule(false);
             } else {
                 renderScheduleTable(null, null);
