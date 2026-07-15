@@ -237,7 +237,6 @@ export const homeHtml = `
     </style>
 
     <!-- 히어로 섹션 -->
-    <!-- 히어로 섹션 -->
     <section class="hero-slider relative group" aria-label="메인 비주얼">
         <!-- 슬라이드 1 -->
         <div class="hero-slide active" style="background-image: url('/static/hero1.jpg'); background-color: #2d5fa3;">
@@ -261,7 +260,7 @@ export const homeHtml = `
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div class="max-w-2xl text-left">
-                        <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">실무 중심의<br>전문 교육 솔루션</h1>
+                        <h2 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">실무 중심의<br>전문 교육 솔루션</h2>
                         <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">현장 경험이 풍부한 전문 강사진과 함께<br>진짜 실력을 키우세요.</p>
                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
                             <a href="/course-sessions" class="bg-blue-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">수강 신청하기</a>
@@ -276,7 +275,7 @@ export const homeHtml = `
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div class="max-w-2xl text-left">
-                        <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">취업과 창업의<br>가장 빠른 지름길</h1>
+                        <h2 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">취업과 창업의<br>가장 빠른 지름길</h2>
                         <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">체계적인 NCS 기반 커리큘럼으로<br>여러분의 꿈을 현실로 만듭니다.</p>
                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
                             <a href="/online-consulting" class="bg-indigo-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">무료 상담 받기</a>
@@ -324,7 +323,7 @@ export const homeHtml = `
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
                     <!-- Card 4 -->
-                    <a href="https://wow3dhd.co.kr/" target="_blank" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-orange-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                    <a href="https://smartstore.naver.com/wow3d" target="_blank" rel="noopener noreferrer" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-orange-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
                         <div class="w-12 h-12 rounded-lg bg-white/10 text-orange-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-orange-600 transition-colors">
                             <i class="fas fa-shopping-cart"></i>
                         </div>
@@ -360,7 +359,7 @@ export const homeHtml = `
                 <div class="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mb-2"><i class="fas fa-robot"></i></div>
                 <span class="text-xs sm:text-sm font-bold text-gray-800 text-center break-keep leading-snug">3D프린팅 AI실시간자동견적</span>
             </a>
-            <a href="https://wow3dhd.co.kr/" target="_blank" class="flex flex-col items-center justify-center min-h-[5.75rem] sm:min-h-0 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform">
+            <a href="https://smartstore.naver.com/wow3d" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center min-h-[5.75rem] sm:min-h-0 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform">
                 <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-2"><i class="fas fa-shopping-cart"></i></div>
                 <span class="text-xs sm:text-sm font-bold text-gray-800 text-center leading-snug">와우쓰리디 온라인마켓</span>
             </a>

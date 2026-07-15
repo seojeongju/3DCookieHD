@@ -140,6 +140,7 @@ import { adminEducationPerformanceHtml } from './views/admin_education_performan
 import { portfoliosListHtml } from './views/portfolios';
 import { portfolioDetailHtml } from './views/portfolio_detail';
 import { postsListHtml } from './views/posts';
+import { faqPageHtml, type PublicFaq } from './views/faq';
 import { prototypeGalleryHtml } from './views/prototype_gallery';
 import { adminPrototypeGalleryHtml } from './views/admin_prototype_gallery';
 import { educationGalleryHtml } from './views/education_gallery';
@@ -157,7 +158,13 @@ import { navigationHtml } from './views/components/navigation';
 import { homeHtml } from './views/home';
 import { layoutHtml } from './views/components/layout';
 import { resetPasswordHtml } from './views/reset_password';
-import { getSeoHead, PUBLIC_PATHS } from './utils/seo';
+import {
+    getSeoHead,
+    getSeoOptionsForPath,
+    isNoindexPath,
+    PUBLIC_PATHS,
+    SITE_ORIGIN,
+} from './utils/seo';
 import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -167,6 +174,43 @@ const app = new Hono<{ Bindings: Bindings }>();
 // ============================================
 app.use('*', logger());
 app.use('*', trackingMiddleware);
+
+// 공식 도메인 통합, 비공개 영역 색인 차단, 공개 페이지 공통 SEO 메타 주입
+app.use('*', async (c, next) => {
+    const requestUrl = new URL(c.req.url);
+    const canonicalOrigin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
+
+    await next();
+
+    const noindex = isNoindexPath(requestUrl.pathname) || requestUrl.hostname.endsWith('.pages.dev');
+    if (noindex) {
+        c.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    }
+
+    const contentType = c.res.headers.get('Content-Type') || '';
+    const seoOptions = getSeoOptionsForPath(requestUrl.pathname);
+    if (!seoOptions || !contentType.includes('text/html') || c.res.status >= 400) return;
+
+    const html = await c.res.text();
+    if (html.includes('rel="canonical"') || html.includes("rel='canonical'")) {
+        c.res = new Response(html, c.res);
+        return;
+    }
+
+    const cleanedHtml = html
+        .replace(/\s*<meta\s+name=["'](?:description|keywords|robots)["'][^>]*>/gi, '');
+    const seoHead = getSeoHead(canonicalOrigin, seoOptions, {
+        google: c.env.GOOGLE_SITE_VERIFICATION,
+        naver: c.env.NAVER_SITE_VERIFICATION,
+    });
+    const headers = new Headers(c.res.headers);
+    headers.delete('Content-Length');
+    c.res = new Response(cleanedHtml.replace('</head>', `    ${seoHead}\n</head>`), {
+        status: c.res.status,
+        statusText: c.res.statusText,
+        headers,
+    });
+});
 
 // CORS 설정 (API에만 적용)
 app.use('/api/*', corsMiddleware);
@@ -190,17 +234,17 @@ app.get('/favicon.ico', (c) => {
 
 // robots.txt (네이버·구글 등 검색엔진 크롤러 안내)
 app.get('/robots.txt', (c) => {
-    const origin = new URL(c.req.url).origin;
+    const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
     const body = [
         'User-agent: *',
         'Allow: /',
-        'Disallow: /admin',
         'Disallow: /admin/',
-        'Disallow: /teacher',
         'Disallow: /teacher/',
-        'Disallow: /student',
         'Disallow: /student/',
         'Disallow: /api/',
+        'Disallow: /login',
+        'Disallow: /register',
+        'Disallow: /reset-password',
         'Sitemap: ' + origin + '/sitemap.xml',
         ''
     ].join('\n');
@@ -212,13 +256,82 @@ app.get('/robots.txt', (c) => {
     });
 });
 
-// sitemap.xml (검색엔진용 URL 목록)
-app.get('/sitemap.xml', (c) => {
-    const origin = new URL(c.req.url).origin;
-    const today = new Date().toISOString().slice(0, 10);
-    const urls = PUBLIC_PATHS.map((path) => {
+// sitemap.xml (정적 페이지 + 공개 과정·포트폴리오 상세)
+app.get('/sitemap.xml', async (c) => {
+    const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
+    const entries: Array<{ path: string; lastmod?: string; priority: string }> = PUBLIC_PATHS.map((path) => ({
+        path,
+        priority: path === '/' ? '1.0' : '0.8',
+    }));
+
+    try {
+        let sessions: Array<{ id: number; created_at?: string }> = [];
+        try {
+            const result = await c.env.DB.prepare(`
+                SELECT id, created_at
+                FROM course_sessions
+                WHERE homepage_exposed = 1 OR homepage_exposed IS NULL
+                ORDER BY id
+            `).all<{ id: number; created_at?: string }>();
+            sessions = result.results || [];
+        } catch {
+            const result = await c.env.DB.prepare(
+                'SELECT id, created_at FROM course_sessions ORDER BY id'
+            ).all<{ id: number; created_at?: string }>();
+            sessions = result.results || [];
+        }
+        for (const row of sessions) {
+            entries.push({
+                path: `/course-sessions/${row.id}`,
+                lastmod: normalizeSitemapDate(row.created_at),
+                priority: '0.7',
+            });
+        }
+
+        const courses = await c.env.DB.prepare(`
+            SELECT id, updated_at
+            FROM courses
+            WHERE status = 'active'
+            ORDER BY id
+        `).all<{ id: number; updated_at?: string }>();
+        for (const row of courses.results || []) {
+            entries.push({
+                path: `/courses/${row.id}`,
+                lastmod: normalizeSitemapDate(row.updated_at),
+                priority: '0.7',
+            });
+        }
+
+        let portfolios: Array<{ id: number; updated_at?: string }> = [];
+        try {
+            const result = await c.env.DB.prepare(`
+                SELECT id, updated_at
+                FROM student_portfolios
+                WHERE status IS NULL OR status = 'published'
+                ORDER BY id
+            `).all<{ id: number; updated_at?: string }>();
+            portfolios = result.results || [];
+        } catch {
+            const result = await c.env.DB.prepare(
+                'SELECT id, updated_at FROM student_portfolios ORDER BY id'
+            ).all<{ id: number; updated_at?: string }>();
+            portfolios = result.results || [];
+        }
+        for (const row of portfolios) {
+            entries.push({
+                path: `/portfolios/${row.id}`,
+                lastmod: normalizeSitemapDate(row.updated_at),
+                priority: '0.6',
+            });
+        }
+    } catch (error) {
+        console.error('Dynamic sitemap query failed:', error);
+    }
+
+    const urls = entries.map(({ path, lastmod, priority }) => {
         const loc = path === '/' ? origin + '/' : origin + path;
-        return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>${path === '/' ? '1.0' : '0.8'}</priority>\n  </url>`;
+        const lastmodXml = lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : '';
+        return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmodXml}\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
     }).join('\n');
     const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + '\n</urlset>';
     return new Response(xml, {
@@ -229,8 +342,31 @@ app.get('/sitemap.xml', (c) => {
     });
 });
 
+function normalizeSitemapDate(value?: string): string | undefined {
+    if (!value) return undefined;
+    const match = String(value).match(/^([0-9]{4}-[0-9]{2}-[0-9]{2})/);
+    return match?.[1];
+}
+
 function escapeXml(s: string): string {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function htmlToPlainText(value: unknown): string {
+    return String(value || '')
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<(?:br|\/p|\/div|\/li|\/h[1-6])\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'")
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n\s*\n+/g, '\n')
+        .trim();
 }
 
 // ============================================
@@ -579,6 +715,33 @@ app.get('/course-sessions/:id', (c) => c.html(courseSessionDetailHtml(c.req.para
 app.get('/portfolios', (c) => c.html(portfoliosListHtml));
 app.get('/portfolios/:id', (c) => c.html(portfolioDetailHtml(c.req.param('id'))));
 app.get('/posts', (c) => c.html(postsListHtml));
+app.get('/faq', async (c) => {
+    try {
+        const result = await c.env.DB.prepare(`
+            SELECT title, content
+            FROM posts
+            WHERE category = 'faq' AND status = 'published'
+            ORDER BY pinned DESC, created_at DESC
+            LIMIT 30
+        `).all<{ title: string; content: string }>();
+        const seen = new Set<string>();
+        const items: PublicFaq[] = (result.results || [])
+            .map((row) => ({
+                title: htmlToPlainText(row.title),
+                answer: htmlToPlainText(row.content),
+            }))
+            .filter((item) => {
+                const key = `${item.title}\n${item.answer}`;
+                if (!item.title || !item.answer || item.answer.startsWith('[R2:') || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        return c.html(faqPageHtml(items));
+    } catch (error) {
+        console.error('FAQ page query failed:', error);
+        return c.html(faqPageHtml([]));
+    }
+});
 app.get('/prototype-gallery', (c) => c.html(prototypeGalleryHtml));
 app.get('/schedule', (c) => c.html(scheduleHtml));
 app.get('/locations', async (c) => {
@@ -667,13 +830,7 @@ app.get('/api', (c) => {
 // 메인 페이지
 // ============================================
 app.get('/', (c) => {
-    const origin = new URL(c.req.url).origin;
-    const seoHead = getSeoHead(origin, {
-        title: '와우쓰리디홍대센터 - 4차산업 3D프린팅 교육 전문',
-        description: '4차산업 3D프린팅 교육 전문. 와우쓰리디홍대센터에서 3D 모델링·프린팅 국비지원 과정, 실무 교육, NCS 기반 커리큘럼을 만나보세요. 홍대·구미·전주.',
-        path: '/',
-    });
-    return c.html(layoutHtml('와우쓰리디홍대센터 - 4차산업 3D프린팅 교육 전문', homeHtml, 'home', seoHead));
+    return c.html(layoutHtml('4차산업 3D프린팅 교육 전문', homeHtml, 'home'));
 });
 
 // ============================================

@@ -7,6 +7,12 @@ export type Bindings = {
   DB: D1Database;
   // KV: KVNamespace; // 추후 추가
   R2: R2Bucket; // 파일 스토리지
+  /** 검색엔진 canonical·sitemap에 사용하는 공식 사이트 주소 */
+  SITE_URL?: string;
+  /** Google Search Console HTML 메타태그 인증 코드 */
+  GOOGLE_SITE_VERIFICATION?: string;
+  /** 네이버 서치어드바이저 HTML 메타태그 인증 코드 */
+  NAVER_SITE_VERIFICATION?: string;
   /** 공공데이터포털 NCS API 인증키 (선택). 설정 시 /api/ncs/search 에서 실제 API 호출 */
   NCS_API_KEY?: string;
   /** NCS 기준정보조회 API base URL (선택). 미설정 시 api.data.go.kr/openapi/15128213/v1 사용 */

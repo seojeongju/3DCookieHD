@@ -66,7 +66,7 @@ export const navigationHtml = (activeMenu = '') => `
                         <div class="absolute left-0 top-full mt-0 w-48 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 overflow-hidden z-50">
                             <div class="py-1">
                                 <a href="/posts?category=notice" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">공지사항</a>
-                                <a href="/posts?category=faq" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
+                                <a href="/faq" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
                                 <a href="/posts?category=qna" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">Q&A</a>
                                 <a href="/portfolios" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
                             </div>
@@ -152,7 +152,7 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/prototype-gallery" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작사진</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">게시판</div>
                 <a href="/posts?category=notice" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">공지사항</a>
-                <a href="/posts?category=faq" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
+                <a href="/faq" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
                 <a href="/posts?category=qna" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">Q&A</a>
                 <a href="/portfolios" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">채용정보</div>

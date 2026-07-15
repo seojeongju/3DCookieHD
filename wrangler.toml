@@ -4,6 +4,10 @@ compatibility_date = "2025-10-27"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
+[vars]
+SITE_URL = "https://3dcookiehd.com"
+NAVER_SITE_VERIFICATION = "40f32ac27e85391aea861a5fa3db520946851bf0,c658b8685a4558ed574abba670082f0568f6753d"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "education-platform-db"
