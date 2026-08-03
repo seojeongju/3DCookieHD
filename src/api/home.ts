@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
+import { applyEffectiveStatusToList, sqlWhereEffectiveActive } from '../utils/course_session_status';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -63,7 +64,7 @@ app.get('/', async (c) => {
         INNER JOIN approved_courses a ON a.id = s.approved_course_id
         LEFT JOIN course_categories cat ON cat.id = a.category_id
         WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL)
-          AND s.status IN ('recruiting', 'always_open', 'in_progress')
+          AND ${sqlWhereEffectiveActive('s')}
         ORDER BY s.training_start_date DESC, s.id DESC
         LIMIT 8
       `).all(),
@@ -141,11 +142,17 @@ app.get('/', async (c) => {
       excerpt: makeExcerpt(String(r.content || ''), 92),
     }));
 
-    c.header('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1200');
+    c.header('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
     return c.json({
       success: true,
       data: {
-        courses: coursesRows.results || [],
+        courses: applyEffectiveStatusToList(
+          (coursesRows.results || []) as Array<{
+            status: string;
+            training_start_date?: string;
+            training_end_date?: string;
+          }>
+        ),
         educationPhotos,
         portfolios,
         prototypes,

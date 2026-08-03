@@ -5,6 +5,7 @@ import {
   applyEffectiveStatus,
   applyEffectiveStatusToList,
   getEffectiveSessionStatus,
+  sqlWhereEffectiveActive,
   sqlWhereEffectiveStatusEquals,
 } from '../utils/course_session_status';
 import { getCourseSessionTimetableHeaderByLmsCourseId } from '../lib/lmsCourseContext';
@@ -149,13 +150,22 @@ app.get('/public', async (c) => {
     let sessionStatusFilter = "";
     if (status && status.trim() !== '') {
       const s = status.trim();
-      sessionStatusFilter = " AND s.status = ?";
-      params.push(s);
-      if (s === 'recruiting') {
-        sessionStatusFilter += " AND (s.training_start_date IS NULL OR s.training_start_date >= DATE('now'))";
+      if (s === 'recruiting' || s === 'in_progress' || s === 'completed') {
+        sessionStatusFilter = ` AND ${sqlWhereEffectiveStatusEquals('s', s)}`;
+      } else if (s === 'always_open') {
+        sessionStatusFilter = ` AND s.status = 'always_open' AND (
+          s.training_end_date IS NULL
+          OR length(trim(s.training_end_date)) = 0
+          OR date(s.training_end_date) >= date('now', '+9 hours')
+        )`;
+      } else if (s === 'closed') {
+        sessionStatusFilter = " AND s.status = 'closed'";
+      } else {
+        sessionStatusFilter = " AND s.status = ?";
+        params.push(s);
       }
     } else {
-      sessionStatusFilter = " AND s.status IN ('recruiting', 'always_open', 'in_progress')";
+      sessionStatusFilter = ` AND ${sqlWhereEffectiveActive('s')}`;
     }
 
     let sessionCategoryFilter = "";

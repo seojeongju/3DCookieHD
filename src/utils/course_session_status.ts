@@ -12,13 +12,24 @@ export type SessionLike = {
   training_end_date?: string | null;
 };
 
-const TODAY = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+/** 한국(Asia/Seoul) 기준 오늘 날짜 YYYY-MM-DD */
+export function todayKST(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+/** SQLite/D1용: UTC now + 9h ≈ KST 달력일 */
+export const SQL_TODAY_KST = `date('now', '+9 hours')`;
 
 export function getEffectiveSessionStatus(session: SessionLike, asOfDate?: string): string {
   const dbStatus = (session.status || '').trim().toLowerCase();
   const start = session.training_start_date ? String(session.training_start_date).trim().slice(0, 10) : null;
   const end = session.training_end_date ? String(session.training_end_date).trim().slice(0, 10) : null;
-  const today = asOfDate ? asOfDate.slice(0, 10) : TODAY();
+  const today = asOfDate ? asOfDate.slice(0, 10) : todayKST();
 
   if (dbStatus === 'closed') return 'closed';
 
@@ -56,6 +67,7 @@ export function applyEffectiveStatusToList<T extends SessionLike>(rows: T[]): T[
  */
 export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progress' | 'recruiting' | 'completed'): string {
   const a = alias;
+  const today = SQL_TODAY_KST;
   if (target === 'in_progress') {
     return `(
       ${a}.status <> 'closed'
@@ -64,17 +76,17 @@ export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progres
         (
           ${a}.training_start_date IS NOT NULL AND ${a}.training_end_date IS NOT NULL
           AND length(trim(${a}.training_start_date)) > 0 AND length(trim(${a}.training_end_date)) > 0
-          AND date(${a}.training_start_date) <= date('now') AND date(${a}.training_end_date) >= date('now')
+          AND date(${a}.training_start_date) <= ${today} AND date(${a}.training_end_date) >= ${today}
         )
         OR (
           ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
           AND (${a}.training_end_date IS NULL OR length(trim(${a}.training_end_date)) = 0)
-          AND date(${a}.training_start_date) <= date('now')
+          AND date(${a}.training_start_date) <= ${today}
         )
         OR (
           (${a}.training_start_date IS NULL OR length(trim(${a}.training_start_date)) = 0)
           AND ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
-          AND date(${a}.training_end_date) >= date('now')
+          AND date(${a}.training_end_date) >= ${today}
         )
         OR (
           ${a}.status = 'in_progress'
@@ -91,7 +103,7 @@ export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progres
       AND (
         (
           ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
-          AND date(${a}.training_start_date) > date('now')
+          AND date(${a}.training_start_date) > ${today}
         )
         OR (
           ${a}.status = 'recruiting'
@@ -107,15 +119,33 @@ export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progres
       (
         ${a}.status = 'always_open'
         AND ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
-        AND date(${a}.training_end_date) < date('now')
+        AND date(${a}.training_end_date) < ${today}
       )
       OR (
         ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
-        AND date(${a}.training_end_date) < date('now')
+        AND date(${a}.training_end_date) < ${today}
         AND NOT (
           ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
-          AND date(${a}.training_start_date) > date('now')
+          AND date(${a}.training_start_date) > ${today}
         )
+      )
+    )
+  )`;
+}
+
+/** 홈·공개 목록용: 모집중·진행중·상시모집(종료 전) */
+export function sqlWhereEffectiveActive(alias: string): string {
+  const a = alias;
+  const today = SQL_TODAY_KST;
+  return `(
+    ${sqlWhereEffectiveStatusEquals(a, 'recruiting')}
+    OR ${sqlWhereEffectiveStatusEquals(a, 'in_progress')}
+    OR (
+      ${a}.status = 'always_open'
+      AND (
+        ${a}.training_end_date IS NULL
+        OR length(trim(${a}.training_end_date)) = 0
+        OR date(${a}.training_end_date) >= ${today}
       )
     )
   )`;

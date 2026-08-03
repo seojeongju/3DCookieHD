@@ -180,6 +180,11 @@ app.use('*', async (c, next) => {
     const requestUrl = new URL(c.req.url);
     const canonicalOrigin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
 
+    // SEO: www → apex(공식 도메인)으로 영구 통합
+    if (requestUrl.hostname === 'www.3dcookiehd.com') {
+        return c.redirect(`${canonicalOrigin}${requestUrl.pathname}${requestUrl.search}`, 308);
+    }
+
     await next();
 
     const noindex = isNoindexPath(requestUrl.pathname) || requestUrl.hostname.endsWith('.pages.dev');
