@@ -316,8 +316,7 @@ export function adminCoursesMainHtml(): string {
                                 : ' <button onclick="event.stopPropagation(); window.dashboardSetHomepageExposed(' + courseId + ',' + item.id + ', 1)" class="px-2 py-1 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold hover:bg-primary-600 hover:text-white transition flex items-center gap-1"><i class="fas fa-eye-slash"></i> 숨김</button>';
 
                             var fullCourseName = (item.course_name || '과정') + ' ' + (item.session_number != null ? item.session_number + '차' : '') + (item.session_name ? ' ' + item.session_name : '');
-                            var lmsPathId = (item.lms_course_id != null && String(item.lms_course_id).trim() !== '') ? item.lms_course_id : item.id;
-                            var lmsQuery = '?type=hrd&session_id=' + encodeURIComponent(String(item.id));
+                            var lmsBtnLmsId = (item.lms_course_id != null && String(item.lms_course_id).trim() !== '') ? String(item.lms_course_id) : 'null';
                             html += '<div class="flex items-center justify-between bg-white border border-slate-200 rounded-xl p-4 hover:border-primary-200 hover:shadow-sm transition group/card">' +
                                 '<div class="flex items-center gap-4 min-w-0">' +
                                     '<div class="w-10 h-10 flex items-center justify-center bg-slate-50 rounded-lg font-black text-slate-400 text-xs shrink-0">' + item.session_number + '차</div>' +
@@ -330,7 +329,7 @@ export function adminCoursesMainHtml(): string {
                                     '</div>' +
                                 '</div>' +
                                 '<div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">' +
-                                    '<a href="/admin/courses/' + lmsPathId + '/lms' + lmsQuery + '" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1 shadow-sm"><i class="fas fa-chalkboard-teacher"></i> LMS 관리</a>' +
+                                    '<button type="button" onclick="event.stopPropagation(); window.openSessionLms(' + item.id + ',' + lmsBtnLmsId + ')" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1 shadow-sm"><i class="fas fa-chalkboard-teacher"></i> LMS 관리</button>' +
                                     homepageBtn +
                                     '<div class="h-4 w-[1px] bg-slate-100 mx-1"></div>' +
                                     '<a href="/admin/courses/sessions/enrollments?sessionId=' + item.id + '" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition"><i class="fas fa-user-plus mr-1"></i> 수강생 등록</a>' +
@@ -375,6 +374,32 @@ export function adminCoursesMainHtml(): string {
                     .then(function(r) { return r.json(); })
                     .then(function(json) { if (json.success) location.reload(); else alert(json.error || '삭제 실패'); })
                     .catch(function() { alert('삭제 중 오류가 발생했습니다.'); });
+            };
+
+            window.openSessionLms = async function(sessionId, preferredLmsId) {
+                var sid = Number(sessionId);
+                if (!Number.isFinite(sid) || sid < 1) return;
+                var lmsId = (preferredLmsId != null && String(preferredLmsId).trim() !== '' && Number(preferredLmsId) > 0)
+                    ? Number(preferredLmsId) : null;
+                if (!lmsId) {
+                    try {
+                        var res = await fetch('/api/hrd/training-logs/ensure-dedicated-course', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                            body: JSON.stringify({ courseId: sid })
+                        });
+                        var j = await res.json();
+                        if (!j.success || !j.resolvedCourseId) {
+                            alert((j && j.error) || 'LMS 연결에 실패했습니다.');
+                            return;
+                        }
+                        lmsId = Number(j.resolvedCourseId);
+                    } catch (e) {
+                        alert('LMS 연결 중 오류가 발생했습니다.');
+                        return;
+                    }
+                }
+                location.href = '/admin/courses/' + lmsId + '/lms?type=hrd&session_id=' + encodeURIComponent(String(sid));
             };
 
             loadApproved();

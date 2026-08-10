@@ -1,5 +1,5 @@
 import { getLatestCourseSessionRowForLmsCourseId, isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
-import { resolveSessionToLmsCourseId } from './sessionCourseResolution';
+import { ensureDedicatedLmsCourseForSession, resolveSessionToLmsCourseId } from './sessionCourseResolution';
 
 export type LmsEntryRole = 'admin' | 'teacher' | 'student';
 
@@ -23,11 +23,15 @@ export function buildLmsEntryUrl(
     const lmsId =
       course.lms_course_id != null && Number(course.lms_course_id) > 0
         ? Number(course.lms_course_id)
-        : Number(course.id);
+        : null;
     const sid =
       course.session_id != null && Number(course.session_id) > 0
         ? Number(course.session_id)
         : Number(course.id);
+    // 회차 PK를 LMS path로 쓰면 courses.id와 충돌해 원본 회차 일지가 열릴 수 있음
+    if (!lmsId || !Number.isFinite(sid) || sid < 1) {
+      return '#';
+    }
     return `${base}${lmsId}/lms${sub}?type=hrd&session_id=${encodeURIComponent(String(sid))}`;
   }
 
@@ -66,7 +70,7 @@ export async function resolveLegacyHrdLmsRedirect(
       ? parseInt(String(hasSessionId), 10)
       : NaN;
 
-  // session_id가 있으나 경로 숫자가 LMS courses.id가 아닌 경우(회차 PK 혼동) 보정
+  // session_id가 있으면 해당 회차의 전용 LMS로 경로 보정
   if (Number.isFinite(explicitSid) && explicitSid >= 1) {
     const session = await db
       .prepare('SELECT id, lms_course_id FROM course_sessions WHERE id = ?')
@@ -79,7 +83,15 @@ export async function resolveLegacyHrdLmsRedirect(
         ? Number(session.lms_course_id)
         : null;
     if (!lmsId) {
-      lmsId = await resolveSessionToLmsCourseId(db, session.id);
+      lmsId = await ensureDedicatedLmsCourseForSession(db, session.id);
+    } else {
+      const other = await db
+        .prepare('SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1')
+        .bind(lmsId, session.id)
+        .first();
+      if (other) {
+        lmsId = await ensureDedicatedLmsCourseForSession(db, session.id);
+      }
     }
     if (lmsId && rawId !== lmsId) {
       params.set('type', 'hrd');
@@ -110,8 +122,10 @@ export async function resolveLegacyHrdLmsRedirect(
       ? Number(session.lms_course_id)
       : null;
   if (!lmsId) {
+    lmsId = await ensureDedicatedLmsCourseForSession(db, session.id);
+  } else {
     const resolved = await resolveSessionToLmsCourseId(db, session.id);
-    lmsId = resolved;
+    lmsId = resolved ?? (await ensureDedicatedLmsCourseForSession(db, session.id));
   }
   if (!lmsId) return null;
 
@@ -132,10 +146,10 @@ function buildLmsEntryUrl(course, subPath) {
   var sub = subPath ? ('/' + String(subPath).replace(/^\\//, '')) : '';
   if (course && course.is_hrd) {
     var lmsId = (course.lms_course_id != null && Number(course.lms_course_id) > 0)
-      ? Number(course.lms_course_id) : Number(course.id);
+      ? Number(course.lms_course_id) : null;
     var sid = (course.session_id != null && Number(course.session_id) > 0)
       ? Number(course.session_id) : Number(course.id);
-    if (!Number.isFinite(lmsId) || lmsId < 1) return '#';
+    if (!lmsId || !Number.isFinite(lmsId) || lmsId < 1) return '#';
     if (!Number.isFinite(sid) || sid < 1) return '#';
     return '/' + role + '/courses/' + lmsId + '/lms' + sub + '?type=hrd&session_id=' + encodeURIComponent(String(sid));
   }
@@ -146,13 +160,40 @@ function buildLmsEntryUrl(course, subPath) {
 function escHtmlAttr(s) {
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
-/** HRD hub row to LMS URL */
+/** HRD hub row to LMS URL — lms_course_id 없으면 '#' (회차 PK 폴백 금지) */
 function buildHrdLmsHref(row, subPath) {
   if (!row) return '#';
   var sid = (row.session_id != null && Number(row.session_id) > 0) ? Number(row.session_id)
     : (row.id != null && Number(row.id) > 0 ? Number(row.id) : null);
   if (!sid) return '#';
-  var lmsId = (row.lms_course_id != null && Number(row.lms_course_id) > 0) ? Number(row.lms_course_id) : sid;
-  return buildLmsEntryUrl({ id: lmsId, session_id: sid, lms_course_id: row.lms_course_id, is_hrd: true }, subPath);
+  var lmsId = (row.lms_course_id != null && Number(row.lms_course_id) > 0) ? Number(row.lms_course_id) : null;
+  if (!lmsId) return '#';
+  return buildLmsEntryUrl({ id: lmsId, session_id: sid, lms_course_id: lmsId, is_hrd: true }, subPath);
+}
+async function ensureAndOpenHrdLms(sessionId, preferredLmsId, subPath) {
+  var sid = Number(sessionId);
+  if (!Number.isFinite(sid) || sid < 1) return;
+  var lmsId = (preferredLmsId != null && Number(preferredLmsId) > 0) ? Number(preferredLmsId) : null;
+  var token = localStorage.getItem('token') || '';
+  if (!lmsId) {
+    try {
+      var res = await fetch('/api/hrd/training-logs/ensure-dedicated-course', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ courseId: sid })
+      });
+      var j = await res.json();
+      if (!j.success || !j.resolvedCourseId) {
+        alert((j && j.error) || 'LMS 연결에 실패했습니다.');
+        return;
+      }
+      lmsId = Number(j.resolvedCourseId);
+    } catch (e) {
+      alert('LMS 연결 중 오류가 발생했습니다.');
+      return;
+    }
+  }
+  var href = buildLmsEntryUrl({ id: lmsId, session_id: sid, lms_course_id: lmsId, is_hrd: true }, subPath);
+  if (href && href !== '#') location.href = href;
 }`;
 }

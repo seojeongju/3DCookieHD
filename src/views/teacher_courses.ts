@@ -422,7 +422,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 if (result.success) {
                     const all = result.data || [];
                     const activeCount = all.filter(c =>
-                        ['active', 'open', 'upcoming', 'recruiting'].includes(c.status || '')
+                        ['active', 'open', 'upcoming', 'recruiting', 'in_progress'].includes(c.status || '')
                     ).length;
                     const completedCount = all.filter(c =>
                         ['completed', 'closed'].includes(c.status || '')
@@ -525,10 +525,12 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 else if (cat.indexOf('취업') !== -1) iconClass = 'fa-briefcase text-purple-600';
 
                 let statusBadge = { label: '준비중', cls: 'bg-slate-100 text-slate-500' };
-                if (course.status === 'active' || course.status === 'open') {
+                if (course.status === 'active' || course.status === 'open' || course.status === 'in_progress') {
                     statusBadge = { label: '진행중', cls: 'bg-emerald-50 text-emerald-700' };
                 } else if (course.status === 'upcoming' || course.status === 'recruiting') {
                     statusBadge = { label: '모집중', cls: 'bg-blue-50 text-blue-700' };
+                } else if (course.status === 'always_open') {
+                    statusBadge = { label: '상시모집', cls: 'bg-emerald-50 text-emerald-700' };
                 } else if (course.status === 'completed' || course.status === 'closed') {
                     statusBadge = { label: '종료', cls: 'bg-slate-100 text-slate-500' };
                 }

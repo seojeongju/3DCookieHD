@@ -1,4 +1,5 @@
 import { getSidebarPerformanceItems } from './lms_menu_config';
+import { changePasswordModalHtml } from './change_password_modal';
 
 export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
     const performanceItems = getSidebarPerformanceItems();
@@ -152,7 +153,10 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
                     <span id="sidebar-teacher-name" class="text-sm font-black text-white truncate tracking-tight">강사님</span>
                     <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest leading-none mt-0.5">인증된 교수자</span>
                 </div>
-                <button onclick="window.logout()" class="ml-auto w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-500 border border-white/5 group/logout" title="로그아웃">
+                <button type="button" onclick="typeof window.openChangePasswordModal==='function'&&window.openChangePasswordModal()" class="ml-auto w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 text-gray-400 hover:bg-blue-500 hover:text-white transition-all duration-500 border border-white/5" title="비밀번호 변경">
+                    <i class="fas fa-key text-sm"></i>
+                </button>
+                <button onclick="window.logout()" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 text-gray-400 hover:bg-red-500 hover:text-white transition-all duration-500 border border-white/5 group/logout" title="로그아웃">
                     <i class="fas fa-sign-out-alt text-sm group-hover/logout:rotate-12 transition-transform"></i>
                 </button>
             </div>
@@ -291,6 +295,7 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
             });
     })();
 </script>
+${changePasswordModalHtml()}
 `;
 }
 

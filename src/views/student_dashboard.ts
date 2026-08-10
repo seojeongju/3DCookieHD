@@ -1,3 +1,5 @@
+import { changePasswordModalHtml } from './components/change_password_modal';
+
 export const studentDashboardHtml = () => `
 <!DOCTYPE html>
 <html lang="ko">
@@ -58,6 +60,9 @@ export const studentDashboardHtml = () => `
                     <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-sky-600 flex items-center justify-center text-white shadow-lg shadow-sky-200 border border-white/20 flex-shrink-0">
                         <i class="fas fa-user-graduate text-xs sm:text-sm"></i>
                     </div>
+                    <button type="button" onclick="typeof openChangePasswordModal==='function'&&openChangePasswordModal()" class="touch-target w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all flex-shrink-0" title="비밀번호 변경">
+                        <i class="fas fa-key text-sm"></i>
+                    </button>
                     <button onclick="logout()" class="touch-target w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all flex-shrink-0" title="로그아웃">
                         <i class="fas fa-sign-out-alt text-sm"></i>
                     </button>
@@ -1940,7 +1945,7 @@ export const studentDashboardHtml = () => `
                 </p>
                 
                 <div class="flex flex-col gap-3">
-                    <button onclick="location.href='/profile?tab=password'" class="w-full py-4 bg-sky-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-sky-100 hover:bg-slate-900 transition flex items-center justify-center gap-2">
+                    <button onclick="closeInitialModal(); typeof openChangePasswordModal==='function'&&openChangePasswordModal();" class="w-full py-4 bg-sky-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-sky-100 hover:bg-slate-900 transition flex items-center justify-center gap-2">
                         <i class="fas fa-key"></i>
                         지금 비밀번호 변경하기
                     </button>
@@ -1955,6 +1960,7 @@ export const studentDashboardHtml = () => `
             </div>
         </div>
     </div>
+${changePasswordModalHtml()}
 </body>
 </html>
 `;

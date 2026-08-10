@@ -146,30 +146,58 @@ export const loginHtml = `
     </div>
 
     <!-- 비밀번호 찾기 모달 -->
-    <div id="forgotModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4 transition-opacity duration-300">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
-            <div class="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+    <div id="forgotModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm hidden z-[100] items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all max-h-[90vh] overflow-y-auto">
+            <div class="px-6 sm:px-8 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50 sticky top-0 z-10">
                 <h3 class="text-xl font-bold text-gray-900 tracking-tight">비밀번호 찾기</h3>
-                <button onclick="closeForgotModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white text-gray-400 hover:text-gray-600 shadow-sm transition">
+                <button type="button" onclick="closeForgotModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white text-gray-400 hover:text-gray-600 shadow-sm transition">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="p-8">
-                <div class="bg-blue-50/50 rounded-xl p-4 mb-6">
-                    <p class="text-[13px] text-blue-700 leading-relaxed font-medium">
-                        <i class="fas fa-info-circle mr-1.5 opacity-70"></i>
-                        가입 시 사용한 이메일 주소를 입력해 주세요. 비밀번호 재설정 링크를 보내드립니다.
-                    </p>
+            <div class="p-6 sm:p-8">
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-6">
+                    <button type="button" id="forgotTabIdentity" onclick="setForgotTab('identity')" class="py-2.5 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-sm">본인 인증</button>
+                    <button type="button" id="forgotTabEmail" onclick="setForgotTab('email')" class="py-2.5 rounded-lg text-xs font-bold transition text-slate-500">이메일 링크</button>
                 </div>
-                <div class="space-y-5">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2.5">이메일 주소</label>
-                        <input type="email" id="forgotEmail" 
-                            class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all placeholder-gray-400" 
-                            placeholder="example@email.com">
+
+                <!-- 본인 인증 (기본) -->
+                <div id="forgotPanelIdentity" class="space-y-4">
+                    <div class="bg-emerald-50/80 rounded-xl p-4">
+                        <p class="text-[13px] text-emerald-800 leading-relaxed font-medium">
+                            <i class="fas fa-shield-alt mr-1.5 opacity-70"></i>
+                            가입 시 등록한 <b>이메일·이름·연락처</b>가 일치하면 바로 새 비밀번호를 설정할 수 있습니다. (학생·강사·관리자 공통)
+                        </p>
                     </div>
-                    <button onclick="handleForgotSubmit()" id="forgotBtn" 
-                        class="w-full py-4 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all flex items-center justify-center gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">이메일</label>
+                        <input type="email" id="forgotIdEmail" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all text-sm" placeholder="example@email.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">이름</label>
+                        <input type="text" id="forgotIdName" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all text-sm" placeholder="실명">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">연락처</label>
+                        <input type="tel" id="forgotIdPhone" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all text-sm" placeholder="010-0000-0000">
+                    </div>
+                    <button type="button" onclick="handleIdentityReset()" id="forgotIdentityBtn" class="w-full py-4 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all flex items-center justify-center gap-2">
+                        본인 확인 후 재설정
+                    </button>
+                </div>
+
+                <!-- 이메일 링크 -->
+                <div id="forgotPanelEmail" class="space-y-4 hidden">
+                    <div class="bg-blue-50/50 rounded-xl p-4">
+                        <p class="text-[13px] text-blue-700 leading-relaxed font-medium">
+                            <i class="fas fa-envelope mr-1.5 opacity-70"></i>
+                            등록된 이메일로 재설정 링크를 보냅니다. 메일이 오지 않으면 <b>본인 인증</b> 탭을 이용해 주세요.
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">이메일 주소</label>
+                        <input type="email" id="forgotEmail" class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all placeholder-gray-400 text-sm" placeholder="example@email.com">
+                    </div>
+                    <button type="button" onclick="handleForgotSubmit()" id="forgotBtn" class="w-full py-4 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all flex items-center justify-center gap-2">
                         재설정 링크 발송
                     </button>
                 </div>
@@ -193,23 +221,74 @@ export const loginHtml = `
             }
         }
 
+        function setForgotTab(tab) {
+            var identity = document.getElementById('forgotPanelIdentity');
+            var email = document.getElementById('forgotPanelEmail');
+            var tabId = document.getElementById('forgotTabIdentity');
+            var tabEm = document.getElementById('forgotTabEmail');
+            if (tab === 'email') {
+                identity.classList.add('hidden');
+                email.classList.remove('hidden');
+                tabEm.className = 'py-2.5 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-sm';
+                tabId.className = 'py-2.5 rounded-lg text-xs font-bold transition text-slate-500';
+            } else {
+                email.classList.add('hidden');
+                identity.classList.remove('hidden');
+                tabId.className = 'py-2.5 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-sm';
+                tabEm.className = 'py-2.5 rounded-lg text-xs font-bold transition text-slate-500';
+            }
+        }
+
         function openForgotModal() { 
             const modal = document.getElementById('forgotModal');
             modal.classList.remove('hidden'); 
             modal.classList.add('flex');
-            setTimeout(() => {
-                modal.querySelector('div').classList.add('scale-100');
-                modal.querySelector('div').classList.remove('scale-95');
-            }, 10);
+            setForgotTab('identity');
+            var loginEmail = document.getElementById('email');
+            if (loginEmail && loginEmail.value) {
+                var fe = document.getElementById('forgotEmail');
+                var fie = document.getElementById('forgotIdEmail');
+                if (fe) fe.value = loginEmail.value;
+                if (fie) fie.value = loginEmail.value;
+            }
         }
         function closeForgotModal() { 
             const modal = document.getElementById('forgotModal');
-            modal.querySelector('div').classList.add('scale-95');
-            modal.querySelector('div').classList.remove('scale-100');
             setTimeout(() => {
                 modal.classList.add('hidden'); 
                 modal.classList.remove('flex');
-            }, 200);
+            }, 50);
+        }
+
+        async function handleIdentityReset() {
+            var email = document.getElementById('forgotIdEmail').value.trim();
+            var name = document.getElementById('forgotIdName').value.trim();
+            var phone = document.getElementById('forgotIdPhone').value.trim();
+            if (!email || !name || !phone) { alert('이메일, 이름, 연락처를 모두 입력해 주세요.'); return; }
+
+            var btn = document.getElementById('forgotIdentityBtn');
+            var originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 확인 중...';
+
+            try {
+                var res = await fetch('/api/auth/verify-identity-reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, name: name, phone: phone })
+                });
+                var result = await res.json();
+                if (result.success && result.data && result.data.reset_token) {
+                    location.href = '/reset-password?token=' + encodeURIComponent(result.data.reset_token);
+                    return;
+                }
+                alert(result.error || '본인 확인에 실패했습니다.');
+            } catch (e) {
+                alert('서버 연결 오류');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
 
         async function handleForgotSubmit() {
@@ -225,14 +304,17 @@ export const loginHtml = `
                 const res = await fetch('/api/auth/forgot-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify({ email: email })
                 });
                 const result = await res.json();
                 if (result.success) {
-                    alert('이메일이 발송되었습니다. 메일함(또는 스팸함)을 확인해 주세요.');
+                    alert(result.message || '이메일이 발송되었습니다. 메일함(또는 스팸함)을 확인해 주세요.');
                     closeForgotModal();
                 } else {
-                    alert('발송 실패: ' + result.error);
+                    alert((result.error || '발송에 실패했습니다.') + '\\n\\n본인 인증 탭에서 이름·연락처로 바로 재설정할 수 있습니다.');
+                    setForgotTab('identity');
+                    var fie = document.getElementById('forgotIdEmail');
+                    if (fie) fie.value = email;
                 }
             } catch (e) {
                 alert('서버 연결 오류');

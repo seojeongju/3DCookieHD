@@ -407,7 +407,7 @@ export const teacherDashboardHtml = `
                     if (coursesResult.success) {
                         dashAllCourses = coursesResult.data || [];
                         dashRunningCourses = dashAllCourses.filter(function(c) {
-                            return ['active', 'open', 'upcoming', 'recruiting'].includes(c.status || '');
+                            return ['active', 'open', 'upcoming', 'recruiting', 'in_progress'].includes(c.status || '');
                         });
                         dashCompletedCourses = dashAllCourses.filter(function(c) {
                             return ['completed', 'closed'].includes(c.status || '');
@@ -504,7 +504,7 @@ export const teacherDashboardHtml = `
             }
 
             list.innerHTML = courses.slice(0, 8).map(function(course) {
-                var isRunning = ['active', 'open', 'upcoming', 'recruiting'].includes(course.status || '');
+                var isRunning = ['active', 'open', 'upcoming', 'recruiting', 'in_progress'].includes(course.status || '');
                 var isCompleted = ['completed', 'closed'].includes(course.status || '');
 
                 var iconClass = 'fa-book-reader';
@@ -516,8 +516,15 @@ export const teacherDashboardHtml = `
 
                 var pingBg = 'bg-neutral-400', dotBg = 'bg-neutral-500';
                 var statusLabel = 'READY', statusTextClass = 'text-neutral-500';
-                if (isRunning) { pingBg = 'bg-emerald-400'; dotBg = 'bg-emerald-500'; statusLabel = 'RUNNING'; statusTextClass = 'text-emerald-500'; }
-                else if (isCompleted) { pingBg = 'bg-neutral-300'; dotBg = 'bg-neutral-400'; statusLabel = 'FINISHED'; statusTextClass = 'text-neutral-400'; }
+                if (course.status === 'active' || course.status === 'open' || course.status === 'in_progress') {
+                    pingBg = 'bg-emerald-400'; dotBg = 'bg-emerald-500'; statusLabel = '진행중'; statusTextClass = 'text-emerald-500';
+                } else if (course.status === 'upcoming' || course.status === 'recruiting') {
+                    pingBg = 'bg-sky-400'; dotBg = 'bg-sky-500'; statusLabel = '모집중'; statusTextClass = 'text-sky-500';
+                } else if (isCompleted) {
+                    pingBg = 'bg-neutral-300'; dotBg = 'bg-neutral-400'; statusLabel = '종료'; statusTextClass = 'text-neutral-400';
+                } else if (isRunning) {
+                    pingBg = 'bg-emerald-400'; dotBg = 'bg-emerald-500'; statusLabel = '진행중'; statusTextClass = 'text-emerald-500';
+                }
 
                 var safeTitle = (course.title || 'Untitled').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                 var safeCat = (course.category || 'General').replace(/'/g, "&#39;");

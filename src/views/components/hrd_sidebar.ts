@@ -1,3 +1,5 @@
+import { changePasswordModalHtml } from './change_password_modal';
+
 export type HrdSidebarOptions = { alwaysVisible?: boolean };
 
 export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
@@ -374,7 +376,10 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
                     <p id="sidebar-username" class="text-sm font-bold text-white truncate"></p>
                     <p id="sidebar-userrole" class="text-[10px] text-slate-500 font-medium uppercase tracking-tight truncate"></p>
                 </div>
-                <button id="logout-btn" onclick="typeof window.logout==='function'&&window.logout()" class="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300" title="로그아웃">
+                <button type="button" onclick="typeof window.openChangePasswordModal==='function'&&window.openChangePasswordModal()" class="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300" title="비밀번호 변경">
+                    <i class="fas fa-key"></i>
+                </button>
+                <button id="logout-btn" onclick="typeof window.logout==='function'&&window.logout()" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-all duration-300" title="로그아웃">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
@@ -407,5 +412,6 @@ export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
     box-shadow: inset 0 0 15px -10px rgba(59, 130, 246, 0.5);
 }
 </style>
+${changePasswordModalHtml()}
 `;
 };

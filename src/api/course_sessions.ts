@@ -9,6 +9,7 @@ import {
   sqlWhereEffectiveStatusEquals,
 } from '../utils/course_session_status';
 import { getCourseSessionTimetableHeaderByLmsCourseId } from '../lib/lmsCourseContext';
+import { ensureDedicatedLmsCourseForSession } from '../utils/sessionCourseResolution';
 
 const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
 
@@ -1395,7 +1396,22 @@ app.post('/:id/copy', authMiddleware, requireAdmin, async (c) => {
       }
     }
 
-    return c.json({ success: true, message: '복사되었습니다', new_session_id: newSessionId });
+    // 원본 lms_course_id / 훈련일지를 공유하지 않도록 회차 전용 LMS 과정을 즉시 생성
+    let lmsCourseId: number | null = null;
+    if (newSessionId != null) {
+      try {
+        lmsCourseId = await ensureDedicatedLmsCourseForSession(DB, Number(newSessionId));
+      } catch (linkErr) {
+        console.error('course-sessions copy ensure dedicated LMS:', linkErr);
+      }
+    }
+
+    return c.json({
+      success: true,
+      message: '복사되었습니다',
+      new_session_id: newSessionId,
+      lms_course_id: lmsCourseId,
+    });
   } catch (e) {
     const errMsg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e);
     console.error('course-sessions copy:', e);

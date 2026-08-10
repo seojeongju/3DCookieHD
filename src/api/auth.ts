@@ -8,6 +8,12 @@ import { successResponse, errorResponse, createdResponse } from '../utils/respon
 import { getOne, execute } from '../utils/database';
 import { generateToken, hashPassword, verifyPassword } from '../utils/jwt';
 import { authMiddleware } from '../middleware/auth';
+import {
+  normalizePersonName,
+  phonesMatch,
+  resetTokenExpiresInOneHour,
+  toSqliteUtcDatetime,
+} from '../utils/password_reset';
 
 const auth = new Hono<{ Bindings: Bindings, Variables: { user: JWTPayload } }>();
 
@@ -304,8 +310,8 @@ auth.post('/change-password', authMiddleware, async (c) => {
       return errorResponse(c, '현재 비밀번호와 새 비밀번호를 입력해주세요', 400);
     }
 
-    if (new_password.length < 6) {
-      return errorResponse(c, '새 비밀번호는 최소 6자 이상이어야 합니다', 400);
+    if (new_password.length < 8) {
+      return errorResponse(c, '새 비밀번호는 최소 8자 이상이어야 합니다', 400);
     }
 
     // 현재 사용자 정보 조회
@@ -349,31 +355,89 @@ auth.post('/forgot-password', async (c: any) => {
   const db = c.env.DB;
 
   try {
-    const user = await getOne<any>(db, 'SELECT id, name FROM users WHERE email = ?', [email]);
-    if (!user) {
-      // 보안을 위해 사용자가 없어도 성공 메시지를 보낼 수도 있지만, 편의를 위해 에러 반환
-      return errorResponse(c, '등록되지 않은 이메일입니다', 404);
+    const emailNorm = String(email || '').trim().toLowerCase();
+    if (!emailNorm) {
+      return errorResponse(c, '이메일을 입력해 주세요.', 400);
     }
 
-    // 보안 토큰 생성 (UUID 느낌의 무작위 문자열)
-    const token = crypto.randomUUID();
-    const expires = new Date(Date.now() + 3600000).toISOString(); // 1시간 후 만료
+    const user = await getOne<any>(db, 'SELECT id, name FROM users WHERE lower(email) = ?', [emailNorm]);
+    if (!user) {
+      // 계정 존재 여부 노출 최소화
+      return successResponse(c, { method: 'email' }, '등록된 계정이 있으면 재설정 안내 메일이 발송됩니다.');
+    }
 
-    // DB에 토큰 저장
+    const token = crypto.randomUUID();
+    const expires = resetTokenExpiresInOneHour();
+
     await execute(db, 'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?', [token, expires, user.id]);
 
-    // 이메일 발송
     const { sendResetPasswordEmail } = await import('../utils/email');
-    const emailSent = await sendResetPasswordEmail(c.env, email, token, user.name);
+    const emailResult = await sendResetPasswordEmail(c.env, emailNorm, token, user.name || '회원');
 
-    if (emailSent) {
-      return successResponse(c, null, '비밀번호 재설정 이메일이 발송되었습니다.');
-    } else {
-      return errorResponse(c, '이메일 발송에 실패했습니다. 관리자에게 문의하세요.', 500);
+    if (emailResult.ok) {
+      return successResponse(c, { method: 'email' }, '비밀번호 재설정 이메일이 발송되었습니다. 메일함(스팸함 포함)을 확인해 주세요.');
     }
+
+    return errorResponse(
+      c,
+      emailResult.error || '이메일 발송에 실패했습니다. 본인 인증으로 재설정해 주세요.',
+      503
+    );
   } catch (error) {
     console.error('Forgot password error:', error);
     return errorResponse(c, '처리 중 오류가 발생했습니다.');
+  }
+});
+
+/**
+ * POST /api/auth/verify-identity-reset
+ * 이메일 + 이름 + 연락처 본인확인 후 재설정 토큰 발급 (학생·강사·관리자 공통)
+ */
+auth.post('/verify-identity-reset', async (c: any) => {
+  const body = await c.req.json().catch(() => ({}));
+  const emailNorm = String(body.email || '').trim().toLowerCase();
+  const nameNorm = normalizePersonName(body.name);
+  const phoneRaw = String(body.phone || '').trim();
+
+  if (!emailNorm || !nameNorm || !phoneRaw) {
+    return errorResponse(c, '이메일, 이름, 연락처를 모두 입력해 주세요.', 400);
+  }
+
+  try {
+    const user = await getOne<any>(
+      c.env.DB,
+      'SELECT id, name, phone, email, role FROM users WHERE lower(email) = ?',
+      [emailNorm]
+    );
+
+    const genericFail = () =>
+      errorResponse(c, '입력하신 정보가 일치하지 않습니다. 등록된 이메일·이름·연락처를 확인해 주세요.', 400);
+
+    if (!user) return genericFail();
+
+    if (normalizePersonName(user.name) !== nameNorm) return genericFail();
+    if (!phonesMatch(user.phone, phoneRaw)) return genericFail();
+
+    const token = crypto.randomUUID();
+    const expires = resetTokenExpiresInOneHour();
+    await execute(
+      c.env.DB,
+      'UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?',
+      [token, expires, user.id]
+    );
+
+    return successResponse(
+      c,
+      {
+        reset_token: token,
+        expires_at: expires,
+        role: user.role || null,
+      },
+      '본인 확인이 완료되었습니다. 새 비밀번호를 설정해 주세요.'
+    );
+  } catch (error) {
+    console.error('verify-identity-reset error:', error);
+    return errorResponse(c, '본인 확인 처리 중 오류가 발생했습니다.');
   }
 });
 
@@ -383,22 +447,28 @@ auth.post('/reset-password', async (c: any) => {
   const db = c.env.DB;
 
   try {
-    // 토큰 유효성 및 만료 확인
-    const user = await getOne<any>(db,
-      'SELECT id FROM users WHERE reset_token = ? AND reset_expires > datetime("now")',
-      [token]
+    if (!token || !new_password) {
+      return errorResponse(c, '토큰과 새 비밀번호가 필요합니다.', 400);
+    }
+    if (String(new_password).length < 8) {
+      return errorResponse(c, '새 비밀번호는 최소 8자 이상이어야 합니다.', 400);
+    }
+
+    const now = toSqliteUtcDatetime();
+    const user = await getOne<any>(
+      db,
+      'SELECT id FROM users WHERE reset_token = ? AND reset_expires IS NOT NULL AND reset_expires > ?',
+      [token, now]
     );
 
     if (!user) {
-      return errorResponse(c, '유효하지 않거나 만료된 토큰입니다.', 400);
+      return errorResponse(c, '유효하지 않거나 만료된 토큰입니다. 비밀번호 찾기를 다시 진행해 주세요.', 400);
     }
 
-    // 새 비밀번호 해싱
-    const { hashPassword } = await import('../utils/jwt');
     const hashedPassword = await hashPassword(new_password);
 
-    // 비밀번호 업데이트 및 토큰 초기화
-    await execute(db,
+    await execute(
+      db,
       'UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL, is_initial_login = 0 WHERE id = ?',
       [hashedPassword, user.id]
     );

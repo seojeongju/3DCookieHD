@@ -74,8 +74,68 @@ const TRAINING_LOG_SESSION_SELECT = `
 `;
 
 /**
+ * 회차 전용 LMS courses.id 보장.
+ * - 다른 회차와 lms_course_id를 공유하지 않음
+ * - 없으면 courses 행을 만들고 course_sessions.lms_course_id에 연결
+ */
+export async function ensureDedicatedLmsCourseForSession(
+  DB: D1Database,
+  sessionId: number
+): Promise<number | null> {
+  const sid = Number(sessionId);
+  if (!Number.isFinite(sid) || sid < 1) return null;
+
+  const session: any = await DB.prepare(`
+    SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
+    FROM course_sessions s
+    JOIN approved_courses a ON s.approved_course_id = a.id
+    WHERE s.id = ?
+  `).bind(sid).first();
+  if (!session) return null;
+
+  const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+
+  if (session.lms_course_id != null && Number(session.lms_course_id) > 0) {
+    const lmsId = Number(session.lms_course_id);
+    const other = await DB.prepare(
+      'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
+    ).bind(lmsId, sid).first();
+    const course = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(lmsId).first();
+    if (course && !other) return lmsId;
+    if (other) {
+      try {
+        await DB.prepare('UPDATE course_sessions SET lms_course_id = NULL WHERE id = ?').bind(sid).run();
+      } catch (_) { /* ignore */ }
+    }
+  }
+
+  const byTitle: any = await DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(expectedTitle).first();
+  if (byTitle?.id != null) {
+    const used = await DB.prepare(
+      'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
+    ).bind(byTitle.id, sid).first();
+    if (!used) {
+      try {
+        await DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(byTitle.id, sid).run();
+      } catch (_) { /* ignore */ }
+      return Number(byTitle.id);
+    }
+  }
+
+  const insert = await DB.prepare(
+    `INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')`
+  ).bind(expectedTitle).run();
+  const newId = insert.meta?.last_row_id;
+  if (newId == null) return null;
+  try {
+    await DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(Number(newId), sid).run();
+  } catch (_) { /* ignore */ }
+  return Number(newId);
+}
+
+/**
  * LMS courses.id / session_id / course_sessions.id 혼동 방지
- * - URL path의 courses.id(예: 25)와 course_sessions.id(예: 25)가 겹치면 lms_course_id 연결 회차를 우선
+ * - 명시 session_id가 있으면 항상 해당 회차를 최우선
  */
 export async function resolveTrainingLogSession(
     DB: D1Database,
@@ -89,26 +149,21 @@ export async function resolveTrainingLogSession(
         ? parseInt(String(sessionIdParam), 10)
         : NaN;
 
-    const inCourses = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
-
-    if (inCourses) {
-        if (Number.isFinite(explicitSid) && explicitSid >= 1) {
-            const linked = await DB.prepare(
-                `${TRAINING_LOG_SESSION_SELECT} WHERE s.id = ? AND s.lms_course_id = ?`
-            ).bind(explicitSid, rawId).first() as TrainingLogSessionRow | null;
-            if (linked) return linked;
-        }
-        const byLms = await DB.prepare(
-            `${TRAINING_LOG_SESSION_SELECT} WHERE s.lms_course_id = ? ORDER BY COALESCE(s.session_number, 999999) DESC, s.id DESC LIMIT 1`
-        ).bind(rawId).first() as TrainingLogSessionRow | null;
-        if (byLms) return byLms;
-    }
-
+    // 1) 명시 회차 PK 최우선 (복사본 UI가 원본 LMS path를 쓰더라도 올바른 회차로 고정)
     if (Number.isFinite(explicitSid) && explicitSid >= 1) {
         const byExplicit = await DB.prepare(
             `${TRAINING_LOG_SESSION_SELECT} WHERE s.id = ?`
         ).bind(explicitSid).first() as TrainingLogSessionRow | null;
         if (byExplicit) return byExplicit;
+    }
+
+    const inCourses = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+
+    if (inCourses) {
+        const byLms = await DB.prepare(
+            `${TRAINING_LOG_SESSION_SELECT} WHERE s.lms_course_id = ? ORDER BY COALESCE(s.session_number, 999999) DESC, s.id DESC LIMIT 1`
+        ).bind(rawId).first() as TrainingLogSessionRow | null;
+        if (byLms) return byLms;
     }
 
     const bySessionPk = await DB.prepare(

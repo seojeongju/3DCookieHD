@@ -1294,8 +1294,32 @@ app.put('/:id', authMiddleware, async (c) => {
     let finalContent: string = content ?? post.content;
     const imagesJsonForUpdate = images != null ? (Array.isArray(images) ? JSON.stringify(images) : (typeof images === 'string' ? images.trim() || '[]' : '[]')) : (post.images ?? '[]');
 
+    let videosJsonForUpdate: string;
+    try {
+      if (videos == null) {
+        videosJsonForUpdate = (post as any).videos ?? '[]';
+        if (typeof videosJsonForUpdate !== 'string') {
+          videosJsonForUpdate = Array.isArray(videosJsonForUpdate)
+            ? JSON.stringify(videosJsonForUpdate)
+            : '[]';
+        }
+      } else if (Array.isArray(videos)) {
+        videosJsonForUpdate = JSON.stringify(videos);
+      } else if (typeof videos === 'string') {
+        const t = videos.trim();
+        videosJsonForUpdate = t === '' || t === '[]' ? '[]' : t;
+      } else {
+        videosJsonForUpdate = '[]';
+      }
+    } catch {
+      videosJsonForUpdate = '[]';
+    }
+
     if (imagesJsonForUpdate.length > CONTENT_SIZE_LIMIT) {
       return c.json({ success: false, error: '첨부 이미지 정보가 너무 많습니다. 이미지 수를 줄여 주세요.' }, 400);
+    }
+    if (videosJsonForUpdate.length > CONTENT_SIZE_LIMIT) {
+      return c.json({ success: false, error: '첨부 동영상 정보가 너무 많습니다. 동영상 수를 줄여 주세요.' }, 400);
     }
 
     if (content && content.length > CONTENT_SIZE_LIMIT) {

@@ -13,8 +13,24 @@ import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
 import { getSessionTrainingDates, normalizeTrainingDate } from '../utils/session_training_dates';
 import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { getEffectiveSessionStatus } from '../utils/course_session_status';
 
 const courses = new Hono<{ Bindings: Bindings }>();
+
+/** 강사 UI용: 유효 상태 → courses 목록 status 값 */
+function toTeacherCourseStatus(effective: string): string {
+  const map: Record<string, string> = {
+    recruiting: 'upcoming',
+    in_progress: 'active',
+    always_open: 'active',
+    completed: 'completed',
+    closed: 'completed',
+  };
+  return map[effective] || effective || 'active';
+}
+
+const TEACHER_RUNNING_STATUSES = ['active', 'open', 'upcoming', 'recruiting', 'in_progress'];
+const TEACHER_COMPLETED_STATUSES = ['completed', 'closed'];
 
 /** "HH:MM" 또는 "HH:MM:SS"를 자정 기준 분으로 변환 (시간대 무관) */
 function timeToMinutesSinceMidnight(s: string | null | undefined): number | null {
@@ -91,7 +107,7 @@ courses.get('/', async (c) => {
 
     if (filter.status && !isTeacher) {
       if (filter.status === 'running') {
-        conditions.push("c.status IN ('active', 'open', 'upcoming', 'recruiting')");
+        conditions.push("c.status IN ('active', 'open', 'upcoming', 'recruiting', 'in_progress')");
       } else if (filter.status === 'completed') {
         conditions.push("c.status IN ('completed', 'closed')");
       } else {
@@ -187,25 +203,17 @@ courses.get('/', async (c) => {
         }
       }
 
-      const statusMap: Record<string, string> = {
-        recruiting: 'upcoming',
-        in_progress: 'active',
-        always_open: 'active',
-        completed: 'completed',
-        closed: 'completed'
-      };
-
-      // KST 기준 오늘 날짜 문자열 (YYYY-MM-DD)
-      const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
       const hrdList: any[] = [];
       for (const r of hrdRows.results || []) {
-        let normStatus = statusMap[(r as any).session_status] || (r as any).session_status || 'active';
+        const effective = getEffectiveSessionStatus({
+          status: (r as any).session_status,
+          training_start_date: (r as any).training_start_date,
+          training_end_date: (r as any).training_end_date,
+        });
+        const normStatus = toTeacherCourseStatus(effective);
 
         const endDate = ((r as any).training_end_date || '').slice(0, 10);
-        if (endDate && endDate < nowKst) {
-          normStatus = 'completed';
-        }
+        const startDate = ((r as any).training_start_date || '').slice(0, 10) || null;
 
         const sessionId = Number((r as any).id);
         let lmsCourseId =
@@ -228,7 +236,7 @@ courses.get('/', async (c) => {
           title,
           category: (r as any).category_name || '국비지원',
           status: normStatus,
-          start_date: (r as any).training_start_date || null,
+          start_date: startDate,
           end_date: endDate || null,
           thumbnail_url: null,
           current_students: enrollmentCounts.get(sessionId) ?? 0,
@@ -240,17 +248,14 @@ courses.get('/', async (c) => {
         });
       }
 
-      // legacy courses도 end_date 기준 자동 상태 보정 (end_date가 오늘 이전이면 completed)
+      // legacy courses도 개강·종료일 기준 유효 상태 적용
       const legacyNormalized = legacyList.map((course: any) => {
-        const courseEndDate = (course.end_date || '').slice(0, 10);
-        let courseStatus = course.status || '';
-        if (courseEndDate && courseEndDate < nowKst) {
-          // 이미 completed/closed 외 상태이고 종료일이 지난 경우 completed로 보정
-          if (!['completed', 'closed'].includes(courseStatus)) {
-            courseStatus = 'completed';
-          }
-        }
-        return { ...course, status: courseStatus, is_hrd: false };
+        const effective = getEffectiveSessionStatus({
+          status: course.status || 'recruiting',
+          training_start_date: course.start_date,
+          training_end_date: course.end_date,
+        });
+        return { ...course, status: toTeacherCourseStatus(effective), is_hrd: false };
       });
 
       const hrdLmsIds = new Set(
@@ -266,12 +271,12 @@ courses.get('/', async (c) => {
       }
       if (filter.status) {
         if (filter.status === 'running') {
-          merged = merged.filter((c: any) => 
-            ['active', 'open', 'upcoming', 'recruiting'].includes(c.status || '')
+          merged = merged.filter((c: any) =>
+            TEACHER_RUNNING_STATUSES.includes(c.status || '')
           );
         } else if (filter.status === 'completed') {
-          merged = merged.filter((c: any) => 
-            ['completed', 'closed'].includes(c.status || '')
+          merged = merged.filter((c: any) =>
+            TEACHER_COMPLETED_STATUSES.includes(c.status || '')
           );
         } else {
           merged = merged.filter((c: any) => (c.status || '') === filter.status);
@@ -368,18 +373,9 @@ courses.get('/:id', async (c) => {
           sessionIdQ != null && String(sessionIdQ).trim() !== ''
             ? parseInt(String(sessionIdQ), 10)
             : NaN;
+        // 명시 session_id가 있으면 항상 해당 회차 우선 (경로 LMS id와 불일치해도 원본 회차로 폴백하지 않음)
         if (Number.isFinite(explicitSid) && explicitSid >= 1) {
-          if (isLmsCourse) {
-            session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ? AND s.lms_course_id = ?`)
-              .bind(explicitSid, rawId).first<any>();
-            if (!session) {
-              session = await DB.prepare(
-                `${selectSessionJoin} WHERE s.lms_course_id = ? ORDER BY COALESCE(s.session_number, 999999) DESC, s.id DESC LIMIT 1`
-              ).bind(rawId).first<any>();
-            }
-          } else {
-            session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(explicitSid).first<any>();
-          }
+          session = await DB.prepare(`${selectSessionJoin} WHERE s.id = ?`).bind(explicitSid).first<any>();
         }
 
         // courses.id(LMS)와 course_sessions.id가 겹치면 lms_course_id 연결 회차를 session PK 매칭보다 우선
