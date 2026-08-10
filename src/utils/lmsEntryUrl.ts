@@ -23,13 +23,15 @@ export function buildLmsEntryUrl(
     const lmsId =
       course.lms_course_id != null && Number(course.lms_course_id) > 0
         ? Number(course.lms_course_id)
-        : null;
+        : course.id != null && Number(course.id) > 0
+          ? Number(course.id)
+          : null;
     const sid =
       course.session_id != null && Number(course.session_id) > 0
         ? Number(course.session_id)
-        : Number(course.id);
+        : null;
     // 회차 PK를 LMS path로 쓰면 courses.id와 충돌해 원본 회차 일지가 열릴 수 있음
-    if (!lmsId || !Number.isFinite(sid) || sid < 1) {
+    if (!lmsId || !sid || !Number.isFinite(sid) || sid < 1) {
       return '#';
     }
     return `${base}${lmsId}/lms${sub}?type=hrd&session_id=${encodeURIComponent(String(sid))}`;
@@ -146,11 +148,12 @@ function buildLmsEntryUrl(course, subPath) {
   var sub = subPath ? ('/' + String(subPath).replace(/^\\//, '')) : '';
   if (course && course.is_hrd) {
     var lmsId = (course.lms_course_id != null && Number(course.lms_course_id) > 0)
-      ? Number(course.lms_course_id) : null;
+      ? Number(course.lms_course_id)
+      : (course.id != null && Number(course.id) > 0 ? Number(course.id) : null);
     var sid = (course.session_id != null && Number(course.session_id) > 0)
-      ? Number(course.session_id) : Number(course.id);
+      ? Number(course.session_id) : null;
     if (!lmsId || !Number.isFinite(lmsId) || lmsId < 1) return '#';
-    if (!Number.isFinite(sid) || sid < 1) return '#';
+    if (!sid || !Number.isFinite(sid) || sid < 1) return '#';
     return '/' + role + '/courses/' + lmsId + '/lms' + sub + '?type=hrd&session_id=' + encodeURIComponent(String(sid));
   }
   var cid = Number(course && course.id);

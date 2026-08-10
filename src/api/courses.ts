@@ -77,6 +77,7 @@ async function enrichCoursesWithLinkedSessionStatus(db: D1Database, courseRows: 
         start_date: linked.training_start_date || course.start_date || null,
         end_date: linked.training_end_date || course.end_date || null,
         session_id: linked.id,
+        lms_course_id: Number(course.id),
         is_hrd: true,
       };
     }
