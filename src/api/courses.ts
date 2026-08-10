@@ -22,15 +22,82 @@ function toTeacherCourseStatus(effective: string): string {
   const map: Record<string, string> = {
     recruiting: 'upcoming',
     in_progress: 'active',
-    always_open: 'active',
+    always_open: 'always_open',
     completed: 'completed',
     closed: 'completed',
   };
-  return map[effective] || effective || 'active';
+  return map[effective] || effective || 'upcoming';
 }
 
-const TEACHER_RUNNING_STATUSES = ['active', 'open', 'upcoming', 'recruiting', 'in_progress'];
+const TEACHER_RUNNING_STATUSES = ['active', 'open', 'upcoming', 'recruiting', 'in_progress', 'always_open'];
 const TEACHER_COMPLETED_STATUSES = ['completed', 'closed'];
+
+/**
+ * LMS courses 행을 course_sessions(개강·종료일) 기준 유효 상태로 보정.
+ * (LMS 과정이 status=active + start/end null 인 경우가 많아 미개강도 진행중으로 보이던 문제 방지)
+ */
+async function enrichCoursesWithLinkedSessionStatus(db: D1Database, courseRows: any[]): Promise<any[]> {
+  if (!courseRows.length) return courseRows;
+  const ids = [...new Set(courseRows.map((c) => Number(c.id)).filter((id) => Number.isFinite(id) && id > 0))];
+  const sessionByLms = new Map<number, any>();
+
+  for (let i = 0; i < ids.length; i += 40) {
+    const chunk = ids.slice(i, i + 40);
+    if (!chunk.length) continue;
+    const ph = chunk.map(() => '?').join(',');
+    const { results } = await db
+      .prepare(
+        `SELECT id, lms_course_id, status, training_start_date, training_end_date
+         FROM course_sessions
+         WHERE lms_course_id IN (${ph})`
+      )
+      .bind(...chunk)
+      .all();
+    for (const r of (results || []) as any[]) {
+      const lid = Number(r.lms_course_id);
+      if (!Number.isFinite(lid) || lid <= 0) continue;
+      const prev = sessionByLms.get(lid);
+      const rStart = String(r.training_start_date || '');
+      const pStart = String(prev?.training_start_date || '');
+      if (!prev || rStart > pStart) sessionByLms.set(lid, r);
+    }
+  }
+
+  return courseRows.map((course) => {
+    const linked = sessionByLms.get(Number(course.id));
+    if (linked) {
+      const effective = getEffectiveSessionStatus({
+        status: linked.status,
+        training_start_date: linked.training_start_date,
+        training_end_date: linked.training_end_date,
+      });
+      return {
+        ...course,
+        status: toTeacherCourseStatus(effective),
+        start_date: linked.training_start_date || course.start_date || null,
+        end_date: linked.training_end_date || course.end_date || null,
+        session_id: linked.id,
+        is_hrd: true,
+      };
+    }
+
+    if (course.start_date || course.end_date) {
+      const effective = getEffectiveSessionStatus({
+        status: course.status || 'recruiting',
+        training_start_date: course.start_date,
+        training_end_date: course.end_date,
+      });
+      return { ...course, status: toTeacherCourseStatus(effective) };
+    }
+
+    // 날짜 없는 active/open/in_progress → 진행중으로 오인하지 않도록 모집(예정) 처리
+    const st = String(course.status || '').toLowerCase();
+    if (st === 'active' || st === 'open' || st === 'in_progress') {
+      return { ...course, status: 'upcoming' };
+    }
+    return course;
+  });
+}
 
 /** "HH:MM" 또는 "HH:MM:SS"를 자정 기준 분으로 변환 (시간대 무관) */
 function timeToMinutesSinceMidnight(s: string | null | undefined): number | null {
@@ -81,6 +148,7 @@ courses.get('/', async (c) => {
     const params: any[] = [];
 
     let isTeacher = false;
+    let isAdmin = false;
     let teacherId: number | null = null;
 
     // 역할 기반 필터링 (강사는 본인 과정만)
@@ -94,6 +162,8 @@ courses.get('/', async (c) => {
           teacherId = payload.userId;
           conditions.push('c.teacher_id = ?');
           params.push(payload.userId);
+        } else if (payload && payload.role === 'admin') {
+          isAdmin = true;
         }
       } catch (e) {
         // 토큰 오류 무시 (비로그인 처리)
@@ -105,7 +175,8 @@ courses.get('/', async (c) => {
       params.push(filter.category);
     }
 
-    if (filter.status && !isTeacher) {
+    // 관리자·강사는 개강일 기준 유효 상태 보정 후 필터 (DB status만으로는 미개강이 진행중으로 잡힘)
+    if (filter.status && !isTeacher && !isAdmin) {
       if (filter.status === 'running') {
         conditions.push("c.status IN ('active', 'open', 'upcoming', 'recruiting', 'in_progress')");
       } else if (filter.status === 'completed') {
@@ -204,6 +275,33 @@ courses.get('/', async (c) => {
       }
 
       const hrdList: any[] = [];
+      const lmsMetaById = new Map<number, { title: string | null; max_students: number }>();
+      const lmsIdsToFetch = [
+        ...new Set(
+          (hrdRows.results || [])
+            .map((r: any) => {
+              const id = r.lms_course_id != null ? Number(r.lms_course_id) : 0;
+              return id > 0 ? id : 0;
+            })
+            .filter((id: number) => id > 0)
+        ),
+      ];
+      for (let i = 0; i < lmsIdsToFetch.length; i += 40) {
+        const chunk = lmsIdsToFetch.slice(i, i + 40);
+        const ph = chunk.map(() => '?').join(',');
+        const { results } = await c.env.DB.prepare(
+          `SELECT id, title, max_students FROM courses WHERE id IN (${ph})`
+        )
+          .bind(...chunk)
+          .all();
+        for (const row of (results || []) as any[]) {
+          lmsMetaById.set(Number(row.id), {
+            title: row.title || null,
+            max_students: Number(row.max_students) || 0,
+          });
+        }
+      }
+
       for (const r of hrdRows.results || []) {
         const effective = getEffectiveSessionStatus({
           status: (r as any).session_status,
@@ -223,8 +321,22 @@ courses.get('/', async (c) => {
         if (!lmsCourseId) {
           lmsCourseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
         }
+        if (lmsCourseId && !lmsMetaById.has(lmsCourseId)) {
+          const meta = await c.env.DB.prepare(
+            'SELECT id, title, max_students FROM courses WHERE id = ?'
+          )
+            .bind(lmsCourseId)
+            .first<{ id: number; title: string | null; max_students: number }>();
+          if (meta) {
+            lmsMetaById.set(lmsCourseId, {
+              title: meta.title || null,
+              max_students: Number(meta.max_students) || 0,
+            });
+          }
+        }
+        const lmsMeta = lmsCourseId ? lmsMetaById.get(lmsCourseId) : null;
 
-        const title =
+        const builtTitle =
           ((r as any).course_name || '') +
           ((r as any).session_number != null ? ' (' + (r as any).session_number + '회차)' : '') +
           ((r as any).session_name ? ' - ' + (r as any).session_name : '');
@@ -233,14 +345,14 @@ courses.get('/', async (c) => {
           id: lmsCourseId ?? sessionId,
           session_id: sessionId,
           lms_course_id: lmsCourseId,
-          title,
+          title: lmsMeta?.title || builtTitle,
           category: (r as any).category_name || '국비지원',
           status: normStatus,
           start_date: startDate,
           end_date: endDate || null,
           thumbnail_url: null,
           current_students: enrollmentCounts.get(sessionId) ?? 0,
-          max_students: 0,
+          max_students: lmsMeta?.max_students ?? 0,
           teacher_name: null,
           campus_name: null,
           campus_region: null,
@@ -248,15 +360,8 @@ courses.get('/', async (c) => {
         });
       }
 
-      // legacy courses도 개강·종료일 기준 유효 상태 적용
-      const legacyNormalized = legacyList.map((course: any) => {
-        const effective = getEffectiveSessionStatus({
-          status: course.status || 'recruiting',
-          training_start_date: course.start_date,
-          training_end_date: course.end_date,
-        });
-        return { ...course, status: toTeacherCourseStatus(effective), is_hrd: false };
-      });
+      // legacy courses도 개강·종료일(연결 회차 포함) 기준 유효 상태 적용
+      const legacyNormalized = await enrichCoursesWithLinkedSessionStatus(c.env.DB, legacyList);
 
       const hrdLmsIds = new Set(
         hrdList
@@ -304,7 +409,39 @@ courses.get('/', async (c) => {
       ${whereClause}
     `;
     const countResult = await getOne<{ total: number }>(c.env.DB, countQuery, params);
-    const total = countResult?.total || 0;
+    const totalRaw = countResult?.total || 0;
+
+    // 관리자: 회차 개강·종료일 기준 상태 보정 후 필터·페이지네이션 (미개강 active → 진행중 오표시 방지)
+    if (isAdmin) {
+      const adminQuery = `
+        SELECT 
+          c.*,
+          camp.name as campus_name,
+          camp.region as campus_region,
+          u.name as teacher_name
+        FROM courses c
+        LEFT JOIN campuses camp ON c.campus_id = camp.id
+        LEFT JOIN users u ON c.teacher_id = u.id
+        ${whereClause}
+        ORDER BY ${orderBy}
+      `;
+      const adminList = await getAll<any>(c.env.DB, adminQuery, params);
+      let enriched = await enrichCoursesWithLinkedSessionStatus(c.env.DB, adminList);
+      if (filter.status === 'running') {
+        enriched = enriched.filter((course: any) =>
+          TEACHER_RUNNING_STATUSES.includes(course.status || '')
+        );
+      } else if (filter.status === 'completed') {
+        enriched = enriched.filter((course: any) =>
+          TEACHER_COMPLETED_STATUSES.includes(course.status || '')
+        );
+      } else if (filter.status) {
+        enriched = enriched.filter((course: any) => (course.status || '') === filter.status);
+      }
+      const total = enriched.length;
+      const pageRows = enriched.slice(offset, offset + limit);
+      return paginatedResponse(c, pageRows, filter.page!, filter.limit!, total);
+    }
 
     const coursesQuery = `
       SELECT 
@@ -325,7 +462,7 @@ courses.get('/', async (c) => {
       [...params, limit, offset]
     );
 
-    return paginatedResponse(c, courseList, filter.page!, filter.limit!, total);
+    return paginatedResponse(c, courseList, filter.page!, filter.limit!, totalRaw);
 
   } catch (error) {
     console.error('Get courses error:', error);

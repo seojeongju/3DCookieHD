@@ -363,6 +363,31 @@ export const teacherDashboardHtml = `
             if (dateEl) dateEl.textContent = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
         }
 
+        function todayKST() {
+            try {
+                return new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Seoul',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).format(new Date());
+            } catch (e) {
+                return new Date().toISOString().slice(0, 10);
+            }
+        }
+
+        function resolveCourseStatus(course) {
+            var start = (course.start_date || '').toString().slice(0, 10);
+            var end = (course.end_date || '').toString().slice(0, 10);
+            var today = todayKST();
+            if (start && today < start) return 'upcoming';
+            if (end && today > end) return 'completed';
+            if (start && end && today >= start && today <= end) return 'active';
+            if (start && !end && today >= start) return 'active';
+            if (!start && end && today <= end) return 'active';
+            return course.status || '';
+        }
+
         function switchDashCourseTab(tab) {
             dashActiveCourseTab = tab;
             ['running', 'completed'].forEach(function(t) {
@@ -407,10 +432,10 @@ export const teacherDashboardHtml = `
                     if (coursesResult.success) {
                         dashAllCourses = coursesResult.data || [];
                         dashRunningCourses = dashAllCourses.filter(function(c) {
-                            return ['active', 'open', 'upcoming', 'recruiting', 'in_progress'].includes(c.status || '');
+                            return ['active', 'open', 'upcoming', 'recruiting', 'in_progress', 'always_open'].includes(resolveCourseStatus(c) || c.status || '');
                         });
                         dashCompletedCourses = dashAllCourses.filter(function(c) {
-                            return ['completed', 'closed'].includes(c.status || '');
+                            return ['completed', 'closed'].includes(resolveCourseStatus(c) || c.status || '');
                         });
 
                         var runCount = dashRunningCourses.length;
@@ -504,8 +529,9 @@ export const teacherDashboardHtml = `
             }
 
             list.innerHTML = courses.slice(0, 8).map(function(course) {
-                var isRunning = ['active', 'open', 'upcoming', 'recruiting', 'in_progress'].includes(course.status || '');
-                var isCompleted = ['completed', 'closed'].includes(course.status || '');
+                var status = resolveCourseStatus(course);
+                var isRunning = ['active', 'open', 'upcoming', 'recruiting', 'in_progress', 'always_open'].includes(status || '');
+                var isCompleted = ['completed', 'closed'].includes(status || '');
 
                 var iconClass = 'fa-book-reader';
                 var cat = (course.category || '');
@@ -516,14 +542,16 @@ export const teacherDashboardHtml = `
 
                 var pingBg = 'bg-neutral-400', dotBg = 'bg-neutral-500';
                 var statusLabel = 'READY', statusTextClass = 'text-neutral-500';
-                if (course.status === 'active' || course.status === 'open' || course.status === 'in_progress') {
+                if (status === 'active' || status === 'open' || status === 'in_progress') {
                     pingBg = 'bg-emerald-400'; dotBg = 'bg-emerald-500'; statusLabel = '진행중'; statusTextClass = 'text-emerald-500';
-                } else if (course.status === 'upcoming' || course.status === 'recruiting') {
+                } else if (status === 'upcoming' || status === 'recruiting') {
                     pingBg = 'bg-sky-400'; dotBg = 'bg-sky-500'; statusLabel = '모집중'; statusTextClass = 'text-sky-500';
+                } else if (status === 'always_open') {
+                    pingBg = 'bg-emerald-400'; dotBg = 'bg-emerald-500'; statusLabel = '상시모집'; statusTextClass = 'text-emerald-500';
                 } else if (isCompleted) {
                     pingBg = 'bg-neutral-300'; dotBg = 'bg-neutral-400'; statusLabel = '종료'; statusTextClass = 'text-neutral-400';
                 } else if (isRunning) {
-                    pingBg = 'bg-emerald-400'; dotBg = 'bg-emerald-500'; statusLabel = '진행중'; statusTextClass = 'text-emerald-500';
+                    pingBg = 'bg-sky-400'; dotBg = 'bg-sky-500'; statusLabel = '모집중'; statusTextClass = 'text-sky-500';
                 }
 
                 var safeTitle = (course.title || 'Untitled').replace(/'/g, "&#39;").replace(/"/g, "&quot;");

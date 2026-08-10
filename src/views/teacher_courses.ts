@@ -422,10 +422,10 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 if (result.success) {
                     const all = result.data || [];
                     const activeCount = all.filter(c =>
-                        ['active', 'open', 'upcoming', 'recruiting', 'in_progress'].includes(c.status || '')
+                        ['active', 'open', 'upcoming', 'recruiting', 'in_progress', 'always_open'].includes(resolveCourseStatus(c) || c.status || '')
                     ).length;
                     const completedCount = all.filter(c =>
-                        ['completed', 'closed'].includes(c.status || '')
+                        ['completed', 'closed'].includes(resolveCourseStatus(c) || c.status || '')
                     ).length;
                     const totalStudents = all.reduce((acc, c) => acc + (c.current_students || 0), 0);
 
@@ -486,6 +486,32 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             }
         }
 
+        function todayKST() {
+            try {
+                return new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Seoul',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).format(new Date());
+            } catch (e) {
+                return new Date().toISOString().slice(0, 10);
+            }
+        }
+
+        /** 개강·종료일이 있으면 status보다 우선 (미개강→모집, 기간 중→진행, 이후→종료) */
+        function resolveCourseStatus(course) {
+            const start = (course.start_date || '').toString().slice(0, 10);
+            const end = (course.end_date || '').toString().slice(0, 10);
+            const today = todayKST();
+            if (start && today < start) return 'upcoming';
+            if (end && today > end) return 'completed';
+            if (start && end && today >= start && today <= end) return 'active';
+            if (start && !end && today >= start) return 'active';
+            if (!start && end && today <= end) return 'active';
+            return course.status || '';
+        }
+
         function renderError(msg) {
             document.getElementById('coursesContainer').innerHTML = 
                 '<div class="w-full flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-rose-100 shadow-sm">' +
@@ -524,14 +550,15 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 else if (cat.indexOf('자격') !== -1 || cat.indexOf('면허') !== -1) iconClass = 'fa-graduation-cap text-emerald-600';
                 else if (cat.indexOf('취업') !== -1) iconClass = 'fa-briefcase text-purple-600';
 
+                const status = resolveCourseStatus(course);
                 let statusBadge = { label: '준비중', cls: 'bg-slate-100 text-slate-500' };
-                if (course.status === 'active' || course.status === 'open' || course.status === 'in_progress') {
+                if (status === 'active' || status === 'open' || status === 'in_progress') {
                     statusBadge = { label: '진행중', cls: 'bg-emerald-50 text-emerald-700' };
-                } else if (course.status === 'upcoming' || course.status === 'recruiting') {
+                } else if (status === 'upcoming' || status === 'recruiting') {
                     statusBadge = { label: '모집중', cls: 'bg-blue-50 text-blue-700' };
-                } else if (course.status === 'always_open') {
+                } else if (status === 'always_open') {
                     statusBadge = { label: '상시모집', cls: 'bg-emerald-50 text-emerald-700' };
-                } else if (course.status === 'completed' || course.status === 'closed') {
+                } else if (status === 'completed' || status === 'closed') {
                     statusBadge = { label: '종료', cls: 'bg-slate-100 text-slate-500' };
                 }
 
