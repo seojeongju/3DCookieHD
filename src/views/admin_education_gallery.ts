@@ -9,7 +9,8 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
     <title>교육사진 갤러리 관리 - 와우쓰리디홍대센터</title>
     <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.tiny.cloud/1/mvw2dv577uz6ru7oboooo1vpsgfgtj25kfa5sci9bblekdy3/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.5/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>window.TINYMCE_BASE_URL='https://cdn.jsdelivr.net/npm/tinymce@6.8.5';window.TINYMCE_SUFFIX='.min';</script>
     </head>
 <body class="bg-gray-50">
     <div class="flex h-screen overflow-hidden">
@@ -659,6 +660,8 @@ export const adminEducationGalleryHtml = (sidebar: string) => `
         }
         function initTinyMCE(initialContent) {
             tinymce.init({
+                base_url: window.TINYMCE_BASE_URL || 'https://cdn.jsdelivr.net/npm/tinymce@6.8.5',
+                suffix: window.TINYMCE_SUFFIX || '.min',
                 selector: '#postContent',
                 height: 400,
                 menubar: true,

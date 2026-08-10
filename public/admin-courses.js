@@ -91,6 +91,8 @@ function initTinyMCE(content) {
     }
 
     tinymce.init({
+        base_url: (typeof window !== 'undefined' && window.TINYMCE_BASE_URL) || 'https://cdn.jsdelivr.net/npm/tinymce@6.8.5',
+        suffix: (typeof window !== 'undefined' && window.TINYMCE_SUFFIX) || '.min',
         selector: '#courseDescription',
         height: 300,
         menubar: false,

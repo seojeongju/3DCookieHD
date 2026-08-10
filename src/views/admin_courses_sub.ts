@@ -1096,7 +1096,8 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
             </form>
         </div>
     </div>
-    <script src="https://cdn.tiny.cloud/1/mvw2dv577uz6ru7oboooo1vpsgfgtj25kfa5sci9bblekdy3/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.5/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>window.TINYMCE_BASE_URL='https://cdn.jsdelivr.net/npm/tinymce@6.8.5';window.TINYMCE_SUFFIX='.min';</script>
 
     <!-- 훈련 일정 관리 달력 모달 -->
     <div id="scheduleCalendarModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">

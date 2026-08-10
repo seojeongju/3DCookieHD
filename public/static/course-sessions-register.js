@@ -864,6 +864,8 @@
         if (!el) return;
         if (tinymce.get('sessionsFormCourseDetailDescription')) return;
         tinymce.init({
+            base_url: (typeof window !== 'undefined' && window.TINYMCE_BASE_URL) || 'https://cdn.jsdelivr.net/npm/tinymce@6.8.5',
+            suffix: (typeof window !== 'undefined' && window.TINYMCE_SUFFIX) || '.min',
             selector: '#sessionsFormCourseDetailDescription',
             height: 480,
             menubar: false,
