@@ -312,7 +312,7 @@ export const homeHtml = `
                         <i class="fas fa-chevron-right text-gray-400 group-hover:text-white/80"></i>
                     </a>
                     <!-- Card 3 -->
-                    <a href="https://wow3d-all-print.jayseo36.workers.dev/" target="_blank" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-violet-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
+                    <a href="https://wow3dp.co.kr" target="_blank" class="group flex items-center p-4 bg-black/40 backdrop-blur-md rounded-xl shadow-lg hover:bg-violet-600 hover:scale-105 transition-all duration-300 border border-white/10 hover:border-transparent">
                         <div class="w-12 h-12 rounded-lg bg-white/10 text-violet-300 flex items-center justify-center text-xl mr-4 group-hover:bg-white group-hover:text-violet-600 transition-colors">
                             <i class="fas fa-robot"></i>
                         </div>
@@ -355,7 +355,7 @@ export const homeHtml = `
                 <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mb-2"><i class="fas fa-laptop-code"></i></div>
                 <span class="text-xs sm:text-sm font-bold text-gray-800 text-center leading-snug">STEP 훈련</span>
             </a>
-            <a href="https://wow3d-all-print.jayseo36.workers.dev/" target="_blank" class="flex flex-col items-center justify-center min-h-[5.75rem] sm:min-h-0 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform">
+            <a href="https://wow3dp.co.kr" target="_blank" class="flex flex-col items-center justify-center min-h-[5.75rem] sm:min-h-0 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform">
                 <div class="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mb-2"><i class="fas fa-robot"></i></div>
                 <span class="text-xs sm:text-sm font-bold text-gray-800 text-center break-keep leading-snug">3D프린팅 AI실시간자동견적</span>
             </a>
