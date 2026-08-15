@@ -162,7 +162,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             return { 'Authorization': 'Bearer ' + localStorage.getItem('token'), 'Content-Type': 'application/json' };
         }
         function esc(v) {
-            return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+            return String(v == null ? '' : v).split('&').join('&amp;').split('<').join('&lt;').split('"').join('&quot;');
         }
         function stripR2(s) {
             var t = String(s || '');
@@ -176,7 +176,6 @@ export const studentClassroomHtml = (sessionId: string) => `
             }
             return t;
         }
-        }
         function fmtDate(v) {
             if (!v) return '미정';
             var d = new Date(v);
@@ -187,7 +186,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             return '<div class="text-center py-16"><i class="fas ' + icon + ' text-4xl text-slate-300 mb-4"></i><p class="text-slate-500 font-bold">' + msg + '</p></div>';
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', async function() {
             await checkAuth();
             await loadOverview();
         });
