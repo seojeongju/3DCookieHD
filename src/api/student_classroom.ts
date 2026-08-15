@@ -85,23 +85,77 @@ app.get('/:sessionId/notices', async (c) => {
     const ids: number[] = [];
     if (enrolled.lms_course_id) ids.push(enrolled.lms_course_id);
     if (enrolled.approved_course_id) ids.push(enrolled.approved_course_id);
-    if (!ids.length) return c.json({ success: true, data: [] });
-    const placeholders = ids.map(() => '?').join(',');
+    const courseClause = ids.length ? `OR (p.session_id IS NULL AND p.course_id IN (${ids.map(() => '?').join(',')}))` : '';
     const { results } = await c.env.DB.prepare(
-        `SELECT p.id, p.title, p.content, p.created_at, p.pinned, p.category, u.name as author_name
+        `SELECT p.id, p.title, p.content, p.created_at, p.pinned, p.category, u.name as author_name,
+                p.session_id
          FROM posts p
          LEFT JOIN users u ON u.id = p.author_id
          WHERE IFNULL(p.status, 'published') = 'published'
            AND p.category IN ('notice', '공지', '공지사항')
-           AND p.course_id IN (${placeholders})
+           AND (p.session_id = ? ${courseClause})
          ORDER BY IFNULL(p.pinned, 0) DESC, p.created_at DESC
          LIMIT 50`
-    ).bind(...ids).all();
+    ).bind(sessionId, ...ids).all();
     const list = (results || []).map((row: Record<string, unknown>) => {
         const raw = String(row.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
         return { ...row, excerpt: raw.slice(0, 140) };
     });
     return c.json({ success: true, data: list });
+});
+
+app.post('/:sessionId/notices', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const user = c.get('user');
+    if (!user?.userId || isNaN(sessionId)) return c.json({ success: false, error: '잘못된 요청입니다' }, 400);
+    if (user.role !== 'admin' && user.role !== 'teacher') {
+        return c.json({ success: false, error: '공지는 관리자·강사만 등록할 수 있습니다' }, 403);
+    }
+    const enrolled = await requireEnrollment(c, sessionId);
+    let courseId = enrolled?.lms_course_id || null;
+    if (!enrolled) {
+        const session = await c.env.DB.prepare(
+            `SELECT id, lms_course_id FROM course_sessions WHERE id = ?`
+        ).bind(sessionId).first<{ id: number; lms_course_id: number | null }>();
+        if (!session) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+        courseId = session.lms_course_id;
+    }
+    const body = await c.req.json().catch(() => ({} as Record<string, unknown>));
+    const title = String(body.title || '').trim();
+    const content = String(body.content || '').trim();
+    if (!title || !content) return c.json({ success: false, error: '제목과 내용을 입력하세요' }, 400);
+    await c.env.DB.prepare(
+        `INSERT INTO posts (author_id, title, content, category, pinned, status, course_id, session_id, created_at, updated_at)
+         VALUES (?, ?, ?, 'notice', 0, 'published', ?, ?, datetime('now'), datetime('now'))`
+    ).bind(user.userId, title, content, courseId, sessionId).run();
+    return c.json({ success: true });
+});
+
+app.get('/:sessionId/ncs', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    const userId = c.get('user').userId;
+    const courseId = enrolled.lms_course_id;
+    if (!courseId) return c.json({ success: true, data: { question_count: 0, has_submitted: false } });
+    let questionCount = 0;
+    let hasSubmitted = false;
+    try {
+        const countRow = await c.env.DB.prepare(
+            'SELECT COUNT(*) as cnt FROM ncs_course_questions WHERE course_id = ?'
+        ).bind(courseId).first<{ cnt: number }>();
+        questionCount = Number(countRow?.cnt ?? 0);
+        if (questionCount > 0) {
+            const sub = await c.env.DB.prepare(
+                'SELECT 1 FROM ncs_cbt_submissions WHERE session_id = ? AND user_id = ? LIMIT 1'
+            ).bind(sessionId, userId).first();
+            hasSubmitted = !!sub;
+        }
+    } catch {
+        questionCount = 0;
+        hasSubmitted = false;
+    }
+    return c.json({ success: true, data: { question_count: questionCount, has_submitted: hasSubmitted } });
 });
 
 app.get('/:sessionId/materials', async (c) => {

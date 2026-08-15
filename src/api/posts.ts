@@ -572,7 +572,7 @@ app.post('/', async (c) => {
       user = await verifyToken(authHeader.substring(7));
     }
 
-    const { title, content, category, images, videos, pinned, status, course_id, enrollment_id, rating, created_at } = body;
+    const { title, content, category, images, videos, pinned, status, course_id, session_id, enrollment_id, rating, created_at } = body;
 
     const tit = title != null ? String(title).trim() : '';
     const cont = content != null ? String(content) : '';
@@ -803,9 +803,9 @@ app.post('/', async (c) => {
     const result = await DB.prepare(`
       INSERT INTO posts (
         author_id, title, content, category, sub_category, author_name, guest_password_hash, images, videos,
-        views, likes, pinned, status, course_id, enrollment_id, rating, 
+        views, likes, pinned, status, course_id, session_id, enrollment_id, rating, 
         content_url, teacher_feedback, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `).bind(
       finalAuthorId,
       tit,
@@ -819,6 +819,7 @@ app.post('/', async (c) => {
       pin ? 1 : 0,
       st,
       course_id || null,
+      session_id || null,
       enrollment_id || null,
       rating != null ? Number(rating) : null,
       content_url || null,

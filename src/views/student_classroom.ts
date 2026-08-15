@@ -51,6 +51,10 @@ export const studentClassroomHtml = (sessionId: string) => `
             <h3 class="text-lg font-black tracking-tight mb-2" id="assignModalTitle">과제 제출</h3>
             <p class="text-sm text-slate-500 mb-4" id="assignModalDue"></p>
             <textarea id="assignContent" rows="6" class="w-full rounded-2xl border border-slate-200 p-4 text-sm mb-4 outline-none focus:border-sky-500" placeholder="제출 내용 또는 작업 링크를 입력하세요."></textarea>
+            <label class="block mb-4">
+                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">첨부 파일 (선택)</span>
+                <input type="file" id="assignFile" class="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-sky-50 file:px-4 file:py-2 file:text-xs file:font-black file:text-sky-700">
+            </label>
             <div class="flex gap-2">
                 <button type="button" onclick="closeAssignModal()" class="flex-1 min-h-[44px] rounded-2xl border border-slate-200 font-black text-sm">취소</button>
                 <button type="button" onclick="submitAssignment()" class="flex-1 min-h-[44px] rounded-2xl bg-sky-600 text-white font-black text-sm">제출</button>
@@ -333,14 +337,26 @@ export const studentClassroomHtml = (sessionId: string) => `
         }
 
         async function renderExams() {
-            const res = await fetch('/api/student/classroom/' + sessionId + '/exams', { headers: authHeaders() });
-            const json = await res.json();
+            const [examRes, ncsRes] = await Promise.all([
+                fetch('/api/student/classroom/' + sessionId + '/exams', { headers: authHeaders() }),
+                fetch('/api/student/classroom/' + sessionId + '/ncs', { headers: authHeaders() })
+            ]);
+            const json = await examRes.json();
+            const ncsJson = await ncsRes.json();
             const exams = json.data || [];
-            if (!exams.length) {
+            const ncs = ncsJson.data || {};
+            let html = '';
+            if (ncs.question_count > 0) {
+                const ncsBtn = ncs.has_submitted
+                    ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">응시완료</span>'
+                    : '<button type="button" onclick="openNcsExam()" class="px-4 py-2.5 bg-amber-500 text-white rounded-2xl text-[10px] font-black">응시하기</button>';
+                html += '<div class="rounded-[1.5rem] border border-amber-100 bg-amber-50/60 p-5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-amber-600">NCS 본평가</span><h3 class="font-black mt-1">과정 본평가</h3><p class="text-xs text-slate-500 mt-1">' + ncs.question_count + '문항</p></div>' + ncsBtn + '</div>';
+            }
+            if (!exams.length && ncs.question_count <= 0) {
                 document.getElementById('tabContent').innerHTML = emptyState('fa-pen-fancy', '이 회차에 배정된 시험이 없습니다.');
                 return;
             }
-            const html = '<div class="space-y-4">' + exams.map(function(e) {
+            html += '<div class="space-y-4">' + exams.map(function(e) {
                 const submitted = !!e.has_submitted;
                 const takeUrl = e.type === 'practice'
                     ? '/student/pre-assessment/take?session_id=' + encodeURIComponent(sessionId) + (e.course_id ? '&course_id=' + e.course_id : '') + '&from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam')
@@ -352,6 +368,68 @@ export const studentClassroomHtml = (sessionId: string) => `
             }).join('') + '</div>';
             document.getElementById('tabContent').innerHTML = html;
         }
+
+        window.openNcsExam = async function() {
+            const content = document.getElementById('tabContent');
+            content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i><p class="mt-3 text-sm font-bold">NCS 본평가를 불러오는 중...</p></div>';
+            try {
+                const res = await fetch('/api/cbt/ncs-course-questions?session_id=' + sessionId, { headers: authHeaders() });
+                const json = await res.json();
+                const questions = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+                if (!questions.length) {
+                    content.innerHTML = emptyState('fa-pen-fancy', '이 회차에 NCS 본평가 문제가 없습니다.') + '<button type="button" onclick="loadTab(\'exam\')" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                    return;
+                }
+                let html = '<button type="button" onclick="loadTab(\'exam\')" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
+                html += '<h2 class="text-xl font-black mb-1">NCS 본평가</h2><p class="text-xs text-slate-500 mb-6">총 ' + questions.length + '문항</p>';
+                html += '<form id="ncsExamForm" onsubmit="event.preventDefault(); submitNcsExam();" class="space-y-5">';
+                questions.forEach(function(q, idx) {
+                    html += '<div class="rounded-2xl border border-slate-100 p-5 bg-slate-50/50"><p class="font-bold text-slate-800 mb-3">' + (idx + 1) + '. ' + esc(q.question_text) + '</p>';
+                    if (q.question_type === 'multiple_choice' && q.options) {
+                        var opts = typeof q.options === 'string' ? (function(){ try { return JSON.parse(q.options); } catch(e){ return []; } })() : (Array.isArray(q.options) ? q.options : []);
+                        opts.forEach(function(opt, i) {
+                            html += '<label class="flex items-center gap-3 py-2 cursor-pointer"><input type="radio" name="ncs_' + q.id + '" value="' + (i + 1) + '" class="accent-amber-600"> <span>' + esc(opt) + '</span></label>';
+                        });
+                    } else {
+                        html += '<input type="text" name="ncs_' + q.id + '" class="w-full px-4 py-3 border border-slate-200 rounded-xl" placeholder="답을 입력하세요">';
+                    }
+                    html += '</div>';
+                });
+                html += '<button type="submit" class="w-full min-h-[44px] rounded-2xl bg-amber-500 text-white font-black">제출하기</button></form>';
+                content.innerHTML = html;
+            } catch (e) {
+                content.innerHTML = emptyState('fa-pen-fancy', '문제를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(\'exam\')" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+            }
+        };
+
+        window.submitNcsExam = async function() {
+            const form = document.getElementById('ncsExamForm');
+            const content = document.getElementById('tabContent');
+            if (!form) return;
+            var answers = {};
+            form.querySelectorAll('input[name^="ncs_"]').forEach(function(inp) {
+                if (inp.type === 'radio') { if (inp.checked) answers[inp.name.replace('ncs_', '')] = inp.value; }
+                else answers[inp.name.replace('ncs_', '')] = inp.value || '';
+            });
+            try {
+                const res = await fetch('/api/cbt/ncs-submit', {
+                    method: 'POST', headers: authHeaders(),
+                    body: JSON.stringify({ session_id: parseInt(sessionId, 10), answers: answers })
+                });
+                const json = await res.json();
+                if (json && json.success && json.data) {
+                    var d = json.data;
+                    var total = d.total || 0;
+                    var score = d.score != null ? d.score : d.correct_count || 0;
+                    var pct = total > 0 ? Math.round((score / total) * 100) : 0;
+                    content.innerHTML = '<div class="text-center py-10"><div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div><h3 class="text-xl font-black">제출 완료</h3><p class="text-3xl font-black text-amber-600 mt-2">' + score + ' / ' + total + ' (' + pct + '%)</p><button type="button" onclick="loadTab(\'exam\')" class="mt-6 px-6 py-3 bg-amber-500 text-white rounded-2xl font-black">목록으로</button></div>';
+                } else {
+                    alert(json.error || '제출에 실패했습니다.');
+                }
+            } catch (e) {
+                alert('제출 중 오류가 발생했습니다.');
+            }
+        };
 
         async function renderAssignments() {
             const res = await fetch('/api/student/classroom/' + sessionId + '/assignments', { headers: authHeaders() });
@@ -380,6 +458,8 @@ export const studentClassroomHtml = (sessionId: string) => `
             document.getElementById('assignModalTitle').textContent = a.title || '과제 제출';
             document.getElementById('assignModalDue').textContent = a.due_date ? ('마감: ' + fmtDate(a.due_date)) : '';
             document.getElementById('assignContent').value = '';
+            const fileEl = document.getElementById('assignFile');
+            if (fileEl) fileEl.value = '';
             const m = document.getElementById('assignModal');
             m.classList.remove('hidden');
             m.classList.add('flex');
@@ -395,10 +475,30 @@ export const studentClassroomHtml = (sessionId: string) => `
                 return;
             }
             const content = document.getElementById('assignContent').value.trim();
-            if (!content) { alert('제출 내용을 입력하세요.'); return; }
+            const fileEl = document.getElementById('assignFile');
+            const file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+            if (!content && !file) { alert('제출 내용 또는 첨부 파일을 입력하세요.'); return; }
+            let attachmentUrl = '';
+            if (file) {
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('category', 'assignments');
+                fd.append('folder', String(currentUser.id));
+                const up = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                    body: fd
+                });
+                const upJson = await up.json();
+                attachmentUrl = (upJson.data && upJson.data.url) || upJson.url || '';
+                if (!upJson.success || !attachmentUrl) {
+                    alert(upJson.error || '파일 업로드에 실패했습니다.');
+                    return;
+                }
+            }
             const res = await fetch('/api/assignments/' + submitAssignmentId + '/submit', {
                 method: 'POST', headers: authHeaders(),
-                body: JSON.stringify({ student_id: currentUser.id, content: content })
+                body: JSON.stringify({ student_id: currentUser.id, content: content || (file ? file.name : ''), attachment_url: attachmentUrl || null })
             });
             const json = await res.json();
             if (json.success) {
@@ -455,14 +555,34 @@ export const studentClassroomHtml = (sessionId: string) => `
             const res = await fetch('/api/student/classroom/' + sessionId + '/notices', { headers: authHeaders() });
             const json = await res.json();
             const items = json.data || [];
+            const canPost = currentUser && (currentUser.role === 'admin' || currentUser.role === 'teacher');
+            let html = '';
+            if (canPost) {
+                html += '<form id="classroomNoticeForm" class="rounded-[1.5rem] border border-slate-100 p-5 mb-6" onsubmit="submitClassroomNotice(event)"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">이 회차 공지 등록</p><input id="noticeTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><textarea id="noticeContent" required rows="4" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="내용"></textarea><button type="submit" class="min-h-[44px] px-5 rounded-2xl bg-sky-600 text-white text-xs font-black">등록</button></form>';
+            }
             if (!items.length) {
-                document.getElementById('tabContent').innerHTML = emptyState('fa-bullhorn', '이 과정에 등록된 공지가 없습니다.');
+                html += emptyState('fa-bullhorn', '이 회차에 등록된 공지가 없습니다.');
+                document.getElementById('tabContent').innerHTML = html;
                 return;
             }
-            document.getElementById('tabContent').innerHTML = '<div class="space-y-3">' + items.map(function(p) {
-                return '<button type="button" onclick="openNotice(' + p.id + ')" class="w-full text-left rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200 transition"><div class="flex items-center gap-2 mb-1">' + (p.pinned ? '<span class="text-[10px] font-black text-rose-500">고정</span>' : '') + '<span class="text-xs text-slate-400">' + fmtDate(p.created_at) + '</span></div><h3 class="font-black">' + esc(p.title) + '</h3><p class="text-sm text-slate-500 mt-1 line-clamp-2">' + esc(p.excerpt || '') + '</p></button>';
+            html += '<div class="space-y-3">' + items.map(function(p) {
+                const scope = p.session_id ? '회차' : '과정';
+                return '<button type="button" onclick="openNotice(' + p.id + ')" class="w-full text-left rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200 transition"><div class="flex items-center gap-2 mb-1">' + (p.pinned ? '<span class="text-[10px] font-black text-rose-500">고정</span>' : '') + '<span class="text-[10px] font-black text-sky-600">' + scope + '</span><span class="text-xs text-slate-400">' + fmtDate(p.created_at) + '</span></div><h3 class="font-black">' + esc(p.title) + '</h3><p class="text-sm text-slate-500 mt-1 line-clamp-2">' + esc(p.excerpt || '') + '</p></button>';
             }).join('') + '</div>';
+            document.getElementById('tabContent').innerHTML = html;
         }
+
+        window.submitClassroomNotice = async function(e) {
+            e.preventDefault();
+            const title = document.getElementById('noticeTitle').value.trim();
+            const content = document.getElementById('noticeContent').value.trim();
+            const res = await fetch('/api/student/classroom/' + sessionId + '/notices', {
+                method: 'POST', headers: authHeaders(), body: JSON.stringify({ title: title, content: content })
+            });
+            const json = await res.json();
+            if (json.success) loadTab('notices');
+            else alert(json.error || '등록에 실패했습니다.');
+        };
 
         window.openNotice = async function(id) {
             const content = document.getElementById('tabContent');
