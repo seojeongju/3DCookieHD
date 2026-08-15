@@ -134,7 +134,7 @@ export const loginHtml = `
                 <div class="bg-sky-50/80 rounded-xl p-4">
                     <p class="text-[13px] text-sky-800 leading-relaxed font-medium">
                         관리자가 등록한 수강생은 비밀번호를 따로 받지 않습니다.<br>
-                        등록된 <b>이메일</b>과 담당자가 알려 준 <b>과정 인증 코드</b>로 비밀번호를 직접 설정하세요.
+                        등록된 <b>이메일</b>과 안내 메일(또는 담당자)로 받은 <b>과정 인증 코드</b>로 비밀번호를 직접 설정하세요.
                     </p>
                 </div>
                 <div class="input-group">

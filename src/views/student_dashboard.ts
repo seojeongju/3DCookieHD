@@ -81,7 +81,7 @@ export const studentDashboardHtml = () => `
                         <div class="relative z-10 flex flex-col gap-6 sm:gap-8">
                             <div class="min-w-0">
                                 <h2 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tight mb-1 sm:mb-2 break-keep">반갑습니다, <span id="welcome-name">-</span>님.</h2>
-                                <p class="text-sky-200 text-xs sm:text-sm font-medium max-w-lg leading-relaxed">나의 강의실에서 수강 과정, 사전평가, NCS 본평가, 성적, 설문·포트폴리오를 한곳에서 확인하세요.</p>
+                                <p class="text-sky-200 text-xs sm:text-sm font-medium max-w-lg leading-relaxed">수강 과정을 선택한 뒤 해당 강의실에서 사전평가·본평가·설문·출석을 진행하세요. 내용은 그 과정 LMS에 설정된 항목입니다.</p>
                                 <div class="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
                                     <div class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 border border-white/10 rounded-xl sm:rounded-2xl flex items-center gap-2">
                                         <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-400 animate-pulse"></div>
@@ -148,6 +148,10 @@ export const studentDashboardHtml = () => `
                                         <button onclick="switchTab('lectures')" id="btn-lectures" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
                                             <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-video text-[10px]"></i></span>
                                             <span>수강 중인 강의</span>
+                                        </button>
+                                        <button onclick="switchTab('attendance')" id="btn-attendance" class="nav-side-btn w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-3 group text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors"><i class="fas fa-user-check text-[10px]"></i></span>
+                                            <span>출석률</span>
                                         </button>
                                     </div>
                                 </div>
@@ -382,8 +386,35 @@ export const studentDashboardHtml = () => `
             window.logout();
         }
 
-        var tabLabels = { dashboard: '종합 대시보드', preAssessment: '사전평가', lectures: '수강 중인 강의', grades: '성적/결과', ncs: 'NCS 본평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', courseReviews: '수강후기', profile: '수강생 정보' };
-        var tabIcons = { dashboard: 'fa-th-large', preAssessment: 'fa-clipboard-list', lectures: 'fa-video', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', courseReviews: 'fa-star', profile: 'fa-user-edit' };
+        var tabLabels = { dashboard: '종합 대시보드', preAssessment: '사전평가', lectures: '수강 중인 강의', attendance: '출석률', grades: '성적/결과', ncs: 'NCS 본평가', surveys: '설문/평가', portfolio: '포트폴리오', employment: '취업 성과', courseReviews: '수강후기', profile: '수강생 정보' };
+        var tabIcons = { dashboard: 'fa-th-large', preAssessment: 'fa-clipboard-list', lectures: 'fa-video', attendance: 'fa-user-check', grades: 'fa-history', ncs: 'fa-certificate', surveys: 'fa-poll', portfolio: 'fa-image', employment: 'fa-user-tie', courseReviews: 'fa-star', profile: 'fa-user-edit' };
+
+        async function loadClassroomGate(hash, heading, hint) {
+            const container = document.getElementById('contentArea');
+            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-sky-500"></i><p class="text-slate-400 font-bold text-sm mt-4 uppercase tracking-widest">로딩 중...</p></div>';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/course-sessions/me/enrollments', { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                const list = json.success ? (json.data || []) : [];
+                var html = '<p class="text-sm text-slate-500 mb-6">' + hint + '</p>';
+                if (!list.length) {
+                    html += '<div class="bento-card bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 p-12 text-center"><i class="fas fa-door-open text-5xl text-slate-300 mb-4"></i><p class="font-bold text-slate-500">등록된 과정이 없습니다.</p><p class="text-xs text-slate-400 mt-2">관리자가 회차에 등록하면 강의실에서 ' + heading + '를 진행할 수 있습니다.</p></div>';
+                    container.innerHTML = html;
+                    return;
+                }
+                html += '<div class="space-y-4">';
+                list.forEach(function(item) {
+                    var title = (item.course_title || item.course_name || '과정').replace(/</g, '&lt;');
+                    var sid = item.session_id || item.id;
+                    html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">회차 강의실</p><h3 class="text-lg font-black mt-1">' + title + '</h3><p class="text-xs text-slate-500 mt-1">' + heading + ' · LMS에 설정된 내용</p></div><a href="/student/classroom/' + sid + '#' + hash + '" class="px-5 py-3 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest text-center">강의실에서 진행</a></div>';
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-12 text-red-500 font-bold">과정 목록을 불러오지 못했습니다.</div>';
+            }
+        }
 
         function switchTab(tab) {
             var iconEl = document.getElementById('contentTitleIcon');
@@ -396,7 +427,7 @@ export const studentDashboardHtml = () => `
             var iconBase = 'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ';
             var iconInactive = iconBase + 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600 ';
             var iconActive = iconBase + 'bg-sky-100 text-sky-600 ';
-            ['dashboard', 'lectures', 'preAssessment', 'grades', 'surveys', 'portfolio', 'ncs', 'employment', 'courseReviews', 'profile'].forEach(t => {
+            ['dashboard', 'lectures', 'attendance', 'preAssessment', 'grades', 'surveys', 'portfolio', 'ncs', 'employment', 'courseReviews', 'profile'].forEach(t => {
                 const btn = document.getElementById('btn-' + t);
                 if (btn) {
                     var isActive = t === tab;
@@ -410,11 +441,12 @@ export const studentDashboardHtml = () => `
             if (titleEl) titleEl.textContent = tabLabels[tab] || tab;
 
             if (tab === 'dashboard') loadDashboard();
-            else if (tab === 'preAssessment') loadPreAssessment();
+            else if (tab === 'preAssessment') loadClassroomGate('exam', '사전평가·시험', '이 과정 LMS에 배정된 사전평가와 시험을 강의실에서 응시합니다.');
             else if (tab === 'lectures') loadLectures();
-            else if (tab === 'grades') loadGrades();
-            else if (tab === 'ncs') loadNcsStatus();
-            else if (tab === 'surveys') loadStudentSurveys();
+            else if (tab === 'attendance') loadClassroomGate('attendance', '출석률', '해당 회차 출석 기록과 출석률을 강의실에서 확인합니다.');
+            else if (tab === 'grades') loadClassroomGate('grades', '성적', '이 과정 시험·과제 성적을 강의실에서 확인합니다.');
+            else if (tab === 'ncs') loadClassroomGate('exam', 'NCS 본평가', '이 회차에 배정된 NCS 본평가와 증빙을 강의실에서 진행합니다.');
+            else if (tab === 'surveys') loadClassroomGate('surveys', '설문/평가', '이 과정 LMS에 배정된 설문·강의평가를 강의실에서 참여합니다.');
             else if (tab === 'portfolio') loadStudentPortfolios();
             else if (tab === 'employment') loadEmploymentStatus();
             else if (tab === 'courseReviews') loadCourseReviews();
@@ -781,7 +813,12 @@ export const studentDashboardHtml = () => `
                         var desc = (g.exams[0] && g.exams[0].description) || '';
                         var cid = g.course_id;
                         var preSubmitted = g.exams.every(function(e) { return e.has_submitted; });
-                        var preBtn = preSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button type="button" onclick="location.href=&#39;/student/pre-assessment/take?course_id=' + cid + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                        var sess = sessionData.find(function(s) { return Number(s.lms_course_id) === Number(cid) || Number(s.course_id) === Number(cid); });
+                        var preBtn = preSubmitted
+                            ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>'
+                            : (sess
+                                ? '<a href="/student/classroom/' + sess.session_id + '#exam" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-door-open"></i> 강의실에서 응시</a>'
+                                : '<button type="button" onclick="location.href=&#39;/student/pre-assessment/take?course_id=' + cid + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>');
                         html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + label + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (g.course_title || '일반').replace(/</g, '&lt;') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + totalMin + '분</span>' + (preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (title || '').replace(/</g, '&lt;') + '</h3><p class="text-sm text-slate-600 mt-1">' + (desc || '').replace(/</g, '&lt;') + '</p></div>' + preBtn + '</div>';
                     });
                     html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;preAssessment&#39;)" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">사전평가 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
@@ -799,7 +836,7 @@ export const studentDashboardHtml = () => `
                         var ncsSubmitted = item.has_submitted === true;
                         var ncsBtn = ncsSubmitted
                             ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>'
-                            : '<button type="button" onclick="goNcsExamFromDashboard(' + item.session_id + ')" class="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-amber-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                            : '<a href="/student/classroom/' + item.session_id + '#exam" class="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-amber-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-door-open"></i> 강의실에서 응시</a>';
                         html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-amber-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-widest">NCS 본평가</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeTitle + '</span>' + (ncsSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeName + '</h3><p class="text-sm text-slate-600 mt-1">' + (item.question_count || 0) + '문항</p></div>' + ncsBtn + '</div>';
                     });
                     html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;ncs&#39;)" class="text-amber-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">NCS 본평가 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
@@ -810,7 +847,12 @@ export const studentDashboardHtml = () => `
                     html += '<section class="mt-10"><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i class="fas fa-file-alt text-slate-400"></i> 기타 시험</h3><p class="text-xs text-slate-500 mb-4">중간·기말·모의 등 사전평가·NCS 본평가와 별도로 개설된 시험입니다.</p><div class="space-y-4">';
                     otherExams.slice(0, 5).forEach(function(exam) {
                         var examSubmitted = exam.has_submitted;
-                        var examBtn = examSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button type="button" onclick="location.href=&#39;/student/exam/' + exam.id + '&#39;" class="px-6 py-3.5 bg-slate-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>';
+                        var sess = sessionData.find(function(s) { return Number(s.lms_course_id) === Number(exam.course_id); });
+                        var examBtn = examSubmitted
+                            ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>'
+                            : (sess
+                                ? '<a href="/student/classroom/' + sess.session_id + '#exam" class="px-6 py-3.5 bg-slate-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition whitespace-nowrap flex items-center gap-2"><i class="fas fa-door-open"></i> 강의실에서 응시</a>'
+                                : '<button type="button" onclick="location.href=&#39;/student/exam/' + exam.id + '&#39;" class="px-6 py-3.5 bg-slate-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>');
                         html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + String(exam.type || '시험') + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (exam.course_title || '일반') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + (exam.time_limit_minutes || exam.time_limit || 0) + '분</span>' + (examSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (exam.title || '') + '</h3><p class="text-sm text-slate-600 mt-1">' + (exam.description || '설명 없음') + '</p></div>' + examBtn + '</div>';
                     });
                     html += '</div></section>';
@@ -1034,8 +1076,7 @@ export const studentDashboardHtml = () => `
         }
 
         function goNcsExamFromDashboard(sessionId) {
-            try { sessionStorage.setItem('studentNcsAutoOpenSession', String(sessionId)); } catch (e) {}
-            switchTab('ncs');
+            location.href = '/student/classroom/' + sessionId + '#exam';
         }
 
         async function loadNcsStatus() {

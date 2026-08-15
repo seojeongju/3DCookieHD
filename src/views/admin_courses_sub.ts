@@ -848,8 +848,11 @@ export const adminCoursesSessionsRegisterHtml = (editId?: string) => {
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-bold text-slate-700 mb-1">접근 인증 코드 (PIN)</label>
-                                <input type="text" id="sessionsFormAccessCode" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="예: 1234 (입력 시 수강생 입실/출석 인증용 사용)">
-                                <p class="text-xs text-slate-500 mt-1">이 코드를 설정하면 수강생이 강의실 입장 시 입력해야 합니다. (비워두면 인증 생략)</p>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <input type="text" id="sessionsFormAccessCode" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="예: 1234 (입력 시 수강생 입실/출석 인증용 사용)">
+                                    <button type="button" id="sessionsSendPinEmail" class="px-4 py-3 rounded-xl bg-sky-600 text-white text-xs font-bold whitespace-nowrap">PIN 이메일 안내</button>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">이 코드를 설정하면 수강생이 처음 이용·강의실 입장 시 입력합니다. 저장한 뒤 등록 수강생에게 메일로 보낼 수 있습니다. 비워두면 인증을 생략합니다.</p>
                             </div>
                         </div>
 
@@ -1545,11 +1548,14 @@ export const adminCoursesSessionEnrollmentsHtml = (sessionId?: string) =>
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <!-- 등록된 수강생 -->
                 <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">
-                    <div class="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between shrink-0 gap-2">
                         <h3 class="font-bold text-slate-700 flex items-center gap-2">
                             <i class="fas fa-users text-emerald-500"></i> 등록된 수강생
                             <span id="enrolledCount" class="text-slate-400 text-xs font-normal">0명</span>
                         </h3>
+                        <button type="button" id="enrollSendPin" class="px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-bold hover:bg-sky-700 transition">
+                            <i class="fas fa-envelope mr-1"></i> PIN 안내 메일
+                        </button>
                     </div>
                     <div class="flex-1 overflow-auto custom-scrollbar min-h-[200px] max-h-[400px]">
                         <table class="w-full text-sm border-collapse">

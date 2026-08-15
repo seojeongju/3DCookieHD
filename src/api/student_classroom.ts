@@ -399,6 +399,24 @@ app.get('/:sessionId', async (c) => {
     ).bind(enrolled.enrollment_id).all();
     const logRows = logs || [];
     const attended = logRows.filter((l: { status?: string }) => isAttendedStatus(l.status)).length;
+    const classDates: string[] = [];
+    const seenDates: Record<string, boolean> = {};
+    timetable.forEach((row: { training_date?: string }) => {
+        const d = String(row.training_date || '').slice(0, 10);
+        if (!d || seenDates[d]) return;
+        seenDates[d] = true;
+        classDates.push(d);
+    });
+    const { results: attDateRows } = await c.env.DB.prepare(
+        `SELECT date, status FROM attendance_logs WHERE enrollment_id = ?`
+    ).bind(enrolled.enrollment_id).all();
+    const attendedDates: Record<string, boolean> = {};
+    (attDateRows || []).forEach((row: { date?: string; status?: string }) => {
+        if (isAttendedStatus(row.status)) attendedDates[String(row.date || '').slice(0, 10)] = true;
+    });
+    const pastDays = classDates.filter((d) => d <= today).length;
+    const completedDays = classDates.filter((d) => attendedDates[d]).length;
+    const curriculumRate = pastDays ? Math.round((classDates.filter((d) => d <= today && attendedDates[d]).length / pastDays) * 100) : 0;
     const userId = c.get('user').userId;
     let pendingExams = 0;
     let pendingAssignments = 0;
@@ -445,6 +463,12 @@ app.get('/:sessionId', async (c) => {
                 rate: logRows.length ? Math.round((attended / logRows.length) * 100) : 0,
             },
             pending: { exams: pendingExams, assignments: pendingAssignments, surveys: pendingSurveys },
+            curriculum: {
+                total_days: classDates.length,
+                past_days: pastDays,
+                completed_days: completedDays,
+                rate: curriculumRate,
+            },
             upcoming,
         },
     });

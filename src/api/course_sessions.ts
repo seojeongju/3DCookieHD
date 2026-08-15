@@ -10,6 +10,7 @@ import {
 } from '../utils/course_session_status';
 import { getCourseSessionTimetableHeaderByLmsCourseId } from '../lib/lmsCourseContext';
 import { ensureDedicatedLmsCourseForSession } from '../utils/sessionCourseResolution';
+import { sendClassroomPinEmail } from '../utils/email';
 
 const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
 
@@ -88,7 +89,7 @@ app.get('/me/enrollments', authMiddleware, async (c) => {
         SELECT 
             s.id, s.approved_course_id, s.session_number, s.session_name, s.status,
             s.training_start_date, s.training_end_date, s.instructor_name,
-            s.course_list_image_url, s.main_slide_image_url,
+            s.course_list_image_url, s.main_slide_image_url, s.lms_course_id,
             a.name as course_name, c.name as category_name,
             e.enrolled_at, e.status as enrollment_status,
             s.access_code
@@ -1502,6 +1503,64 @@ app.post('/:id/enrollments', authMiddleware, requireRole('admin', 'teacher', 'in
   } catch (e) {
     console.error('course-sessions enrollments add:', e);
     return c.json({ success: false, error: '수강생 등록 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/:id/enrollments/send-pin
+ * 등록 수강생에게 강의실 PIN 안내 메일
+ */
+app.post('/:id/enrollments/send-pin', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
+    const body = await c.req.json().catch(() => ({} as { user_ids?: number[] }));
+    const { DB } = c.env;
+    const session = await DB.prepare(
+      `SELECT s.id, s.session_number, s.session_name, s.access_code, a.name as course_name
+       FROM course_sessions s
+       LEFT JOIN approved_courses a ON a.id = s.approved_course_id
+       WHERE s.id = ?`
+    ).bind(id).first<{ id: number; session_number: number | null; session_name: string | null; access_code: string | null; course_name: string | null }>();
+    if (!session) return c.json({ success: false, error: '회차를 찾을 수 없습니다' }, 404);
+    const pin = String(session.access_code || '').trim();
+    if (!pin) return c.json({ success: false, error: '이 회차에 접근 인증 코드(PIN)가 없습니다. 먼저 PIN을 저장하세요.' }, 400);
+
+    const filterIds = Array.isArray(body.user_ids) ? body.user_ids.map((n) => parseInt(String(n), 10)).filter((n) => !isNaN(n)) : [];
+    let sql = `SELECT u.id, u.name, u.email
+               FROM course_session_enrollments e
+               INNER JOIN users u ON u.id = e.user_id
+               WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')`;
+    const params: (string | number)[] = [id];
+    if (filterIds.length) {
+      sql += ` AND u.id IN (${filterIds.map(() => '?').join(',')})`;
+      params.push(...filterIds);
+    }
+    const { results } = await DB.prepare(sql).bind(...params).all<{ id: number; name: string; email: string | null }>();
+    const targets = (results || []).filter((u) => String(u.email || '').includes('@')).slice(0, 120);
+    if (!targets.length) return c.json({ success: false, error: '이메일이 있는 수강생이 없습니다' }, 400);
+
+    const baseUrl = String(c.env.SITE_URL || 'https://3dcookiehd.com').replace(/\/$/, '');
+    const courseLabel = [session.course_name, session.session_number != null ? `${session.session_number}회차` : '', session.session_name].filter(Boolean).join(' ');
+    let sent = 0;
+    let failed = 0;
+    for (const user of targets) {
+      const result = await sendClassroomPinEmail(
+        c.env,
+        String(user.email),
+        user.name || '수강생',
+        courseLabel,
+        pin,
+        `${baseUrl}/student/classroom/${id}`,
+        `${baseUrl}/login`
+      );
+      if (result.ok) sent += 1;
+      else failed += 1;
+    }
+    return c.json({ success: sent > 0, sent, failed, total: targets.length, error: sent === 0 ? '이메일 발송에 실패했습니다. 메일 설정을 확인하세요.' : undefined });
+  } catch (e) {
+    console.error('course-sessions send-pin:', e);
+    return c.json({ success: false, error: 'PIN 안내 메일 발송에 실패했습니다' }, 500);
   }
 });
 

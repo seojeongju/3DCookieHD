@@ -14,6 +14,23 @@
         return h;
     }
 
+    function sendPinEmail(userIds) {
+        if (!currentSessionId) {
+            alert('회차를 먼저 선택하세요.');
+            return;
+        }
+        var body = {};
+        if (userIds && userIds.length) body.user_ids = userIds;
+        fetch('/api/course-sessions/' + currentSessionId + '/enrollments/send-pin', {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify(body)
+        }).then(function (r) { return r.json(); }).then(function (res) {
+            if (res.success) alert((res.sent || 0) + '명에게 안내 메일을 보냈습니다.' + (res.failed ? (' (실패 ' + res.failed + '건)') : ''));
+            else alert(res.error || '발송에 실패했습니다.');
+        }).catch(function () { alert('발송 중 오류가 발생했습니다.'); });
+    }
+
     function loadSessions() {
         var select = document.getElementById('enrollSessionSelect');
         if (!select) return Promise.resolve();
@@ -55,7 +72,8 @@
                         '<td class="p-2 text-slate-700 font-medium cursor-pointer hover:text-blue-600 transition" onclick="window.location.href=\'/admin/students/' + e.user_id + '/journey\'" title="여정 관리로 이동">' +
                         name + ' <i class="fas fa-external-link-alt text-[10px] ml-1 opacity-0 group-hover:opacity-100 transition"></i></td>' +
                         '<td class="p-2 text-slate-600">' + phone + '</td>' +
-                        '<td class="p-2 text-center">' +
+                        '<td class="p-2 text-center whitespace-nowrap">' +
+                        '<button type="button" class="text-sky-600 hover:text-sky-800 text-xs font-bold enroll-send-pin mr-2" data-user-id="' + e.user_id + '">메일</button>' +
                         '<button type="button" class="text-red-500 hover:text-red-700 text-xs font-bold enroll-remove" data-user-id="' + e.user_id + '">삭제</button>' +
                         '</td></tr>';
                 }).join('');
@@ -76,6 +94,13 @@
                                 alert(res.error || '삭제 실패');
                             }
                         }).catch(function () { alert('오류가 발생했습니다.'); });
+                    });
+                });
+                tbody.querySelectorAll('.enroll-send-pin').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var uid = btn.getAttribute('data-user-id');
+                        if (!uid || !confirm('이 수강생에게 인증 코드 안내 메일을 보낼까요?')) return;
+                        sendPinEmail([parseInt(uid, 10)]);
                     });
                 });
                 loadCandidates();
@@ -256,6 +281,22 @@
                     addBtn.disabled = false;
                     alert('오류가 발생했습니다.');
                 });
+            });
+        }
+
+        var sendAll = document.getElementById('enrollSendPin');
+        if (sendAll) {
+            sendAll.addEventListener('click', function () {
+                if (!currentSessionId) {
+                    alert('회차를 먼저 선택하세요.');
+                    return;
+                }
+                if (!enrolledList.length) {
+                    alert('등록된 수강생이 없습니다.');
+                    return;
+                }
+                if (!confirm('등록된 수강생 전원에게 인증 코드 안내 메일을 보낼까요?')) return;
+                sendPinEmail([]);
             });
         }
 

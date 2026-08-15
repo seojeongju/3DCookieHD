@@ -18,10 +18,12 @@ export const studentClassroomHtml = (sessionId: string) => `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         .week-day-btn { min-width: 3rem; }
-        .week-day-btn.is-past { opacity: 0.55; }
+        .week-day-btn.is-past { opacity: 0.7; }
         .week-day-btn.is-today { box-shadow: 0 0 0 2px rgb(14 165 233); }
         .week-day-btn.is-selected { background: rgb(2 132 199); color: #fff; }
         .week-day-btn.is-selected .week-dow { color: rgb(186 230 253); }
+        .week-day-btn.is-done { border-color: rgb(110 231 183); background: rgb(236 253 245); }
+        .week-day-btn.is-absent { border-color: rgb(254 202 202); background: rgb(255 241 242); }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
@@ -373,13 +375,16 @@ export const studentClassroomHtml = (sessionId: string) => `
         async function renderHome() {
             const att = overview.attendance || {};
             const pending = overview.pending || {};
+            const curr = overview.curriculum || {};
             const today = todayYmd();
             const rows = await ensureTimetable();
             const todayRows = rows.filter(function(r) { return r.training_date === today; });
             const rate = att.rate || 0;
+            const currRate = curr.rate || 0;
             let html = '<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">';
-            html += '<div class="lg:col-span-4 bento-card bg-white rounded-[2rem] border border-slate-200/60 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">출석률</p><div class="flex items-end justify-between gap-4"><div><p class="text-4xl font-black tracking-tight">' + rate + '%</p><p class="text-xs text-slate-500 mt-1 font-bold">' + (att.attended || 0) + '일 출석 / ' + (att.recorded || 0) + '일</p></div><div class="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden mb-2"><div class="h-full rounded-full bg-sky-600" style="width:' + rate + '%"></div></div></div></div>';
-            html += '<div class="lg:col-span-5 bento-card bg-sky-50 rounded-[2rem] border border-sky-100 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">오늘 수업</p>';
+            html += '<div class="lg:col-span-3 bento-card bg-white rounded-[2rem] border border-slate-200/60 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">출석률</p><p class="text-4xl font-black tracking-tight">' + rate + '%</p><p class="text-xs text-slate-500 mt-1 font-bold">' + (att.attended || 0) + '일 출석 / ' + (att.recorded || 0) + '일</p><div class="h-2.5 rounded-full bg-slate-100 overflow-hidden mt-3"><div class="h-full rounded-full bg-sky-600" style="width:' + rate + '%"></div></div></div>';
+            html += '<div class="lg:col-span-3 bento-card bg-white rounded-[2rem] border border-slate-200/60 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-3">커리큘럼 이수</p><p class="text-4xl font-black tracking-tight">' + currRate + '%</p><p class="text-xs text-slate-500 mt-1 font-bold">' + (curr.completed_days || 0) + '일 이수 / ' + (curr.total_days || 0) + '일</p><div class="h-2.5 rounded-full bg-slate-100 overflow-hidden mt-3"><div class="h-full rounded-full bg-emerald-500" style="width:' + currRate + '%"></div></div></div>';
+            html += '<div class="lg:col-span-6 bento-card bg-sky-50 rounded-[2rem] border border-sky-100 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">오늘 수업</p>';
             if (!todayRows.length) {
                 html += '<p class="text-sm font-bold text-slate-500">오늘 배정된 수업이 없습니다.</p><p class="text-xs text-slate-400 mt-1">' + fmtDate(today) + '</p>';
             } else {
@@ -387,9 +392,8 @@ export const studentClassroomHtml = (sessionId: string) => `
                     return '<div class="flex gap-4 mb-3 last:mb-0"><div class="w-16 shrink-0 text-center rounded-2xl bg-white border border-sky-100 py-2"><p class="text-[10px] font-black text-sky-600">' + (r.period_number || '') + '교시</p><p class="text-[10px] font-bold text-slate-400 mt-0.5">' + periodTime(r) + '</p></div><div><p class="font-black text-slate-900">' + esc(r.subject_name || '수업') + '</p><p class="text-xs text-slate-500 mt-1">' + esc(r.instructor_name || overview.instructor_name || '') + (r.location ? ' · ' + esc(r.location) : '') + '</p></div></div>';
                 }).join('');
             }
-            html += '</div>';
-            html += '<div class="lg:col-span-3 bento-card bg-white rounded-[2rem] border border-slate-200/60 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">기간 · 장소</p><p class="text-sm font-black leading-relaxed">' + fmtDate(overview.training_start_date) + ' ~ ' + fmtDate(overview.training_end_date) + '</p><p class="text-sm font-bold text-slate-500 mt-3"><i class="fas fa-map-marker-alt text-sky-500 mr-1"></i>' + esc(overview.location || '미정') + '</p></div>';
-            html += '</div>';
+            html += '</div></div>';
+            html += '<p class="text-xs font-bold text-slate-400 mb-6"><i class="fas fa-map-marker-alt text-sky-500 mr-1"></i>' + esc(overview.location || '미정') + ' · ' + fmtDate(overview.training_start_date) + ' ~ ' + fmtDate(overview.training_end_date) + '</p>';
             html += '<div class="grid grid-cols-3 gap-3 mb-8">';
             html += '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 시험</p><p class="text-2xl font-black mt-1 ' + ((pending.exams || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.exams || 0) + '</p></button>';
             html += '<button type="button" onclick="loadTab(&#39;assignments&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미제출 과제</p><p class="text-2xl font-black mt-1 ' + ((pending.assignments || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.assignments || 0) + '</p></button>';
@@ -434,7 +438,18 @@ export const studentClassroomHtml = (sessionId: string) => `
             const start = window._currWeekStart;
             const selected = window._currDay;
             const end = ymdAdd(start, 6);
-            let html = '<div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 p-4 sm:p-6 mb-6">';
+            const uniqueDates = {};
+            rows.forEach(function(r) { if (r.training_date) uniqueDates[r.training_date] = true; });
+            var totalDays = Object.keys(uniqueDates).length;
+            var doneDays = 0;
+            var pastDays = 0;
+            Object.keys(uniqueDates).forEach(function(d) {
+                if (d <= today) pastDays += 1;
+                if (attMap[d] && attMap[d].attended) doneDays += 1;
+            });
+            var currRate = pastDays ? Math.round((Object.keys(uniqueDates).filter(function(d) { return d <= today && attMap[d] && attMap[d].attended; }).length / pastDays) * 100) : 0;
+            let html = '<div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 p-5 mb-4 flex items-end justify-between gap-4"><div><p class="text-[10px] font-black uppercase tracking-widest text-emerald-600">이수 현황</p><p class="text-2xl font-black mt-1">' + currRate + '%</p><p class="text-xs font-bold text-slate-500 mt-1">' + doneDays + '일 이수 · ' + pastDays + '일 진행 / 전체 ' + totalDays + '일</p></div><div class="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden mb-1"><div class="h-full rounded-full bg-emerald-500" style="width:' + currRate + '%"></div></div></div>';
+            html += '<div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 p-4 sm:p-6 mb-6">';
             html += '<div class="flex items-center justify-between mb-4"><button type="button" onclick="shiftCurriculumWeek(-1)" class="w-10 h-10 rounded-2xl border border-slate-200 font-black text-slate-500">‹</button><p class="text-sm font-black">' + fmtDate(start) + ' – ' + fmtDate(end) + '</p><button type="button" onclick="shiftCurriculumWeek(1)" class="w-10 h-10 rounded-2xl border border-slate-200 font-black text-slate-500">›</button></div>';
             html += '<div class="grid grid-cols-7 gap-1.5 sm:gap-2">';
             for (var i = 0; i < 7; i++) {
@@ -443,7 +458,13 @@ export const studentClassroomHtml = (sessionId: string) => `
                 if (d < today) cls += ' is-past';
                 if (d === today) cls += ' is-today';
                 if (d === selected) cls += ' is-selected';
-                html += '<button type="button" onclick="selectCurriculumDay(&#39;' + d + '&#39;)" class="' + cls + '"><p class="week-dow text-[10px] font-black text-slate-400">' + weekdayKo(d) + '</p><p class="text-lg font-black mt-0.5">' + String(d).slice(8, 10) + '</p>' + (daysWithClass[d] ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 mt-1"></span>' : '<span class="inline-block w-1.5 h-1.5 mt-1"></span>') + '</button>';
+                if (daysWithClass[d] && attMap[d] && attMap[d].attended) cls += ' is-done';
+                else if (daysWithClass[d] && attMap[d] && !attMap[d].attended) cls += ' is-absent';
+                var dot = 'bg-slate-200';
+                if (daysWithClass[d] && attMap[d] && attMap[d].attended) dot = 'bg-emerald-500';
+                else if (daysWithClass[d] && attMap[d] && !attMap[d].attended) dot = 'bg-rose-400';
+                else if (daysWithClass[d]) dot = 'bg-sky-500';
+                html += '<button type="button" onclick="selectCurriculumDay(&#39;' + d + '&#39;)" class="' + cls + '"><p class="week-dow text-[10px] font-black text-slate-400">' + weekdayKo(d) + '</p><p class="text-lg font-black mt-0.5">' + String(d).slice(8, 10) + '</p><span class="inline-block w-1.5 h-1.5 rounded-full ' + dot + ' mt-1"></span></button>';
             }
             html += '</div></div>';
             const dayRows = rows.filter(function(r) { return r.training_date === selected; }).sort(function(a, b) { return (a.period_number || 0) - (b.period_number || 0); });
@@ -457,7 +478,7 @@ export const studentClassroomHtml = (sessionId: string) => `
                     var past = selected < today;
                     html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex gap-4 ' + (past ? 'opacity-70' : '') + '">';
                     html += '<div class="w-[4.5rem] shrink-0 rounded-2xl ' + (selected === today ? 'bg-sky-600 text-white' : 'bg-slate-50 text-slate-700') + ' text-center py-3"><p class="text-[10px] font-black opacity-80">' + (r.period_number || '') + '교시</p><p class="text-[10px] font-bold mt-1 leading-tight px-1">' + periodTime(r) + '</p></div>';
-                    html += '<div class="min-w-0 flex-1"><p class="font-black text-lg tracking-tight">' + esc(r.subject_name || '교과') + '</p><p class="text-sm text-slate-500 mt-1"><i class="fas fa-user-tie mr-1 text-slate-300"></i>' + esc(r.instructor_name || overview.instructor_name || '강사 미정') + '</p>' + (r.location ? '<p class="text-xs text-slate-400 mt-1"><i class="fas fa-map-marker-alt mr-1"></i>' + esc(r.location) + '</p>' : '') + '</div></div>';
+                    html += '<div class="min-w-0 flex-1"><div class="flex items-start justify-between gap-2"><p class="font-black text-lg tracking-tight">' + esc(r.subject_name || '교과') + '</p>' + (log && log.attended ? '<span class="shrink-0 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-black">이수</span>' : '') + '</div><p class="text-sm text-slate-500 mt-1"><i class="fas fa-user-tie mr-1 text-slate-300"></i>' + esc(r.instructor_name || overview.instructor_name || '강사 미정') + '</p>' + (r.location ? '<p class="text-xs text-slate-400 mt-1"><i class="fas fa-map-marker-alt mr-1"></i>' + esc(r.location) + '</p>' : '') + '</div></div>';
                 });
                 html += '</div>';
             }
@@ -496,17 +517,26 @@ export const studentClassroomHtml = (sessionId: string) => `
             const plans = planJson.data || [];
             window._ncsPlans = plans;
             let html = '';
+            var doneExam = 0;
+            exams.forEach(function(e) { if (e.has_submitted) doneExam += 1; });
+            if (ncs.question_count > 0 || exams.length) {
+                html += '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">';
+                html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">시험</p><p class="text-2xl font-black mt-1">' + exams.length + '</p></div>';
+                html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">응시완료</p><p class="text-2xl font-black mt-1 text-emerald-600">' + doneExam + '</p></div>';
+                html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 col-span-2 sm:col-span-1"><p class="text-[10px] font-black text-slate-400">미응시</p><p class="text-2xl font-black mt-1 ' + ((exams.length - doneExam) > 0 ? 'text-amber-600' : '') + '">' + (exams.length - doneExam) + '</p></div>';
+                html += '</div>';
+            }
             if (ncs.question_count > 0) {
                 const ncsBtn = ncs.has_submitted
-                    ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">응시완료</span>'
+                    ? '<span class="px-4 py-2.5 bg-white/80 text-amber-800 rounded-2xl text-[10px] font-black">응시완료</span>'
                     : '<button type="button" onclick="openNcsExam()" class="px-4 py-2.5 bg-amber-500 text-white rounded-2xl text-[10px] font-black">응시하기</button>';
-                html += '<div class="rounded-[1.5rem] border border-amber-100 bg-amber-50/60 p-5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-amber-600">NCS 본평가</span><h3 class="font-black mt-1">과정 본평가</h3><p class="text-xs text-slate-500 mt-1">' + ncs.question_count + '문항</p></div>' + ncsBtn + '</div>';
+                html += '<div class="bento-card rounded-[2rem] border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div class="flex gap-4 items-start"><div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0"><i class="fas fa-certificate"></i></div><div><span class="text-[10px] font-black uppercase tracking-widest text-amber-600">NCS 본평가</span><h3 class="font-black text-lg mt-1">과정 본평가</h3><p class="text-xs text-slate-500 mt-1">' + ncs.question_count + '문항</p></div></div>' + ncsBtn + '</div>';
             }
             if (plans.length) {
-                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 증빙 자료</h3><div class="space-y-3 mb-6">';
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 증빙 자료</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">';
                 plans.forEach(function(p) {
                     const done = !!p.has_evidence;
-                    html += '<div class="rounded-[1.5rem] border border-slate-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><p class="text-[10px] font-black text-sky-600">[' + esc(p.unit_code || '') + ']</p><h3 class="font-black text-sm">' + esc(p.unit_name) + '</h3><p class="text-xs text-slate-500 mt-1">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div>' + (done ? '<span class="px-4 py-2.5 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black">제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">제출</button>') + '</div>';
+                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col justify-between min-h-[140px]"><div><p class="text-[10px] font-black text-sky-600">[' + esc(p.unit_code || '') + ']</p><h3 class="font-black mt-1">' + esc(p.unit_name) + '</h3><p class="text-xs text-slate-500 mt-2">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div><div class="mt-4">' + (done ? '<span class="inline-flex px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black">제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black">제출</button>') + '</div></div>';
                 });
                 html += '</div>';
             }
@@ -514,16 +544,18 @@ export const studentClassroomHtml = (sessionId: string) => `
                 document.getElementById('tabContent').innerHTML = emptyState('fa-pen-fancy', '이 회차에 배정된 시험이 없습니다.');
                 return;
             }
-            html += '<div class="space-y-4">' + exams.map(function(e) {
-                const submitted = !!e.has_submitted;
-                const takeUrl = e.type === 'practice'
-                    ? '/student/pre-assessment/take?session_id=' + encodeURIComponent(sessionId) + (e.course_id ? '&course_id=' + e.course_id : '') + '&from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam')
-                    : '/student/exam/' + e.id + '?from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam');
-                const btn = submitted
-                    ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">응시완료</span>'
-                    : '<a href="' + takeUrl + '" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">응시하기</a>';
-                return '<div class="rounded-[1.5rem] border border-slate-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + examTypeLabel(e.type) + '</span><h3 class="font-black mt-1">' + esc(e.title) + '</h3><p class="text-xs text-slate-500 mt-1">' + esc(e.description || '') + (e.time_limit_minutes ? ' · ' + e.time_limit_minutes + '분' : '') + '</p></div>' + btn + '</div>';
-            }).join('') + '</div>';
+            if (exams.length) {
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">과정 시험</h3><div class="space-y-3">' + exams.map(function(e) {
+                    const submitted = !!e.has_submitted;
+                    const takeUrl = e.type === 'practice'
+                        ? '/student/pre-assessment/take?session_id=' + encodeURIComponent(sessionId) + (e.course_id ? '&course_id=' + e.course_id : '') + '&from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam')
+                        : '/student/exam/' + e.id + '?from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam');
+                    const btn = submitted
+                        ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">응시완료</span>'
+                        : '<a href="' + takeUrl + '" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">응시하기</a>';
+                    return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex gap-4"><div class="w-1.5 rounded-full ' + (submitted ? 'bg-emerald-400' : 'bg-sky-500') + ' shrink-0"></div><div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + examTypeLabel(e.type) + '</span><h3 class="font-black text-lg mt-1">' + esc(e.title) + '</h3><p class="text-xs text-slate-500 mt-1">' + esc(e.description || '') + (e.time_limit_minutes ? ' · ' + e.time_limit_minutes + '분' : '') + '</p></div>' + btn + '</div></div>';
+                }).join('') + '</div>';
+            }
             document.getElementById('tabContent').innerHTML = html;
         }
 
@@ -598,13 +630,25 @@ export const studentClassroomHtml = (sessionId: string) => `
                 document.getElementById('tabContent').innerHTML = emptyState('fa-tasks', '등록된 과제가 없습니다.');
                 return;
             }
-            const html = '<div class="space-y-4">' + items.map(function(a) {
+            const today = todayYmd();
+            const pending = items.filter(function(a) { return !a.submission_id; });
+            const done = items.filter(function(a) { return !!a.submission_id; });
+            let html = '<div class="grid grid-cols-2 gap-3 mb-6">';
+            html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">미제출</p><p class="text-2xl font-black mt-1 ' + (pending.length ? 'text-amber-600' : '') + '">' + pending.length + '</p></div>';
+            html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">제출완료</p><p class="text-2xl font-black mt-1 text-emerald-600">' + done.length + '</p></div></div>';
+            html += '<div class="space-y-3">' + items.map(function(a) {
                 const submitted = !!a.submission_id;
-                const status = submitted ? (a.submission_status === 'graded' ? '채점완료 ' + (a.score != null ? a.score + '점' : '') : '제출됨') : '미제출';
+                const due = String(a.due_date || '').slice(0, 10);
+                const overdue = !submitted && due && due < today;
+                var status = '미제출';
+                var statusCls = 'bg-amber-50 text-amber-700';
+                if (submitted && a.submission_status === 'graded') { status = '채점완료 ' + (a.score != null ? a.score + '점' : ''); statusCls = 'bg-emerald-50 text-emerald-700'; }
+                else if (submitted) { status = '제출됨'; statusCls = 'bg-sky-50 text-sky-700'; }
+                if (overdue) { status = '마감지남'; statusCls = 'bg-rose-50 text-rose-700'; }
                 const btn = submitted
                     ? '<button type="button" onclick="openAssignModal(' + a.id + ')" class="px-4 py-2.5 border border-slate-200 rounded-2xl text-[10px] font-black">다시 제출</button>'
                     : '<button type="button" onclick="openAssignModal(' + a.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">제출하기</button>';
-                return '<div class="rounded-[1.5rem] border border-slate-100 p-5"><div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 class="font-black">' + esc(a.title) + '</h3><p class="text-xs text-slate-500 mt-1">마감 ' + fmtDate(a.due_date) + (a.max_score ? ' · ' + a.max_score + '점 만점' : '') + '</p><p class="text-sm text-slate-600 mt-2">' + esc(a.description || '') + '</p>' + (a.attachment_url ? '<a href="' + esc(a.attachment_url) + '" target="_blank" class="text-xs font-black text-sky-600 mt-2 inline-block">과제 안내 파일</a>' : '') + (a.submission_file ? '<a href="' + esc(a.submission_file) + '" target="_blank" class="text-xs font-black text-emerald-600 mt-1 inline-block">내 제출 파일</a>' : '') + (a.feedback ? '<p class="text-xs text-emerald-700 mt-2">피드백: ' + esc(a.feedback) + '</p>' : '') + '</div><div class="text-right shrink-0"><p class="text-[10px] font-black mb-2 ' + (submitted ? 'text-emerald-600' : 'text-amber-600') + '">' + status + '</p>' + btn + '</div></div></div>';
+                return '<div class="bento-card rounded-[1.75rem] border ' + (overdue ? 'border-rose-100' : 'border-slate-200/60') + ' bg-white p-5"><div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div class="min-w-0"><span class="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black ' + statusCls + '">' + status + '</span><h3 class="font-black text-lg mt-2">' + esc(a.title) + '</h3><p class="text-xs text-slate-500 mt-1">마감 ' + fmtDate(a.due_date) + (a.max_score ? ' · ' + a.max_score + '점 만점' : '') + '</p><p class="text-sm text-slate-600 mt-2">' + esc(a.description || '') + '</p>' + (a.attachment_url ? '<a href="' + esc(a.attachment_url) + '" target="_blank" class="text-xs font-black text-sky-600 mt-2 inline-block">과제 안내 파일</a>' : '') + (a.submission_file ? '<a href="' + esc(a.submission_file) + '" target="_blank" class="text-xs font-black text-emerald-600 mt-1 inline-block ml-3">내 제출 파일</a>' : '') + (a.feedback ? '<p class="text-xs text-emerald-700 mt-2 bg-emerald-50 rounded-xl px-3 py-2">피드백: ' + esc(a.feedback) + '</p>' : '') + '</div><div class="shrink-0">' + btn + '</div></div></div>';
             }).join('') + '</div>';
             document.getElementById('tabContent').innerHTML = html;
         }
@@ -673,16 +717,18 @@ export const studentClassroomHtml = (sessionId: string) => `
             const data = json.data || {};
             const logs = data.logs || [];
             const sum = data.summary || {};
-            let html = '<div class="rounded-[2rem] bg-sky-50 border border-sky-100 p-5 mb-6 flex items-end justify-between"><div><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">내 출석률</p><p class="text-3xl font-black">' + (sum.rate || 0) + '%</p></div><p class="text-sm font-bold text-slate-500">' + (sum.attended || 0) + '일 출석 / ' + (sum.recorded || 0) + '일 기록</p></div>';
-            html += '<form class="rounded-[1.5rem] border border-slate-100 p-5 mb-6" onsubmit="submitQrCheckin(event)"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-2">QR 출석</p><p class="text-xs text-slate-500 mb-3">강사가 보여 주는 QR 코드 값을 입력하면 출석 처리됩니다.</p><div class="flex gap-2"><input id="qrCodeInput" class="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm" placeholder="QR 코드" required><button type="submit" class="px-4 rounded-2xl bg-sky-600 text-white text-xs font-black">체크인</button></div></form>';
+            const rate = sum.rate || 0;
+            let html = '<div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 p-6 mb-5"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">내 출석률</p><div class="flex items-end justify-between gap-4"><div><p class="text-4xl font-black tracking-tight">' + rate + '%</p><p class="text-xs font-bold text-slate-500 mt-1">' + (sum.attended || 0) + '일 출석 / ' + (sum.recorded || 0) + '일 기록</p></div><div class="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden mb-2"><div class="h-full rounded-full bg-sky-600" style="width:' + rate + '%"></div></div></div></div>';
+            html += '<form class="bento-card rounded-[1.75rem] border border-sky-100 bg-sky-50/80 p-5 mb-6" onsubmit="submitQrCheckin(event)"><div class="flex items-start gap-3 mb-3"><div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0"><i class="fas fa-qrcode"></i></div><div><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">QR 출석</p><p class="text-xs text-slate-500 mt-1">강사가 보여 주는 QR 코드 값을 입력하면 출석 처리됩니다.</p></div></div><div class="flex gap-2"><input id="qrCodeInput" class="flex-1 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm" placeholder="QR 코드" required><button type="submit" class="px-4 rounded-2xl bg-sky-600 text-white text-xs font-black">체크인</button></div></form>';
             if (!logs.length) {
                 html += emptyState('fa-clock', '출석 기록이 아직 없습니다.');
             } else {
-                html += '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-[10px] font-black uppercase tracking-widest text-slate-400"><th class="py-2">날짜</th><th>상태</th><th>입실</th><th>퇴실</th></tr></thead><tbody>';
+                html += '<div class="space-y-2">';
                 logs.forEach(function(l) {
-                    html += '<tr class="border-t border-slate-100"><td class="py-3 font-bold">' + esc(l.date) + '</td><td class="font-black ' + (l.attended ? 'text-emerald-600' : 'text-rose-500') + '">' + esc(l.label) + '</td><td class="text-slate-500">' + esc(l.check_in_time || '-') + '</td><td class="text-slate-500">' + esc(l.check_out_time || '-') + '</td></tr>';
+                    var bar = l.attended ? 'bg-emerald-400' : 'bg-rose-400';
+                    html += '<div class="bento-card rounded-[1.5rem] border border-slate-200/60 bg-white px-4 py-3 flex items-center gap-3"><div class="w-1.5 h-10 rounded-full ' + bar + ' shrink-0"></div><div class="flex-1 min-w-0"><p class="font-black text-sm">' + fmtDate(l.date) + '</p><p class="text-[10px] text-slate-400 font-bold">' + weekdayKo(String(l.date).slice(0, 10)) + '요일 · 입실 ' + esc(l.check_in_time || '-') + ' · 퇴실 ' + esc(l.check_out_time || '-') + '</p></div>' + attChip(l) + '</div>';
                 });
-                html += '</tbody></table></div>';
+                html += '</div>';
             }
             document.getElementById('tabContent').innerHTML = html;
         }
@@ -719,15 +765,19 @@ export const studentClassroomHtml = (sessionId: string) => `
                 document.getElementById('tabContent').innerHTML = emptyState('fa-chart-bar', '채점된 성적 기록이 없습니다.');
                 return;
             }
-            let html = '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">시험</h3>';
-            if (!exams.length) html += '<p class="text-sm text-slate-400 mb-6">시험 성적이 없습니다.</p>';
-            else html += '<div class="space-y-2 mb-8">' + exams.map(function(e) {
-                return '<div class="flex justify-between rounded-2xl border border-slate-100 px-4 py-3"><span class="font-black text-sm">' + esc(e.title) + '</span><span class="font-black text-sky-600">' + (e.score != null ? e.score : '-') + (e.total_points ? ' / ' + e.total_points : '') + '</span></div>';
-            }).join('') + '</div>';
+            let html = '';
+            if (exams.length) {
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">시험</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">';
+                html += exams.map(function(e) {
+                    return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5"><p class="text-xs font-bold text-slate-500 line-clamp-2">' + esc(e.title) + '</p><p class="text-3xl font-black text-sky-600 mt-3">' + (e.score != null ? e.score : '-') + (e.total_points ? '<span class="text-base text-slate-400"> / ' + e.total_points + '</span>' : '') + '</p></div>';
+                }).join('') + '</div>';
+            } else {
+                html += '<p class="text-sm text-slate-400 mb-6">시험 성적이 없습니다.</p>';
+            }
             html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">과제</h3>';
             if (!assignments.length) html += '<p class="text-sm text-slate-400">과제 성적이 없습니다.</p>';
-            else html += '<div class="space-y-2">' + assignments.map(function(a) {
-                return '<div class="rounded-2xl border border-slate-100 px-4 py-3"><div class="flex justify-between"><span class="font-black text-sm">' + esc(a.title) + '</span><span class="font-black text-sky-600">' + (a.score != null ? a.score : (a.status || '제출')) + (a.max_score ? ' / ' + a.max_score : '') + '</span></div>' + (a.feedback ? '<p class="text-xs text-slate-500 mt-1">' + esc(a.feedback) + '</p>' : '') + '</div>';
+            else html += '<div class="space-y-3">' + assignments.map(function(a) {
+                return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5"><div class="flex justify-between items-start gap-3"><span class="font-black">' + esc(a.title) + '</span><span class="text-xl font-black text-sky-600 shrink-0">' + (a.score != null ? a.score : (a.status || '제출')) + (a.max_score ? '<span class="text-sm text-slate-400"> / ' + a.max_score + '</span>' : '') + '</span></div>' + (a.feedback ? '<p class="text-xs text-slate-500 mt-2">' + esc(a.feedback) + '</p>' : '') + '</div>';
             }).join('') + '</div>';
             document.getElementById('tabContent').innerHTML = html;
         }
@@ -739,7 +789,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const canPost = currentUser && (currentUser.role === 'admin' || currentUser.role === 'teacher');
             let html = '';
             if (canPost) {
-                html += '<form id="classroomNoticeForm" class="rounded-[1.5rem] border border-slate-100 p-5 mb-6" onsubmit="submitClassroomNotice(event)"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">이 회차 공지 등록</p><input id="noticeTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><textarea id="noticeContent" required rows="4" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="내용"></textarea><button type="submit" class="min-h-[44px] px-5 rounded-2xl bg-sky-600 text-white text-xs font-black">등록</button></form>';
+                html += '<form id="classroomNoticeForm" class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 mb-6" onsubmit="submitClassroomNotice(event)"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">이 회차 공지 등록</p><input id="noticeTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><textarea id="noticeContent" required rows="4" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="내용"></textarea><button type="submit" class="min-h-[44px] px-5 rounded-2xl bg-sky-600 text-white text-xs font-black">등록</button></form>';
             }
             if (!items.length) {
                 html += emptyState('fa-bullhorn', '이 회차에 등록된 공지가 없습니다.');
@@ -748,7 +798,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             }
             html += '<div class="space-y-3">' + items.map(function(p) {
                 const scope = p.session_id ? '회차' : '과정';
-                return '<button type="button" onclick="openNotice(' + p.id + ')" class="w-full text-left rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200 transition"><div class="flex items-center gap-2 mb-1">' + (p.pinned ? '<span class="text-[10px] font-black text-rose-500">고정</span>' : '') + '<span class="text-[10px] font-black text-sky-600">' + scope + '</span><span class="text-xs text-slate-400">' + fmtDate(p.created_at) + '</span></div><h3 class="font-black">' + esc(p.title) + '</h3><p class="text-sm text-slate-500 mt-1 line-clamp-2">' + esc(p.excerpt || '') + '</p></button>';
+                return '<button type="button" onclick="openNotice(' + p.id + ')" class="bento-card w-full text-left rounded-[1.75rem] border border-slate-200/60 bg-white p-5"><div class="flex items-center gap-2 mb-2">' + (p.pinned ? '<span class="px-2 py-0.5 rounded-lg bg-rose-50 text-[10px] font-black text-rose-500">고정</span>' : '') + '<span class="px-2 py-0.5 rounded-lg bg-sky-50 text-[10px] font-black text-sky-600">' + scope + '</span><span class="text-xs text-slate-400">' + fmtDate(p.created_at) + '</span></div><h3 class="font-black text-lg">' + esc(p.title) + '</h3><p class="text-sm text-slate-500 mt-1 line-clamp-2">' + esc(p.excerpt || '') + '</p></button>';
             }).join('') + '</div>';
             document.getElementById('tabContent').innerHTML = html;
         }
@@ -806,9 +856,9 @@ export const studentClassroomHtml = (sessionId: string) => `
                     const lowerUrl = String(url).toLowerCase();
                     const isVideo = String(m.type || '').indexOf('video') >= 0 || lowerUrl.indexOf('.mp4') >= 0 || lowerUrl.indexOf('.webm') >= 0 || lowerUrl.indexOf('.m3u8') >= 0;
                     if (isVideo) {
-                        html += '<div class="rounded-[1.5rem] border border-slate-100 p-5"><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-1 mb-3">' + esc(m.title) + '</h3><video controls class="w-full rounded-2xl bg-black" src="' + esc(url) + '"></video></div>';
+                        html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5"><span class="px-2 py-0.5 rounded-lg bg-sky-50 text-[10px] font-black text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-2 mb-3">' + esc(m.title) + '</h3><video controls class="w-full rounded-2xl bg-black" src="' + esc(url) + '"></video></div>';
                     } else {
-                        html += '<a href="' + esc(url) + '" target="_blank" rel="noopener" class="flex items-center justify-between gap-3 rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-1">' + esc(m.title) + '</h3>' + (m.description ? '<p class="text-xs text-slate-500 mt-1">' + esc(m.description) + '</p>' : '') + '</div><i class="fas fa-download text-slate-300"></i></a>';
+                        html += '<a href="' + esc(url) + '" target="_blank" rel="noopener" class="bento-card flex items-center justify-between gap-3 rounded-[1.75rem] border border-slate-200/60 bg-white p-5"><div><span class="px-2 py-0.5 rounded-lg bg-sky-50 text-[10px] font-black text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-2">' + esc(m.title) + '</h3>' + (m.description ? '<p class="text-xs text-slate-500 mt-1">' + esc(m.description) + '</p>' : '') + '</div><i class="fas fa-download text-slate-300"></i></a>';
                     }
                 });
                 html += '</div>';
@@ -830,13 +880,19 @@ export const studentClassroomHtml = (sessionId: string) => `
                 document.getElementById('tabContent').innerHTML = emptyState('fa-poll', '이 회차에 진행 중인 설문이 없습니다.');
                 return;
             }
-            document.getElementById('tabContent').innerHTML = '<div class="space-y-4">' + items.map(function(s) {
+            var pendingCount = 0;
+            items.forEach(function(s) { if (s.response_status === 'pending') pendingCount += 1; });
+            let html = '<div class="grid grid-cols-2 gap-3 mb-6">';
+            html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">미참여</p><p class="text-2xl font-black mt-1 ' + (pendingCount ? 'text-amber-600' : '') + '">' + pendingCount + '</p></div>';
+            html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">완료</p><p class="text-2xl font-black mt-1 text-emerald-600">' + (items.length - pendingCount) + '</p></div></div>';
+            html += '<div class="space-y-3">' + items.map(function(s) {
                 const pending = s.response_status === 'pending';
                 const btn = pending
                     ? '<button type="button" onclick="openSurvey(' + s.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">참여하기</button>'
                     : '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">완료</span>';
-                return '<div class="rounded-[1.5rem] border border-slate-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + surveyTypeLabel(s.type) + '</span><h3 class="font-black mt-1">' + esc(s.title) + (s.subject_name ? ' · ' + esc(s.subject_name) : '') + '</h3><p class="text-xs text-slate-500 mt-1">' + fmtDate(s.start_date) + ' ~ ' + fmtDate(s.end_date) + '</p></div>' + btn + '</div>';
+                return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + surveyTypeLabel(s.type) + '</span><h3 class="font-black mt-1">' + esc(s.title) + (s.subject_name ? ' · ' + esc(s.subject_name) : '') + '</h3><p class="text-xs text-slate-500 mt-1">' + fmtDate(s.start_date) + ' ~ ' + fmtDate(s.end_date) + '</p></div>' + btn + '</div>';
             }).join('') + '</div>';
+            document.getElementById('tabContent').innerHTML = html;
         }
 
         window.openSurvey = async function(surveyId) {
@@ -896,12 +952,12 @@ export const studentClassroomHtml = (sessionId: string) => `
             const res = await fetch('/api/student/classroom/' + sessionId + '/qna', { headers: authHeaders() });
             const json = await res.json();
             const items = json.data || [];
-            let html = '<form id="classroomQnaForm" class="rounded-[1.5rem] border border-slate-100 p-5 mb-6" onsubmit="submitClassroomQna(event)"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">이 회차에 질문하기</p><input id="qnaTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><textarea id="qnaContent" required rows="4" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="질문 내용"></textarea><button type="submit" class="min-h-[44px] px-5 rounded-2xl bg-sky-600 text-white text-xs font-black">등록</button></form>';
+            let html = '<form id="classroomQnaForm" class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 mb-6" onsubmit="submitClassroomQna(event)"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">이 회차에 질문하기</p><input id="qnaTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><textarea id="qnaContent" required rows="4" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="질문 내용"></textarea><button type="submit" class="min-h-[44px] px-5 rounded-2xl bg-sky-600 text-white text-xs font-black">등록</button></form>';
             if (!items.length) {
                 html += emptyState('fa-comments', '등록된 질문이 없습니다.');
             } else {
                 html += '<div class="space-y-3">' + items.map(function(p) {
-                    return '<button type="button" onclick="openQna(' + p.id + ')" class="w-full text-left rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200 transition"><div class="flex items-center gap-2 mb-1"><span class="text-xs text-slate-400">' + fmtDate(p.created_at) + '</span><span class="text-[10px] font-black text-slate-400">댓글 ' + (p.comment_count || 0) + '</span></div><h3 class="font-black">' + esc(p.title) + '</h3><p class="text-sm text-slate-500 mt-1 line-clamp-2">' + esc(p.excerpt || '') + '</p></button>';
+                    return '<button type="button" onclick="openQna(' + p.id + ')" class="bento-card w-full text-left rounded-[1.75rem] border border-slate-200/60 bg-white p-5"><div class="flex items-center gap-2 mb-2"><span class="text-xs text-slate-400">' + fmtDate(p.created_at) + '</span><span class="px-2 py-0.5 rounded-lg bg-slate-50 text-[10px] font-black text-slate-500">댓글 ' + (p.comment_count || 0) + '</span></div><h3 class="font-black text-lg">' + esc(p.title) + '</h3><p class="text-sm text-slate-500 mt-1 line-clamp-2">' + esc(p.excerpt || '') + '</p></button>';
                 }).join('') + '</div>';
             }
             document.getElementById('tabContent').innerHTML = html;
@@ -964,10 +1020,10 @@ export const studentClassroomHtml = (sessionId: string) => `
             const mine = (mineJson.data || []).filter(function(r) { return Number(r.course_id) === Number(courseId); });
             if (mine.length) {
                 html += '<div class="space-y-3">' + mine.map(function(r) {
-                    return '<div class="rounded-[1.5rem] border border-slate-100 p-5"><p class="text-[10px] font-black text-sky-600 mb-1">내 후기 · ' + (r.status === 'published' ? '공개' : '승인 대기') + '</p><h3 class="font-black">' + esc(r.title) + '</h3><p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">' + esc(r.content) + '</p></div>';
+                    return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5"><p class="text-[10px] font-black text-sky-600 mb-1">내 후기 · ' + (r.status === 'published' ? '공개' : '승인 대기') + '</p><h3 class="font-black">' + esc(r.title) + '</h3><p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">' + esc(r.content) + '</p></div>';
                 }).join('') + '</div>';
             } else {
-                html += '<form id="classroomReviewForm" class="rounded-[1.5rem] border border-slate-100 p-5" onsubmit="submitClassroomReview(event)"><input id="reviewTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><div class="flex gap-2 mb-3" id="reviewStars">';
+                html += '<form id="classroomReviewForm" class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5" onsubmit="submitClassroomReview(event)"><input id="reviewTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><div class="flex gap-2 mb-3" id="reviewStars">';
                 for (var n = 1; n <= 5; n++) html += '<button type="button" class="review-star text-2xl text-slate-300" data-rating="' + n + '" onclick="setReviewRating(' + n + ')"><i class="fas fa-star"></i></button>';
                 html += '</div><input type="hidden" id="reviewRating" value=""><textarea id="reviewContent" required rows="5" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="수강 경험을 적어 주세요"></textarea><button type="submit" class="w-full min-h-[44px] rounded-2xl bg-sky-600 text-white font-black text-sm">제출하기</button></form>';
             }

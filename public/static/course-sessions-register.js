@@ -1071,4 +1071,29 @@
             calculateTotalTrainingDays(); // 여기서 정합성 체크
         });
     });
+
+    var sendPinBtn = document.getElementById('sessionsSendPinEmail');
+    if (sendPinBtn) {
+        sendPinBtn.addEventListener('click', function () {
+            var sid = (formIdEl && formIdEl.value) ? formIdEl.value.trim() : '';
+            if (!sid) {
+                alert('회차를 먼저 저장한 뒤 PIN 안내 메일을 보내세요.');
+                return;
+            }
+            if (!confirm('이 회차에 등록된 수강생에게 인증 코드 안내 메일을 보낼까요?')) return;
+            sendPinBtn.disabled = true;
+            fetch('/api/course-sessions/' + sid + '/enrollments/send-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') },
+                body: JSON.stringify({})
+            }).then(function (r) { return r.json(); }).then(function (res) {
+                sendPinBtn.disabled = false;
+                if (res.success) alert((res.sent || 0) + '명에게 안내 메일을 보냈습니다.' + (res.failed ? (' (실패 ' + res.failed + '건)') : ''));
+                else alert(res.error || '발송에 실패했습니다.');
+            }).catch(function () {
+                sendPinBtn.disabled = false;
+                alert('발송 중 오류가 발생했습니다.');
+            });
+        });
+    }
 })();
