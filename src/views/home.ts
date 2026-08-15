@@ -390,6 +390,28 @@ export const homeHtml = `
                     <p class="text-gray-600 text-sm">전국 3개 센터에서 편리한 위치에서 수강할 수 있습니다.</p>
                 </a>
             </div>
+            <div class="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                <a href="/guides/national-support" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">국비지원 안내</h3>
+                    <p class="text-sm text-gray-600">내일배움카드로 3D프린팅을 수강하는 방법</p>
+                </a>
+                <a href="/guides/craftsman-license" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">기능사 자격증</h3>
+                    <p class="text-sm text-gray-600">3D프린터운용기능사 실기 대비 과정</p>
+                </a>
+                <a href="/guides/small-business" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">소상공인 활용</h3>
+                    <p class="text-sm text-gray-600">쿠키틀·몰드 등 매장용 3D프린팅</p>
+                </a>
+                <a href="/guides/prototype" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">시제품 제작</h3>
+                    <p class="text-sm text-gray-600">모델링부터 출력·후가공까지</p>
+                </a>
+            </div>
         </div>
     </section>
 

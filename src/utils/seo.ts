@@ -7,7 +7,7 @@ export const SITE_ORIGIN = 'https://3dcookiehd.com';
 export const SITE_NAME = '와우쓰리디홍대센터';
 const DEFAULT_DESCRIPTION = '4차산업 3D프린팅 교육 전문. 와우쓰리디홍대센터에서 3D 모델링·프린팅 국비지원 과정, 실무 교육, NCS 기반 커리큘럼을 만나보세요. 홍대·구미·전주.';
 const DEFAULT_KEYWORDS = '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린팅 학원 홍대, 와우쓰리디, 3D모델링, 구미 3D프린팅, 전주 3D프린팅, 소상공인 3D프린팅';
-const DEFAULT_OG_IMAGE = '/static/logo.png';
+const DEFAULT_OG_IMAGE = '/static/hero1.jpg';
 
 export const CAMPUSES = {
     hongdae: {

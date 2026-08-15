@@ -33,6 +33,11 @@ export const navigationHtml = (activeMenu = '') => `
                                 <a href="/course-sessions?category=학생" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">체험과정</a>
                                 <a href="/corporate-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
                                 <a href="/university-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">대학맞춤교육</a>
+                                <div class="my-1 border-t border-gray-100"></div>
+                                <a href="/guides/national-support" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원 안내</a>
+                                <a href="/guides/craftsman-license" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">기능사 자격증</a>
+                                <a href="/guides/small-business" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">소상공인 활용</a>
+                                <a href="/guides/prototype" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작</a>
                             </div>
                         </div>
                     </div>
@@ -51,6 +56,9 @@ export const navigationHtml = (activeMenu = '') => `
                                 <!-- 시설안내: 현재 비노출 (필요 시 hidden 제거) -->
                                 <a href="/facilities" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">시설안내</a>
                                 <a href="/locations" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">오시는길</a>
+                                <a href="/locations/hongdae" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600">홍대센터</a>
+                                <a href="/locations/gumi" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600">구미센터</a>
+                                <a href="/locations/jeonju" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600">전주센터</a>
                                 <a href="/reviews" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">수강후기</a>
                                 <a href="/prototype-gallery" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작사진</a>
                             </div>
@@ -143,11 +151,18 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/course-sessions?category=학생" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">체험과정</a>
                 <a href="/corporate-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
                 <a href="/university-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">대학맞춤교육</a>
+                <a href="/guides/national-support" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원 안내</a>
+                <a href="/guides/craftsman-license" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기능사 자격증</a>
+                <a href="/guides/small-business" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">소상공인 활용</a>
+                <a href="/guides/prototype" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">센터소개</div>
                 <a href="/greeting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">인사말</a>
                 <a href="/education-photos" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육사진</a>
                 <a href="/education-performance" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육실적</a>
                 <a href="/locations" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">오시는길</a>
+                <a href="/locations/hongdae" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600">홍대센터</a>
+                <a href="/locations/gumi" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600">구미센터</a>
+                <a href="/locations/jeonju" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600">전주센터</a>
                 <a href="/reviews" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">수강후기</a>
                 <a href="/prototype-gallery" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작사진</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">게시판</div>
