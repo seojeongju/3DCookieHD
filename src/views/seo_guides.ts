@@ -1,5 +1,5 @@
 import { layoutHtml } from './components/layout';
-import { CAMPUSES, SITE_ORIGIN } from '../utils/seo';
+import { CAMPUSES, getSeoHead, getSeoOptionsForPath, SITE_ORIGIN } from '../utils/seo';
 
 type GuidePage = {
     slug: string;
@@ -120,18 +120,17 @@ function linkClass(href: string, index: number): string {
     return 'inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-700 hover:border-indigo-200 hover:text-indigo-700';
 }
 
-function faqJsonLd(page: GuidePage): string {
-    const data = {
-        '@context': 'https://schema.org',
+function faqGraphNode(page: GuidePage) {
+    return {
         '@type': 'FAQPage',
+        '@id': `${SITE_ORIGIN}/guides/${page.slug}#faq`,
+        url: `${SITE_ORIGIN}/guides/${page.slug}`,
         mainEntity: page.sections.map((s) => ({
             '@type': 'Question',
             name: s.h2,
             acceptedAnswer: { '@type': 'Answer', text: s.body },
         })),
-        url: `${SITE_ORIGIN}/guides/${page.slug}`,
     };
-    return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
 }
 
 export function seoGuideHtml(slug: string): string | null {
@@ -234,6 +233,16 @@ export function seoGuideHtml(slug: string): string | null {
         </div>
         `,
         'course-sessions',
-        faqJsonLd(page)
+        getSeoHead(
+            SITE_ORIGIN,
+            {
+                ...(getSeoOptionsForPath(`/guides/${page.slug}`) || {
+                    title: page.h1,
+                    description: page.lead,
+                    path: `/guides/${page.slug}`,
+                }),
+                extraJsonLd: [faqGraphNode(page)],
+            }
+        )
     );
 }
