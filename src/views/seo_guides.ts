@@ -1,7 +1,10 @@
 import { layoutHtml } from './components/layout';
+import { CAMPUSES, SITE_ORIGIN } from '../utils/seo';
 
 type GuidePage = {
     slug: string;
+    kicker: string;
+    icon: string;
     h1: string;
     lead: string;
     sections: { h2: string; body: string }[];
@@ -11,6 +14,8 @@ type GuidePage = {
 const PAGES: Record<string, GuidePage> = {
     'national-support': {
         slug: 'national-support',
+        kicker: '국비지원 가이드',
+        icon: 'fa-landmark',
         h1: '3D프린팅 국비지원, 어디서 받나요?',
         lead: '3D프린팅 국비지원은 국민내일배움카드로 와우쓰리디 홍대·구미·전주센터에서 수강할 수 있습니다.',
         sections: [
@@ -35,6 +40,8 @@ const PAGES: Record<string, GuidePage> = {
     },
     'craftsman-license': {
         slug: 'craftsman-license',
+        kicker: '자격증 가이드',
+        icon: 'fa-id-badge',
         h1: '3D프린터운용기능사, 어디서 준비하나요?',
         lead: '3D프린터운용기능사 실기 대비 과정은 와우쓰리디에서 주말반·평일저녁반으로 운영합니다.',
         sections: [
@@ -55,6 +62,8 @@ const PAGES: Record<string, GuidePage> = {
     },
     'small-business': {
         slug: 'small-business',
+        kicker: '소상공인 가이드',
+        icon: 'fa-store',
         h1: '소상공인도 3D프린팅 교육을 들을 수 있나요?',
         lead: '가능합니다. 쿠키틀·몰드·소품 제품화를 위한 소상공인 맞춤 3D프린팅 과정을 운영합니다.',
         sections: [
@@ -75,6 +84,8 @@ const PAGES: Record<string, GuidePage> = {
     },
     prototype: {
         slug: 'prototype',
+        kicker: '시제품 가이드',
+        icon: 'fa-cubes',
         h1: '3D프린팅 시제품은 어떻게 배우나요?',
         lead: '모델링부터 출력·후가공까지 시제품 제작 실무를 교육합니다. 기업·개인 모두 상담 후 과정에 참여할 수 있습니다.',
         sections: [
@@ -97,39 +108,132 @@ const PAGES: Record<string, GuidePage> = {
 
 export const SEO_GUIDE_SLUGS = Object.keys(PAGES);
 
+function linkClass(href: string, index: number): string {
+    const isPrimary = href.includes('/course-sessions') || href.includes('/tomorrow-learning-card') || index === 0;
+    const isConsult = href.includes('/online-consulting');
+    if (isConsult) {
+        return 'inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-indigo-200 bg-white px-5 py-3 text-sm font-black text-indigo-700 hover:bg-indigo-50';
+    }
+    if (isPrimary) {
+        return 'inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white hover:bg-slate-900';
+    }
+    return 'inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-700 hover:border-indigo-200 hover:text-indigo-700';
+}
+
+function faqJsonLd(page: GuidePage): string {
+    const data = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: page.sections.map((s) => ({
+            '@type': 'Question',
+            name: s.h2,
+            acceptedAnswer: { '@type': 'Answer', text: s.body },
+        })),
+        url: `${SITE_ORIGIN}/guides/${page.slug}`,
+    };
+    return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
+}
+
 export function seoGuideHtml(slug: string): string | null {
     const page = PAGES[slug];
     if (!page) return null;
+
+    const primary = page.links.find((l) => l.href.includes('/course-sessions')) || page.links[0];
     const sections = page.sections
         .map(
-            (s) => `
-            <article class="rounded-[2.5rem] border border-slate-200/60 bg-white p-7 shadow-sm bento-card sm:p-9">
-                <h2 class="text-xl font-black tracking-tight text-slate-900">${s.h2}</h2>
-                <p class="mt-4 leading-7 text-slate-600">${s.body}</p>
+            (s, i) => `
+            <article class="bento-card rounded-[2.5rem] border border-slate-200/60 bg-white p-6 shadow-sm sm:p-8 ${i === 0 && page.sections.length % 2 === 1 ? 'lg:col-span-2' : ''}">
+                <div class="mb-4 flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-sm font-black text-indigo-600">${String(i + 1).padStart(2, '0')}</span>
+                    <h2 class="text-lg font-black tracking-tight text-slate-900 sm:text-xl">${s.h2}</h2>
+                </div>
+                <p class="leading-7 text-slate-600">${s.body}</p>
             </article>`
         )
         .join('');
-    const links = page.links
+
+    const ctaButtons = page.links
+        .map((l, i) => `<a href="${l.href}" class="${linkClass(l.href, i)}">${l.label}</a>`)
+        .join('');
+
+    const campusCards = (Object.keys(CAMPUSES) as Array<keyof typeof CAMPUSES>)
+        .map((key) => {
+            const campus = CAMPUSES[key];
+            const tel = campus.telephone.replace('+82-', '0');
+            return `
+                <a href="/locations/${campus.slug}" class="bento-card flex items-center justify-between gap-3 rounded-2xl border border-slate-200/60 bg-white px-4 py-3 shadow-sm">
+                    <span>
+                        <span class="block text-sm font-black text-slate-900">${campus.name.replace('와우쓰리디 ', '')}</span>
+                        <span class="block text-xs text-slate-500">${campus.locality}</span>
+                    </span>
+                    <span class="text-xs font-bold text-indigo-600">${tel}</span>
+                </a>`;
+        })
+        .join('');
+
+    const related = Object.values(PAGES)
+        .filter((p) => p.slug !== page.slug)
         .map(
-            (l) =>
-                `<a href="${l.href}" class="inline-flex items-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white hover:bg-slate-900">${l.label}</a>`
+            (p) => `
+            <a href="/guides/${p.slug}" class="bento-card group flex flex-col rounded-[2.5rem] border border-slate-200/60 bg-white p-6 shadow-sm">
+                <span class="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-indigo-600 group-hover:bg-indigo-50">
+                    <i class="fas ${p.icon}"></i>
+                </span>
+                <span class="text-xs font-black uppercase tracking-wider text-indigo-600">${p.kicker}</span>
+                <span class="mt-2 font-black tracking-tight text-slate-900">${p.h1}</span>
+            </a>`
         )
         .join('');
+
     return layoutHtml(
         page.h1,
         `
-        <div class="min-h-screen bg-slate-50 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] py-12 sm:py-16">
-            <div class="mx-auto max-w-4xl px-4 sm:px-6">
-                <header class="mb-8 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10">
-                    <p class="mb-3 text-sm font-black uppercase tracking-[0.2em] text-indigo-600">GUIDE</p>
-                    <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">${page.h1}</h1>
-                    <p class="mt-4 max-w-2xl leading-7 text-slate-600">${page.lead}</p>
-                    <div class="mt-6 flex flex-wrap gap-3">${links}</div>
-                </header>
-                <section class="space-y-4">${sections}</section>
+        <style>
+            .bento-card { transition: transform .35s cubic-bezier(.4,0,.2,1), box-shadow .35s; }
+            .bento-card:hover { transform: translateY(-3px); box-shadow: 0 20px 25px -5px rgb(15 23 42 / .08), 0 8px 10px -6px rgb(15 23 42 / .06); }
+        </style>
+        <div class="custom-scrollbar min-h-screen bg-slate-50 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] pb-28 pt-8 sm:pb-16 sm:pt-12">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6">
+                <div class="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
+                    <header class="bento-card rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10 lg:col-span-8">
+                        <p class="mb-3 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
+                            <i class="fas ${page.icon}"></i> ${page.kicker}
+                        </p>
+                        <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">${page.h1}</h1>
+                        <p class="mt-4 max-w-2xl leading-7 text-slate-600">${page.lead}</p>
+                        <div class="mt-7 flex flex-wrap gap-3">${ctaButtons}</div>
+                    </header>
+                    <aside class="flex flex-col gap-4 lg:col-span-4">
+                        <a href="tel:0231443137" class="bento-card flex items-center gap-4 rounded-[2.5rem] border border-indigo-100 bg-indigo-600 p-6 text-white shadow-sm">
+                            <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15"><i class="fas fa-phone"></i></span>
+                            <span>
+                                <span class="block text-xs font-bold uppercase tracking-wider text-indigo-100">상담 전화</span>
+                                <span class="block text-xl font-black tracking-tight">02-3144-3137</span>
+                            </span>
+                        </a>
+                        <div class="rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-md">
+                            <p class="mb-3 px-1 text-xs font-black uppercase tracking-wider text-slate-400">캠퍼스</p>
+                            <div class="space-y-2">${campusCards}</div>
+                        </div>
+                    </aside>
+                </div>
+
+                <section class="grid grid-cols-1 gap-4 lg:grid-cols-2">${sections}</section>
+
+                <section class="mt-10">
+                    <h2 class="mb-4 px-1 text-lg font-black tracking-tight text-slate-900">다른 학습 가이드</h2>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">${related}</div>
+                </section>
+            </div>
+        </div>
+        <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/95 p-3 backdrop-blur-md lg:hidden" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));">
+            <div class="mx-auto flex max-w-6xl gap-2">
+                <a href="tel:0231443137" class="flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-slate-200 text-sm font-black text-slate-800">전화 상담</a>
+                <a href="${primary.href}" class="flex min-h-[44px] flex-1 items-center justify-center rounded-2xl bg-indigo-600 text-sm font-black text-white">${primary.label}</a>
             </div>
         </div>
         `,
-        'course-sessions'
+        'course-sessions',
+        faqJsonLd(page)
     );
 }
