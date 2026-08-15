@@ -164,6 +164,19 @@ export const studentClassroomHtml = (sessionId: string) => `
         function esc(v) {
             return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
         }
+        function stripR2(s) {
+            var t = String(s || '');
+            var marker = '[R2:';
+            var a = t.indexOf(marker);
+            while (a >= 0) {
+                var b = t.indexOf(']', a);
+                if (b < 0) break;
+                t = t.slice(0, a) + t.slice(b + 1);
+                a = t.indexOf(marker);
+            }
+            return t;
+        }
+        }
         function fmtDate(v) {
             if (!v) return '미정';
             var d = new Date(v);
@@ -652,7 +665,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const res = await fetch('/api/posts/' + id, { headers: authHeaders() });
             const json = await res.json();
             const p = json.data || json;
-            const body = esc(String(p.content || '').replace(/\[R2:[^\]]+\]/g, ''));
+            const body = esc(stripR2(p.content || ''));
             content.innerHTML = '<button type="button" onclick="loadTab(&#39;notices&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button><h2 class="text-xl font-black mb-2">' + esc(p.title) + '</h2><p class="text-xs text-slate-400 mb-6">' + fmtDate(p.created_at) + (p.author_name ? ' · ' + esc(p.author_name) : '') + '</p><div class="prose prose-sm max-w-none text-slate-700 leading-7 whitespace-pre-wrap">' + body + '</div>';
         };
 
@@ -684,7 +697,8 @@ export const studentClassroomHtml = (sessionId: string) => `
                 groups[key].forEach(function(m) {
                     const url = m.file_url || '#';
                     const badge = m.source === 'assignment' ? '과제첨부' : (m.type || '자료');
-                    const isVideo = String(m.type || '').indexOf('video') >= 0 || /\.(mp4|webm|m3u8)(\?|$)/i.test(url);
+                    const lowerUrl = String(url).toLowerCase();
+                    const isVideo = String(m.type || '').indexOf('video') >= 0 || lowerUrl.indexOf('.mp4') >= 0 || lowerUrl.indexOf('.webm') >= 0 || lowerUrl.indexOf('.m3u8') >= 0;
                     if (isVideo) {
                         html += '<div class="rounded-[1.5rem] border border-slate-100 p-5"><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-1 mb-3">' + esc(m.title) + '</h3><video controls class="w-full rounded-2xl bg-black" src="' + esc(url) + '"></video></div>';
                     } else {
@@ -806,7 +820,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const json = await res.json();
             const p = json.data || json;
             const comments = p.comments || [];
-            const body = String(p.content || '').replace(/\[R2:[^\]]+\]/g, '');
+            const body = stripR2(p.content || '');
             let html = '<button type="button" onclick="loadTab(&#39;qna&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
             html += '<h2 class="text-xl font-black mb-2">' + esc(p.title) + '</h2>';
             html += '<p class="text-xs text-slate-400 mb-6">' + fmtDate(p.created_at) + (p.author_name ? ' · ' + esc(p.author_name) : '') + '</p>';
