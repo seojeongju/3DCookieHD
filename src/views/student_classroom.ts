@@ -7,14 +7,16 @@ export const studentClassroomHtml = (sessionId: string) => `
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>강의실 입장 - 와우쓰리디홍대센터</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>강의실 - 와우쓰리디홍대센터</title>
     <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@100..900&display=swap" rel="stylesheet">
     <style>
         .bento-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .bento-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+        .nav-tab.active { background: rgb(240 249 255); color: rgb(7 89 133); font-weight: 900; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
@@ -22,13 +24,13 @@ export const studentClassroomHtml = (sessionId: string) => `
 
     <div id="loadingOverlay" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
         <div class="text-center">
-            <i class="fas fa-circle-notch fa-spin text-4xl text-primary-500 mb-4"></i>
+            <i class="fas fa-circle-notch fa-spin text-4xl text-sky-500 mb-4"></i>
             <p class="text-slate-500 font-bold">강의실 입장 중...</p>
         </div>
     </div>
 
     <div id="pinModal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl transform transition-all scale-100 opcaity-100">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
                     <i class="fas fa-lock text-2xl"></i>
@@ -37,56 +39,51 @@ export const studentClassroomHtml = (sessionId: string) => `
                 <p class="text-sm text-slate-500 mt-2 font-medium">이 강의실은 보안 코드가 설정되어 있습니다.<br>담당 강사에게 코드를 문의하세요.</p>
             </div>
             <form onsubmit="handlePinSubmit(event)" class="space-y-4">
-                <div>
-                    <input type="password" id="pinInput" 
-                        class="w-full text-center text-2xl font-black tracking-[0.5em] px-4 py-4 border-2 border-slate-200 rounded-2xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition placeholder:tracking-normal placeholder:font-medium placeholder:text-sm" 
-                        placeholder="PIN 입력" maxlength="6" required autofocus>
-                </div>
-                <button type="submit" class="w-full py-4 bg-primary-600 text-white font-black rounded-2xl hover:bg-slate-900 transition shadow-lg shadow-primary-500/20 active:scale-95">입장하기</button>
+                <input type="password" id="pinInput" class="w-full text-center text-2xl font-black tracking-[0.5em] px-4 py-4 border-2 border-slate-200 rounded-2xl focus:border-sky-500 outline-none" placeholder="PIN 입력" maxlength="8" required autofocus>
+                <button type="submit" class="w-full py-4 bg-sky-600 text-white font-black rounded-2xl hover:bg-slate-900 transition">입장하기</button>
             </form>
-            <button onclick="history.back()" class="w-full mt-3 py-3 text-slate-400 font-bold text-xs hover:text-slate-600 transition">뒤로가기</button>
+            <a href="/student" class="block w-full mt-3 py-3 text-center text-slate-400 font-bold text-xs hover:text-slate-600">나의 강의실로</a>
         </div>
     </div>
 
-    <main id="classroomContent" class="hidden min-h-screen pt-8 pb-20">
+    <div id="assignModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-[2rem] p-6 sm:p-8 shadow-2xl">
+            <h3 class="text-lg font-black tracking-tight mb-2" id="assignModalTitle">과제 제출</h3>
+            <p class="text-sm text-slate-500 mb-4" id="assignModalDue"></p>
+            <textarea id="assignContent" rows="6" class="w-full rounded-2xl border border-slate-200 p-4 text-sm mb-4 outline-none focus:border-sky-500" placeholder="제출 내용 또는 작업 링크를 입력하세요."></textarea>
+            <div class="flex gap-2">
+                <button type="button" onclick="closeAssignModal()" class="flex-1 min-h-[44px] rounded-2xl border border-slate-200 font-black text-sm">취소</button>
+                <button type="button" onclick="submitAssignment()" class="flex-1 min-h-[44px] rounded-2xl bg-sky-600 text-white font-black text-sm">제출</button>
+            </div>
+        </div>
+    </div>
+
+    <main id="classroomContent" class="hidden min-h-screen pt-6 pb-24 sm:pb-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- 헤더 섹션 -->
-            <div class="mb-8">
-                <span class="inline-block px-3 py-1 bg-primary-50 text-primary-600 text-[10px] font-black rounded-full uppercase tracking-widest mb-2">CLASSROOM</span>
-                <h1 id="courseTitle" class="text-3xl font-black text-slate-900 tracking-tight mb-2">강의명 로딩 중...</h1>
-                <p id="sessionInfo" class="text-slate-500 font-medium"></p>
+            <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <a href="/student" class="inline-flex items-center gap-1 text-xs font-black text-sky-600 mb-2"><i class="fas fa-arrow-left"></i> 나의 강의실</a>
+                    <span class="block text-[10px] font-black uppercase tracking-widest text-sky-600 mb-1">CLASSROOM</span>
+                    <h1 id="courseTitle" class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">강의명 로딩 중...</h1>
+                    <p id="sessionInfo" class="text-slate-500 font-medium text-sm"></p>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <!-- 사이드바 메뉴 -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
                 <div class="lg:col-span-3 space-y-4">
-                    <div class="bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm">
-                        <div class="space-y-2">
-                            <button onclick="loadTab('home')" id="tab-home" class="w-full text-left px-5 py-3.5 bg-primary-50 text-primary-700 rounded-2xl font-black text-sm transition flex items-center gap-3">
-                                <i class="fas fa-home w-5"></i> 홈
-                            </button>
-                            <button onclick="loadTab('curriculum')" id="tab-curriculum" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition flex items-center gap-3">
-                                <i class="fas fa-list-ol w-5"></i> 커리큘럼
-                            </button>
-                             <button onclick="loadTab('exam')" id="tab-exam" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition flex items-center gap-3">
-                                <i class="fas fa-pen-fancy w-5"></i> 시험응시
-                            </button>
-                            <button onclick="loadTab('assignments')" id="tab-assignments" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition flex items-center gap-3">
-                                <i class="fas fa-tasks w-5"></i> 과제제출
-                            </button>
-                            <button onclick="loadTab('attendance')" id="tab-attendance" class="w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition flex items-center gap-3">
-                                <i class="fas fa-clock w-5"></i> 출석현황
-                            </button>
+                    <div class="bg-white rounded-[2rem] p-4 sm:p-6 border border-slate-200/60 shadow-sm">
+                        <div class="grid grid-cols-2 lg:grid-cols-1 gap-2" id="tabNav">
+                            <button onclick="loadTab('home')" id="tab-home" class="nav-tab active w-full text-left px-4 py-3 rounded-2xl text-sm transition flex items-center gap-3"><i class="fas fa-home w-5"></i> 홈</button>
+                            <button onclick="loadTab('curriculum')" id="tab-curriculum" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-list-ol w-5"></i> 커리큘럼</button>
+                            <button onclick="loadTab('exam')" id="tab-exam" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-pen-fancy w-5"></i> 시험응시</button>
+                            <button onclick="loadTab('assignments')" id="tab-assignments" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-tasks w-5"></i> 과제제출</button>
+                            <button onclick="loadTab('attendance')" id="tab-attendance" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-clock w-5"></i> 출석현황</button>
                         </div>
                     </div>
-
-                    <!-- 강사 정보 카드 -->
                     <div class="bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm">
                         <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">담당 강사</h3>
                         <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
-                                <i class="fas fa-user-tie text-xl"></i>
-                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600"><i class="fas fa-user-tie text-xl"></i></div>
                             <div>
                                 <p id="instructorName" class="font-bold text-slate-800">-</p>
                                 <p class="text-[10px] text-slate-400 font-medium">Trainer</p>
@@ -94,12 +91,8 @@ export const studentClassroomHtml = (sessionId: string) => `
                         </div>
                     </div>
                 </div>
-
-                <!-- 메인 컨텐츠 영역 -->
                 <div class="lg:col-span-9">
-                    <div id="tabContent" class="bg-white rounded-[2.5rem] p-8 border border-slate-200/60 shadow-sm min-h-[500px]">
-                        <!-- 탭 내용이 여기에 로드됨 -->
-                    </div>
+                    <div id="tabContent" class="bg-white rounded-[2.5rem] p-5 sm:p-8 border border-slate-200/60 shadow-sm min-h-[420px] custom-scrollbar"></div>
                 </div>
             </div>
         </div>
@@ -109,11 +102,29 @@ export const studentClassroomHtml = (sessionId: string) => `
 
     <script>
         const sessionId = ${JSON.stringify(sessionId)};
-        let sessionData = null;
+        let overview = null;
+        let currentUser = null;
+        let submitAssignmentId = null;
+
+        function authHeaders() {
+            return { 'Authorization': 'Bearer ' + localStorage.getItem('token'), 'Content-Type': 'application/json' };
+        }
+        function esc(v) {
+            return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+        }
+        function fmtDate(v) {
+            if (!v) return '미정';
+            var d = new Date(v);
+            if (isNaN(d.getTime())) return String(v).slice(0, 10);
+            return d.toLocaleDateString('ko-KR');
+        }
+        function emptyState(icon, msg) {
+            return '<div class="text-center py-16"><i class="fas ' + icon + ' text-4xl text-slate-300 mb-4"></i><p class="text-slate-500 font-bold">' + msg + '</p></div>';
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuth();
-            await loadSessionInfo();
+            await loadOverview();
         });
 
         async function checkAuth() {
@@ -123,135 +134,235 @@ export const studentClassroomHtml = (sessionId: string) => `
                 window.location.href = '/login?redirect=/student/classroom/' + sessionId;
                 return;
             }
+            try {
+                const res = await fetch('/api/auth/me', { headers: authHeaders() });
+                const json = await res.json();
+                currentUser = json.data || json;
+            } catch (e) {}
         }
 
-        async function loadSessionInfo() {
+        async function loadOverview() {
             try {
-                // 1. 세션 정보 로드 (Access Code 유무 확인)
-                const res = await fetch('/api/course-sessions/public/' + sessionId + '?source=session');
+                const res = await fetch('/api/student/classroom/' + sessionId, { headers: authHeaders() });
                 const json = await res.json();
-                
+                if (res.status === 401) {
+                    window.location.href = '/login?redirect=/student/classroom/' + sessionId;
+                    return;
+                }
                 if (!json.success || !json.data) {
-                    alert('강의 정보를 불러올 수 없습니다.');
+                    alert(json.error || '이 강의실에 등록되어 있지 않습니다.');
                     window.location.href = '/student';
                     return;
                 }
-                
-                sessionData = json.data;
-                
-                // 2. 접근 권한 확인 (Access Code 검증)
-                if (sessionData.has_access_code === 1) {
-                    const verifiedKey = 'access_verified_' + sessionId;
-                    if (!sessionStorage.getItem(verifiedKey)) {
-                        document.getElementById('loadingOverlay').classList.add('hidden');
-                        document.getElementById('pinModal').classList.remove('hidden');
-                        return;
-                    }
+                overview = json.data;
+                if (overview.has_access_code === 1 && !sessionStorage.getItem('access_verified_' + sessionId)) {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    document.getElementById('pinModal').classList.remove('hidden');
+                    return;
                 }
-
-                // 3. UI 렌더링
-                renderUI();
-                
+                renderShell();
             } catch (e) {
                 console.error(e);
-                alert('오류가 발생했습니다.');
+                alert('강의실을 불러오지 못했습니다.');
             }
         }
 
         async function handlePinSubmit(e) {
             e.preventDefault();
             const pin = document.getElementById('pinInput').value;
-            if (!pin) return;
-
             try {
-                const token = localStorage.getItem('token');
                 const res = await fetch('/api/course-sessions/' + sessionId + '/verify-access', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify({ code: pin })
+                    method: 'POST', headers: authHeaders(), body: JSON.stringify({ code: pin })
                 });
                 const json = await res.json();
-
                 if (json.success) {
                     sessionStorage.setItem('access_verified_' + sessionId, 'true');
                     document.getElementById('pinModal').classList.add('hidden');
-                    renderUI();
+                    renderShell();
                 } else {
-                    alert('올바르지 않은 코드입니다. 다시 확인해주세요.');
+                    alert('올바르지 않은 코드입니다.');
                     document.getElementById('pinInput').value = '';
-                    document.getElementById('pinInput').focus();
                 }
-            } catch (e) {
-                console.error(e);
+            } catch (err) {
                 alert('검증 중 오류가 발생했습니다.');
             }
         }
 
-        function renderUI() {
+        function renderShell() {
             document.getElementById('loadingOverlay').classList.add('hidden');
             document.getElementById('classroomContent').classList.remove('hidden');
-
-            // 기본 정보 채우기
-            let title = sessionData.course_name || '제목 없음';
-            if (sessionData.session_number) title += ' (' + sessionData.session_number + '회차)';
+            let title = overview.course_name || '제목 없음';
+            if (overview.session_number) title += ' (' + overview.session_number + '회차)';
             document.getElementById('courseTitle').textContent = title;
-            
-            const start = sessionData.training_start_date ? new Date(sessionData.training_start_date).toLocaleDateString() : '미정';
-            const end = sessionData.training_end_date ? new Date(sessionData.training_end_date).toLocaleDateString() : '미정';
-            document.getElementById('sessionInfo').innerHTML = \`<i class="far fa-calendar-alt mr-2"></i> \${start} ~ \${end} &nbsp;|&nbsp; <i class="fas fa-map-marker-alt mr-2"></i> \${sessionData.location || '온라인/오프라인'}\`;
-            
-            document.getElementById('instructorName').textContent = sessionData.instructor_name || '미정';
-
-            // 기본 탭 로드
+            document.getElementById('sessionInfo').innerHTML = '<i class="far fa-calendar-alt mr-2"></i>' + fmtDate(overview.training_start_date) + ' ~ ' + fmtDate(overview.training_end_date) + ' &nbsp;|&nbsp; <i class="fas fa-map-marker-alt mr-2"></i> ' + esc(overview.location || '장소 미정');
+            document.getElementById('instructorName').textContent = overview.instructor_name || '미정';
             loadTab('home');
         }
 
-        window.loadTab = function(tab) {
-            // 버튼 스타일 업데이트
-            document.querySelectorAll('[id^="tab-"]').forEach(btn => {
-                const isActive = btn.id === 'tab-' + tab;
-                btn.className = isActive 
-                    ? 'w-full text-left px-5 py-3.5 bg-primary-50 text-primary-700 rounded-2xl font-black text-sm transition flex items-center gap-3'
-                    : 'w-full text-left px-5 py-3.5 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold text-sm transition flex items-center gap-3';
+        window.loadTab = async function(tab) {
+            document.querySelectorAll('.nav-tab').forEach(function(btn) {
+                btn.classList.toggle('active', btn.id === 'tab-' + tab);
+                if (btn.id !== 'tab-' + tab) {
+                    btn.classList.add('text-slate-600');
+                } else {
+                    btn.classList.remove('text-slate-600');
+                }
             });
-
             const content = document.getElementById('tabContent');
-            
-            if (tab === 'home') {
-                content.innerHTML = \`
-                    <div class="text-center py-12">
-                        <div class="mb-8">
-                            <i class="fas fa-laptop-code text-6xl text-primary-200 mb-4"></i>
-                            <h2 class="text-2xl font-black text-slate-800 tracking-tight">강의실에 오신 것을 환영합니다!</h2>
-                            <p class="text-slate-500 mt-2">왼쪽 메뉴를 통해 학습 활동을 진행해주세요.</p>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                            <div class="bg-slate-50 rounded-2xl p-6 text-left border border-slate-100 bento-card cursor-pointer" onclick="loadTab('curriculum')">
-                                <div class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-primary-500 mb-4"><i class="fas fa-list-ol"></i></div>
-                                <h3 class="font-bold text-slate-800 mb-1">커리큘럼 확인</h3>
-                                <p class="text-xs text-slate-500">전체 학습 계획과 진도율을 확인하세요.</p>
-                            </div>
-                             <div class="bg-slate-50 rounded-2xl p-6 text-left border border-slate-100 bento-card cursor-pointer" onclick="loadTab('assignments')">
-                                <div class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-primary-500 mb-4"><i class="fas fa-tasks"></i></div>
-                                <h3 class="font-bold text-slate-800 mb-1">과제 제출</h3>
-                                <p class="text-xs text-slate-500">진행 중인 과제를 확인하고 제출하세요.</p>
-                            </div>
-                        </div>
-                    </div>
-                \`;
-            } else if (tab === 'exam') {
-                window.location.href = '/student'; // 시험은 통합 대시보드 사용
+            content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></div>';
+            if (tab === 'home') return renderHome();
+            if (tab === 'curriculum') return renderCurriculum();
+            if (tab === 'exam') return renderExams();
+            if (tab === 'assignments') return renderAssignments();
+            if (tab === 'attendance') return renderAttendance();
+        };
+
+        function renderHome() {
+            const att = overview.attendance || {};
+            const upcoming = overview.upcoming || [];
+            let html = '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">';
+            html += '<div class="rounded-[2rem] bg-sky-50 border border-sky-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">출석률</p><p class="text-3xl font-black mt-1">' + (att.rate || 0) + '%</p><p class="text-xs text-slate-500 mt-1">' + (att.attended || 0) + ' / ' + (att.recorded || 0) + '일</p></div>';
+            html += '<div class="rounded-[2rem] bg-slate-50 border border-slate-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">기간</p><p class="text-sm font-black mt-2 leading-relaxed">' + fmtDate(overview.training_start_date) + '<br>~ ' + fmtDate(overview.training_end_date) + '</p></div>';
+            html += '<div class="rounded-[2rem] bg-slate-50 border border-slate-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">장소</p><p class="text-sm font-black mt-2">' + esc(overview.location || '미정') + '</p></div>';
+            html += '</div><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">다가오는 수업</h3>';
+            if (!upcoming.length) {
+                html += emptyState('fa-calendar', '예정된 시간표가 없습니다.');
             } else {
-                content.innerHTML = \`
-                    <div class="text-center py-20">
-                        <i class="fas fa-tools text-4xl text-slate-300 mb-4"></i>
-                        <p class="text-slate-400 font-bold">서비스 준비 중입니다.</p>
-                    </div>
-                \`;
+                html += '<div class="space-y-3">' + upcoming.map(function(row) {
+                    return '<div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3"><div><p class="text-sm font-black">' + esc(row.subject_name || '수업') + '</p><p class="text-xs text-slate-500">' + esc(row.training_date) + ' · ' + (row.period_number || '') + '교시 ' + esc((row.start_time || '') + (row.end_time ? '–' + row.end_time : '')) + '</p></div><span class="text-xs font-bold text-slate-400">' + esc(row.instructor_name || overview.instructor_name || '') + '</span></div>';
+                }).join('') + '</div>';
             }
+            document.getElementById('tabContent').innerHTML = html;
+        }
+
+        async function renderCurriculum() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/timetable', { headers: authHeaders() });
+            const json = await res.json();
+            const rows = json.data || [];
+            if (!rows.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-list-ol', '등록된 커리큘럼(시간표)이 없습니다.');
+                return;
+            }
+            const groups = {};
+            rows.forEach(function(r) {
+                const key = r.training_date || '미정';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(r);
+            });
+            let html = '<div class="space-y-6">';
+            Object.keys(groups).forEach(function(date) {
+                html += '<div><h3 class="text-sm font-black text-slate-800 mb-3">' + esc(date) + '</h3><div class="space-y-2">';
+                groups[date].forEach(function(r) {
+                    html += '<div class="rounded-2xl border border-slate-100 px-4 py-3 flex flex-wrap items-center justify-between gap-2"><div><span class="text-[10px] font-black text-sky-600 mr-2">' + (r.period_number || '') + '교시</span><span class="font-black text-sm">' + esc(r.subject_name || '교과') + '</span><p class="text-xs text-slate-500 mt-0.5">' + esc((r.start_time || '') + (r.end_time ? ' – ' + r.end_time : '')) + (r.location ? ' · ' + esc(r.location) : '') + '</p></div><span class="text-xs font-bold text-slate-400">' + esc(r.instructor_name || '') + '</span></div>';
+                });
+                html += '</div></div>';
+            });
+            html += '</div>';
+            document.getElementById('tabContent').innerHTML = html;
+        }
+
+        function examTypeLabel(type) {
+            if (type === 'practice') return '사전평가';
+            if (type === 'midterm') return '중간';
+            if (type === 'final') return '기말';
+            if (type === 'mock') return '모의';
+            return '시험';
+        }
+
+        async function renderExams() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/exams', { headers: authHeaders() });
+            const json = await res.json();
+            const exams = json.data || [];
+            if (!exams.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-pen-fancy', '이 회차에 배정된 시험이 없습니다.');
+                return;
+            }
+            const html = '<div class="space-y-4">' + exams.map(function(e) {
+                const submitted = !!e.has_submitted;
+                const takeUrl = e.type === 'practice'
+                    ? '/student/pre-assessment/take?session_id=' + encodeURIComponent(sessionId) + (e.course_id ? '&course_id=' + e.course_id : '')
+                    : '/student/exam/' + e.id;
+                const btn = submitted
+                    ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">응시완료</span>'
+                    : '<a href="' + takeUrl + '" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">응시하기</a>';
+                return '<div class="rounded-[1.5rem] border border-slate-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + examTypeLabel(e.type) + '</span><h3 class="font-black mt-1">' + esc(e.title) + '</h3><p class="text-xs text-slate-500 mt-1">' + esc(e.description || '') + (e.time_limit_minutes ? ' · ' + e.time_limit_minutes + '분' : '') + '</p></div>' + btn + '</div>';
+            }).join('') + '</div>';
+            document.getElementById('tabContent').innerHTML = html;
+        }
+
+        async function renderAssignments() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/assignments', { headers: authHeaders() });
+            const json = await res.json();
+            const items = json.data || [];
+            window._classroomAssignments = items;
+            if (!items.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-tasks', '등록된 과제가 없습니다.');
+                return;
+            }
+            const html = '<div class="space-y-4">' + items.map(function(a) {
+                const submitted = !!a.submission_id;
+                const status = submitted ? (a.submission_status === 'graded' ? '채점완료 ' + (a.score != null ? a.score + '점' : '') : '제출됨') : '미제출';
+                const btn = submitted
+                    ? '<button type="button" onclick="openAssignModal(' + a.id + ')" class="px-4 py-2.5 border border-slate-200 rounded-2xl text-[10px] font-black">다시 제출</button>'
+                    : '<button type="button" onclick="openAssignModal(' + a.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">제출하기</button>';
+                return '<div class="rounded-[1.5rem] border border-slate-100 p-5"><div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 class="font-black">' + esc(a.title) + '</h3><p class="text-xs text-slate-500 mt-1">마감 ' + fmtDate(a.due_date) + (a.max_score ? ' · ' + a.max_score + '점 만점' : '') + '</p><p class="text-sm text-slate-600 mt-2">' + esc(a.description || '') + '</p>' + (a.feedback ? '<p class="text-xs text-emerald-700 mt-2">피드백: ' + esc(a.feedback) + '</p>' : '') + '</div><div class="text-right shrink-0"><p class="text-[10px] font-black mb-2 ' + (submitted ? 'text-emerald-600' : 'text-amber-600') + '">' + status + '</p>' + btn + '</div></div></div>';
+            }).join('') + '</div>';
+            document.getElementById('tabContent').innerHTML = html;
+        }
+
+        window.openAssignModal = function(id) {
+            submitAssignmentId = id;
+            const list = window._classroomAssignments || [];
+            const a = list.find(function(x) { return x.id === id; }) || {};
+            document.getElementById('assignModalTitle').textContent = a.title || '과제 제출';
+            document.getElementById('assignModalDue').textContent = a.due_date ? ('마감: ' + fmtDate(a.due_date)) : '';
+            document.getElementById('assignContent').value = '';
+            const m = document.getElementById('assignModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        };
+        window.closeAssignModal = function() {
+            const m = document.getElementById('assignModal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        };
+        window.submitAssignment = async function() {
+            if (!submitAssignmentId || !currentUser || !currentUser.id) {
+                alert('로그인 정보를 확인할 수 없습니다.');
+                return;
+            }
+            const content = document.getElementById('assignContent').value.trim();
+            if (!content) { alert('제출 내용을 입력하세요.'); return; }
+            const res = await fetch('/api/assignments/' + submitAssignmentId + '/submit', {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({ student_id: currentUser.id, content: content })
+            });
+            const json = await res.json();
+            if (json.success) {
+                closeAssignModal();
+                loadTab('assignments');
+            } else {
+                alert(json.error || '제출에 실패했습니다.');
+            }
+        };
+
+        async function renderAttendance() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/attendance', { headers: authHeaders() });
+            const json = await res.json();
+            const data = json.data || {};
+            const logs = data.logs || [];
+            const sum = data.summary || {};
+            let html = '<div class="rounded-[2rem] bg-sky-50 border border-sky-100 p-5 mb-6 flex items-end justify-between"><div><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">내 출석률</p><p class="text-3xl font-black">' + (sum.rate || 0) + '%</p></div><p class="text-sm font-bold text-slate-500">' + (sum.attended || 0) + '일 출석 / ' + (sum.recorded || 0) + '일 기록</p></div>';
+            if (!logs.length) {
+                html += emptyState('fa-clock', '출석 기록이 아직 없습니다.');
+            } else {
+                html += '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-[10px] font-black uppercase tracking-widest text-slate-400"><th class="py-2">날짜</th><th>상태</th><th>입실</th><th>퇴실</th></tr></thead><tbody>';
+                logs.forEach(function(l) {
+                    html += '<tr class="border-t border-slate-100"><td class="py-3 font-bold">' + esc(l.date) + '</td><td class="font-black ' + (l.attended ? 'text-emerald-600' : 'text-rose-500') + '">' + esc(l.label) + '</td><td class="text-slate-500">' + esc(l.check_in_time || '-') + '</td><td class="text-slate-500">' + esc(l.check_out_time || '-') + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+            }
+            document.getElementById('tabContent').innerHTML = html;
         }
     </script>
 </body>
