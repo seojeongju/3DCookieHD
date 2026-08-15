@@ -315,9 +315,9 @@ export const studentClassroomHtml = (sessionId: string) => `
             html += '</div>';
             const pending = overview.pending || {};
             html += '<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">';
-            html += '<button type="button" onclick="loadTab(\'exam\')" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 시험</p><p class="text-2xl font-black mt-1">' + (pending.exams || 0) + '</p></button>';
-            html += '<button type="button" onclick="loadTab(\'assignments\')" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미제출 과제</p><p class="text-2xl font-black mt-1">' + (pending.assignments || 0) + '</p></button>';
-            html += '<button type="button" onclick="loadTab(\'surveys\')" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미참여 설문</p><p class="text-2xl font-black mt-1">' + (pending.surveys || 0) + '</p></button>';
+            html += '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 시험</p><p class="text-2xl font-black mt-1">' + (pending.exams || 0) + '</p></button>';
+            html += '<button type="button" onclick="loadTab(&#39;assignments&#39;)" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미제출 과제</p><p class="text-2xl font-black mt-1">' + (pending.assignments || 0) + '</p></button>';
+            html += '<button type="button" onclick="loadTab(&#39;surveys&#39;)" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미참여 설문</p><p class="text-2xl font-black mt-1">' + (pending.surveys || 0) + '</p></button>';
             html += '</div><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">다가오는 수업</h3>';
             if (!upcoming.length) {
                 html += emptyState('fa-calendar', '예정된 시간표가 없습니다.');
@@ -416,10 +416,10 @@ export const studentClassroomHtml = (sessionId: string) => `
                 const json = await res.json();
                 const questions = (json && json.success && Array.isArray(json.data)) ? json.data : [];
                 if (!questions.length) {
-                    content.innerHTML = emptyState('fa-pen-fancy', '이 회차에 NCS 본평가 문제가 없습니다.') + '<button type="button" onclick="loadTab(\'exam\')" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                    content.innerHTML = emptyState('fa-pen-fancy', '이 회차에 NCS 본평가 문제가 없습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
                     return;
                 }
-                let html = '<button type="button" onclick="loadTab(\'exam\')" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
+                let html = '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
                 html += '<h2 class="text-xl font-black mb-1">NCS 본평가</h2><p class="text-xs text-slate-500 mb-6">총 ' + questions.length + '문항</p>';
                 html += '<form id="ncsExamForm" onsubmit="event.preventDefault(); submitNcsExam();" class="space-y-5">';
                 questions.forEach(function(q, idx) {
@@ -437,7 +437,7 @@ export const studentClassroomHtml = (sessionId: string) => `
                 html += '<button type="submit" class="w-full min-h-[44px] rounded-2xl bg-amber-500 text-white font-black">제출하기</button></form>';
                 content.innerHTML = html;
             } catch (e) {
-                content.innerHTML = emptyState('fa-pen-fancy', '문제를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(\'exam\')" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                content.innerHTML = emptyState('fa-pen-fancy', '문제를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
             }
         };
 
@@ -461,7 +461,7 @@ export const studentClassroomHtml = (sessionId: string) => `
                     var total = d.total || 0;
                     var score = d.score != null ? d.score : d.correct_count || 0;
                     var pct = total > 0 ? Math.round((score / total) * 100) : 0;
-                    content.innerHTML = '<div class="text-center py-10"><div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div><h3 class="text-xl font-black">제출 완료</h3><p class="text-3xl font-black text-amber-600 mt-2">' + score + ' / ' + total + ' (' + pct + '%)</p><button type="button" onclick="loadTab(\'exam\')" class="mt-6 px-6 py-3 bg-amber-500 text-white rounded-2xl font-black">목록으로</button></div>';
+                    content.innerHTML = '<div class="text-center py-10"><div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div><h3 class="text-xl font-black">제출 완료</h3><p class="text-3xl font-black text-amber-600 mt-2">' + score + ' / ' + total + ' (' + pct + '%)</p><button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-6 px-6 py-3 bg-amber-500 text-white rounded-2xl font-black">목록으로</button></div>';
                 } else {
                     alert(json.error || '제출에 실패했습니다.');
                 }
@@ -652,8 +652,8 @@ export const studentClassroomHtml = (sessionId: string) => `
             const res = await fetch('/api/posts/' + id, { headers: authHeaders() });
             const json = await res.json();
             const p = json.data || json;
-            const body = String(p.content || '').replace(/\[R2:[^\]]+\]/g, '');
-            content.innerHTML = '<button type="button" onclick="loadTab(\'notices\')" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button><h2 class="text-xl font-black mb-2">' + esc(p.title) + '</h2><p class="text-xs text-slate-400 mb-6">' + fmtDate(p.created_at) + (p.author_name ? ' · ' + esc(p.author_name) : '') + '</p><div class="prose prose-sm max-w-none text-slate-700 leading-7 whitespace-pre-wrap">' + body + '</div>';
+            const body = esc(String(p.content || '').replace(/\[R2:[^\]]+\]/g, ''));
+            content.innerHTML = '<button type="button" onclick="loadTab(&#39;notices&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button><h2 class="text-xl font-black mb-2">' + esc(p.title) + '</h2><p class="text-xs text-slate-400 mb-6">' + fmtDate(p.created_at) + (p.author_name ? ' · ' + esc(p.author_name) : '') + '</p><div class="prose prose-sm max-w-none text-slate-700 leading-7 whitespace-pre-wrap">' + body + '</div>';
         };
 
         async function renderMaterials() {
@@ -664,11 +664,36 @@ export const studentClassroomHtml = (sessionId: string) => `
                 document.getElementById('tabContent').innerHTML = emptyState('fa-download', '다운로드할 자료가 없습니다.');
                 return;
             }
-            document.getElementById('tabContent').innerHTML = '<div class="space-y-3">' + items.map(function(m) {
-                const url = m.file_url || '#';
-                const badge = m.source === 'assignment' ? '과제첨부' : (m.type || '자료');
-                return '<a href="' + esc(url) + '" target="_blank" rel="noopener" class="flex items-center justify-between gap-3 rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-1">' + esc(m.title) + '</h3>' + (m.description ? '<p class="text-xs text-slate-500 mt-1">' + esc(m.description) + '</p>' : '') + '</div><i class="fas fa-download text-slate-300"></i></a>';
-            }).join('') + '</div>';
+            const groups = {};
+            items.forEach(function(m) {
+                const key = m.week != null && m.week !== '' ? ('week-' + m.week) : (m.source === 'assignment' ? 'assignment' : 'other');
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(m);
+            });
+            const order = Object.keys(groups).sort(function(a, b) {
+                if (a === 'assignment') return 1;
+                if (b === 'assignment') return -1;
+                if (a === 'other') return 1;
+                if (b === 'other') return -1;
+                return parseInt(a.slice(5), 10) - parseInt(b.slice(5), 10);
+            });
+            let html = '';
+            order.forEach(function(key) {
+                const label = key === 'assignment' ? '과제 첨부' : (key === 'other' ? '기타 자료' : (key.slice(5) + '주차'));
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3 mt-6 first:mt-0">' + label + '</h3><div class="space-y-3 mb-2">';
+                groups[key].forEach(function(m) {
+                    const url = m.file_url || '#';
+                    const badge = m.source === 'assignment' ? '과제첨부' : (m.type || '자료');
+                    const isVideo = String(m.type || '').indexOf('video') >= 0 || /\.(mp4|webm|m3u8)(\?|$)/i.test(url);
+                    if (isVideo) {
+                        html += '<div class="rounded-[1.5rem] border border-slate-100 p-5"><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-1 mb-3">' + esc(m.title) + '</h3><video controls class="w-full rounded-2xl bg-black" src="' + esc(url) + '"></video></div>';
+                    } else {
+                        html += '<a href="' + esc(url) + '" target="_blank" rel="noopener" class="flex items-center justify-between gap-3 rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-1">' + esc(m.title) + '</h3>' + (m.description ? '<p class="text-xs text-slate-500 mt-1">' + esc(m.description) + '</p>' : '') + '</div><i class="fas fa-download text-slate-300"></i></a>';
+                    }
+                });
+                html += '</div>';
+            });
+            document.getElementById('tabContent').innerHTML = html;
         }
 
         function surveyTypeLabel(type) {
@@ -700,12 +725,12 @@ export const studentClassroomHtml = (sessionId: string) => `
             const res = await fetch('/api/surveys/' + surveyId, { headers: authHeaders() });
             const json = await res.json();
             if (!json.success || !json.data) {
-                content.innerHTML = emptyState('fa-poll', '설문을 불러올 수 없습니다.') + '<button type="button" onclick="loadTab(\'surveys\')" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                content.innerHTML = emptyState('fa-poll', '설문을 불러올 수 없습니다.') + '<button type="button" onclick="loadTab(&#39;surveys&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
                 return;
             }
             const survey = json.data;
             const questions = survey.questions || [];
-            let html = '<button type="button" onclick="loadTab(\'surveys\')" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
+            let html = '<button type="button" onclick="loadTab(&#39;surveys&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
             html += '<h2 class="text-xl font-black mb-2">' + esc(survey.title) + '</h2>';
             html += '<p class="text-sm text-slate-500 mb-6 whitespace-pre-wrap">' + esc(survey.description || '') + '</p>';
             html += '<form id="classroomSurveyForm" class="space-y-5" onsubmit="submitSurvey(event, ' + surveyId + ')">';
@@ -782,7 +807,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const p = json.data || json;
             const comments = p.comments || [];
             const body = String(p.content || '').replace(/\[R2:[^\]]+\]/g, '');
-            let html = '<button type="button" onclick="loadTab(\'qna\')" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
+            let html = '<button type="button" onclick="loadTab(&#39;qna&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
             html += '<h2 class="text-xl font-black mb-2">' + esc(p.title) + '</h2>';
             html += '<p class="text-xs text-slate-400 mb-6">' + fmtDate(p.created_at) + (p.author_name ? ' · ' + esc(p.author_name) : '') + '</p>';
             html += '<div class="text-slate-700 leading-7 whitespace-pre-wrap mb-8">' + esc(body) + '</div>';
