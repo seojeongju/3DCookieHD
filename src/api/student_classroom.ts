@@ -15,6 +15,7 @@ type EnrollmentRow = {
     location: string | null;
     instructor_name: string | null;
     lms_course_id: number | null;
+    approved_course_id: number | null;
     access_code: string | null;
 };
 
@@ -24,7 +25,7 @@ async function requireEnrollment(c: { env: Bindings; get: (k: 'user') => JWTPayl
     return (await c.env.DB.prepare(
         `SELECT cse.id as enrollment_id, cse.session_id, ac.name as course_name, cs.session_number,
                 cs.training_start_date, cs.training_end_date, cs.location, cs.instructor_name,
-                cs.lms_course_id, cs.access_code
+                cs.lms_course_id, cs.approved_course_id, cs.access_code
          FROM course_session_enrollments cse
          JOIN course_sessions cs ON cs.id = cse.session_id
          LEFT JOIN approved_courses ac ON ac.id = cs.approved_course_id
@@ -76,6 +77,84 @@ async function loadTimetable(DB: D1Database, sessionId: number) {
     ).bind(sessionId).all();
     return results || [];
 }
+
+app.get('/:sessionId/notices', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    const ids: number[] = [];
+    if (enrolled.lms_course_id) ids.push(enrolled.lms_course_id);
+    if (enrolled.approved_course_id) ids.push(enrolled.approved_course_id);
+    if (!ids.length) return c.json({ success: true, data: [] });
+    const placeholders = ids.map(() => '?').join(',');
+    const { results } = await c.env.DB.prepare(
+        `SELECT p.id, p.title, p.content, p.created_at, p.pinned, p.category, u.name as author_name
+         FROM posts p
+         LEFT JOIN users u ON u.id = p.author_id
+         WHERE IFNULL(p.status, 'published') = 'published'
+           AND p.category IN ('notice', '공지', '공지사항')
+           AND p.course_id IN (${placeholders})
+         ORDER BY IFNULL(p.pinned, 0) DESC, p.created_at DESC
+         LIMIT 50`
+    ).bind(...ids).all();
+    const list = (results || []).map((row: Record<string, unknown>) => {
+        const raw = String(row.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        return { ...row, excerpt: raw.slice(0, 140) };
+    });
+    return c.json({ success: true, data: list });
+});
+
+app.get('/:sessionId/materials', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    const materials: Record<string, unknown>[] = [];
+    if (enrolled.lms_course_id) {
+        try {
+            const { results } = await c.env.DB.prepare(
+                `SELECT id, title, type, file_url, description, week, created_at
+                 FROM course_materials WHERE course_id = ? ORDER BY week ASC, order_index ASC, id DESC`
+            ).bind(enrolled.lms_course_id).all();
+            for (const row of results || []) {
+                materials.push({ source: 'material', ...row });
+            }
+        } catch {
+            /* 테이블이 없거나 비어 있으면 과제 첨부만 사용 */
+        }
+    }
+    const { results: assignmentFiles } = await c.env.DB.prepare(
+        `SELECT id, title, attachment_url as file_url, due_date as created_at
+         FROM assignments
+         WHERE session_id = ? AND attachment_url IS NOT NULL AND TRIM(attachment_url) <> ''
+         ORDER BY due_date DESC`
+    ).bind(sessionId).all();
+    for (const row of assignmentFiles || []) {
+        materials.push({ source: 'assignment', type: 'file', ...row });
+    }
+    return c.json({ success: true, data: materials });
+});
+
+app.get('/:sessionId/surveys', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    const userId = c.get('user').userId;
+    const { results } = await c.env.DB.prepare(
+        `SELECT s.id, s.course_id, s.session_id, s.type, s.title, s.description, s.start_date, s.end_date, s.status, s.subject_name,
+                CASE WHEN sr.id IS NOT NULL THEN 'completed' ELSE 'pending' END as response_status
+         FROM surveys s
+         LEFT JOIN survey_responses sr ON sr.survey_id = s.id AND sr.student_id = ?
+         WHERE s.status = 'active'
+           AND (s.start_date IS NULL OR s.start_date <= date('now'))
+           AND (s.end_date IS NULL OR s.end_date >= date('now'))
+           AND (
+                s.session_id = ?
+                OR (s.course_id = ? AND s.session_id IS NULL)
+           )
+         ORDER BY s.created_at DESC`
+    ).bind(userId, sessionId, enrolled.lms_course_id || 0).all();
+    return c.json({ success: true, data: results || [] });
+});
 
 app.get('/:sessionId/timetable', async (c) => {
     const sessionId = parseInt(c.req.param('sessionId'), 10);

@@ -78,6 +78,9 @@ export const studentClassroomHtml = (sessionId: string) => `
                             <button onclick="loadTab('exam')" id="tab-exam" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-pen-fancy w-5"></i> 시험응시</button>
                             <button onclick="loadTab('assignments')" id="tab-assignments" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-tasks w-5"></i> 과제제출</button>
                             <button onclick="loadTab('attendance')" id="tab-attendance" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-clock w-5"></i> 출석현황</button>
+                            <button onclick="loadTab('notices')" id="tab-notices" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-bullhorn w-5"></i> 공지</button>
+                            <button onclick="loadTab('materials')" id="tab-materials" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-download w-5"></i> 자료</button>
+                            <button onclick="loadTab('surveys')" id="tab-surveys" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-poll w-5"></i> 설문</button>
                         </div>
                     </div>
                     <div class="bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm">
@@ -215,6 +218,9 @@ export const studentClassroomHtml = (sessionId: string) => `
             if (tab === 'exam') return renderExams();
             if (tab === 'assignments') return renderAssignments();
             if (tab === 'attendance') return renderAttendance();
+            if (tab === 'notices') return renderNotices();
+            if (tab === 'materials') return renderMaterials();
+            if (tab === 'surveys') return renderSurveys();
         };
 
         function renderHome() {
@@ -364,6 +370,120 @@ export const studentClassroomHtml = (sessionId: string) => `
             }
             document.getElementById('tabContent').innerHTML = html;
         }
+
+        async function renderNotices() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/notices', { headers: authHeaders() });
+            const json = await res.json();
+            const items = json.data || [];
+            if (!items.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-bullhorn', '이 과정에 등록된 공지가 없습니다.');
+                return;
+            }
+            document.getElementById('tabContent').innerHTML = '<div class="space-y-3">' + items.map(function(p) {
+                return '<button type="button" onclick="openNotice(' + p.id + ')" class="w-full text-left rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200 transition"><div class="flex items-center gap-2 mb-1">' + (p.pinned ? '<span class="text-[10px] font-black text-rose-500">고정</span>' : '') + '<span class="text-xs text-slate-400">' + fmtDate(p.created_at) + '</span></div><h3 class="font-black">' + esc(p.title) + '</h3><p class="text-sm text-slate-500 mt-1 line-clamp-2">' + esc(p.excerpt || '') + '</p></button>';
+            }).join('') + '</div>';
+        }
+
+        window.openNotice = async function(id) {
+            const content = document.getElementById('tabContent');
+            content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></div>';
+            const res = await fetch('/api/posts/' + id, { headers: authHeaders() });
+            const json = await res.json();
+            const p = json.data || json;
+            const body = String(p.content || '').replace(/\[R2:[^\]]+\]/g, '');
+            content.innerHTML = '<button type="button" onclick="loadTab(\'notices\')" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button><h2 class="text-xl font-black mb-2">' + esc(p.title) + '</h2><p class="text-xs text-slate-400 mb-6">' + fmtDate(p.created_at) + (p.author_name ? ' · ' + esc(p.author_name) : '') + '</p><div class="prose prose-sm max-w-none text-slate-700 leading-7 whitespace-pre-wrap">' + body + '</div>';
+        };
+
+        async function renderMaterials() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/materials', { headers: authHeaders() });
+            const json = await res.json();
+            const items = json.data || [];
+            if (!items.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-download', '다운로드할 자료가 없습니다.');
+                return;
+            }
+            document.getElementById('tabContent').innerHTML = '<div class="space-y-3">' + items.map(function(m) {
+                const url = m.file_url || '#';
+                const badge = m.source === 'assignment' ? '과제첨부' : (m.type || '자료');
+                return '<a href="' + esc(url) + '" target="_blank" rel="noopener" class="flex items-center justify-between gap-3 rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + esc(badge) + '</span><h3 class="font-black mt-1">' + esc(m.title) + '</h3>' + (m.description ? '<p class="text-xs text-slate-500 mt-1">' + esc(m.description) + '</p>' : '') + '</div><i class="fas fa-download text-slate-300"></i></a>';
+            }).join('') + '</div>';
+        }
+
+        function surveyTypeLabel(type) {
+            if (type === 'diagnosis') return '역량진단';
+            if (type === 'post_lecture') return '강의평가';
+            return '설문';
+        }
+
+        async function renderSurveys() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/surveys', { headers: authHeaders() });
+            const json = await res.json();
+            const items = json.data || [];
+            if (!items.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-poll', '이 회차에 진행 중인 설문이 없습니다.');
+                return;
+            }
+            document.getElementById('tabContent').innerHTML = '<div class="space-y-4">' + items.map(function(s) {
+                const pending = s.response_status === 'pending';
+                const btn = pending
+                    ? '<button type="button" onclick="openSurvey(' + s.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">참여하기</button>'
+                    : '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">완료</span>';
+                return '<div class="rounded-[1.5rem] border border-slate-100 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + surveyTypeLabel(s.type) + '</span><h3 class="font-black mt-1">' + esc(s.title) + (s.subject_name ? ' · ' + esc(s.subject_name) : '') + '</h3><p class="text-xs text-slate-500 mt-1">' + fmtDate(s.start_date) + ' ~ ' + fmtDate(s.end_date) + '</p></div>' + btn + '</div>';
+            }).join('') + '</div>';
+        }
+
+        window.openSurvey = async function(surveyId) {
+            const content = document.getElementById('tabContent');
+            content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></div>';
+            const res = await fetch('/api/surveys/' + surveyId, { headers: authHeaders() });
+            const json = await res.json();
+            if (!json.success || !json.data) {
+                content.innerHTML = emptyState('fa-poll', '설문을 불러올 수 없습니다.') + '<button type="button" onclick="loadTab(\'surveys\')" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                return;
+            }
+            const survey = json.data;
+            const questions = survey.questions || [];
+            let html = '<button type="button" onclick="loadTab(\'surveys\')" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
+            html += '<h2 class="text-xl font-black mb-2">' + esc(survey.title) + '</h2>';
+            html += '<p class="text-sm text-slate-500 mb-6 whitespace-pre-wrap">' + esc(survey.description || '') + '</p>';
+            html += '<form id="classroomSurveyForm" class="space-y-5" onsubmit="submitSurvey(event, ' + surveyId + ')">';
+            questions.forEach(function(q, idx) {
+                html += '<div class="rounded-2xl border border-slate-100 p-4"><p class="font-bold text-sm mb-3">' + (idx + 1) + '. ' + esc(q.question_text) + '</p>';
+                if (q.question_type === 'text') {
+                    html += '<textarea name="q_' + q.id + '" rows="4" class="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="의견을 입력하세요"></textarea>';
+                } else {
+                    html += '<div class="flex flex-wrap gap-2">';
+                    for (var k = 5; k >= 1; k--) {
+                        html += '<label class="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer"><input type="radio" required name="q_' + q.id + '" value="' + k + '" class="accent-sky-600"> ' + k + '점</label>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+            });
+            html += '<button type="submit" class="w-full min-h-[44px] rounded-2xl bg-sky-600 text-white font-black">제출하기</button></form>';
+            content.innerHTML = html;
+        };
+
+        window.submitSurvey = async function(e, surveyId) {
+            e.preventDefault();
+            const form = document.getElementById('classroomSurveyForm');
+            const fd = new FormData(form);
+            const answers = [];
+            fd.forEach(function(val, key) {
+                if (key.indexOf('q_') !== 0) return;
+                answers.push({ question_id: parseInt(key.slice(2), 10), answer_value: val });
+            });
+            const res = await fetch('/api/surveys/' + surveyId + '/submit', {
+                method: 'POST', headers: authHeaders(), body: JSON.stringify({ answers: answers })
+            });
+            const json = await res.json();
+            if (json.success) {
+                alert('설문이 제출되었습니다.');
+                loadTab('surveys');
+            } else {
+                alert(json.error || json.message || '제출에 실패했습니다.');
+            }
+        };
     </script>
 </body>
 </html>
