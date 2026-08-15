@@ -137,6 +137,18 @@ app.post('/checkin', async (c) => {
             ) VALUES (?, ?, ?, ?, ?, ?)
         `).bind(session.id, student_id, latitude, longitude, device_info, status).run();
 
+        try {
+            await syncAttendanceLog(c.env.DB, {
+                studentId: Number(student_id),
+                qrCourseId: Number(session.course_id),
+                hrdSessionId: body.session_id != null ? Number(body.session_id) : null,
+                date: String(session.session_date || '').slice(0, 10),
+                status,
+            });
+        } catch (syncErr) {
+            console.error('QR 출석부 연동 실패:', syncErr);
+        }
+
         return c.json({ success: true, data: { status } });
     } catch (e) {
         console.error('Failed to check in:', e);
@@ -188,6 +200,63 @@ app.get('/course/:courseId', async (c) => {
 });
 
 // Haversine formula로 거리 계산 (미터)
+async function syncAttendanceLog(
+    DB: D1Database,
+    opts: { studentId: number; qrCourseId: number; hrdSessionId: number | null; date: string; status: string }
+) {
+    if (!opts.studentId || !opts.date) return;
+    let enrollmentId: number | null = null;
+    if (opts.hrdSessionId && !Number.isNaN(opts.hrdSessionId)) {
+        const row = await DB.prepare(
+            `SELECT id FROM course_session_enrollments
+             WHERE session_id = ? AND user_id = ? AND status IN ('enrolled', 'approved')`
+        ).bind(opts.hrdSessionId, opts.studentId).first<{ id: number }>();
+        enrollmentId = row?.id ?? null;
+    }
+    if (!enrollmentId && opts.qrCourseId) {
+        const bySession = await DB.prepare(
+            `SELECT id FROM course_session_enrollments
+             WHERE session_id = ? AND user_id = ? AND status IN ('enrolled', 'approved')`
+        ).bind(opts.qrCourseId, opts.studentId).first<{ id: number }>();
+        enrollmentId = bySession?.id ?? null;
+    }
+    if (!enrollmentId && opts.qrCourseId) {
+        const byLms = await DB.prepare(
+            `SELECT cse.id FROM course_session_enrollments cse
+             JOIN course_sessions cs ON cs.id = cse.session_id
+             WHERE cs.lms_course_id = ? AND cse.user_id = ? AND cse.status IN ('enrolled', 'approved')
+             ORDER BY cse.id DESC LIMIT 1`
+        ).bind(opts.qrCourseId, opts.studentId).first<{ id: number }>();
+        enrollmentId = byLms?.id ?? null;
+    }
+    if (!enrollmentId) {
+        const legacy = await DB.prepare(
+            `SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'approved'`
+        ).bind(opts.studentId, opts.qrCourseId).first<{ id: number }>();
+        enrollmentId = legacy?.id ?? null;
+    }
+    if (!enrollmentId) return;
+
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const checkIn = kst.toISOString().substring(11, 19);
+    const logStatus = opts.status === 'late' ? 'late' : 'present';
+    const existing = await DB.prepare(
+        `SELECT id FROM attendance_logs WHERE enrollment_id = ? AND date = ?`
+    ).bind(enrollmentId, opts.date).first<{ id: number }>();
+    if (existing) {
+        await DB.prepare(
+            `UPDATE attendance_logs
+             SET status = ?, check_in_time = COALESCE(check_in_time, ?), note = COALESCE(note, 'QR 출석'), updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`
+        ).bind(logStatus, checkIn, existing.id).run();
+    } else {
+        await DB.prepare(
+            `INSERT INTO attendance_logs (enrollment_id, date, status, check_in_time, note)
+             VALUES (?, ?, ?, ?, 'QR 출석')`
+        ).bind(enrollmentId, opts.date, logStatus, checkIn).run();
+    }
+}
+
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371e3; // 지구 반경 (미터)
     const φ1 = lat1 * Math.PI / 180;

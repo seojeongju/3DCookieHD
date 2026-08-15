@@ -177,6 +177,13 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
                             <input type="text" name="title" id="postTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
+                            <label class="block text-gray-700 font-medium mb-2">대상 회차 (선택)</label>
+                            <select name="session_id" id="postSessionId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">전체(과정 공지) / 미지정</option>
+                            </select>
+                            <p class="text-xs text-gray-400 mt-1">회차를 고르면 해당 강의실 공지에만 표시됩니다.</p>
+                        </div>
+                        <div>
                             <label class="block text-gray-700 font-medium mb-2">내용</label>
                             <textarea name="content" id="postContent" rows="15" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
@@ -235,6 +242,27 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             loadPosts(1);
         }
 
+        async function loadPostSessionOptions(selectedId) {
+            const sel = document.getElementById('postSessionId');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">전체(과정 공지) / 미지정</option>';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/course-sessions?limit=100&page=1', { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                const rows = json.data || [];
+                rows.forEach(function(s) {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = [s.course_name, s.session_number ? (s.session_number + '회차') : '', s.session_name].filter(Boolean).join(' ');
+                    if (selectedId && Number(selectedId) === Number(s.id)) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
         function openModal(id, post = null) {
             const modal = document.getElementById(id);
             const form = document.getElementById('createPostForm');
@@ -265,6 +293,7 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             }
             
             modal.classList.remove('hidden');
+            loadPostSessionOptions(post && post.session_id);
 
             // TinyMCE 초기화 또는 내용 설정
             if (tinymce.get('postContent')) {
@@ -579,6 +608,8 @@ export const adminPostsListHtml = (sidebar: string | null = null) => `
             
             // 체크박스 처리 (pinned)
             data.pinned = document.getElementById('postPinned').checked;
+            if (data.session_id) data.session_id = parseInt(data.session_id, 10);
+            else delete data.session_id;
 
             try {
                 const token = localStorage.getItem('token');

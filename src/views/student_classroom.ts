@@ -62,6 +62,21 @@ export const studentClassroomHtml = (sessionId: string) => `
         </div>
     </div>
 
+    <div id="evidenceModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-[2rem] p-6 sm:p-8 shadow-2xl">
+            <h3 class="text-lg font-black tracking-tight mb-1">NCS 증빙 제출</h3>
+            <p class="text-sm text-slate-500 mb-4" id="evidenceUnitName"></p>
+            <input type="hidden" id="evidencePlanId">
+            <input id="evidenceFileName" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제출물 제목">
+            <input id="evidenceFileUrl" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="파일 URL 또는 링크">
+            <textarea id="evidenceComment" rows="3" class="w-full rounded-2xl border border-slate-200 p-3 text-sm mb-4" placeholder="메모 (선택)"></textarea>
+            <div class="flex gap-2">
+                <button type="button" onclick="closeEvidenceModal()" class="flex-1 min-h-[44px] rounded-2xl border border-slate-200 font-black text-sm">취소</button>
+                <button type="button" onclick="submitEvidence()" class="flex-1 min-h-[44px] rounded-2xl bg-sky-600 text-white font-black text-sm">제출</button>
+            </div>
+        </div>
+    </div>
+
     <main id="classroomContent" class="hidden min-h-screen pt-6 pb-24 sm:pb-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
@@ -114,12 +129,13 @@ export const studentClassroomHtml = (sessionId: string) => `
     ${footerHtml()}
 
     <nav id="mobileBottomNav" class="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md" style="padding-bottom: max(0.4rem, env(safe-area-inset-bottom));">
-        <div class="grid grid-cols-5 text-center">
+        <div class="grid grid-cols-6 text-center">
             <button type="button" onclick="loadTab('home')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="home"><i class="fas fa-home block text-base mb-0.5"></i>홈</button>
             <button type="button" onclick="loadTab('exam')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="exam"><i class="fas fa-pen-fancy block text-base mb-0.5"></i>시험</button>
             <button type="button" onclick="loadTab('assignments')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="assignments"><i class="fas fa-tasks block text-base mb-0.5"></i>과제</button>
             <button type="button" onclick="loadTab('attendance')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="attendance"><i class="fas fa-clock block text-base mb-0.5"></i>출석</button>
-            <button type="button" onclick="loadTab('surveys')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="surveys"><i class="fas fa-poll block text-base mb-0.5"></i>설문</button>
+            <button type="button" onclick="loadTab('notices')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="notices"><i class="fas fa-bullhorn block text-base mb-0.5"></i>공지</button>
+            <button type="button" onclick="loadTab('qna')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="qna"><i class="fas fa-comments block text-base mb-0.5"></i>질문</button>
         </div>
     </nav>
 
@@ -348,14 +364,18 @@ export const studentClassroomHtml = (sessionId: string) => `
         }
 
         async function renderExams() {
-            const [examRes, ncsRes] = await Promise.all([
+            const [examRes, ncsRes, planRes] = await Promise.all([
                 fetch('/api/student/classroom/' + sessionId + '/exams', { headers: authHeaders() }),
-                fetch('/api/student/classroom/' + sessionId + '/ncs', { headers: authHeaders() })
+                fetch('/api/student/classroom/' + sessionId + '/ncs', { headers: authHeaders() }),
+                fetch('/api/student/classroom/' + sessionId + '/ncs-plans', { headers: authHeaders() })
             ]);
             const json = await examRes.json();
             const ncsJson = await ncsRes.json();
+            const planJson = await planRes.json();
             const exams = json.data || [];
             const ncs = ncsJson.data || {};
+            const plans = planJson.data || [];
+            window._ncsPlans = plans;
             let html = '';
             if (ncs.question_count > 0) {
                 const ncsBtn = ncs.has_submitted
@@ -363,7 +383,15 @@ export const studentClassroomHtml = (sessionId: string) => `
                     : '<button type="button" onclick="openNcsExam()" class="px-4 py-2.5 bg-amber-500 text-white rounded-2xl text-[10px] font-black">응시하기</button>';
                 html += '<div class="rounded-[1.5rem] border border-amber-100 bg-amber-50/60 p-5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-amber-600">NCS 본평가</span><h3 class="font-black mt-1">과정 본평가</h3><p class="text-xs text-slate-500 mt-1">' + ncs.question_count + '문항</p></div>' + ncsBtn + '</div>';
             }
-            if (!exams.length && ncs.question_count <= 0) {
+            if (plans.length) {
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 증빙 자료</h3><div class="space-y-3 mb-6">';
+                plans.forEach(function(p) {
+                    const done = !!p.has_evidence;
+                    html += '<div class="rounded-[1.5rem] border border-slate-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><p class="text-[10px] font-black text-sky-600">[' + esc(p.unit_code || '') + ']</p><h3 class="font-black text-sm">' + esc(p.unit_name) + '</h3><p class="text-xs text-slate-500 mt-1">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div>' + (done ? '<span class="px-4 py-2.5 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black">제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">제출</button>') + '</div>';
+                });
+                html += '</div>';
+            }
+            if (!exams.length && ncs.question_count <= 0 && !plans.length) {
                 document.getElementById('tabContent').innerHTML = emptyState('fa-pen-fancy', '이 회차에 배정된 시험이 없습니다.');
                 return;
             }
@@ -547,7 +575,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             if (!code) return;
             const res = await fetch('/api/attendance-qr/checkin', {
                 method: 'POST', headers: authHeaders(),
-                body: JSON.stringify({ qr_code: code, student_id: currentUser.id, device_info: navigator.userAgent })
+                body: JSON.stringify({ qr_code: code, student_id: currentUser.id, session_id: parseInt(sessionId, 10), device_info: navigator.userAgent })
             });
             const json = await res.json();
             if (json.success) {
@@ -832,6 +860,49 @@ export const studentClassroomHtml = (sessionId: string) => `
                 loadTab('review');
             } else {
                 alert(json.error || '등록에 실패했습니다.');
+            }
+        };
+
+        window.openEvidenceModal = function(planId) {
+            const plans = window._ncsPlans || [];
+            const p = plans.find(function(x) { return x.id === planId; }) || {};
+            document.getElementById('evidencePlanId').value = planId;
+            document.getElementById('evidenceUnitName').textContent = p.unit_name || '능력단위';
+            document.getElementById('evidenceFileName').value = (overview.course_name || '') + ' - ' + (p.unit_name || '');
+            document.getElementById('evidenceFileUrl').value = '';
+            document.getElementById('evidenceComment').value = '';
+            const m = document.getElementById('evidenceModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        };
+        window.closeEvidenceModal = function() {
+            const m = document.getElementById('evidenceModal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        };
+        window.submitEvidence = async function() {
+            if (!currentUser || !currentUser.id) { alert('로그인 정보를 확인할 수 없습니다.'); return; }
+            const planId = document.getElementById('evidencePlanId').value;
+            const fileName = document.getElementById('evidenceFileName').value.trim();
+            const fileUrl = document.getElementById('evidenceFileUrl').value.trim();
+            if (!fileName || !fileUrl) { alert('제목과 파일 URL을 입력하세요.'); return; }
+            const res = await fetch('/api/ncs/evidence', {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({
+                    plan_id: parseInt(planId, 10),
+                    student_id: currentUser.id,
+                    file_name: fileName,
+                    file_url: fileUrl,
+                    file_type: 'link',
+                    comment: document.getElementById('evidenceComment').value.trim()
+                })
+            });
+            const json = await res.json();
+            if (json.success) {
+                closeEvidenceModal();
+                loadTab('exam');
+            } else {
+                alert(json.error || '제출에 실패했습니다.');
             }
         };
     </script>

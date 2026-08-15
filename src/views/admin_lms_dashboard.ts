@@ -117,7 +117,10 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
                 <div class="bg-white rounded-lg shadow p-4 sm:p-6 min-w-0 overflow-hidden">
                     <div class="flex justify-between items-center gap-2 mb-4 min-w-0">
                         <h3 class="text-base sm:text-lg font-bold text-gray-800 truncate">과정 공지사항</h3>
-                        <a id="noticesMoreLink" href="#" class="text-xs text-gray-500 hover:text-gray-700">더보기</a>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <button type="button" onclick="openLmsNoticeModal()" class="text-xs font-bold text-sky-600 hover:text-slate-900">회차 공지 등록</button>
+                            <a id="noticesMoreLink" href="#" class="text-xs text-gray-500 hover:text-gray-700">더보기</a>
+                        </div>
                     </div>
                     <ul class="space-y-3 text-sm text-gray-600" id="noticesContainer">
                         <li class="flex justify-between">
@@ -504,6 +507,31 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
                 container.innerHTML = '<li class="text-center text-gray-400 text-sm py-4">공지사항을 불러올 수 없습니다.</li>';
             }
         }
+
+        window.openLmsNoticeModal = async function() {
+            var title = prompt('회차 공지 제목');
+            if (!title) return;
+            var content = prompt('회차 공지 내용');
+            if (!content) return;
+            var sid = new URLSearchParams(window.location.search).get('session_id') || await resolveSessionIdForTimetable();
+            if (!sid) { alert('회차 정보를 찾을 수 없습니다.'); return; }
+            try {
+                var res = await fetch('/api/student/classroom/' + sid + '/notices', {
+                    method: 'POST',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+                    body: JSON.stringify({ title: title, content: content })
+                });
+                var json = await res.json();
+                if (json.success) {
+                    alert('회차 공지가 등록되었습니다.');
+                    loadNotices();
+                } else {
+                    alert(json.error || '등록에 실패했습니다.');
+                }
+            } catch (e) {
+                alert('등록 중 오류가 발생했습니다.');
+            }
+        };
 
         // ===== 8. NCS 능력단위별 이수 현황 =====
         async function loadNcsSummary() {

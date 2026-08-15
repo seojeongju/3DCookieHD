@@ -108,7 +108,7 @@ app.post('/:sessionId/notices', async (c) => {
     const sessionId = parseInt(c.req.param('sessionId'), 10);
     const user = c.get('user');
     if (!user?.userId || isNaN(sessionId)) return c.json({ success: false, error: '잘못된 요청입니다' }, 400);
-    if (user.role !== 'admin' && user.role !== 'teacher') {
+    if (user.role !== 'admin' && user.role !== 'teacher' && user.role !== 'instructor') {
         return c.json({ success: false, error: '공지는 관리자·강사만 등록할 수 있습니다' }, 403);
     }
     const enrolled = await requireEnrollment(c, sessionId);
@@ -199,6 +199,28 @@ app.get('/:sessionId/ncs', async (c) => {
         hasSubmitted = false;
     }
     return c.json({ success: true, data: { question_count: questionCount, has_submitted: hasSubmitted } });
+});
+
+app.get('/:sessionId/ncs-plans', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    const userId = c.get('user').userId;
+    if (!enrolled.lms_course_id) return c.json({ success: true, data: [] });
+    try {
+        const { results } = await c.env.DB.prepare(
+            `SELECT p.id, p.method, p.planned_date, p.target_score, p.course_id,
+                    u.name as unit_name, u.code as unit_code,
+                    (SELECT 1 FROM ncs_evidence ev WHERE ev.plan_id = p.id AND ev.student_id = ? LIMIT 1) as has_evidence
+             FROM ncs_evaluation_plans p
+             JOIN ncs_units u ON u.id = p.ncs_unit_id
+             WHERE p.course_id = ?
+             ORDER BY p.planned_date DESC`
+        ).bind(userId, enrolled.lms_course_id).all();
+        return c.json({ success: true, data: results || [] });
+    } catch {
+        return c.json({ success: true, data: [] });
+    }
 });
 
 app.get('/:sessionId/materials', async (c) => {
