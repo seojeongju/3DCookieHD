@@ -24,6 +24,8 @@ export const studentClassroomHtml = (sessionId: string) => `
         .week-day-btn.is-selected .week-dow { color: rgb(186 230 253); }
         .week-day-btn.is-done { border-color: rgb(110 231 183); background: rgb(236 253 245); }
         .week-day-btn.is-absent { border-color: rgb(254 202 202); background: rgb(255 241 242); }
+        .option-label { cursor: pointer; }
+        .option-input:checked + .option-label { background-color: rgb(240 249 255); border-color: rgb(14 165 233); }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
@@ -194,6 +196,19 @@ export const studentClassroomHtml = (sessionId: string) => `
         function emptyState(icon, msg) {
             return '<div class="text-center py-16"><i class="fas ' + icon + ' text-4xl text-slate-300 mb-4"></i><p class="text-slate-500 font-bold">' + msg + '</p></div>';
         }
+        function lmsEmpty(icon, msg) {
+            var extra = (overview && !overview.lms_course_id)
+                ? '<p class="text-xs text-slate-400 mt-2 text-center">이 회차에 LMS 과정이 연결되어 있지 않습니다. 담당자에게 문의하세요.</p>'
+                : '<p class="text-xs text-slate-400 mt-2 text-center">LMS에 해당 항목이 배정되면 여기에 표시됩니다.</p>';
+            return emptyState(icon, msg) + extra;
+        }
+        function stopExamTimer() {
+            if (window._examTimer) { clearInterval(window._examTimer); window._examTimer = null; }
+        }
+        function studentId() {
+            if (!currentUser) return null;
+            return currentUser.id != null ? currentUser.id : currentUser.userId;
+        }
         function todayYmd() {
             var t = new Date(Date.now() + 9 * 60 * 60 * 1000);
             return t.toISOString().slice(0, 10);
@@ -338,6 +353,7 @@ export const studentClassroomHtml = (sessionId: string) => `
         });
 
         window.loadTab = async function(tab) {
+            stopExamTimer();
             if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
             document.querySelectorAll('.nav-tab').forEach(function(btn) {
                 btn.classList.toggle('active', btn.id === 'tab-' + tab);
@@ -396,6 +412,9 @@ export const studentClassroomHtml = (sessionId: string) => `
                 }).join('');
             }
             html += '</div></div>';
+            if (overview && !overview.lms_course_id) {
+                html += '<div class="mb-6 rounded-[1.5rem] border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-800">이 회차에 LMS 과정이 연결되어 있지 않아 사전평가·설문·자료가 비어 있을 수 있습니다. 담당자에게 문의하세요.</div>';
+            }
             html += '<p class="text-xs font-bold text-slate-400 mb-6"><i class="fas fa-map-marker-alt text-sky-500 mr-1"></i>' + esc(overview.location || '미정') + ' · ' + fmtDate(overview.training_start_date) + ' ~ ' + fmtDate(overview.training_end_date) + '</p>';
             html += '<div class="grid grid-cols-3 gap-3 mb-8">';
             html += '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 사전평가</p><p class="text-2xl font-black mt-1 ' + ((pending.exams || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.exams || 0) + '</p></button>';
@@ -511,7 +530,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const json = await res.json();
             const exams = json.data || [];
             if (!exams.length) {
-                document.getElementById('tabContent').innerHTML = emptyState('fa-file-contract', '이 과정 LMS에 배정된 사전평가가 없습니다.');
+                document.getElementById('tabContent').innerHTML = lmsEmpty('fa-file-contract', '이 과정 LMS에 배정된 사전평가가 없습니다.');
                 return;
             }
             var doneExam = 0;
@@ -526,23 +545,205 @@ export const studentClassroomHtml = (sessionId: string) => `
             function examCards(list) {
                 return '<div class="space-y-3">' + list.map(function(e) {
                     const submitted = !!e.has_submitted;
-                    const takeUrl = e.type === 'practice'
-                        ? '/student/pre-assessment/take?session_id=' + encodeURIComponent(sessionId) + (e.course_id ? '&course_id=' + e.course_id : '') + '&from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam')
-                        : '/student/exam/' + e.id + '?from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam');
                     const btn = submitted
                         ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">응시완료</span>'
-                        : '<a href="' + takeUrl + '" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">응시하기</a>';
+                        : '<button type="button" onclick="openClassroomExam(' + e.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">응시하기</button>';
                     return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex gap-4"><div class="w-1.5 rounded-full ' + (submitted ? 'bg-emerald-400' : 'bg-sky-500') + ' shrink-0"></div><div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + examTypeLabel(e.type) + '</span><h3 class="font-black text-lg mt-1">' + esc(e.title) + '</h3><p class="text-xs text-slate-500 mt-1">' + esc(e.description || '') + (e.time_limit_minutes ? ' · ' + e.time_limit_minutes + '분' : '') + '</p></div>' + btn + '</div></div>';
                 }).join('') + '</div>';
             }
             if (practice.length) {
-                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">사전평가</h3>' + examCards(practice);
+                var pendingPractice = practice.some(function(e) { return !e.has_submitted; });
+                html += '<div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">사전평가</h3>' + (pendingPractice && practice.length > 1 ? '<button type="button" onclick="openPreAssessmentCombined()" class="text-xs font-black text-sky-600">한 번에 응시</button>' : '') + '</div>' + examCards(practice);
             }
             if (others.length) {
                 html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3 mt-6">과정 시험</h3>' + examCards(others);
             }
             document.getElementById('tabContent').innerHTML = html;
         }
+
+        function parseOpts(raw) {
+            if (!raw) return [];
+            if (Array.isArray(raw)) return raw;
+            try { return JSON.parse(raw); } catch (e) { return []; }
+        }
+        function questionBlockHtml(q, idx) {
+            var opts = parseOpts(q.options);
+            var inputHtml = '';
+            if (q.question_type === 'multiple_choice') {
+                inputHtml = '<div class="space-y-2 mt-3">';
+                opts.forEach(function(opt, i) {
+                    inputHtml += '<label class="block"><input type="radio" name="q_' + q.id + '" id="q_' + q.id + '_' + (i + 1) + '" value="' + (i + 1) + '" class="option-input peer sr-only"><span class="option-label block w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-sm">' + (i + 1) + '. ' + esc(opt) + '</span></label>';
+                });
+                inputHtml += '</div>';
+            } else if (q.question_type === 'essay') {
+                inputHtml = '<textarea name="q_' + q.id + '" rows="5" class="mt-3 w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="답안을 서술하세요"></textarea>';
+            } else {
+                inputHtml = '<input type="text" name="q_' + q.id + '" class="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" placeholder="정답을 입력하세요">';
+            }
+            return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 mb-3"><div class="flex items-start gap-3"><span class="w-8 h-8 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center font-black text-sm shrink-0">' + idx + '</span><div class="min-w-0 flex-1"><p class="font-bold">' + esc(q.question_text) + '</p><p class="text-[10px] font-black text-slate-400 mt-1">배점 ' + (q.points || 0) + '점</p>' + inputHtml + '</div></div></div>';
+        }
+        function startClassroomTimer(minutes) {
+            stopExamTimer();
+            var timeLeft = Math.max(1, parseInt(minutes, 10) || 60) * 60;
+            function tick() {
+                var el = document.getElementById('examTimer');
+                if (!el) { stopExamTimer(); return; }
+                var m = Math.floor(timeLeft / 60);
+                var s = timeLeft % 60;
+                el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+                if (timeLeft <= 0) {
+                    stopExamTimer();
+                    alert('제한시간이 종료되었습니다. 답안을 제출합니다.');
+                    if (window._questionToExam) submitPreAssessmentCombined({ preventDefault: function() {} });
+                    else submitClassroomExam({ preventDefault: function() {} });
+                    return;
+                }
+                timeLeft -= 1;
+            }
+            tick();
+            window._examTimer = setInterval(tick, 1000);
+        }
+        function collectNamedAnswers() {
+            var answers = {};
+            document.querySelectorAll('input[name^="q_"], textarea[name^="q_"]').forEach(function(inp) {
+                var qid = inp.name.replace('q_', '');
+                if (inp.type === 'radio') {
+                    if (inp.checked) answers[qid] = inp.value;
+                } else {
+                    answers[qid] = inp.value || '';
+                }
+            });
+            return answers;
+        }
+        function examTakeShell(title, desc, qcount, minutes, bodyHtml, submitFn) {
+            return '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>' +
+                '<div class="flex flex-wrap items-start justify-between gap-3 mb-4"><div><h2 class="text-xl font-black">' + esc(title) + '</h2><p class="text-xs text-slate-500 mt-1">' + esc(desc || '') + ' · ' + qcount + '문항 · ' + minutes + '분</p></div><div class="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-sm font-black"><i class="fas fa-clock mr-1"></i><span id="examTimer">00:00</span></div></div>' +
+                '<form id="classroomExamForm" onsubmit="' + submitFn + '">' + bodyHtml +
+                '<button type="submit" class="w-full min-h-[44px] mt-4 rounded-2xl bg-sky-600 text-white font-black">제출하기</button></form>';
+        }
+
+        window.openClassroomExam = async function(examId) {
+            const content = document.getElementById('tabContent');
+            content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i><p class="mt-3 text-sm font-bold">문제를 불러오는 중...</p></div>';
+            window._takingExamId = examId;
+            window._questionToExam = null;
+            try {
+                const res = await fetch('/api/exams/' + examId + '/take', { headers: authHeaders() });
+                const json = await res.json();
+                const payload = json.data || json;
+                const exam = payload.exam || payload;
+                const questions = payload.questions || [];
+                if (json.error || json.success === false) {
+                    content.innerHTML = lmsEmpty('fa-file-contract', json.error || '시험을 불러올 수 없습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600 block mx-auto">목록으로</button>';
+                    return;
+                }
+                if (!questions.length) {
+                    content.innerHTML = emptyState('fa-file-contract', '출제된 문항이 없습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                    return;
+                }
+                var minutes = exam.time_limit_minutes || exam.time_limit || 60;
+                var body = '';
+                questions.forEach(function(q, i) { body += questionBlockHtml(q, i + 1); });
+                content.innerHTML = examTakeShell(exam.title || '사전평가', exam.description || '', questions.length, minutes, body, 'event.preventDefault(); submitClassroomExam(event);');
+                startClassroomTimer(minutes);
+            } catch (e) {
+                content.innerHTML = emptyState('fa-file-contract', '문제를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+            }
+        };
+
+        window.submitClassroomExam = async function(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (!confirm('정말 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.')) return;
+            stopExamTimer();
+            var sid = studentId();
+            if (!sid) { alert('로그인 정보를 확인할 수 없습니다.'); return; }
+            var examId = window._takingExamId;
+            var answers = collectNamedAnswers();
+            try {
+                const res = await fetch('/api/exams/' + examId + '/submit', {
+                    method: 'POST', headers: authHeaders(),
+                    body: JSON.stringify({ student_id: sid, answers: answers })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    var score = result.score != null ? result.score : (result.data && result.data.score);
+                    var total = result.totalPoints != null ? result.totalPoints : (result.data && result.data.totalPoints);
+                    document.getElementById('tabContent').innerHTML = '<div class="text-center py-10"><div class="w-16 h-16 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div><h3 class="text-xl font-black">제출 완료</h3><p class="text-3xl font-black text-sky-600 mt-2">' + (score != null ? score : '-') + (total != null ? ' / ' + total : '') + '</p><button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-6 px-6 py-3 bg-sky-600 text-white rounded-2xl font-black">목록으로</button></div>';
+                } else {
+                    alert(result.error || '제출에 실패했습니다.');
+                }
+            } catch (err) {
+                alert('제출 중 오류가 발생했습니다.');
+            }
+        };
+
+        window.openPreAssessmentCombined = async function() {
+            const content = document.getElementById('tabContent');
+            content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i><p class="mt-3 text-sm font-bold">사전평가를 불러오는 중...</p></div>';
+            window._takingExamId = null;
+            try {
+                const res = await fetch('/api/exams/student/pre-assessment-combined?session_id=' + encodeURIComponent(sessionId), { headers: authHeaders() });
+                const json = await res.json();
+                const data = json.data || json;
+                const exams = data.exams || [];
+                if (!exams.length) {
+                    content.innerHTML = lmsEmpty('fa-file-contract', '진행 중인 사전평가가 없습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600 block mx-auto">목록으로</button>';
+                    return;
+                }
+                var map = {};
+                var body = '';
+                var n = 0;
+                var minutes = 0;
+                exams.forEach(function(ex) {
+                    minutes += (ex.time_limit_minutes || ex.time_limit || 0);
+                    if (ex.questions && ex.questions.length) body += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3 mt-4">' + esc(ex.title) + '</h3>';
+                    (ex.questions || []).forEach(function(q) {
+                        n += 1;
+                        map[q.id] = ex.id;
+                        body += questionBlockHtml(q, n);
+                    });
+                });
+                window._questionToExam = map;
+                if (!n) {
+                    content.innerHTML = emptyState('fa-file-contract', '출제된 문항이 없습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                    return;
+                }
+                content.innerHTML = examTakeShell('사전평가', data.course_title || '', n, minutes || 60, body, 'event.preventDefault(); submitPreAssessmentCombined(event);');
+                startClassroomTimer(minutes || 60);
+            } catch (e) {
+                content.innerHTML = emptyState('fa-file-contract', '사전평가를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+            }
+        };
+
+        window.submitPreAssessmentCombined = async function(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (!confirm('정말 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.')) return;
+            stopExamTimer();
+            var sid = studentId();
+            if (!sid) { alert('로그인 정보를 확인할 수 없습니다.'); return; }
+            var map = window._questionToExam || {};
+            var all = collectNamedAnswers();
+            var byExam = {};
+            Object.keys(map).forEach(function(qid) {
+                var eid = map[qid];
+                if (!byExam[eid]) byExam[eid] = {};
+                byExam[eid][qid] = all[qid] || '';
+            });
+            var submitted = 0;
+            var failed = 0;
+            var examIds = Object.keys(byExam);
+            for (var i = 0; i < examIds.length; i++) {
+                try {
+                    const res = await fetch('/api/exams/' + examIds[i] + '/submit', {
+                        method: 'POST', headers: authHeaders(),
+                        body: JSON.stringify({ student_id: sid, answers: byExam[examIds[i]] })
+                    });
+                    const result = await res.json();
+                    if (result.success) submitted += 1; else failed += 1;
+                } catch (err) { failed += 1; }
+            }
+            document.getElementById('tabContent').innerHTML = '<div class="text-center py-10"><div class="w-16 h-16 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div><h3 class="text-xl font-black">제출 완료</h3><p class="text-sm text-slate-500 mt-2">' + submitted + '건 제출' + (failed ? ' · 실패 ' + failed + '건' : '') + '</p><button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-6 px-6 py-3 bg-sky-600 text-white rounded-2xl font-black">목록으로</button></div>';
+        };
 
         async function renderNcs() {
             const [ncsRes, planRes] = await Promise.all([
@@ -555,7 +756,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const plans = planJson.data || [];
             window._ncsPlans = plans;
             if (ncs.question_count <= 0 && !plans.length) {
-                document.getElementById('tabContent').innerHTML = emptyState('fa-certificate', '이 과정 LMS에 배정된 NCS본평가가 없습니다.');
+                document.getElementById('tabContent').innerHTML = lmsEmpty('fa-certificate', '이 과정 LMS에 배정된 NCS본평가가 없습니다.');
                 return;
             }
             let html = '';
@@ -779,7 +980,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const exams = data.exams || [];
             const assignments = data.assignments || [];
             if (!exams.length && !assignments.length) {
-                document.getElementById('tabContent').innerHTML = emptyState('fa-chart-bar', '채점된 성적 기록이 없습니다.');
+                document.getElementById('tabContent').innerHTML = lmsEmpty('fa-chart-bar', '채점된 성적 기록이 없습니다.');
                 return;
             }
             let html = '';
@@ -847,7 +1048,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const json = await res.json();
             const items = json.data || [];
             if (!items.length) {
-                document.getElementById('tabContent').innerHTML = emptyState('fa-download', '다운로드할 자료가 없습니다.');
+                document.getElementById('tabContent').innerHTML = lmsEmpty('fa-download', '다운로드할 자료가 없습니다.');
                 return;
             }
             const groups = {};
@@ -894,7 +1095,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const json = await res.json();
             const items = json.data || [];
             if (!items.length) {
-                document.getElementById('tabContent').innerHTML = emptyState('fa-poll', '이 회차에 진행 중인 설문이 없습니다.');
+                document.getElementById('tabContent').innerHTML = lmsEmpty('fa-poll', '이 회차에 진행 중인 설문이 없습니다.');
                 return;
             }
             var pendingCount = 0;
