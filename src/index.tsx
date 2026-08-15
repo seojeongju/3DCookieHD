@@ -166,6 +166,7 @@ import {
     isNoindexPath,
     llmsTxt,
     PUBLIC_PATHS,
+    seoOptionsForPortfolio,
     seoOptionsForSession,
     SITE_ORIGIN,
 } from './utils/seo';
@@ -200,10 +201,16 @@ app.use('*', async (c, next) => {
     let seoOptions = getSeoOptionsForPath(requestUrl.pathname);
     const sessionMatch = requestUrl.pathname.match(/^\/course-sessions\/(\d+)$/);
     const generalMatch = requestUrl.pathname.match(/^\/courses\/(\d+)$/);
+    const portfolioMatch = requestUrl.pathname.match(/^\/portfolios\/(\d+)$/);
     if (c.env.DB && sessionMatch) {
         seoOptions = (await seoOptionsForSession(c.env.DB, Number(sessionMatch[1]), 'session')) || seoOptions;
     } else if (c.env.DB && generalMatch) {
         seoOptions = (await seoOptionsForSession(c.env.DB, Number(generalMatch[1]), 'general')) || seoOptions;
+    } else if (c.env.DB && portfolioMatch) {
+        seoOptions = (await seoOptionsForPortfolio(c.env.DB, Number(portfolioMatch[1]))) || seoOptions;
+    }
+    if (seoOptions && requestUrl.search && requestUrl.search !== '?') {
+        seoOptions = { ...seoOptions, noindex: true, path: requestUrl.pathname };
     }
     if (!seoOptions || !contentType.includes('text/html') || c.res.status >= 400) return;
 

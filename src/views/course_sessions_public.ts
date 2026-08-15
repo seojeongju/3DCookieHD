@@ -179,7 +179,7 @@ export function courseSessionDetailHtml(id: string, source: 'session' | 'general
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>과정 상세 - 와우쓰리디홍대센터</title>
+    <title>${source === 'general' ? '일반 교육과정' : '3D프린팅 국비지원 과정'} ${id} - 와우쓰리디홍대센터</title>
     <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@100..900&display=swap" rel="stylesheet">

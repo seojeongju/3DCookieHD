@@ -7,7 +7,7 @@ export const portfolioDetailHtml = (id: string) => `
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>포트폴리오 상세 - 와우쓰리디홍대센터</title>
+  <title>수강생 포트폴리오 ${id} - 와우쓰리디홍대센터</title>
   <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   </head>

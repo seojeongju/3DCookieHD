@@ -7,7 +7,7 @@ export const layoutHtml = (title: string, content: string, activeMenu = '', head
     const defaultMeta = hasPageSeo
         ? ''
         : `<title>${title} - 와우쓰리디홍대센터</title>
-    <meta name="description" content="4차산업 3D프린팅 교육 전문. 와우쓰리디홍대센터에서 3D 모델링·프린팅 국비지원 과정, 실무 교육, NCS 기반 커리큘럼을 만나보세요. 홍대·구미·전주.">
+    <meta name="description" content="${title} 페이지. 와우쓰리디홍대센터 3D프린팅 국비지원·실무 교육을 안내합니다.">
     <meta name="keywords" content="와우쓰리디, 3D프린팅, 3D모델링, 국비지원교육, NCS, 홍대교육, 구미교육, 전주교육, 4차산업, 직업훈련">`;
     return `
 <!DOCTYPE html>

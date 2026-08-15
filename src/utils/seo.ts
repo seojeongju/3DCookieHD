@@ -6,6 +6,15 @@
 export const SITE_ORIGIN = 'https://3dcookiehd.com';
 export const SITE_NAME = '와우쓰리디홍대센터';
 const DEFAULT_DESCRIPTION = '4차산업 3D프린팅 교육 전문. 와우쓰리디홍대센터에서 3D 모델링·프린팅 국비지원 과정, 실무 교육, NCS 기반 커리큘럼을 만나보세요. 홍대·구미·전주.';
+
+function toPlainMeta(text: string, max = 160): string {
+    return String(text || '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, max);
+}
 const DEFAULT_KEYWORDS = '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린팅 학원 홍대, 와우쓰리디, 3D모델링, 구미 3D프린팅, 전주 3D프린팅, 소상공인 3D프린팅';
 const DEFAULT_OG_IMAGE = '/static/hero1.jpg';
 
@@ -253,19 +262,25 @@ export async function seoOptionsForSession(
                 'SELECT id, title, description, thumbnail_url, start_date, end_date FROM courses WHERE id = ?'
             ).bind(id).first<{ id: number; title: string; description?: string; thumbnail_url?: string; start_date?: string; end_date?: string }>();
             if (!row) return null;
-            const title = `${row.title} | 3D프린팅 교육`;
+            const name = (row.title || `일반과정 ${id}`).trim();
+            const dates = [String(row.start_date || '').slice(0, 10), String(row.end_date || '').slice(0, 10)].filter(Boolean).join('~');
+            const title = `${name}${dates ? ` (${dates})` : ` #${id}`} | 3D프린팅 교육`;
+            const description = toPlainMeta(
+                row.description || `${name} 3D프린팅 일반 교육 과정입니다.${dates ? ` 교육기간 ${dates}.` : ''} 와우쓰리디에서 일정을 확인하세요.`,
+                160,
+            );
             return {
                 title,
-                description: (row.description || `${row.title} 3D프린팅 교육 과정을 와우쓰리디에서 확인하세요.`).replace(/<[^>]+>/g, '').slice(0, 160),
-                keywords: `${row.title}, 3D프린팅 교육, 와우쓰리디`,
+                description,
+                keywords: `${name}, 3D프린팅 교육, 와우쓰리디`,
                 image: row.thumbnail_url || DEFAULT_OG_IMAGE,
                 path: `/courses/${id}`,
                 extraJsonLd: [buildCourseJsonLd(SITE_ORIGIN, {
                     id: row.id,
-                    course_name: row.title,
+                    course_name: name,
                     training_start_date: row.start_date,
                     training_end_date: row.end_date,
-                    description: row.description,
+                    description,
                 })],
             };
         }
@@ -274,7 +289,7 @@ export async function seoOptionsForSession(
                    s.location, s.instructor_name, s.main_slide_image_url, s.course_list_image_url,
                    a.name as course_name
             FROM course_sessions s
-            INNER JOIN approved_courses a ON a.id = s.approved_course_id
+            LEFT JOIN approved_courses a ON a.id = s.approved_course_id
             WHERE s.id = ?
         `).bind(id).first<{
             id: number;
@@ -290,13 +305,20 @@ export async function seoOptionsForSession(
         }>();
         if (!row) return null;
         const campus = inferCampusLabel(row.location);
-        const display = [row.course_name, row.session_number ? `${row.session_number}회차` : '', row.session_name].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+        const display = [row.course_name, row.session_number ? `${row.session_number}회차` : '', row.session_name]
+            .filter(Boolean)
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim() || `3D프린팅 교육과정 ${id}`;
         const dates = [String(row.training_start_date || '').slice(0, 10), String(row.training_end_date || '').slice(0, 10)].filter(Boolean).join('~');
-        const title = `${display} 국비지원 | ${campus} 3D프린팅`;
-        const description = `${display} 내일배움카드(국비지원) 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 와우쓰리디에서 수강 상담하세요.`;
+        const title = `${display}${dates ? ` ${dates}` : ''} 국비지원 | ${campus} 3D프린팅`;
+        const description = toPlainMeta(
+            `${display} 내일배움카드(국비지원) 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 과정번호 ${id}. 와우쓰리디에서 수강 상담하세요.`,
+            170,
+        );
         return {
             title,
-            description: description.slice(0, 170),
+            description,
             keywords: `${display}, 3D프린팅 국비지원, 내일배움카드 3D프린팅, ${campus} 3D프린팅 학원, 3D프린터운용기능사`,
             image: row.main_slide_image_url || row.course_list_image_url || DEFAULT_OG_IMAGE,
             path: `/course-sessions/${id}`,
@@ -304,6 +326,47 @@ export async function seoOptionsForSession(
                 ...row,
                 description,
             })],
+        };
+    } catch {
+        return null;
+    }
+}
+
+export async function seoOptionsForPortfolio(db: D1Database, id: number): Promise<SeoOptions | null> {
+    try {
+        const row = await db.prepare(`
+            SELECT p.id, p.title, p.description, p.thumbnail_url, p.category,
+                   u.name as student_name, c.title as course_title
+            FROM student_portfolios p
+            LEFT JOIN users u ON p.student_id = u.id
+            LEFT JOIN courses c ON p.course_id = c.id
+            WHERE p.id = ?
+        `).bind(id).first<{
+            id: number;
+            title?: string | null;
+            description?: string | null;
+            thumbnail_url?: string | null;
+            category?: string | null;
+            student_name?: string | null;
+            course_title?: string | null;
+        }>();
+        if (!row) return null;
+        const work = (row.title || `포트폴리오 ${id}`).trim();
+        const author = (row.student_name || '수강생').trim();
+        const course = (row.course_title || '').trim();
+        const excerpt = toPlainMeta(row.description || '', 90);
+        const title = `${work} | ${author} 3D프린팅 포트폴리오`;
+        const description = toPlainMeta(
+            [excerpt || `${author}의 3D모델링·3D프린팅 작품 ${work}`, course ? `과정: ${course}` : '', '와우쓰리디 수강생 포트폴리오'].filter(Boolean).join('. '),
+            170,
+        );
+        return {
+            title,
+            description,
+            keywords: `${work}, 3D프린팅 포트폴리오, 3D모델링 작품, ${author}, 와우쓰리디`,
+            image: row.thumbnail_url || DEFAULT_OG_IMAGE,
+            path: `/portfolios/${id}`,
+            ogType: 'article',
         };
     } catch {
         return null;
@@ -345,7 +408,7 @@ export function llmsTxt(origin: string): string {
 const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywords' | 'ogType'>> = {
     '/': {
         title: '3D프린팅 국비지원 교육 전문',
-        description: DEFAULT_DESCRIPTION,
+        description: '홍대·구미·전주 와우쓰리디에서 국민내일배움카드 3D프린팅·3D모델링 국비지원 교육을 운영합니다. 기능사·소상공인·시제품 과정과 상담을 안내합니다.',
         keywords: DEFAULT_KEYWORDS,
     },
     '/greeting': {
@@ -471,24 +534,27 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
 
 export function getSeoOptionsForPath(path: string): SeoOptions | null {
     if (PAGE_SEO[path]) return { ...PAGE_SEO[path], path };
-    if (/^\/course-sessions\/[0-9]+$/.test(path)) {
+    const sessionId = path.match(/^\/course-sessions\/([0-9]+)$/)?.[1];
+    if (sessionId) {
         return {
-            title: '교육과정 상세',
-            description: '교육과정의 기간, 교육시간, 장소, 강사와 상세 커리큘럼을 확인하세요.',
+            title: `3D프린팅 국비지원 과정 ${sessionId}회차 상세`,
+            description: `와우쓰리디 교육과정 ${sessionId}의 기간, 장소, 강사와 커리큘럼을 확인하세요. 내일배움카드 국비지원 3D프린팅 과정입니다.`,
             path,
         };
     }
-    if (/^\/courses\/[0-9]+$/.test(path)) {
+    const courseId = path.match(/^\/courses\/([0-9]+)$/)?.[1];
+    if (courseId) {
         return {
-            title: '일반 교육과정 상세',
-            description: '3D프린팅 일반 교육과정의 일정과 상세 교육 내용을 확인하세요.',
+            title: `일반 교육과정 ${courseId} 상세`,
+            description: `와우쓰리디 일반 교육과정 ${courseId}의 일정과 3D프린팅 교육 내용을 확인하세요.`,
             path,
         };
     }
-    if (/^\/portfolios\/[0-9]+$/.test(path)) {
+    const portfolioId = path.match(/^\/portfolios\/([0-9]+)$/)?.[1];
+    if (portfolioId) {
         return {
-            title: '수강생 포트폴리오 상세',
-            description: '와우쓰리디 교육생이 완성한 3D모델링·3D프린팅 작품을 소개합니다.',
+            title: `수강생 포트폴리오 ${portfolioId}`,
+            description: `와우쓰리디 교육생 작품 ${portfolioId}번. 3D모델링·3D프린팅 포트폴리오를 소개합니다.`,
             path,
             ogType: 'article',
         };
