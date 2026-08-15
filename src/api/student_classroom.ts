@@ -131,6 +131,49 @@ app.post('/:sessionId/notices', async (c) => {
     return c.json({ success: true });
 });
 
+app.get('/:sessionId/qna', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    const ids: number[] = [];
+    if (enrolled.lms_course_id) ids.push(enrolled.lms_course_id);
+    if (enrolled.approved_course_id) ids.push(enrolled.approved_course_id);
+    const courseClause = ids.length ? `OR (p.session_id IS NULL AND p.course_id IN (${ids.map(() => '?').join(',')}))` : '';
+    const { results } = await c.env.DB.prepare(
+        `SELECT p.id, p.title, p.content, p.created_at, p.sub_category, u.name as author_name,
+                p.session_id, p.author_id,
+                (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+         FROM posts p
+         LEFT JOIN users u ON u.id = p.author_id
+         WHERE IFNULL(p.status, 'published') = 'published'
+           AND p.category = 'qna'
+           AND (p.session_id = ? ${courseClause})
+         ORDER BY p.created_at DESC
+         LIMIT 50`
+    ).bind(sessionId, ...ids).all();
+    const list = (results || []).map((row: Record<string, unknown>) => {
+        const raw = String(row.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        return { ...row, excerpt: raw.slice(0, 140) };
+    });
+    return c.json({ success: true, data: list });
+});
+
+app.post('/:sessionId/qna', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    const user = c.get('user');
+    const body = await c.req.json().catch(() => ({} as Record<string, unknown>));
+    const title = String(body.title || '').trim();
+    const content = String(body.content || '').trim();
+    if (!title || !content) return c.json({ success: false, error: '제목과 내용을 입력하세요' }, 400);
+    await c.env.DB.prepare(
+        `INSERT INTO posts (author_id, title, content, category, sub_category, status, course_id, session_id, created_at, updated_at)
+         VALUES (?, ?, ?, 'qna', 'public', 'published', ?, ?, datetime('now'), datetime('now'))`
+    ).bind(user.userId, title, content, enrolled.lms_course_id || enrolled.approved_course_id, sessionId).run();
+    return c.json({ success: true });
+});
+
 app.get('/:sessionId/ncs', async (c) => {
     const sessionId = parseInt(c.req.param('sessionId'), 10);
     const enrolled = await requireEnrollment(c, sessionId);
@@ -244,7 +287,8 @@ app.get('/:sessionId/assignments', async (c) => {
     let { results } = await c.env.DB.prepare(
         `SELECT a.id, a.title, a.description, a.due_date, a.max_score, a.attachment_url, a.session_id, a.course_id,
                 u.name as teacher_name,
-                s.id as submission_id, s.submitted_at, s.score, s.status as submission_status, s.feedback
+                s.id as submission_id, s.submitted_at, s.score, s.status as submission_status, s.feedback,
+                s.attachment_url as submission_file
          FROM assignments a
          LEFT JOIN users u ON a.teacher_id = u.id
          LEFT JOIN assignment_submissions s ON s.assignment_id = a.id AND s.student_id = ?
@@ -255,7 +299,8 @@ app.get('/:sessionId/assignments', async (c) => {
         results = (await c.env.DB.prepare(
             `SELECT a.id, a.title, a.description, a.due_date, a.max_score, a.attachment_url, a.session_id, a.course_id,
                     u.name as teacher_name,
-                    s.id as submission_id, s.submitted_at, s.score, s.status as submission_status, s.feedback
+                    s.id as submission_id, s.submitted_at, s.score, s.status as submission_status, s.feedback,
+                    s.attachment_url as submission_file
              FROM assignments a
              LEFT JOIN users u ON a.teacher_id = u.id
              LEFT JOIN assignment_submissions s ON s.assignment_id = a.id AND s.student_id = ?
@@ -370,6 +415,8 @@ app.get('/:sessionId', async (c) => {
             location: enrolled.location,
             instructor_name: enrolled.instructor_name,
             has_access_code: enrolled.access_code ? 1 : 0,
+            lms_course_id: enrolled.lms_course_id,
+            approved_course_id: enrolled.approved_course_id,
             attendance: {
                 recorded: logRows.length,
                 attended,

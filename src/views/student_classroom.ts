@@ -83,9 +83,11 @@ export const studentClassroomHtml = (sessionId: string) => `
                             <button onclick="loadTab('assignments')" id="tab-assignments" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-tasks w-5"></i> 과제제출</button>
                             <button onclick="loadTab('attendance')" id="tab-attendance" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-clock w-5"></i> 출석현황</button>
                             <button onclick="loadTab('notices')" id="tab-notices" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-bullhorn w-5"></i> 공지</button>
+                            <button onclick="loadTab('qna')" id="tab-qna" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-comments w-5"></i> 질문</button>
                             <button onclick="loadTab('materials')" id="tab-materials" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-download w-5"></i> 자료</button>
                             <button onclick="loadTab('surveys')" id="tab-surveys" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-poll w-5"></i> 설문</button>
                             <button onclick="loadTab('grades')" id="tab-grades" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-chart-bar w-5"></i> 성적</button>
+                            <button onclick="loadTab('review')" id="tab-review" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-star w-5"></i> 후기</button>
                         </div>
                     </div>
                     <div class="bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm">
@@ -130,9 +132,11 @@ export const studentClassroomHtml = (sessionId: string) => `
             { id: 'assignments', label: '과제' },
             { id: 'attendance', label: '출석' },
             { id: 'notices', label: '공지' },
+            { id: 'qna', label: '질문' },
             { id: 'materials', label: '자료' },
             { id: 'surveys', label: '설문' },
-            { id: 'grades', label: '성적' }
+            { id: 'grades', label: '성적' },
+            { id: 'review', label: '후기' }
         ];
         let overview = null;
         let currentUser = null;
@@ -243,6 +247,11 @@ export const studentClassroomHtml = (sessionId: string) => `
             loadTab(TAB_ITEMS.some(function(t) { return t.id === hashTab; }) ? hashTab : 'home');
         }
 
+        window.addEventListener('hashchange', function() {
+            const hashTab = (location.hash || '').replace('#', '');
+            if (TAB_ITEMS.some(function(t) { return t.id === hashTab; })) loadTab(hashTab);
+        });
+
         window.loadTab = async function(tab) {
             if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
             document.querySelectorAll('.nav-tab').forEach(function(btn) {
@@ -273,9 +282,11 @@ export const studentClassroomHtml = (sessionId: string) => `
             if (tab === 'assignments') return renderAssignments();
             if (tab === 'attendance') return renderAttendance();
             if (tab === 'notices') return renderNotices();
+            if (tab === 'qna') return renderQna();
             if (tab === 'materials') return renderMaterials();
             if (tab === 'surveys') return renderSurveys();
             if (tab === 'grades') return renderGrades();
+            if (tab === 'review') return renderReview();
         };
 
         function renderHome() {
@@ -446,7 +457,7 @@ export const studentClassroomHtml = (sessionId: string) => `
                 const btn = submitted
                     ? '<button type="button" onclick="openAssignModal(' + a.id + ')" class="px-4 py-2.5 border border-slate-200 rounded-2xl text-[10px] font-black">다시 제출</button>'
                     : '<button type="button" onclick="openAssignModal(' + a.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">제출하기</button>';
-                return '<div class="rounded-[1.5rem] border border-slate-100 p-5"><div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 class="font-black">' + esc(a.title) + '</h3><p class="text-xs text-slate-500 mt-1">마감 ' + fmtDate(a.due_date) + (a.max_score ? ' · ' + a.max_score + '점 만점' : '') + '</p><p class="text-sm text-slate-600 mt-2">' + esc(a.description || '') + '</p>' + (a.feedback ? '<p class="text-xs text-emerald-700 mt-2">피드백: ' + esc(a.feedback) + '</p>' : '') + '</div><div class="text-right shrink-0"><p class="text-[10px] font-black mb-2 ' + (submitted ? 'text-emerald-600' : 'text-amber-600') + '">' + status + '</p>' + btn + '</div></div></div>';
+                return '<div class="rounded-[1.5rem] border border-slate-100 p-5"><div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3"><div><h3 class="font-black">' + esc(a.title) + '</h3><p class="text-xs text-slate-500 mt-1">마감 ' + fmtDate(a.due_date) + (a.max_score ? ' · ' + a.max_score + '점 만점' : '') + '</p><p class="text-sm text-slate-600 mt-2">' + esc(a.description || '') + '</p>' + (a.attachment_url ? '<a href="' + esc(a.attachment_url) + '" target="_blank" class="text-xs font-black text-sky-600 mt-2 inline-block">과제 안내 파일</a>' : '') + (a.submission_file ? '<a href="' + esc(a.submission_file) + '" target="_blank" class="text-xs font-black text-emerald-600 mt-1 inline-block">내 제출 파일</a>' : '') + (a.feedback ? '<p class="text-xs text-emerald-700 mt-2">피드백: ' + esc(a.feedback) + '</p>' : '') + '</div><div class="text-right shrink-0"><p class="text-[10px] font-black mb-2 ' + (submitted ? 'text-emerald-600' : 'text-amber-600') + '">' + status + '</p>' + btn + '</div></div></div>';
             }).join('') + '</div>';
             document.getElementById('tabContent').innerHTML = html;
         }
@@ -516,6 +527,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const logs = data.logs || [];
             const sum = data.summary || {};
             let html = '<div class="rounded-[2rem] bg-sky-50 border border-sky-100 p-5 mb-6 flex items-end justify-between"><div><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">내 출석률</p><p class="text-3xl font-black">' + (sum.rate || 0) + '%</p></div><p class="text-sm font-bold text-slate-500">' + (sum.attended || 0) + '일 출석 / ' + (sum.recorded || 0) + '일 기록</p></div>';
+            html += '<form class="rounded-[1.5rem] border border-slate-100 p-5 mb-6" onsubmit="submitQrCheckin(event)"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-2">QR 출석</p><p class="text-xs text-slate-500 mb-3">강사가 보여 주는 QR 코드 값을 입력하면 출석 처리됩니다.</p><div class="flex gap-2"><input id="qrCodeInput" class="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm" placeholder="QR 코드" required><button type="submit" class="px-4 rounded-2xl bg-sky-600 text-white text-xs font-black">체크인</button></div></form>';
             if (!logs.length) {
                 html += emptyState('fa-clock', '출석 기록이 아직 없습니다.');
             } else {
@@ -527,6 +539,28 @@ export const studentClassroomHtml = (sessionId: string) => `
             }
             document.getElementById('tabContent').innerHTML = html;
         }
+
+        window.submitQrCheckin = async function(e) {
+            e.preventDefault();
+            if (!currentUser || !currentUser.id) { alert('로그인 정보를 확인할 수 없습니다.'); return; }
+            const code = document.getElementById('qrCodeInput').value.trim();
+            if (!code) return;
+            const res = await fetch('/api/attendance-qr/checkin', {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({ qr_code: code, student_id: currentUser.id, device_info: navigator.userAgent })
+            });
+            const json = await res.json();
+            if (json.success) {
+                alert('출석 체크인이 완료되었습니다.');
+                loadTab('attendance');
+                return;
+            }
+            const err = String(json.error || '');
+            if (err === 'Invalid QR code') alert('올바르지 않은 QR 코드입니다.');
+            else if (err === 'QR code expired') alert('유효 시간이 지난 QR 코드입니다.');
+            else if (err === 'Already checked in') alert('이미 체크인했습니다.');
+            else alert(err || '체크인에 실패했습니다.');
+        };
 
         async function renderGrades() {
             const res = await fetch('/api/student/classroom/' + sessionId + '/grades', { headers: authHeaders() });
@@ -682,6 +716,122 @@ export const studentClassroomHtml = (sessionId: string) => `
                 loadTab('surveys');
             } else {
                 alert(json.error || json.message || '제출에 실패했습니다.');
+            }
+        };
+
+        async function renderQna() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/qna', { headers: authHeaders() });
+            const json = await res.json();
+            const items = json.data || [];
+            let html = '<form id="classroomQnaForm" class="rounded-[1.5rem] border border-slate-100 p-5 mb-6" onsubmit="submitClassroomQna(event)"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">이 회차에 질문하기</p><input id="qnaTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><textarea id="qnaContent" required rows="4" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="질문 내용"></textarea><button type="submit" class="min-h-[44px] px-5 rounded-2xl bg-sky-600 text-white text-xs font-black">등록</button></form>';
+            if (!items.length) {
+                html += emptyState('fa-comments', '등록된 질문이 없습니다.');
+            } else {
+                html += '<div class="space-y-3">' + items.map(function(p) {
+                    return '<button type="button" onclick="openQna(' + p.id + ')" class="w-full text-left rounded-[1.5rem] border border-slate-100 p-5 hover:border-sky-200 transition"><div class="flex items-center gap-2 mb-1"><span class="text-xs text-slate-400">' + fmtDate(p.created_at) + '</span><span class="text-[10px] font-black text-slate-400">댓글 ' + (p.comment_count || 0) + '</span></div><h3 class="font-black">' + esc(p.title) + '</h3><p class="text-sm text-slate-500 mt-1 line-clamp-2">' + esc(p.excerpt || '') + '</p></button>';
+                }).join('') + '</div>';
+            }
+            document.getElementById('tabContent').innerHTML = html;
+        }
+
+        window.submitClassroomQna = async function(e) {
+            e.preventDefault();
+            const title = document.getElementById('qnaTitle').value.trim();
+            const content = document.getElementById('qnaContent').value.trim();
+            const res = await fetch('/api/student/classroom/' + sessionId + '/qna', {
+                method: 'POST', headers: authHeaders(), body: JSON.stringify({ title: title, content: content })
+            });
+            const json = await res.json();
+            if (json.success) loadTab('qna');
+            else alert(json.error || '등록에 실패했습니다.');
+        };
+
+        window.openQna = async function(id) {
+            const content = document.getElementById('tabContent');
+            content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></div>';
+            const res = await fetch('/api/posts/' + id, { headers: authHeaders() });
+            const json = await res.json();
+            const p = json.data || json;
+            const comments = p.comments || [];
+            const body = String(p.content || '').replace(/\[R2:[^\]]+\]/g, '');
+            let html = '<button type="button" onclick="loadTab(\'qna\')" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
+            html += '<h2 class="text-xl font-black mb-2">' + esc(p.title) + '</h2>';
+            html += '<p class="text-xs text-slate-400 mb-6">' + fmtDate(p.created_at) + (p.author_name ? ' · ' + esc(p.author_name) : '') + '</p>';
+            html += '<div class="text-slate-700 leading-7 whitespace-pre-wrap mb-8">' + esc(body) + '</div>';
+            html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">댓글</h3>';
+            if (!comments.length) html += '<p class="text-sm text-slate-400 mb-4">아직 댓글이 없습니다.</p>';
+            else html += '<div class="space-y-3 mb-6">' + comments.map(function(cm) {
+                return '<div class="rounded-2xl bg-slate-50 border border-slate-100 p-4"><p class="text-xs font-black mb-1">' + esc(cm.user_name || cm.author_name || '수강생') + '</p><p class="text-sm whitespace-pre-wrap">' + esc(cm.content) + '</p></div>';
+            }).join('') + '</div>';
+            html += '<form onsubmit="submitQnaComment(event, ' + id + ')"><textarea id="qnaComment" required rows="3" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="댓글을 입력하세요"></textarea><button type="submit" class="min-h-[44px] px-5 rounded-2xl bg-sky-600 text-white text-xs font-black">댓글 등록</button></form>';
+            content.innerHTML = html;
+        };
+
+        window.submitQnaComment = async function(e, postId) {
+            e.preventDefault();
+            const text = document.getElementById('qnaComment').value.trim();
+            const res = await fetch('/api/posts/' + postId + '/comments', {
+                method: 'POST', headers: authHeaders(), body: JSON.stringify({ content: text })
+            });
+            const json = await res.json();
+            if (json.success) openQna(postId);
+            else alert(json.error || '댓글 등록에 실패했습니다.');
+        };
+
+        async function renderReview() {
+            const courseId = overview && overview.approved_course_id;
+            let html = '<p class="text-xs text-slate-500 mb-6">작성한 후기는 관리자 승인 후 홈페이지에 공개됩니다.</p>';
+            if (!courseId) {
+                html += emptyState('fa-star', '이 회차에 연결된 승인 과정이 없어 후기를 작성할 수 없습니다.');
+                document.getElementById('tabContent').innerHTML = html;
+                return;
+            }
+            const mineRes = await fetch('/api/posts?category=review&mine=1&limit=50', { headers: authHeaders() });
+            const mineJson = await mineRes.json();
+            const mine = (mineJson.data || []).filter(function(r) { return Number(r.course_id) === Number(courseId); });
+            if (mine.length) {
+                html += '<div class="space-y-3">' + mine.map(function(r) {
+                    return '<div class="rounded-[1.5rem] border border-slate-100 p-5"><p class="text-[10px] font-black text-sky-600 mb-1">내 후기 · ' + (r.status === 'published' ? '공개' : '승인 대기') + '</p><h3 class="font-black">' + esc(r.title) + '</h3><p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">' + esc(r.content) + '</p></div>';
+                }).join('') + '</div>';
+            } else {
+                html += '<form id="classroomReviewForm" class="rounded-[1.5rem] border border-slate-100 p-5" onsubmit="submitClassroomReview(event)"><input id="reviewTitle" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제목"><div class="flex gap-2 mb-3" id="reviewStars">';
+                for (var n = 1; n <= 5; n++) html += '<button type="button" class="review-star text-2xl text-slate-300" data-rating="' + n + '" onclick="setReviewRating(' + n + ')"><i class="fas fa-star"></i></button>';
+                html += '</div><input type="hidden" id="reviewRating" value=""><textarea id="reviewContent" required rows="5" class="w-full rounded-xl border border-slate-200 p-3 text-sm mb-3" placeholder="수강 경험을 적어 주세요"></textarea><button type="submit" class="w-full min-h-[44px] rounded-2xl bg-sky-600 text-white font-black text-sm">제출하기</button></form>';
+            }
+            document.getElementById('tabContent').innerHTML = html;
+        }
+
+        window.setReviewRating = function(n) {
+            var input = document.getElementById('reviewRating');
+            if (input) input.value = n;
+            document.querySelectorAll('.review-star').forEach(function(btn) {
+                var r = parseInt(btn.getAttribute('data-rating'), 10);
+                btn.classList.toggle('text-amber-400', r <= n);
+                btn.classList.toggle('text-slate-300', r > n);
+            });
+        };
+
+        window.submitClassroomReview = async function(e) {
+            e.preventDefault();
+            var rating = parseInt(document.getElementById('reviewRating').value, 10);
+            if (!rating) { alert('평점을 선택해 주세요.'); return; }
+            var res = await fetch('/api/posts', {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({
+                    category: 'review',
+                    course_id: overview.approved_course_id,
+                    session_id: parseInt(sessionId, 10),
+                    rating: rating,
+                    title: document.getElementById('reviewTitle').value.trim(),
+                    content: document.getElementById('reviewContent').value.trim()
+                })
+            });
+            var json = await res.json();
+            if (json.success) {
+                alert('수강후기가 접수되었습니다. 관리자 승인 후 공개됩니다.');
+                loadTab('review');
+            } else {
+                alert(json.error || '등록에 실패했습니다.');
             }
         };
     </script>
