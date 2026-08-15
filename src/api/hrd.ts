@@ -1117,11 +1117,20 @@ app.post('/students', async (c) => {
         const valProfileImage = profile_image || null;
 
         if (!user) {
-            // 신규 회원 생성
-            const result = await c.env.DB.prepare(
-                "INSERT INTO users (email, password, name, phone, role, status, birthdate, gender, address, education, certifications, profile_image) VALUES (?, ?, ?, ?, 'student', 'active', ?, ?, ?, ?, ?, ?)"
-            ).bind(valEmail, 'temp_password', name, phone, valBirthdate, valGender, valAddress, valEducation, valCertifications, valProfileImage).run();
-            userId = result.meta.last_row_id as number;
+            // 신규 회원: 비밀번호는 학생이 첫 로그인에서 PIN으로 직접 설정 (관리자는 비번 미입력)
+            let inserted: { meta: { last_row_id: number } };
+            try {
+                inserted = await c.env.DB.prepare(
+                    "INSERT INTO users (email, password, name, phone, role, status, birthdate, gender, address, education, certifications, profile_image, is_initial_login) VALUES (?, ?, ?, ?, 'student', 'active', ?, ?, ?, ?, ?, ?, 1)"
+                ).bind(valEmail, 'temp_password', name, phone, valBirthdate, valGender, valAddress, valEducation, valCertifications, valProfileImage).run();
+            } catch (insertErr) {
+                const msg = String((insertErr as Error)?.message ?? insertErr);
+                if (!/no such column:\s*is_initial_login/i.test(msg)) throw insertErr;
+                inserted = await c.env.DB.prepare(
+                    "INSERT INTO users (email, password, name, phone, role, status, birthdate, gender, address, education, certifications, profile_image) VALUES (?, ?, ?, ?, 'student', 'active', ?, ?, ?, ?, ?, ?)"
+                ).bind(valEmail, 'temp_password', name, phone, valBirthdate, valGender, valAddress, valEducation, valCertifications, valProfileImage).run();
+            }
+            userId = inserted.meta.last_row_id as number;
         } else {
             userId = user.id;
             // 기존 회원 정보 업데이트

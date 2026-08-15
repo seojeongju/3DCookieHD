@@ -74,6 +74,11 @@ export const loginHtml = `
                 <p class="mt-3 text-gray-500 text-sm">와우쓰리디홍대센터 계정에 접속하세요.</p>
             </div>
 
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-6">
+                <button type="button" id="loginModeNormal" onclick="setLoginMode('normal')" class="py-2.5 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-sm">로그인</button>
+                <button type="button" id="loginModeFirst" onclick="setLoginMode('first')" class="py-2.5 rounded-lg text-xs font-bold transition text-slate-500">처음 이용</button>
+            </div>
+
             <form class="space-y-6" id="loginForm" onsubmit="handleLogin(event)">
                 <div class="space-y-5">
                     <div class="input-group">
@@ -123,7 +128,46 @@ export const loginHtml = `
                     </button>
                     <div id="loginStatus" class="hidden mt-3 p-3 rounded-lg text-xs font-medium text-center"></div>
                 </div>
-                
+            </form>
+
+            <form class="space-y-5 hidden" id="firstLoginForm" onsubmit="handleFirstLogin(event)">
+                <div class="bg-sky-50/80 rounded-xl p-4">
+                    <p class="text-[13px] text-sky-800 leading-relaxed font-medium">
+                        관리자가 등록한 수강생은 비밀번호를 따로 받지 않습니다.<br>
+                        등록된 <b>이메일</b>과 담당자가 알려 준 <b>과정 인증 코드</b>로 비밀번호를 직접 설정하세요.
+                    </p>
+                </div>
+                <div class="input-group">
+                    <label for="firstEmail" class="block text-sm font-semibold text-gray-600 mb-1.5">이메일 주소</label>
+                    <input id="firstEmail" name="firstEmail" type="email" autocomplete="email" required
+                        class="block w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400/20 focus:border-primary-500 transition-all sm:text-sm"
+                        placeholder="등록된 이메일">
+                </div>
+                <div class="input-group">
+                    <label for="firstPin" class="block text-sm font-semibold text-gray-600 mb-1.5">과정 인증 코드 (PIN)</label>
+                    <input id="firstPin" name="firstPin" type="text" inputmode="numeric" autocomplete="one-time-code" required maxlength="12"
+                        class="block w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400/20 focus:border-primary-500 transition-all sm:text-sm tracking-[0.3em] text-center font-bold"
+                        placeholder="인증 코드">
+                </div>
+                <div class="input-group">
+                    <label for="firstPassword" class="block text-sm font-semibold text-gray-600 mb-1.5">새 비밀번호</label>
+                    <input id="firstPassword" name="firstPassword" type="password" autocomplete="new-password" required minlength="6"
+                        class="block w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400/20 focus:border-primary-500 transition-all sm:text-sm"
+                        placeholder="6자 이상">
+                </div>
+                <div class="input-group">
+                    <label for="firstPasswordConfirm" class="block text-sm font-semibold text-gray-600 mb-1.5">새 비밀번호 확인</label>
+                    <input id="firstPasswordConfirm" name="firstPasswordConfirm" type="password" autocomplete="new-password" required minlength="6"
+                        class="block w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400/20 focus:border-primary-500 transition-all sm:text-sm"
+                        placeholder="비밀번호 재입력">
+                </div>
+                <button type="submit" id="firstLoginBtn" class="login-btn-gradient w-full py-3.5 px-4 text-white text-sm font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    비밀번호 설정 후 입장
+                </button>
+                <div id="firstLoginStatus" class="hidden mt-3 p-3 rounded-lg text-xs font-medium text-center"></div>
+            </form>
+
+            <div id="loginFooterLinks">
                 <div class="relative pt-6">
                     <div class="absolute inset-0 flex items-center" aria-hidden="true">
                         <div class="w-full border-t border-gray-100"></div>
@@ -141,7 +185,7 @@ export const loginHtml = `
                         </a>
                     </p>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -206,6 +250,84 @@ export const loginHtml = `
     </div>
 
     <script>
+        function setLoginMode(mode) {
+            var normalForm = document.getElementById('loginForm');
+            var firstForm = document.getElementById('firstLoginForm');
+            var tabN = document.getElementById('loginModeNormal');
+            var tabF = document.getElementById('loginModeFirst');
+            var on = 'py-2.5 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-sm';
+            var off = 'py-2.5 rounded-lg text-xs font-bold transition text-slate-500';
+            if (mode === 'first') {
+                normalForm.classList.add('hidden');
+                firstForm.classList.remove('hidden');
+                tabF.className = on;
+                tabN.className = off;
+                var em = document.getElementById('email');
+                var fe = document.getElementById('firstEmail');
+                if (em && fe && em.value && !fe.value) fe.value = em.value;
+            } else {
+                firstForm.classList.add('hidden');
+                normalForm.classList.remove('hidden');
+                tabN.className = on;
+                tabF.className = off;
+            }
+        }
+
+        function finishAuthSuccess(user, token) {
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            const redirect = new URLSearchParams(location.search).get('redirect');
+            if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.toLowerCase().startsWith('/login')) {
+                location.href = redirect;
+                return;
+            }
+            if (user.role === 'admin') location.href = '/admin';
+            else if (user.role === 'teacher') location.href = '/teacher';
+            else if (user.role === 'student' || user.role === 'user') location.href = '/student';
+            else location.href = '/';
+        }
+
+        async function handleFirstLogin(e) {
+            e.preventDefault();
+            var email = document.getElementById('firstEmail').value.trim();
+            var pin = document.getElementById('firstPin').value.trim();
+            var password = document.getElementById('firstPassword').value;
+            var confirm = document.getElementById('firstPasswordConfirm').value;
+            var btn = document.getElementById('firstLoginBtn');
+            var statusDiv = document.getElementById('firstLoginStatus');
+            if (password !== confirm) {
+                statusDiv.textContent = '비밀번호가 서로 다릅니다.';
+                statusDiv.className = 'mt-3 p-3 rounded-lg text-xs font-medium text-center bg-red-50 text-red-700 block';
+                return;
+            }
+            btn.disabled = true;
+            var original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+            statusDiv.classList.add('hidden');
+            try {
+                var res = await fetch('/api/auth/student-first-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, pin: pin, password: password })
+                });
+                var result = await res.json();
+                if (result.success && result.data) {
+                    statusDiv.textContent = '비밀번호가 설정되었습니다. 이동 중...';
+                    statusDiv.className = 'mt-3 p-3 rounded-lg text-xs font-medium text-center bg-green-50 text-green-700 block';
+                    setTimeout(function() { finishAuthSuccess(result.data.user, result.data.token); }, 400);
+                    return;
+                }
+                statusDiv.textContent = result.error || '비밀번호 설정에 실패했습니다.';
+                statusDiv.className = 'mt-3 p-3 rounded-lg text-xs font-medium text-center bg-red-50 text-red-700 block';
+            } catch (err) {
+                statusDiv.textContent = '서버 연결 오류가 발생했습니다.';
+                statusDiv.className = 'mt-3 p-3 rounded-lg text-xs font-medium text-center bg-red-50 text-red-700 block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        }
+
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('password');
             const icon = document.getElementById('passwordToggleIcon');
@@ -355,33 +477,19 @@ export const loginHtml = `
                     const result = await response.json();
                     if (result.success) {
                         const { user, token } = result.data;
-                        localStorage.setItem('token', token);
-                        localStorage.setItem('user', JSON.stringify(user));
-                        
                         statusDiv.textContent = '로그인 성공! 이동 중...';
                         statusDiv.className = 'mt-3 p-3 rounded-lg text-xs font-medium text-center bg-green-50 text-green-700 block';
-
-                        const redirect = new URLSearchParams(location.search).get('redirect');
-                        setTimeout(() => {
-                            if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.toLowerCase().startsWith('/login')) {
-                                location.href = redirect;
-                                return;
-                            }
-                            if (user.role === 'admin') {
-                                location.href = '/admin';
-                            } else if (user.role === 'teacher') {
-                                location.href = '/teacher';
-                            } else if (user.role === 'student' || user.role === 'user') {
-                                location.href = '/student';
-                            } else {
-                                location.href = '/';
-                            }
-                        }, 500);
+                        setTimeout(function() { finishAuthSuccess(user, token); }, 400);
                     } else {
                         statusDiv.textContent = result.error || '이메일 또는 비밀번호를 다시 확인해주세요.';
                         statusDiv.className = 'mt-3 p-3 rounded-lg text-xs font-medium text-center bg-red-50 text-red-700 block';
                         loginBtn.disabled = false;
                         loginBtn.innerHTML = originalBtnContent;
+                        if (result.error && result.error.indexOf('처음 이용') !== -1) {
+                            setLoginMode('first');
+                            var fe = document.getElementById('firstEmail');
+                            if (fe) fe.value = email;
+                        }
                     }
                 } else {
                     const text = await response.text();

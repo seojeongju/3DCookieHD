@@ -158,6 +158,14 @@ auth.post('/login', async (c) => {
       return errorResponse(c, '이용이 정지된 계정입니다. 관리자에게 문의하세요.', 403);
     }
 
+    if (studentNeedsPasswordSetup(user)) {
+      return errorResponse(
+        c,
+        '처음 이용이시면 로그인 화면의 「처음 이용」에서 과정 인증 코드로 비밀번호를 설정해 주세요.',
+        403
+      );
+    }
+
     // 비밀번호 검증
     if (!user.password) {
       return errorResponse(c, '소셜 로그인 사용자는 일반 로그인을 할 수 없습니다', 400);
@@ -477,6 +485,130 @@ auth.post('/reset-password', async (c: any) => {
   } catch (error) {
     console.error('Reset password error:', error);
     return errorResponse(c, '비밀번호 재설정 중 오류가 발생했습니다.');
+  }
+});
+
+const UNSET_PASSWORD_SENTINEL = 'temp_password';
+
+function studentNeedsPasswordSetup(user: {
+  role?: string;
+  password?: string | null;
+  is_initial_login?: number | boolean | null;
+}): boolean {
+  const role = String(user.role || '');
+  if (role !== 'student' && role !== 'user') return false;
+  const pwd = String(user.password || '');
+  return !pwd || pwd === UNSET_PASSWORD_SENTINEL;
+}
+
+function studentCanUseFirstLogin(user: {
+  role?: string;
+  password?: string | null;
+  is_initial_login?: number | boolean | null;
+}): boolean {
+  if (studentNeedsPasswordSetup(user)) return true;
+  return user.is_initial_login === 1 || user.is_initial_login === true;
+}
+
+/**
+ * POST /api/auth/student-first-login
+ * 관리자가 등록한 수강생 첫 이용: 이메일 + 회차 PIN 확인 후 비밀번호 설정 및 로그인
+ */
+auth.post('/student-first-login', async (c) => {
+  try {
+    const body = await c.req.json<{ email?: string; pin?: string; password?: string }>();
+    const email = String(body.email || '').trim();
+    const pin = String(body.pin || '').trim();
+    const password = String(body.password || '');
+
+    if (!email || !pin || !password) {
+      return errorResponse(c, '이메일, 과정 인증 코드, 비밀번호를 모두 입력해 주세요', 400);
+    }
+    if (password.length < 6) {
+      return errorResponse(c, '비밀번호는 최소 6자 이상이어야 합니다', 400);
+    }
+
+    const user = await getOne<User>(
+      c.env.DB,
+      'SELECT * FROM users WHERE lower(trim(email)) = lower(?)',
+      [email]
+    );
+    if (!user) {
+      return errorResponse(c, '등록된 수강생 이메일이 아닙니다. 관리자에게 문의하세요.', 404);
+    }
+
+    const role = String(user.role || '');
+    if (role !== 'student' && role !== 'user') {
+      return errorResponse(c, '수강생 계정만 이 방법으로 비밀번호를 설정할 수 있습니다', 403);
+    }
+    if (user.status === 'pending') {
+      return errorResponse(c, '관리자 승인 대기 중인 계정입니다.', 403);
+    }
+    if (user.status === 'suspended') {
+      return errorResponse(c, '이용이 정지된 계정입니다. 관리자에게 문의하세요.', 403);
+    }
+    if (!studentCanUseFirstLogin(user)) {
+      return errorResponse(c, '이미 비밀번호가 설정되어 있습니다. 이메일과 비밀번호로 로그인해 주세요.', 409);
+    }
+
+    const enrolled = await c.env.DB.prepare(`
+      SELECT s.id, s.access_code
+      FROM course_session_enrollments e
+      INNER JOIN course_sessions s ON s.id = e.session_id
+      WHERE e.user_id = ? AND e.status IN ('approved', 'enrolled')
+    `).bind(user.id).all<{ id: number; access_code: string | null }>();
+
+    const sessions = enrolled.results || [];
+    if (sessions.length === 0) {
+      return errorResponse(c, '수강 등록된 과정이 없습니다. 관리자에게 과정 등록을 요청해 주세요.', 403);
+    }
+
+    const pinOk = sessions.some((row) => {
+      const code = String(row.access_code || '').trim();
+      return code.length > 0 && code === pin;
+    });
+    if (!pinOk) {
+      const anyPin = sessions.some((row) => String(row.access_code || '').trim().length > 0);
+      if (!anyPin) {
+        return errorResponse(c, '과정 인증 코드가 아직 설정되지 않았습니다. 관리자에게 문의해 주세요.', 403);
+      }
+      return errorResponse(c, '과정 인증 코드가 올바르지 않습니다', 401);
+    }
+
+    const hashedPassword = await hashPassword(password);
+    try {
+      await execute(
+        c.env.DB,
+        'UPDATE users SET password = ?, is_initial_login = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [hashedPassword, user.id]
+      );
+    } catch (e) {
+      const msg = String((e as Error)?.message ?? e);
+      if (/no such column:\s*is_initial_login/i.test(msg)) {
+        await execute(
+          c.env.DB,
+          'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [hashedPassword, user.id]
+        );
+      } else {
+        throw e;
+      }
+    }
+
+    const token = await generateToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role
+    });
+    const { password: _pw, ...userWithoutPassword } = user;
+
+    return successResponse(c, {
+      user: { ...userWithoutPassword, is_initial_login: 0 },
+      token
+    }, '비밀번호가 설정되었습니다. 강의실로 이동합니다.');
+  } catch (error) {
+    console.error('student-first-login error:', error);
+    return errorResponse(c, '비밀번호 설정 중 오류가 발생했습니다', 500);
   }
 });
 
