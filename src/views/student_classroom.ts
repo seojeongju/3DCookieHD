@@ -17,6 +17,11 @@ export const studentClassroomHtml = (sessionId: string) => `
         .nav-tab.active { background: rgb(240 249 255); color: rgb(7 89 133); font-weight: 900; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .week-day-btn { min-width: 3rem; }
+        .week-day-btn.is-past { opacity: 0.55; }
+        .week-day-btn.is-today { box-shadow: 0 0 0 2px rgb(14 165 233); }
+        .week-day-btn.is-selected { background: rgb(2 132 199); color: #fff; }
+        .week-day-btn.is-selected .week-dow { color: rgb(186 230 253); }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
@@ -185,6 +190,54 @@ export const studentClassroomHtml = (sessionId: string) => `
         function emptyState(icon, msg) {
             return '<div class="text-center py-16"><i class="fas ' + icon + ' text-4xl text-slate-300 mb-4"></i><p class="text-slate-500 font-bold">' + msg + '</p></div>';
         }
+        function todayYmd() {
+            var t = new Date(Date.now() + 9 * 60 * 60 * 1000);
+            return t.toISOString().slice(0, 10);
+        }
+        function ymdAdd(ymd, days) {
+            var p = String(ymd).split('-');
+            var dt = new Date(Date.UTC(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)));
+            dt.setUTCDate(dt.getUTCDate() + days);
+            return dt.toISOString().slice(0, 10);
+        }
+        function weekStartMon(ymd) {
+            var p = String(ymd).split('-');
+            var dt = new Date(Date.UTC(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)));
+            var dow = dt.getUTCDay();
+            var back = dow === 0 ? 6 : dow - 1;
+            dt.setUTCDate(dt.getUTCDate() - back);
+            return dt.toISOString().slice(0, 10);
+        }
+        function weekdayKo(ymd) {
+            var p = String(ymd).split('-');
+            var dt = new Date(Date.UTC(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)));
+            return ['일', '월', '화', '수', '목', '금', '토'][dt.getUTCDay()];
+        }
+        async function ensureTimetable() {
+            if (window._ttRows) return window._ttRows;
+            const res = await fetch('/api/student/classroom/' + sessionId + '/timetable', { headers: authHeaders() });
+            const json = await res.json();
+            window._ttRows = json.data || [];
+            return window._ttRows;
+        }
+        async function ensureAttendanceMap() {
+            if (window._attByDate) return window._attByDate;
+            const res = await fetch('/api/student/classroom/' + sessionId + '/attendance', { headers: authHeaders() });
+            const json = await res.json();
+            const logs = (json.data && json.data.logs) ? json.data.logs : [];
+            const map = {};
+            logs.forEach(function(l) { map[l.date] = l; });
+            window._attByDate = map;
+            return map;
+        }
+        function attChip(log) {
+            if (!log) return '<span class="text-[10px] font-black text-slate-300">기록없음</span>';
+            if (log.attended) return '<span class="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-black">' + esc(log.label) + '</span>';
+            return '<span class="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-[10px] font-black">' + esc(log.label) + '</span>';
+        }
+        function periodTime(r) {
+            return esc((r.start_time || '') + (r.end_time ? ' – ' + r.end_time : ''));
+        }
 
         document.addEventListener('DOMContentLoaded', async function() {
             await checkAuth();
@@ -317,55 +370,109 @@ export const studentClassroomHtml = (sessionId: string) => `
             if (tab === 'review') return renderReview();
         };
 
-        function renderHome() {
+        async function renderHome() {
             const att = overview.attendance || {};
-            const upcoming = overview.upcoming || [];
-            let html = '<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">';
-            html += '<div class="rounded-[2rem] bg-sky-50 border border-sky-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">출석률</p><p class="text-3xl font-black mt-1">' + (att.rate || 0) + '%</p><p class="text-xs text-slate-500 mt-1">' + (att.attended || 0) + ' / ' + (att.recorded || 0) + '일</p></div>';
-            html += '<div class="rounded-[2rem] bg-slate-50 border border-slate-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">기간</p><p class="text-sm font-black mt-2 leading-relaxed">' + fmtDate(overview.training_start_date) + '<br>~ ' + fmtDate(overview.training_end_date) + '</p></div>';
-            html += '<div class="rounded-[2rem] bg-slate-50 border border-slate-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">장소</p><p class="text-sm font-black mt-2">' + esc(overview.location || '미정') + '</p></div>';
-            html += '</div>';
             const pending = overview.pending || {};
-            html += '<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">';
-            html += '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 시험</p><p class="text-2xl font-black mt-1">' + (pending.exams || 0) + '</p></button>';
-            html += '<button type="button" onclick="loadTab(&#39;assignments&#39;)" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미제출 과제</p><p class="text-2xl font-black mt-1">' + (pending.assignments || 0) + '</p></button>';
-            html += '<button type="button" onclick="loadTab(&#39;surveys&#39;)" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미참여 설문</p><p class="text-2xl font-black mt-1">' + (pending.surveys || 0) + '</p></button>';
-            html += '</div><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">다가오는 수업</h3>';
-            if (!upcoming.length) {
-                html += emptyState('fa-calendar', '예정된 시간표가 없습니다.');
+            const today = todayYmd();
+            const rows = await ensureTimetable();
+            const todayRows = rows.filter(function(r) { return r.training_date === today; });
+            const rate = att.rate || 0;
+            let html = '<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">';
+            html += '<div class="lg:col-span-4 bento-card bg-white rounded-[2rem] border border-slate-200/60 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">출석률</p><div class="flex items-end justify-between gap-4"><div><p class="text-4xl font-black tracking-tight">' + rate + '%</p><p class="text-xs text-slate-500 mt-1 font-bold">' + (att.attended || 0) + '일 출석 / ' + (att.recorded || 0) + '일</p></div><div class="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden mb-2"><div class="h-full rounded-full bg-sky-600" style="width:' + rate + '%"></div></div></div></div>';
+            html += '<div class="lg:col-span-5 bento-card bg-sky-50 rounded-[2rem] border border-sky-100 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600 mb-3">오늘 수업</p>';
+            if (!todayRows.length) {
+                html += '<p class="text-sm font-bold text-slate-500">오늘 배정된 수업이 없습니다.</p><p class="text-xs text-slate-400 mt-1">' + fmtDate(today) + '</p>';
             } else {
-                html += '<div class="space-y-3">' + upcoming.map(function(row) {
-                    return '<div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3"><div><p class="text-sm font-black">' + esc(row.subject_name || '수업') + '</p><p class="text-xs text-slate-500">' + esc(row.training_date) + ' · ' + (row.period_number || '') + '교시 ' + esc((row.start_time || '') + (row.end_time ? '–' + row.end_time : '')) + '</p></div><span class="text-xs font-bold text-slate-400">' + esc(row.instructor_name || overview.instructor_name || '') + '</span></div>';
+                html += todayRows.map(function(r) {
+                    return '<div class="flex gap-4 mb-3 last:mb-0"><div class="w-16 shrink-0 text-center rounded-2xl bg-white border border-sky-100 py-2"><p class="text-[10px] font-black text-sky-600">' + (r.period_number || '') + '교시</p><p class="text-[10px] font-bold text-slate-400 mt-0.5">' + periodTime(r) + '</p></div><div><p class="font-black text-slate-900">' + esc(r.subject_name || '수업') + '</p><p class="text-xs text-slate-500 mt-1">' + esc(r.instructor_name || overview.instructor_name || '') + (r.location ? ' · ' + esc(r.location) : '') + '</p></div></div>';
+                }).join('');
+            }
+            html += '</div>';
+            html += '<div class="lg:col-span-3 bento-card bg-white rounded-[2rem] border border-slate-200/60 p-6"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">기간 · 장소</p><p class="text-sm font-black leading-relaxed">' + fmtDate(overview.training_start_date) + ' ~ ' + fmtDate(overview.training_end_date) + '</p><p class="text-sm font-bold text-slate-500 mt-3"><i class="fas fa-map-marker-alt text-sky-500 mr-1"></i>' + esc(overview.location || '미정') + '</p></div>';
+            html += '</div>';
+            html += '<div class="grid grid-cols-3 gap-3 mb-8">';
+            html += '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 시험</p><p class="text-2xl font-black mt-1 ' + ((pending.exams || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.exams || 0) + '</p></button>';
+            html += '<button type="button" onclick="loadTab(&#39;assignments&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미제출 과제</p><p class="text-2xl font-black mt-1 ' + ((pending.assignments || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.assignments || 0) + '</p></button>';
+            html += '<button type="button" onclick="loadTab(&#39;surveys&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미참여 설문</p><p class="text-2xl font-black mt-1 ' + ((pending.surveys || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.surveys || 0) + '</p></button>';
+            html += '</div>';
+            html += '<div class="flex items-center justify-between mb-4"><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">다가오는 수업</h3><button type="button" onclick="loadTab(&#39;curriculum&#39;)" class="text-xs font-black text-sky-600">시간표 보기</button></div>';
+            const upcoming = rows.filter(function(r) { return String(r.training_date || '') > today; }).slice(0, 4);
+            if (!upcoming.length && !todayRows.length) {
+                html += emptyState('fa-calendar', '예정된 시간표가 없습니다.');
+            } else if (!upcoming.length) {
+                html += '<p class="text-sm font-bold text-slate-400">오늘 이후 예정된 수업이 없습니다.</p>';
+            } else {
+                html += '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">' + upcoming.map(function(row) {
+                    return '<button type="button" onclick="openCurriculumDay(&#39;' + esc(row.training_date) + '&#39;)" class="bento-card text-left rounded-[1.5rem] border border-slate-100 bg-white px-4 py-4"><p class="text-[10px] font-black text-sky-600">' + fmtDate(row.training_date) + ' · ' + (row.period_number || '') + '교시</p><p class="font-black mt-1">' + esc(row.subject_name || '수업') + '</p><p class="text-xs text-slate-500 mt-1">' + periodTime(row) + ' · ' + esc(row.instructor_name || '') + '</p></button>';
                 }).join('') + '</div>';
             }
             document.getElementById('tabContent').innerHTML = html;
         }
 
+        window.openCurriculumDay = function(ymd) {
+            window._currDay = ymd;
+            window._currWeekStart = weekStartMon(ymd);
+            loadTab('curriculum');
+        };
+
         async function renderCurriculum() {
-            const res = await fetch('/api/student/classroom/' + sessionId + '/timetable', { headers: authHeaders() });
-            const json = await res.json();
-            const rows = json.data || [];
+            const rows = await ensureTimetable();
+            const attMap = await ensureAttendanceMap();
             if (!rows.length) {
                 document.getElementById('tabContent').innerHTML = emptyState('fa-list-ol', '등록된 커리큘럼(시간표)이 없습니다.');
                 return;
             }
-            const groups = {};
-            rows.forEach(function(r) {
-                const key = r.training_date || '미정';
-                if (!groups[key]) groups[key] = [];
-                groups[key].push(r);
-            });
-            let html = '<div class="space-y-6">';
-            Object.keys(groups).forEach(function(date) {
-                html += '<div><h3 class="text-sm font-black text-slate-800 mb-3">' + esc(date) + '</h3><div class="space-y-2">';
-                groups[date].forEach(function(r) {
-                    html += '<div class="rounded-2xl border border-slate-100 px-4 py-3 flex flex-wrap items-center justify-between gap-2"><div><span class="text-[10px] font-black text-sky-600 mr-2">' + (r.period_number || '') + '교시</span><span class="font-black text-sm">' + esc(r.subject_name || '교과') + '</span><p class="text-xs text-slate-500 mt-0.5">' + esc((r.start_time || '') + (r.end_time ? ' – ' + r.end_time : '')) + (r.location ? ' · ' + esc(r.location) : '') + '</p></div><span class="text-xs font-bold text-slate-400">' + esc(r.instructor_name || '') + '</span></div>';
+            const today = todayYmd();
+            if (!window._currWeekStart) window._currWeekStart = weekStartMon(today);
+            if (!window._currDay) window._currDay = today;
+            const daysWithClass = {};
+            rows.forEach(function(r) { if (r.training_date) daysWithClass[r.training_date] = true; });
+            paintCurriculum(rows, attMap, today, daysWithClass);
+        }
+
+        function paintCurriculum(rows, attMap, today, daysWithClass) {
+            const start = window._currWeekStart;
+            const selected = window._currDay;
+            const end = ymdAdd(start, 6);
+            let html = '<div class="bento-card bg-white rounded-[2rem] border border-slate-200/60 p-4 sm:p-6 mb-6">';
+            html += '<div class="flex items-center justify-between mb-4"><button type="button" onclick="shiftCurriculumWeek(-1)" class="w-10 h-10 rounded-2xl border border-slate-200 font-black text-slate-500">‹</button><p class="text-sm font-black">' + fmtDate(start) + ' – ' + fmtDate(end) + '</p><button type="button" onclick="shiftCurriculumWeek(1)" class="w-10 h-10 rounded-2xl border border-slate-200 font-black text-slate-500">›</button></div>';
+            html += '<div class="grid grid-cols-7 gap-1.5 sm:gap-2">';
+            for (var i = 0; i < 7; i++) {
+                var d = ymdAdd(start, i);
+                var cls = 'week-day-btn rounded-2xl border border-slate-100 py-3 text-center';
+                if (d < today) cls += ' is-past';
+                if (d === today) cls += ' is-today';
+                if (d === selected) cls += ' is-selected';
+                html += '<button type="button" onclick="selectCurriculumDay(&#39;' + d + '&#39;)" class="' + cls + '"><p class="week-dow text-[10px] font-black text-slate-400">' + weekdayKo(d) + '</p><p class="text-lg font-black mt-0.5">' + String(d).slice(8, 10) + '</p>' + (daysWithClass[d] ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-sky-500 mt-1"></span>' : '<span class="inline-block w-1.5 h-1.5 mt-1"></span>') + '</button>';
+            }
+            html += '</div></div>';
+            const dayRows = rows.filter(function(r) { return r.training_date === selected; }).sort(function(a, b) { return (a.period_number || 0) - (b.period_number || 0); });
+            const log = attMap[selected];
+            html += '<div class="flex items-center justify-between mb-4"><div><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + weekdayKo(selected) + '요일</p><h3 class="text-lg font-black">' + fmtDate(selected) + '</h3></div>' + attChip(log) + '</div>';
+            if (!dayRows.length) {
+                html += '<div class="rounded-[2rem] border border-dashed border-slate-200 p-10 text-center text-slate-400 font-bold">이 날은 수업이 없습니다.</div>';
+            } else {
+                html += '<div class="space-y-3">';
+                dayRows.forEach(function(r) {
+                    var past = selected < today;
+                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex gap-4 ' + (past ? 'opacity-70' : '') + '">';
+                    html += '<div class="w-[4.5rem] shrink-0 rounded-2xl ' + (selected === today ? 'bg-sky-600 text-white' : 'bg-slate-50 text-slate-700') + ' text-center py-3"><p class="text-[10px] font-black opacity-80">' + (r.period_number || '') + '교시</p><p class="text-[10px] font-bold mt-1 leading-tight px-1">' + periodTime(r) + '</p></div>';
+                    html += '<div class="min-w-0 flex-1"><p class="font-black text-lg tracking-tight">' + esc(r.subject_name || '교과') + '</p><p class="text-sm text-slate-500 mt-1"><i class="fas fa-user-tie mr-1 text-slate-300"></i>' + esc(r.instructor_name || overview.instructor_name || '강사 미정') + '</p>' + (r.location ? '<p class="text-xs text-slate-400 mt-1"><i class="fas fa-map-marker-alt mr-1"></i>' + esc(r.location) + '</p>' : '') + '</div></div>';
                 });
-                html += '</div></div>';
-            });
-            html += '</div>';
+                html += '</div>';
+            }
             document.getElementById('tabContent').innerHTML = html;
         }
+
+        window.shiftCurriculumWeek = function(dir) {
+            window._currWeekStart = ymdAdd(window._currWeekStart || weekStartMon(todayYmd()), dir * 7);
+            window._currDay = window._currWeekStart;
+            renderCurriculum();
+        };
+        window.selectCurriculumDay = function(ymd) {
+            window._currDay = ymd;
+            renderCurriculum();
+        };
 
         function examTypeLabel(type) {
             if (type === 'practice') return '사전평가';
