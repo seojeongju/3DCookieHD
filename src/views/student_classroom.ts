@@ -101,14 +101,15 @@ export const studentClassroomHtml = (sessionId: string) => `
                         <div class="grid grid-cols-1 gap-2" id="tabNav">
                             <button onclick="loadTab('home')" id="tab-home" class="nav-tab active w-full text-left px-4 py-3 rounded-2xl text-sm transition flex items-center gap-3"><i class="fas fa-home w-5"></i> 홈</button>
                             <button onclick="loadTab('curriculum')" id="tab-curriculum" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-list-ol w-5"></i> 커리큘럼</button>
-                            <button onclick="loadTab('exam')" id="tab-exam" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-pen-fancy w-5"></i> 시험응시</button>
-                            <button onclick="loadTab('assignments')" id="tab-assignments" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-tasks w-5"></i> 과제제출</button>
-                            <button onclick="loadTab('attendance')" id="tab-attendance" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-clock w-5"></i> 출석현황</button>
+                            <button onclick="loadTab('attendance')" id="tab-attendance" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-calendar-check w-5"></i> 출석관리</button>
+                            <button onclick="loadTab('exam')" id="tab-exam" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-file-contract w-5"></i> 사전평가</button>
+                            <button onclick="loadTab('ncs')" id="tab-ncs" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-certificate w-5"></i> NCS본평가</button>
+                            <button onclick="loadTab('surveys')" id="tab-surveys" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-poll-h w-5"></i> 설문</button>
+                            <button onclick="loadTab('grades')" id="tab-grades" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-chart-line w-5"></i> 성적</button>
+                            <button onclick="loadTab('assignments')" id="tab-assignments" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-tasks w-5"></i> 과제</button>
                             <button onclick="loadTab('notices')" id="tab-notices" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-bullhorn w-5"></i> 공지</button>
                             <button onclick="loadTab('qna')" id="tab-qna" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-comments w-5"></i> 질문</button>
                             <button onclick="loadTab('materials')" id="tab-materials" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-download w-5"></i> 자료</button>
-                            <button onclick="loadTab('surveys')" id="tab-surveys" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-poll w-5"></i> 설문</button>
-                            <button onclick="loadTab('grades')" id="tab-grades" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-chart-bar w-5"></i> 성적</button>
                             <button onclick="loadTab('review')" id="tab-review" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-star w-5"></i> 후기</button>
                         </div>
                     </div>
@@ -138,11 +139,11 @@ export const studentClassroomHtml = (sessionId: string) => `
     <nav id="mobileBottomNav" class="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md" style="padding-bottom: max(0.4rem, env(safe-area-inset-bottom));">
         <div class="grid grid-cols-6 text-center">
             <button type="button" onclick="loadTab('home')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="home"><i class="fas fa-home block text-base mb-0.5"></i>홈</button>
-            <button type="button" onclick="loadTab('exam')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="exam"><i class="fas fa-pen-fancy block text-base mb-0.5"></i>시험</button>
-            <button type="button" onclick="loadTab('assignments')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="assignments"><i class="fas fa-tasks block text-base mb-0.5"></i>과제</button>
-            <button type="button" onclick="loadTab('attendance')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="attendance"><i class="fas fa-clock block text-base mb-0.5"></i>출석</button>
-            <button type="button" onclick="loadTab('notices')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="notices"><i class="fas fa-bullhorn block text-base mb-0.5"></i>공지</button>
-            <button type="button" onclick="loadTab('qna')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="qna"><i class="fas fa-comments block text-base mb-0.5"></i>질문</button>
+            <button type="button" onclick="loadTab('exam')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="exam"><i class="fas fa-file-contract block text-base mb-0.5"></i>사전평가</button>
+            <button type="button" onclick="loadTab('ncs')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="ncs"><i class="fas fa-certificate block text-base mb-0.5"></i>NCS</button>
+            <button type="button" onclick="loadTab('attendance')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="attendance"><i class="fas fa-calendar-check block text-base mb-0.5"></i>출석</button>
+            <button type="button" onclick="loadTab('surveys')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="surveys"><i class="fas fa-poll-h block text-base mb-0.5"></i>설문</button>
+            <button type="button" onclick="loadTab('grades')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="grades"><i class="fas fa-chart-line block text-base mb-0.5"></i>성적</button>
         </div>
     </nav>
 
@@ -151,14 +152,15 @@ export const studentClassroomHtml = (sessionId: string) => `
         const TAB_ITEMS = [
             { id: 'home', label: '홈' },
             { id: 'curriculum', label: '커리큘럼' },
-            { id: 'exam', label: '시험' },
+            { id: 'attendance', label: '출석관리' },
+            { id: 'exam', label: '사전평가' },
+            { id: 'ncs', label: 'NCS본평가' },
+            { id: 'surveys', label: '설문' },
+            { id: 'grades', label: '성적' },
             { id: 'assignments', label: '과제' },
-            { id: 'attendance', label: '출석' },
             { id: 'notices', label: '공지' },
             { id: 'qna', label: '질문' },
             { id: 'materials', label: '자료' },
-            { id: 'surveys', label: '설문' },
-            { id: 'grades', label: '성적' },
             { id: 'review', label: '후기' }
         ];
         let overview = null;
@@ -361,14 +363,15 @@ export const studentClassroomHtml = (sessionId: string) => `
             content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></div>';
             if (tab === 'home') return renderHome();
             if (tab === 'curriculum') return renderCurriculum();
-            if (tab === 'exam') return renderExams();
-            if (tab === 'assignments') return renderAssignments();
             if (tab === 'attendance') return renderAttendance();
+            if (tab === 'exam') return renderExams();
+            if (tab === 'ncs') return renderNcs();
+            if (tab === 'surveys') return renderSurveys();
+            if (tab === 'grades') return renderGrades();
+            if (tab === 'assignments') return renderAssignments();
             if (tab === 'notices') return renderNotices();
             if (tab === 'qna') return renderQna();
             if (tab === 'materials') return renderMaterials();
-            if (tab === 'surveys') return renderSurveys();
-            if (tab === 'grades') return renderGrades();
             if (tab === 'review') return renderReview();
         };
 
@@ -395,7 +398,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             html += '</div></div>';
             html += '<p class="text-xs font-bold text-slate-400 mb-6"><i class="fas fa-map-marker-alt text-sky-500 mr-1"></i>' + esc(overview.location || '미정') + ' · ' + fmtDate(overview.training_start_date) + ' ~ ' + fmtDate(overview.training_end_date) + '</p>';
             html += '<div class="grid grid-cols-3 gap-3 mb-8">';
-            html += '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 시험</p><p class="text-2xl font-black mt-1 ' + ((pending.exams || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.exams || 0) + '</p></button>';
+            html += '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 사전평가</p><p class="text-2xl font-black mt-1 ' + ((pending.exams || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.exams || 0) + '</p></button>';
             html += '<button type="button" onclick="loadTab(&#39;assignments&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미제출 과제</p><p class="text-2xl font-black mt-1 ' + ((pending.assignments || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.assignments || 0) + '</p></button>';
             html += '<button type="button" onclick="loadTab(&#39;surveys&#39;)" class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 text-left"><p class="text-[10px] font-black text-slate-400">미참여 설문</p><p class="text-2xl font-black mt-1 ' + ((pending.surveys || 0) > 0 ? 'text-amber-600' : 'text-slate-800') + '">' + (pending.surveys || 0) + '</p></button>';
             html += '</div>';
@@ -504,48 +507,24 @@ export const studentClassroomHtml = (sessionId: string) => `
         }
 
         async function renderExams() {
-            const [examRes, ncsRes, planRes] = await Promise.all([
-                fetch('/api/student/classroom/' + sessionId + '/exams', { headers: authHeaders() }),
-                fetch('/api/student/classroom/' + sessionId + '/ncs', { headers: authHeaders() }),
-                fetch('/api/student/classroom/' + sessionId + '/ncs-plans', { headers: authHeaders() })
-            ]);
-            const json = await examRes.json();
-            const ncsJson = await ncsRes.json();
-            const planJson = await planRes.json();
+            const res = await fetch('/api/student/classroom/' + sessionId + '/exams', { headers: authHeaders() });
+            const json = await res.json();
             const exams = json.data || [];
-            const ncs = ncsJson.data || {};
-            const plans = planJson.data || [];
-            window._ncsPlans = plans;
-            let html = '';
-            var doneExam = 0;
-            exams.forEach(function(e) { if (e.has_submitted) doneExam += 1; });
-            if (ncs.question_count > 0 || exams.length) {
-                html += '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">';
-                html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">시험</p><p class="text-2xl font-black mt-1">' + exams.length + '</p></div>';
-                html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">응시완료</p><p class="text-2xl font-black mt-1 text-emerald-600">' + doneExam + '</p></div>';
-                html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 col-span-2 sm:col-span-1"><p class="text-[10px] font-black text-slate-400">미응시</p><p class="text-2xl font-black mt-1 ' + ((exams.length - doneExam) > 0 ? 'text-amber-600' : '') + '">' + (exams.length - doneExam) + '</p></div>';
-                html += '</div>';
-            }
-            if (ncs.question_count > 0) {
-                const ncsBtn = ncs.has_submitted
-                    ? '<span class="px-4 py-2.5 bg-white/80 text-amber-800 rounded-2xl text-[10px] font-black">응시완료</span>'
-                    : '<button type="button" onclick="openNcsExam()" class="px-4 py-2.5 bg-amber-500 text-white rounded-2xl text-[10px] font-black">응시하기</button>';
-                html += '<div class="bento-card rounded-[2rem] border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div class="flex gap-4 items-start"><div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0"><i class="fas fa-certificate"></i></div><div><span class="text-[10px] font-black uppercase tracking-widest text-amber-600">NCS 본평가</span><h3 class="font-black text-lg mt-1">과정 본평가</h3><p class="text-xs text-slate-500 mt-1">' + ncs.question_count + '문항</p></div></div>' + ncsBtn + '</div>';
-            }
-            if (plans.length) {
-                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 증빙 자료</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">';
-                plans.forEach(function(p) {
-                    const done = !!p.has_evidence;
-                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col justify-between min-h-[140px]"><div><p class="text-[10px] font-black text-sky-600">[' + esc(p.unit_code || '') + ']</p><h3 class="font-black mt-1">' + esc(p.unit_name) + '</h3><p class="text-xs text-slate-500 mt-2">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div><div class="mt-4">' + (done ? '<span class="inline-flex px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black">제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black">제출</button>') + '</div></div>';
-                });
-                html += '</div>';
-            }
-            if (!exams.length && ncs.question_count <= 0 && !plans.length) {
-                document.getElementById('tabContent').innerHTML = emptyState('fa-pen-fancy', '이 회차에 배정된 시험이 없습니다.');
+            if (!exams.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-file-contract', '이 과정 LMS에 배정된 사전평가가 없습니다.');
                 return;
             }
-            if (exams.length) {
-                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">과정 시험</h3><div class="space-y-3">' + exams.map(function(e) {
+            var doneExam = 0;
+            exams.forEach(function(e) { if (e.has_submitted) doneExam += 1; });
+            const practice = exams.filter(function(e) { return e.type === 'practice'; });
+            const others = exams.filter(function(e) { return e.type !== 'practice'; });
+            let html = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">';
+            html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">사전평가</p><p class="text-2xl font-black mt-1">' + exams.length + '</p></div>';
+            html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">응시완료</p><p class="text-2xl font-black mt-1 text-emerald-600">' + doneExam + '</p></div>';
+            html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 col-span-2 sm:col-span-1"><p class="text-[10px] font-black text-slate-400">미응시</p><p class="text-2xl font-black mt-1 ' + ((exams.length - doneExam) > 0 ? 'text-amber-600' : '') + '">' + (exams.length - doneExam) + '</p></div>';
+            html += '</div>';
+            function examCards(list) {
+                return '<div class="space-y-3">' + list.map(function(e) {
                     const submitted = !!e.has_submitted;
                     const takeUrl = e.type === 'practice'
                         ? '/student/pre-assessment/take?session_id=' + encodeURIComponent(sessionId) + (e.course_id ? '&course_id=' + e.course_id : '') + '&from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam')
@@ -555,6 +534,44 @@ export const studentClassroomHtml = (sessionId: string) => `
                         : '<a href="' + takeUrl + '" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">응시하기</a>';
                     return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex gap-4"><div class="w-1.5 rounded-full ' + (submitted ? 'bg-emerald-400' : 'bg-sky-500') + ' shrink-0"></div><div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + examTypeLabel(e.type) + '</span><h3 class="font-black text-lg mt-1">' + esc(e.title) + '</h3><p class="text-xs text-slate-500 mt-1">' + esc(e.description || '') + (e.time_limit_minutes ? ' · ' + e.time_limit_minutes + '분' : '') + '</p></div>' + btn + '</div></div>';
                 }).join('') + '</div>';
+            }
+            if (practice.length) {
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">사전평가</h3>' + examCards(practice);
+            }
+            if (others.length) {
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3 mt-6">과정 시험</h3>' + examCards(others);
+            }
+            document.getElementById('tabContent').innerHTML = html;
+        }
+
+        async function renderNcs() {
+            const [ncsRes, planRes] = await Promise.all([
+                fetch('/api/student/classroom/' + sessionId + '/ncs', { headers: authHeaders() }),
+                fetch('/api/student/classroom/' + sessionId + '/ncs-plans', { headers: authHeaders() })
+            ]);
+            const ncsJson = await ncsRes.json();
+            const planJson = await planRes.json();
+            const ncs = ncsJson.data || {};
+            const plans = planJson.data || [];
+            window._ncsPlans = plans;
+            if (ncs.question_count <= 0 && !plans.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-certificate', '이 과정 LMS에 배정된 NCS본평가가 없습니다.');
+                return;
+            }
+            let html = '';
+            if (ncs.question_count > 0) {
+                const ncsBtn = ncs.has_submitted
+                    ? '<span class="px-4 py-2.5 bg-white/80 text-amber-800 rounded-2xl text-[10px] font-black">응시완료</span>'
+                    : '<button type="button" onclick="openNcsExam()" class="px-4 py-2.5 bg-amber-500 text-white rounded-2xl text-[10px] font-black">응시하기</button>';
+                html += '<div class="bento-card rounded-[2rem] border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div class="flex gap-4 items-start"><div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0"><i class="fas fa-certificate"></i></div><div><span class="text-[10px] font-black uppercase tracking-widest text-amber-600">NCS본평가</span><h3 class="font-black text-lg mt-1">과정 본평가</h3><p class="text-xs text-slate-500 mt-1">' + ncs.question_count + '문항</p></div></div>' + ncsBtn + '</div>';
+            }
+            if (plans.length) {
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 증빙 자료</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">';
+                plans.forEach(function(p) {
+                    const done = !!p.has_evidence;
+                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col justify-between min-h-[140px]"><div><p class="text-[10px] font-black text-sky-600">[' + esc(p.unit_code || '') + ']</p><h3 class="font-black mt-1">' + esc(p.unit_name) + '</h3><p class="text-xs text-slate-500 mt-2">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div><div class="mt-4">' + (done ? '<span class="inline-flex px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black">제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black">제출</button>') + '</div></div>';
+                });
+                html += '</div>';
             }
             document.getElementById('tabContent').innerHTML = html;
         }
@@ -567,10 +584,10 @@ export const studentClassroomHtml = (sessionId: string) => `
                 const json = await res.json();
                 const questions = (json && json.success && Array.isArray(json.data)) ? json.data : [];
                 if (!questions.length) {
-                    content.innerHTML = emptyState('fa-pen-fancy', '이 회차에 NCS 본평가 문제가 없습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                    content.innerHTML = emptyState('fa-pen-fancy', '이 회차에 NCS 본평가 문제가 없습니다.') + '<button type="button" onclick="loadTab(&#39;ncs&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
                     return;
                 }
-                let html = '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
+                let html = '<button type="button" onclick="loadTab(&#39;ncs&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
                 html += '<h2 class="text-xl font-black mb-1">NCS 본평가</h2><p class="text-xs text-slate-500 mb-6">총 ' + questions.length + '문항</p>';
                 html += '<form id="ncsExamForm" onsubmit="event.preventDefault(); submitNcsExam();" class="space-y-5">';
                 questions.forEach(function(q, idx) {
@@ -588,7 +605,7 @@ export const studentClassroomHtml = (sessionId: string) => `
                 html += '<button type="submit" class="w-full min-h-[44px] rounded-2xl bg-amber-500 text-white font-black">제출하기</button></form>';
                 content.innerHTML = html;
             } catch (e) {
-                content.innerHTML = emptyState('fa-pen-fancy', '문제를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                content.innerHTML = emptyState('fa-pen-fancy', '문제를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(&#39;ncs&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
             }
         };
 
@@ -612,7 +629,7 @@ export const studentClassroomHtml = (sessionId: string) => `
                     var total = d.total || 0;
                     var score = d.score != null ? d.score : d.correct_count || 0;
                     var pct = total > 0 ? Math.round((score / total) * 100) : 0;
-                    content.innerHTML = '<div class="text-center py-10"><div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div><h3 class="text-xl font-black">제출 완료</h3><p class="text-3xl font-black text-amber-600 mt-2">' + score + ' / ' + total + ' (' + pct + '%)</p><button type="button" onclick="loadTab(&#39;exam&#39;)" class="mt-6 px-6 py-3 bg-amber-500 text-white rounded-2xl font-black">목록으로</button></div>';
+                    content.innerHTML = '<div class="text-center py-10"><div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-double text-2xl"></i></div><h3 class="text-xl font-black">제출 완료</h3><p class="text-3xl font-black text-amber-600 mt-2">' + score + ' / ' + total + ' (' + pct + '%)</p><button type="button" onclick="loadTab(&#39;ncs&#39;)" class="mt-6 px-6 py-3 bg-amber-500 text-white rounded-2xl font-black">목록으로</button></div>';
                 } else {
                     alert(json.error || '제출에 실패했습니다.');
                 }
@@ -1101,7 +1118,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             const json = await res.json();
             if (json.success) {
                 closeEvidenceModal();
-                loadTab('exam');
+                loadTab('ncs');
             } else {
                 alert(json.error || '제출에 실패했습니다.');
             }

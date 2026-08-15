@@ -445,7 +445,7 @@ export const studentDashboardHtml = () => `
             else if (tab === 'lectures') loadLectures();
             else if (tab === 'attendance') loadClassroomGate('attendance', '출석률', '해당 회차 출석 기록과 출석률을 강의실에서 확인합니다.');
             else if (tab === 'grades') loadClassroomGate('grades', '성적', '이 과정 시험·과제 성적을 강의실에서 확인합니다.');
-            else if (tab === 'ncs') loadClassroomGate('exam', 'NCS 본평가', '이 회차에 배정된 NCS 본평가와 증빙을 강의실에서 진행합니다.');
+            else if (tab === 'ncs') loadClassroomGate('ncs', 'NCS본평가', '이 회차에 배정된 NCS본평가와 증빙을 강의실에서 진행합니다.');
             else if (tab === 'surveys') loadClassroomGate('surveys', '설문/평가', '이 과정 LMS에 배정된 설문·강의평가를 강의실에서 참여합니다.');
             else if (tab === 'portfolio') loadStudentPortfolios();
             else if (tab === 'employment') loadEmploymentStatus();
@@ -836,7 +836,7 @@ export const studentDashboardHtml = () => `
                         var ncsSubmitted = item.has_submitted === true;
                         var ncsBtn = ncsSubmitted
                             ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>'
-                            : '<a href="/student/classroom/' + item.session_id + '#exam" class="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-amber-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-door-open"></i> 강의실에서 응시</a>';
+                            : '<a href="/student/classroom/' + item.session_id + '#ncs" class="px-6 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-amber-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-door-open"></i> 강의실에서 응시</a>';
                         html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-amber-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded-full uppercase tracking-widest">NCS 본평가</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + safeTitle + '</span>' + (ncsSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + safeName + '</h3><p class="text-sm text-slate-600 mt-1">' + (item.question_count || 0) + '문항</p></div>' + ncsBtn + '</div>';
                     });
                     html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;ncs&#39;)" class="text-amber-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">NCS 본평가 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
@@ -1076,7 +1076,7 @@ export const studentDashboardHtml = () => `
         }
 
         function goNcsExamFromDashboard(sessionId) {
-            location.href = '/student/classroom/' + sessionId + '#exam';
+            location.href = '/student/classroom/' + sessionId + '#ncs';
         }
 
         async function loadNcsStatus() {
