@@ -141,6 +141,7 @@ import { portfoliosListHtml } from './views/portfolios';
 import { portfolioDetailHtml } from './views/portfolio_detail';
 import { postsListHtml } from './views/posts';
 import { faqPageHtml, type PublicFaq } from './views/faq';
+import { seoGuideHtml } from './views/seo_guides';
 import { prototypeGalleryHtml } from './views/prototype_gallery';
 import { adminPrototypeGalleryHtml } from './views/admin_prototype_gallery';
 import { educationGalleryHtml } from './views/education_gallery';
@@ -162,7 +163,9 @@ import {
     getSeoHead,
     getSeoOptionsForPath,
     isNoindexPath,
+    llmsTxt,
     PUBLIC_PATHS,
+    seoOptionsForSession,
     SITE_ORIGIN,
 } from './utils/seo';
 import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
@@ -193,7 +196,14 @@ app.use('*', async (c, next) => {
     }
 
     const contentType = c.res.headers.get('Content-Type') || '';
-    const seoOptions = getSeoOptionsForPath(requestUrl.pathname);
+    let seoOptions = getSeoOptionsForPath(requestUrl.pathname);
+    const sessionMatch = requestUrl.pathname.match(/^\/course-sessions\/(\d+)$/);
+    const generalMatch = requestUrl.pathname.match(/^\/courses\/(\d+)$/);
+    if (c.env.DB && sessionMatch) {
+        seoOptions = (await seoOptionsForSession(c.env.DB, Number(sessionMatch[1]), 'session')) || seoOptions;
+    } else if (c.env.DB && generalMatch) {
+        seoOptions = (await seoOptionsForSession(c.env.DB, Number(generalMatch[1]), 'general')) || seoOptions;
+    }
     if (!seoOptions || !contentType.includes('text/html') || c.res.status >= 400) return;
 
     const html = await c.res.text();
@@ -203,6 +213,7 @@ app.use('*', async (c, next) => {
     }
 
     const cleanedHtml = html
+        .replace(/\s*<title>[^<]*<\/title>/i, '')
         .replace(/\s*<meta\s+name=["'](?:description|keywords|robots)["'][^>]*>/gi, '');
     const seoHead = getSeoHead(canonicalOrigin, seoOptions, {
         google: c.env.GOOGLE_SITE_VERIFICATION,
@@ -237,6 +248,16 @@ app.get('/favicon.ico', (c) => {
     });
 });
 
+app.get('/llms.txt', (c) => {
+    const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
+    return new Response(llmsTxt(origin), {
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400',
+        },
+    });
+});
+
 // robots.txt (네이버·구글 등 검색엔진 크롤러 안내)
 app.get('/robots.txt', (c) => {
     const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
@@ -251,7 +272,15 @@ app.get('/robots.txt', (c) => {
         'Disallow: /register',
         'Disallow: /reset-password',
         'Sitemap: ' + origin + '/sitemap.xml',
-        ''
+        '',
+        '# AI crawlers',
+        'User-agent: GPTBot',
+        'Allow: /',
+        'Disallow: /admin/',
+        'Disallow: /teacher/',
+        'Disallow: /student/',
+        'Disallow: /api/',
+        '',
     ].join('\n');
     return new Response(body, {
         headers: {
@@ -729,22 +758,48 @@ app.get('/faq', async (c) => {
             ORDER BY pinned DESC, created_at DESC
             LIMIT 30
         `).all<{ title: string; content: string }>();
+        const aeoDefaults: PublicFaq[] = [
+            {
+                title: '3D프린팅 국비지원은 어떻게 신청하나요?',
+                answer: '국민내일배움카드를 발급받은 뒤 와우쓰리디 홍대·구미·전주센터의 모집 과정에 등록하면 됩니다. 상담 전화 02-3144-3137, 자세한 절차는 내일배움카드 안내 페이지를 보세요.',
+            },
+            {
+                title: '내일배움카드로 3D프린팅을 배울 수 있나요?',
+                answer: '가능합니다. 와우쓰리디는 내일배움카드(국비지원) 3D프린팅·3D모델링 직업훈련을 운영합니다. 현재 회차는 교육과정 목록에서 확인하세요.',
+            },
+            {
+                title: '홍대에서 3D프린팅을 배울 수 있는 곳은 어디인가요?',
+                answer: '서울 마포구 독막로 93 4층(상수역 2번 출구) 와우쓰리디홍대센터에서 3D프린팅 국비지원 교육을 운영합니다. 전화 02-3144-3137.',
+            },
+            {
+                title: '3D프린터운용기능사 학원은 어디인가요?',
+                answer: '와우쓰리디에서 3D프린터운용기능사 실기 대비 과정(주말반·평일저녁반)을 운영합니다. 일정은 교육과정 목록의 기능사 회차를 확인하세요.',
+            },
+            {
+                title: '소상공인도 3D프린팅 교육을 들을 수 있나요?',
+                answer: '가능합니다. 쿠키틀·몰드·소품 제품화 등 소상공인 맞춤 과정을 운영합니다. 교육과정 목록과 온라인 상담으로 일정을 안내합니다.',
+            },
+        ];
         const seen = new Set<string>();
-        const items: PublicFaq[] = (result.results || [])
-            .map((row) => ({
-                title: htmlToPlainText(row.title),
-                answer: htmlToPlainText(row.content),
-            }))
-            .filter((item) => {
-                const key = `${item.title}\n${item.answer}`;
-                if (!item.title || !item.answer || item.answer.startsWith('[R2:') || seen.has(key)) return false;
-                seen.add(key);
-                return true;
-            });
+        const items: PublicFaq[] = [];
+        for (const item of [...aeoDefaults, ...(result.results || []).map((row) => ({
+            title: htmlToPlainText(row.title),
+            answer: htmlToPlainText(row.content),
+        }))]) {
+            const key = item.title.replace(/\s+/g, '');
+            if (!item.title || !item.answer || item.answer.startsWith('[R2:') || seen.has(key)) continue;
+            seen.add(key);
+            items.push(item);
+        }
         return c.html(faqPageHtml(items));
     } catch (error) {
         console.error('FAQ page query failed:', error);
-        return c.html(faqPageHtml([]));
+        return c.html(faqPageHtml([
+            {
+                title: '3D프린팅 국비지원은 어떻게 신청하나요?',
+                answer: '국민내일배움카드를 발급받은 뒤 와우쓰리디 홍대·구미·전주센터의 모집 과정에 등록하면 됩니다. 상담 전화 02-3144-3137.',
+            },
+        ]));
     }
 });
 app.get('/prototype-gallery', (c) => c.html(prototypeGalleryHtml));
@@ -756,6 +811,21 @@ app.get('/locations', async (c) => {
         if (row?.value) appKey = String(row.value).trim();
     }
     return c.html(locationsHtml({ kakaoMapAppKey: appKey }));
+});
+app.get('/locations/:campus', async (c) => {
+    const campus = c.req.param('campus');
+    if (!['hongdae', 'gumi', 'jeonju'].includes(campus)) return c.redirect('/locations');
+    let appKey = (c.env.KAKAO_MAP_APPKEY && typeof c.env.KAKAO_MAP_APPKEY === 'string') ? c.env.KAKAO_MAP_APPKEY.trim() : '';
+    if (!appKey) {
+        const row = await c.env.DB.prepare('SELECT value FROM site_settings WHERE key = ?').bind('kakao_map_appkey').first<{ value: string }>();
+        if (row?.value) appKey = String(row.value).trim();
+    }
+    return c.html(locationsHtml({ kakaoMapAppKey: appKey, initialTab: campus as 'hongdae' | 'gumi' | 'jeonju' }));
+});
+app.get('/guides/:slug', (c) => {
+    const html = seoGuideHtml(c.req.param('slug'));
+    if (!html) return c.redirect('/course-sessions');
+    return c.html(html);
 });
 app.get('/education-performance', (c) => c.html(educationPerformanceHtml()));
 app.get('/tomorrow-learning-card', (c) => c.html(tomorrowLearningCardHtml()));

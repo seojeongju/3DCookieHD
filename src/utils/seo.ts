@@ -6,19 +6,53 @@
 export const SITE_ORIGIN = 'https://3dcookiehd.com';
 export const SITE_NAME = '와우쓰리디홍대센터';
 const DEFAULT_DESCRIPTION = '4차산업 3D프린팅 교육 전문. 와우쓰리디홍대센터에서 3D 모델링·프린팅 국비지원 과정, 실무 교육, NCS 기반 커리큘럼을 만나보세요. 홍대·구미·전주.';
-const DEFAULT_KEYWORDS = '와우쓰리디, 3D프린팅, 3D모델링, 국비지원교육, NCS, 홍대교육, 구미교육, 전주교육, 4차산업, 직업훈련';
+const DEFAULT_KEYWORDS = '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린팅 학원 홍대, 와우쓰리디, 3D모델링, 구미 3D프린팅, 전주 3D프린팅, 소상공인 3D프린팅';
+const DEFAULT_OG_IMAGE = '/static/logo.png';
+
+export const CAMPUSES = {
+    hongdae: {
+        slug: 'hongdae',
+        name: '와우쓰리디 홍대센터',
+        telephone: '+82-2-3144-3137',
+        street: '독막로 93 4층 (상수동, 상수빌딩)',
+        locality: '마포구',
+        region: '서울특별시',
+        postalCode: '04072',
+        keyword: '홍대 3D프린팅 학원',
+    },
+    gumi: {
+        slug: 'gumi',
+        name: '와우쓰리디 구미센터',
+        telephone: '+82-54-464-3137',
+        street: '산호대로 253 606호 (공단동, 구미첨단의료기술타워)',
+        locality: '구미시',
+        region: '경상북도',
+        postalCode: '39371',
+        keyword: '구미 3D프린팅 학원',
+    },
+    jeonju: {
+        slug: 'jeonju',
+        name: '와우쓰리디 전주센터',
+        telephone: '+82-2-3144-3137',
+        street: '반룡로 109 207호 (팔복동, 테크노빌 A동)',
+        locality: '전주시 덕진구',
+        region: '전북특별자치도',
+        postalCode: '54810',
+        keyword: '전주 3D프린팅 교육',
+    },
+} as const;
+
+export type CampusSlug = keyof typeof CAMPUSES;
 
 export type SeoOptions = {
     title: string;
     description?: string;
     keywords?: string;
     image?: string;
-    /** 현재 페이지 경로 (앞에 / 포함, 예: /course-sessions) */
     path?: string;
-    /** true면 검색엔진 색인 제외 (관리자·로그인 전용 페이지 등) */
     noindex?: boolean;
-    /** og:type (기본: website) */
     ogType?: 'website' | 'article';
+    extraJsonLd?: unknown[];
 };
 
 export type SiteVerification = {
@@ -26,45 +60,42 @@ export type SiteVerification = {
     naver?: string;
 };
 
+export function formatSeoTitle(title: string): string {
+    return title.includes(SITE_NAME) ? title : `${title} - ${SITE_NAME}`;
+}
+
 /**
  * 페이지별 <head>에 넣을 SEO 메타·OG·Twitter·캐노니컬·JSON-LD HTML 문자열 반환
- * @param baseUrl 사이트 루트 URL (예: https://example.com, 마지막 슬래시 제외)
  */
 export function getSeoHead(baseUrl: string, options: SeoOptions, verification: SiteVerification = {}): string {
     const origin = (baseUrl || SITE_ORIGIN).replace(/\/$/, '');
-    const title = options.title.includes(SITE_NAME) ? options.title : `${options.title} - ${SITE_NAME}`;
+    const title = formatSeoTitle(options.title);
     const description = options.description ?? DEFAULT_DESCRIPTION;
     const keywords = options.keywords ?? DEFAULT_KEYWORDS;
-    const image = options.image
-        ? (options.image.startsWith('http') ? options.image : `${origin}${options.image.replace(/^\//, '/')}`)
-        : '';
+    const rawImage = options.image || DEFAULT_OG_IMAGE;
+    const image = rawImage.startsWith('http') ? rawImage : `${origin}${rawImage.startsWith('/') ? rawImage : '/' + rawImage}`;
     const url = `${origin}${(options.path ?? '/').replace(/^\//, '/')}`.replace(/([^/])\/$/, '$1');
     const noindex = options.noindex === true;
     const ogType = options.ogType ?? 'website';
 
     const metaTags: string[] = [
+        `<title>${escapeAttr(title)}</title>`,
         `<meta name="description" content="${escapeAttr(description)}">`,
         `<meta name="keywords" content="${escapeAttr(keywords)}">`,
         `<meta name="robots" content="${noindex ? 'noindex, nofollow' : 'index, follow'}">`,
         `<link rel="canonical" href="${escapeAttr(url)}">`,
-        // Open Graph (네이버·페이스북·카카오 등)
         `<meta property="og:type" content="${ogType}">`,
         `<meta property="og:site_name" content="${escapeAttr(SITE_NAME)}">`,
         `<meta property="og:title" content="${escapeAttr(title)}">`,
         `<meta property="og:description" content="${escapeAttr(description)}">`,
         `<meta property="og:url" content="${escapeAttr(url)}">`,
         `<meta property="og:locale" content="ko_KR">`,
-        // Twitter Card
-        `<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">`,
+        `<meta property="og:image" content="${escapeAttr(image)}">`,
+        `<meta name="twitter:card" content="summary_large_image">`,
         `<meta name="twitter:title" content="${escapeAttr(title)}">`,
         `<meta name="twitter:description" content="${escapeAttr(description)}">`,
+        `<meta name="twitter:image" content="${escapeAttr(image)}">`,
     ];
-    if (image) {
-        metaTags.push(
-            `<meta property="og:image" content="${escapeAttr(image)}">`,
-            `<meta name="twitter:image" content="${escapeAttr(image)}">`,
-        );
-    }
     if (verification.google) {
         metaTags.push(`<meta name="google-site-verification" content="${escapeAttr(verification.google)}">`);
     }
@@ -72,11 +103,11 @@ export function getSeoHead(baseUrl: string, options: SeoOptions, verification: S
         metaTags.push(`<meta name="naver-site-verification" content="${escapeAttr(token)}">`);
     }
 
-    const jsonLd = getJsonLd(origin, title, description, url);
+    const jsonLd = getJsonLd(origin, title, description, url, options.path, options.extraJsonLd);
     return metaTags.join('\n    ') + '\n    ' + jsonLd;
 }
 
-function escapeAttr(s: string): string {
+export function escapeAttr(s: string): string {
     return s
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')
@@ -84,8 +115,35 @@ function escapeAttr(s: string): string {
         .replace(/>/g, '&gt;');
 }
 
-/** 교육기관 + 웹사이트 + 페이지 JSON-LD */
-function getJsonLd(origin: string, title: string, description: string, url: string): string {
+function campusLocalBusiness(origin: string, slug: CampusSlug) {
+    const campus = CAMPUSES[slug];
+    return {
+        '@type': 'EducationalOrganization',
+        '@id': `${origin}/locations/${slug}#place`,
+        name: campus.name,
+        url: `${origin}/locations/${slug}`,
+        telephone: campus.telephone,
+        parentOrganization: { '@id': `${origin}/#organization` },
+        address: {
+            '@type': 'PostalAddress',
+            streetAddress: campus.street,
+            addressLocality: campus.locality,
+            addressRegion: campus.region,
+            postalCode: campus.postalCode,
+            addressCountry: 'KR',
+        },
+        areaServed: campus.region,
+    };
+}
+
+function getJsonLd(
+    origin: string,
+    title: string,
+    description: string,
+    url: string,
+    path?: string,
+    extraJsonLd?: unknown[],
+): string {
     const organization = {
         '@type': 'EducationalOrganization',
         '@id': `${origin}/#organization`,
@@ -95,13 +153,15 @@ function getJsonLd(origin: string, title: string, description: string, url: stri
         description: DEFAULT_DESCRIPTION,
         email: 'wow3d16@naver.com',
         telephone: '+82-2-3144-3137',
+        sameAs: ['https://wow3dp.co.kr'],
         address: {
             '@type': 'PostalAddress',
-            streetAddress: '독막로 93 4층 (상수동, 상수빌딩)',
-            addressLocality: '마포구',
-            addressRegion: '서울특별시',
+            streetAddress: CAMPUSES.hongdae.street,
+            addressLocality: CAMPUSES.hongdae.locality,
+            addressRegion: CAMPUSES.hongdae.region,
             addressCountry: 'KR',
         },
+        department: (Object.keys(CAMPUSES) as CampusSlug[]).map((slug) => ({ '@id': `${origin}/locations/${slug}#place` })),
     };
     const webSite = {
         '@type': 'WebSite',
@@ -111,6 +171,11 @@ function getJsonLd(origin: string, title: string, description: string, url: stri
         description,
         publisher: { '@id': `${origin}/#organization` },
         inLanguage: 'ko-KR',
+        potentialAction: {
+            '@type': 'SearchAction',
+            target: `${origin}/course-sessions?q={search_term_string}`,
+            'query-input': 'required name=search_term_string',
+        },
     };
     const page = {
         '@type': 'WebPage',
@@ -122,16 +187,166 @@ function getJsonLd(origin: string, title: string, description: string, url: stri
         about: { '@id': `${origin}/#organization` },
         inLanguage: 'ko-KR',
     };
+    const graph: unknown[] = [organization, webSite, page];
+    if (path === '/' || path === '/locations' || (path && path.startsWith('/locations/'))) {
+        (Object.keys(CAMPUSES) as CampusSlug[]).forEach((slug) => graph.push(campusLocalBusiness(origin, slug)));
+    }
+    if (extraJsonLd?.length) graph.push(...extraJsonLd);
     return `<script type="application/ld+json">${JSON.stringify({
         '@context': 'https://schema.org',
-        '@graph': [organization, webSite, page],
+        '@graph': graph,
     })}</script>`;
+}
+
+export function inferCampusLabel(location?: string | null): string {
+    const loc = String(location || '');
+    if (/구미/.test(loc)) return '구미';
+    if (/전주|전북/.test(loc)) return '전주';
+    if (/홍대|마포|상수|서울/.test(loc)) return '홍대';
+    return '홍대';
+}
+
+export function buildCourseJsonLd(origin: string, row: {
+    id: number;
+    course_name?: string | null;
+    session_number?: number | null;
+    session_name?: string | null;
+    training_start_date?: string | null;
+    training_end_date?: string | null;
+    location?: string | null;
+    instructor_name?: string | null;
+    description?: string | null;
+}): Record<string, unknown> {
+    const name = [row.course_name, row.session_number ? `${row.session_number}회차` : '', row.session_name]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const start = String(row.training_start_date || '').slice(0, 10);
+    const end = String(row.training_end_date || '').slice(0, 10);
+    return {
+        '@type': 'Course',
+        name: name || '3D프린팅 국비지원 과정',
+        description: row.description || `${name} 국비지원(내일배움카드) 3D프린팅 교육. ${inferCampusLabel(row.location)}센터.`,
+        url: `${origin}/course-sessions/${row.id}`,
+        provider: { '@id': `${origin}/#organization` },
+        inLanguage: 'ko-KR',
+        ...(start ? { hasCourseInstance: {
+            '@type': 'CourseInstance',
+            courseMode: 'onsite',
+            startDate: start,
+            ...(end ? { endDate: end } : {}),
+            location: row.location || CAMPUSES.hongdae.name,
+            instructor: row.instructor_name || undefined,
+        } } : {}),
+    };
+}
+
+export async function seoOptionsForSession(
+    db: D1Database,
+    id: number,
+    source: 'session' | 'general',
+): Promise<SeoOptions | null> {
+    try {
+        if (source === 'general') {
+            const row = await db.prepare(
+                'SELECT id, title, description, thumbnail_url, start_date, end_date FROM courses WHERE id = ?'
+            ).bind(id).first<{ id: number; title: string; description?: string; thumbnail_url?: string; start_date?: string; end_date?: string }>();
+            if (!row) return null;
+            const title = `${row.title} | 3D프린팅 교육`;
+            return {
+                title,
+                description: (row.description || `${row.title} 3D프린팅 교육 과정을 와우쓰리디에서 확인하세요.`).replace(/<[^>]+>/g, '').slice(0, 160),
+                keywords: `${row.title}, 3D프린팅 교육, 와우쓰리디`,
+                image: row.thumbnail_url || DEFAULT_OG_IMAGE,
+                path: `/courses/${id}`,
+                extraJsonLd: [buildCourseJsonLd(SITE_ORIGIN, {
+                    id: row.id,
+                    course_name: row.title,
+                    training_start_date: row.start_date,
+                    training_end_date: row.end_date,
+                    description: row.description,
+                })],
+            };
+        }
+        const row = await db.prepare(`
+            SELECT s.id, s.session_number, s.session_name, s.training_start_date, s.training_end_date,
+                   s.location, s.instructor_name, s.main_slide_image_url, s.course_list_image_url,
+                   a.name as course_name
+            FROM course_sessions s
+            INNER JOIN approved_courses a ON a.id = s.approved_course_id
+            WHERE s.id = ?
+        `).bind(id).first<{
+            id: number;
+            session_number: number | null;
+            session_name: string | null;
+            training_start_date: string | null;
+            training_end_date: string | null;
+            location: string | null;
+            instructor_name: string | null;
+            main_slide_image_url: string | null;
+            course_list_image_url: string | null;
+            course_name: string | null;
+        }>();
+        if (!row) return null;
+        const campus = inferCampusLabel(row.location);
+        const display = [row.course_name, row.session_number ? `${row.session_number}회차` : '', row.session_name].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+        const dates = [String(row.training_start_date || '').slice(0, 10), String(row.training_end_date || '').slice(0, 10)].filter(Boolean).join('~');
+        const title = `${display} 국비지원 | ${campus} 3D프린팅`;
+        const description = `${display} 내일배움카드(국비지원) 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 와우쓰리디에서 수강 상담하세요.`;
+        return {
+            title,
+            description: description.slice(0, 170),
+            keywords: `${display}, 3D프린팅 국비지원, 내일배움카드 3D프린팅, ${campus} 3D프린팅 학원, 3D프린터운용기능사`,
+            image: row.main_slide_image_url || row.course_list_image_url || DEFAULT_OG_IMAGE,
+            path: `/course-sessions/${id}`,
+            extraJsonLd: [buildCourseJsonLd(SITE_ORIGIN, {
+                ...row,
+                description,
+            })],
+        };
+    } catch {
+        return null;
+    }
+}
+
+export function llmsTxt(origin: string): string {
+    return [
+        '# 와우쓰리디홍대센터',
+        '',
+        `> 4차산업 3D프린팅 직업훈련 기관. 공식 사이트: ${origin}`,
+        '',
+        '## 기관',
+        `- 이름: ${SITE_NAME}`,
+        '- 이메일: wow3d16@naver.com',
+        '- 교육: 3D프린팅·3D모델링 국비지원(국민내일배움카드), 3D프린터운용기능사, 소상공인 맞춤, 시제품 제작, 기업·대학 교육',
+        '',
+        '## 캠퍼스',
+        ...((Object.keys(CAMPUSES) as CampusSlug[]).map((slug) => {
+            const c = CAMPUSES[slug];
+            return `- ${c.name}: ${c.region} ${c.locality} ${c.street} / ${c.telephone} / ${origin}/locations/${slug}`;
+        })),
+        '',
+        '## 주요 페이지',
+        `- 과정 목록: ${origin}/course-sessions`,
+        `- 내일배움카드: ${origin}/tomorrow-learning-card`,
+        `- 3D프린팅 국비지원 안내: ${origin}/guides/national-support`,
+        `- 기능사 과정: ${origin}/guides/craftsman-license`,
+        `- 소상공인 교육: ${origin}/guides/small-business`,
+        `- 시제품 교육: ${origin}/guides/prototype`,
+        `- FAQ: ${origin}/faq`,
+        `- 상담: ${origin}/online-consulting`,
+        '',
+        '수강 신청은 관리자 등록 후 학생이 이메일과 과정 인증 코드로 처음 비밀번호를 설정합니다.',
+        '',
+    ].join('\n');
 }
 
 const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywords' | 'ogType'>> = {
     '/': {
-        title: '4차산업 3D프린팅 교육 전문',
+        title: '3D프린팅 국비지원 교육 전문',
         description: DEFAULT_DESCRIPTION,
+        keywords: DEFAULT_KEYWORDS,
     },
     '/greeting': {
         title: '센터 소개',
@@ -146,16 +361,33 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         description: '와우쓰리디홍대센터의 3D프린터, 실습실 및 전문 교육시설을 안내합니다.',
     },
     '/locations': {
-        title: '오시는 길',
-        description: '와우쓰리디 홍대·구미·전주 교육센터의 주소와 연락처를 안내합니다.',
+        title: '오시는 길 | 홍대·구미·전주 3D프린팅 학원',
+        description: '와우쓰리디 홍대(마포 상수)·구미·전주 3D프린팅 교육센터 주소, 전화, 대중교통을 안내합니다.',
+        keywords: '홍대 3D프린팅 학원, 구미 3D프린팅 학원, 전주 3D프린팅 교육, 오시는 길',
+    },
+    '/locations/hongdae': {
+        title: '홍대 3D프린팅 학원 오시는 길',
+        description: '서울 마포구 상수역 인근 와우쓰리디홍대센터. 독막로 93 4층. 전화 02-3144-3137. 3D프린팅 국비지원 교육을 운영합니다.',
+        keywords: '홍대 3D프린팅 학원, 마포 3D프린팅 교육, 상수역 3D프린팅',
+    },
+    '/locations/gumi': {
+        title: '구미 3D프린팅 학원 오시는 길',
+        description: '경북 구미시 산호대로 253 와우쓰리디 구미센터. 전화 054-464-3137. 구미 3D프린팅 국비지원 교육을 안내합니다.',
+        keywords: '구미 3D프린팅 학원, 구미 3D프린터 교육',
+    },
+    '/locations/jeonju': {
+        title: '전주 3D프린팅 교육 오시는 길',
+        description: '전북 전주시 덕진구 반룡로 109 와우쓰리디 전주센터. 전주 3D프린팅 직업훈련을 운영합니다.',
+        keywords: '전주 3D프린팅 교육, 전주 3D프린팅 학원',
     },
     '/online-consulting': {
         title: '교육 상담 신청',
         description: '3D프린팅 국비지원 과정과 실무 교육에 대해 온라인으로 상담을 신청하세요.',
     },
     '/tomorrow-learning-card': {
-        title: '국민내일배움카드 교육',
-        description: '국민내일배움카드로 참여 가능한 3D프린팅·3D모델링 직업훈련 과정을 안내합니다.',
+        title: '내일배움카드 3D프린팅 국비지원',
+        description: '국민내일배움카드로 3D프린팅·3D모델링 국비지원 과정을 수강할 수 있습니다. 신청 방법과 와우쓰리디 모집 과정을 안내합니다.',
+        keywords: '내일배움카드 3D프린팅, 3D프린팅 국비지원, 국민내일배움카드',
     },
     '/corporate-education': {
         title: '기업 맞춤형 교육',
@@ -166,8 +398,9 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         description: '대학과 학과의 교육 목표에 맞춘 3D프린팅 실습 및 프로젝트 교육을 제공합니다.',
     },
     '/course-sessions': {
-        title: '교육과정',
-        description: '현재 모집 중인 국비지원 및 3D프린팅 실무 교육과정의 일정과 교육 내용을 확인하세요.',
+        title: '3D프린팅 국비지원 교육과정',
+        description: '모집 중인 3D프린팅 국비지원·내일배움카드 과정, 3D프린터운용기능사, 소상공인 맞춤 과정의 일정과 장소를 확인하세요.',
+        keywords: '3D프린팅 국비지원, 3D프린터운용기능사, 소상공인 3D프린팅 교육',
     },
     '/schedule': {
         title: '교육 일정',
@@ -194,8 +427,29 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         description: '교육과정 공지사항, 자주 묻는 질문과 답변을 확인하세요.',
     },
     '/faq': {
-        title: '자주 묻는 질문',
-        description: '국비지원, 국민내일배움카드, 수강 신청과 3D프린팅 교육에 대한 자주 묻는 질문을 확인하세요.',
+        title: '3D프린팅 국비지원 FAQ',
+        description: '3D프린팅 국비지원은 어떻게 신청하나요? 내일배움카드 사용처, 홍대 학원 위치, 기능사 과정 등 자주 묻는 질문에 답합니다.',
+        keywords: '3D프린팅 국비지원 신청, 내일배움카드 3D프린팅, 홍대 3D프린팅 학원',
+    },
+    '/guides/national-support': {
+        title: '3D프린팅 국비지원 받는 방법',
+        description: '3D프린팅 국비지원은 국민내일배움카드로 와우쓰리디홍대·구미·전주센터에서 수강할 수 있습니다. 신청 절차와 모집 과정을 안내합니다.',
+        keywords: '3D프린팅 국비지원, 내일배움카드 3D프린팅',
+    },
+    '/guides/craftsman-license': {
+        title: '3D프린터운용기능사 학원',
+        description: '3D프린터운용기능사 실기 대비 과정은 와우쓰리디에서 운영합니다. 주말반·평일저녁반 일정과 상담 방법을 확인하세요.',
+        keywords: '3D프린터운용기능사, 3D프린터운용기능사 학원',
+    },
+    '/guides/small-business': {
+        title: '소상공인 3D프린팅 교육',
+        description: '쿠키틀·몰드·소품 제품화를 위한 소상공인 3D프린팅 맞춤 교육을 홍대센터에서 운영합니다.',
+        keywords: '소상공인 3D프린팅 교육, 쿠키틀 3D프린팅',
+    },
+    '/guides/prototype': {
+        title: '3D프린팅 시제품 제작 교육',
+        description: '3D프린팅 시제품 제작 교육과 사례를 안내합니다. 기업·개인 실무에 바로 쓰는 모델링·출력 과정을 운영합니다.',
+        keywords: '3D프린팅 시제품 제작 교육, 시제품 3D프린팅',
     },
     '/prototype-gallery': {
         title: '시제품 제작 사례',
@@ -272,4 +526,11 @@ export const PUBLIC_PATHS: string[] = [
     '/privacy',
     '/partnership',
     '/sitemap',
+    '/locations/hongdae',
+    '/locations/gumi',
+    '/locations/jeonju',
+    '/guides/national-support',
+    '/guides/craftsman-license',
+    '/guides/small-business',
+    '/guides/prototype',
 ];

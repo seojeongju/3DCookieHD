@@ -4,8 +4,9 @@ import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
 
 /** 옵션: kakaoMapAppKey 있으면 지도 표시 (Cloudflare Pages에서는 Secrets에 KAKAO_MAP_APPKEY 설정) */
-export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
+export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 'hongdae' | 'gumi' | 'jeonju' }) {
     const appKey = (options && options.kakaoMapAppKey) ? options.kakaoMapAppKey : '';
+    const initialTab = options?.initialTab || 'hongdae';
     return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -306,7 +307,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
                     return;
                 }
                 window.kakao.maps.load(function() {
-                    initMap('hongdae');
+                    initMap(${JSON.stringify(initialTab)});
                 });
             };
             s.onerror = function() {
@@ -314,6 +315,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string }) {
             };
             document.head.appendChild(s);
         })();
+        switchTab(${JSON.stringify(initialTab)});
     </script>
 </body>
 </html>
