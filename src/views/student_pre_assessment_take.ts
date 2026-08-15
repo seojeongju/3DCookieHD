@@ -302,7 +302,10 @@ export const studentPreAssessmentTakeHtml = `
             } else {
                 alert('제출 완료: ' + submitted + '건\\n제출 실패: ' + failed + '건');
             }
-            window.location.href = '/student';
+            window.location.href = (function() {
+                var from = new URLSearchParams(location.search).get('from');
+                return (from && from.indexOf('/student/classroom/') === 0) ? from : '/student';
+            })();
         }
     </script>
 </body>

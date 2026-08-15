@@ -86,7 +86,7 @@ export const studentExamHtml = `
 
                 if (exam.error) {
                     alert('시험을 불러올 수 없습니다: ' + exam.error);
-                    window.location.href = '/';
+                    window.location.href = '/student';
                     return;
                 }
 
@@ -235,7 +235,8 @@ export const studentExamHtml = `
                 const result = await response.json();
                 if (result.success) {
                     alert(\`시험이 종료되었습니다.\\n점수: \${result.score} / \${result.totalPoints}\`);
-                    window.location.href = '/'; 
+                    var from = new URLSearchParams(location.search).get('from');
+                    window.location.href = (from && from.indexOf('/student/classroom/') === 0) ? from : '/student'; 
                 } else {
                     alert('제출 실패: ' + result.error);
                 }

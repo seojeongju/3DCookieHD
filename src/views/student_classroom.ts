@@ -70,9 +70,9 @@ export const studentClassroomHtml = (sessionId: string) => `
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-                <div class="lg:col-span-3 space-y-4">
+                <div class="lg:col-span-3 space-y-4 hidden lg:block">
                     <div class="bg-white rounded-[2rem] p-4 sm:p-6 border border-slate-200/60 shadow-sm">
-                        <div class="grid grid-cols-2 lg:grid-cols-1 gap-2" id="tabNav">
+                        <div class="grid grid-cols-1 gap-2" id="tabNav">
                             <button onclick="loadTab('home')" id="tab-home" class="nav-tab active w-full text-left px-4 py-3 rounded-2xl text-sm transition flex items-center gap-3"><i class="fas fa-home w-5"></i> 홈</button>
                             <button onclick="loadTab('curriculum')" id="tab-curriculum" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-list-ol w-5"></i> 커리큘럼</button>
                             <button onclick="loadTab('exam')" id="tab-exam" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-pen-fancy w-5"></i> 시험응시</button>
@@ -81,6 +81,7 @@ export const studentClassroomHtml = (sessionId: string) => `
                             <button onclick="loadTab('notices')" id="tab-notices" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-bullhorn w-5"></i> 공지</button>
                             <button onclick="loadTab('materials')" id="tab-materials" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-download w-5"></i> 자료</button>
                             <button onclick="loadTab('surveys')" id="tab-surveys" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-poll w-5"></i> 설문</button>
+                            <button onclick="loadTab('grades')" id="tab-grades" class="nav-tab w-full text-left px-4 py-3 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition flex items-center gap-3"><i class="fas fa-chart-bar w-5"></i> 성적</button>
                         </div>
                     </div>
                     <div class="bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm">
@@ -95,6 +96,9 @@ export const studentClassroomHtml = (sessionId: string) => `
                     </div>
                 </div>
                 <div class="lg:col-span-9">
+                    <div class="lg:hidden mb-4 overflow-x-auto pb-1 -mx-4 px-4">
+                        <div class="flex gap-2 min-w-max" id="mobileTabPills"></div>
+                    </div>
                     <div id="tabContent" class="bg-white rounded-[2.5rem] p-5 sm:p-8 border border-slate-200/60 shadow-sm min-h-[420px] custom-scrollbar"></div>
                 </div>
             </div>
@@ -103,8 +107,29 @@ export const studentClassroomHtml = (sessionId: string) => `
 
     ${footerHtml()}
 
+    <nav id="mobileBottomNav" class="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md" style="padding-bottom: max(0.4rem, env(safe-area-inset-bottom));">
+        <div class="grid grid-cols-5 text-center">
+            <button type="button" onclick="loadTab('home')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="home"><i class="fas fa-home block text-base mb-0.5"></i>홈</button>
+            <button type="button" onclick="loadTab('exam')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="exam"><i class="fas fa-pen-fancy block text-base mb-0.5"></i>시험</button>
+            <button type="button" onclick="loadTab('assignments')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="assignments"><i class="fas fa-tasks block text-base mb-0.5"></i>과제</button>
+            <button type="button" onclick="loadTab('attendance')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="attendance"><i class="fas fa-clock block text-base mb-0.5"></i>출석</button>
+            <button type="button" onclick="loadTab('surveys')" class="mobile-bottom py-2 text-[10px] font-black text-slate-500" data-tab="surveys"><i class="fas fa-poll block text-base mb-0.5"></i>설문</button>
+        </div>
+    </nav>
+
     <script>
         const sessionId = ${JSON.stringify(sessionId)};
+        const TAB_ITEMS = [
+            { id: 'home', label: '홈' },
+            { id: 'curriculum', label: '커리큘럼' },
+            { id: 'exam', label: '시험' },
+            { id: 'assignments', label: '과제' },
+            { id: 'attendance', label: '출석' },
+            { id: 'notices', label: '공지' },
+            { id: 'materials', label: '자료' },
+            { id: 'surveys', label: '설문' },
+            { id: 'grades', label: '성적' }
+        ];
         let overview = null;
         let currentUser = null;
         let submitAssignmentId = null;
@@ -199,10 +224,23 @@ export const studentClassroomHtml = (sessionId: string) => `
             document.getElementById('courseTitle').textContent = title;
             document.getElementById('sessionInfo').innerHTML = '<i class="far fa-calendar-alt mr-2"></i>' + fmtDate(overview.training_start_date) + ' ~ ' + fmtDate(overview.training_end_date) + ' &nbsp;|&nbsp; <i class="fas fa-map-marker-alt mr-2"></i> ' + esc(overview.location || '장소 미정');
             document.getElementById('instructorName').textContent = overview.instructor_name || '미정';
-            loadTab('home');
+            const pills = document.getElementById('mobileTabPills');
+            if (pills && !pills.dataset.ready) {
+                pills.innerHTML = TAB_ITEMS.map(function(t) {
+                    return '<button type="button" data-tab="' + t.id + '" class="nav-tab-pill whitespace-nowrap px-3 py-2 rounded-full text-xs font-black border border-slate-200 bg-white text-slate-600">' + t.label + '</button>';
+                }).join('');
+                pills.addEventListener('click', function(ev) {
+                    var b = ev.target.closest('[data-tab]');
+                    if (b) loadTab(b.getAttribute('data-tab'));
+                });
+                pills.dataset.ready = '1';
+            }
+            const hashTab = (location.hash || '').replace('#', '');
+            loadTab(TAB_ITEMS.some(function(t) { return t.id === hashTab; }) ? hashTab : 'home');
         }
 
         window.loadTab = async function(tab) {
+            if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
             document.querySelectorAll('.nav-tab').forEach(function(btn) {
                 btn.classList.toggle('active', btn.id === 'tab-' + tab);
                 if (btn.id !== 'tab-' + tab) {
@@ -210,6 +248,18 @@ export const studentClassroomHtml = (sessionId: string) => `
                 } else {
                     btn.classList.remove('text-slate-600');
                 }
+            });
+            document.querySelectorAll('.nav-tab-pill').forEach(function(btn) {
+                var on = btn.getAttribute('data-tab') === tab;
+                btn.classList.toggle('bg-sky-600', on);
+                btn.classList.toggle('text-white', on);
+                btn.classList.toggle('border-sky-600', on);
+                btn.classList.toggle('bg-white', !on);
+                btn.classList.toggle('text-slate-600', !on);
+            });
+            document.querySelectorAll('.mobile-bottom').forEach(function(btn) {
+                btn.classList.toggle('text-sky-600', btn.getAttribute('data-tab') === tab);
+                btn.classList.toggle('text-slate-500', btn.getAttribute('data-tab') !== tab);
             });
             const content = document.getElementById('tabContent');
             content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></div>';
@@ -221,6 +271,7 @@ export const studentClassroomHtml = (sessionId: string) => `
             if (tab === 'notices') return renderNotices();
             if (tab === 'materials') return renderMaterials();
             if (tab === 'surveys') return renderSurveys();
+            if (tab === 'grades') return renderGrades();
         };
 
         function renderHome() {
@@ -230,6 +281,12 @@ export const studentClassroomHtml = (sessionId: string) => `
             html += '<div class="rounded-[2rem] bg-sky-50 border border-sky-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">출석률</p><p class="text-3xl font-black mt-1">' + (att.rate || 0) + '%</p><p class="text-xs text-slate-500 mt-1">' + (att.attended || 0) + ' / ' + (att.recorded || 0) + '일</p></div>';
             html += '<div class="rounded-[2rem] bg-slate-50 border border-slate-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">기간</p><p class="text-sm font-black mt-2 leading-relaxed">' + fmtDate(overview.training_start_date) + '<br>~ ' + fmtDate(overview.training_end_date) + '</p></div>';
             html += '<div class="rounded-[2rem] bg-slate-50 border border-slate-100 p-5"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">장소</p><p class="text-sm font-black mt-2">' + esc(overview.location || '미정') + '</p></div>';
+            html += '</div>';
+            const pending = overview.pending || {};
+            html += '<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">';
+            html += '<button type="button" onclick="loadTab(\'exam\')" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미응시 시험</p><p class="text-2xl font-black mt-1">' + (pending.exams || 0) + '</p></button>';
+            html += '<button type="button" onclick="loadTab(\'assignments\')" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미제출 과제</p><p class="text-2xl font-black mt-1">' + (pending.assignments || 0) + '</p></button>';
+            html += '<button type="button" onclick="loadTab(\'surveys\')" class="rounded-2xl border border-slate-100 p-4 text-left"><p class="text-[10px] font-black text-slate-400">미참여 설문</p><p class="text-2xl font-black mt-1">' + (pending.surveys || 0) + '</p></button>';
             html += '</div><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">다가오는 수업</h3>';
             if (!upcoming.length) {
                 html += emptyState('fa-calendar', '예정된 시간표가 없습니다.');
@@ -286,8 +343,8 @@ export const studentClassroomHtml = (sessionId: string) => `
             const html = '<div class="space-y-4">' + exams.map(function(e) {
                 const submitted = !!e.has_submitted;
                 const takeUrl = e.type === 'practice'
-                    ? '/student/pre-assessment/take?session_id=' + encodeURIComponent(sessionId) + (e.course_id ? '&course_id=' + e.course_id : '')
-                    : '/student/exam/' + e.id;
+                    ? '/student/pre-assessment/take?session_id=' + encodeURIComponent(sessionId) + (e.course_id ? '&course_id=' + e.course_id : '') + '&from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam')
+                    : '/student/exam/' + e.id + '?from=' + encodeURIComponent('/student/classroom/' + sessionId + '#exam');
                 const btn = submitted
                     ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">응시완료</span>'
                     : '<a href="' + takeUrl + '" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">응시하기</a>';
@@ -368,6 +425,29 @@ export const studentClassroomHtml = (sessionId: string) => `
                 });
                 html += '</tbody></table></div>';
             }
+            document.getElementById('tabContent').innerHTML = html;
+        }
+
+        async function renderGrades() {
+            const res = await fetch('/api/student/classroom/' + sessionId + '/grades', { headers: authHeaders() });
+            const json = await res.json();
+            const data = json.data || {};
+            const exams = data.exams || [];
+            const assignments = data.assignments || [];
+            if (!exams.length && !assignments.length) {
+                document.getElementById('tabContent').innerHTML = emptyState('fa-chart-bar', '채점된 성적 기록이 없습니다.');
+                return;
+            }
+            let html = '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">시험</h3>';
+            if (!exams.length) html += '<p class="text-sm text-slate-400 mb-6">시험 성적이 없습니다.</p>';
+            else html += '<div class="space-y-2 mb-8">' + exams.map(function(e) {
+                return '<div class="flex justify-between rounded-2xl border border-slate-100 px-4 py-3"><span class="font-black text-sm">' + esc(e.title) + '</span><span class="font-black text-sky-600">' + (e.score != null ? e.score : '-') + (e.total_points ? ' / ' + e.total_points : '') + '</span></div>';
+            }).join('') + '</div>';
+            html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">과제</h3>';
+            if (!assignments.length) html += '<p class="text-sm text-slate-400">과제 성적이 없습니다.</p>';
+            else html += '<div class="space-y-2">' + assignments.map(function(a) {
+                return '<div class="rounded-2xl border border-slate-100 px-4 py-3"><div class="flex justify-between"><span class="font-black text-sm">' + esc(a.title) + '</span><span class="font-black text-sky-600">' + (a.score != null ? a.score : (a.status || '제출')) + (a.max_score ? ' / ' + a.max_score : '') + '</span></div>' + (a.feedback ? '<p class="text-xs text-slate-500 mt-1">' + esc(a.feedback) + '</p>' : '') + '</div>';
+            }).join('') + '</div>';
             document.getElementById('tabContent').innerHTML = html;
         }
 

@@ -241,6 +241,31 @@ app.get('/:sessionId/attendance', async (c) => {
     });
 });
 
+app.get('/:sessionId/grades', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    const userId = c.get('user').userId;
+    const exams = enrolled.lms_course_id
+        ? (await c.env.DB.prepare(
+            `SELECT e.title, es.total_score as score, es.submitted_at, es.status,
+                    (SELECT SUM(points) FROM exam_questions WHERE exam_id = e.id) as total_points
+             FROM exam_submissions es
+             JOIN exams e ON e.id = es.exam_id
+             WHERE es.student_id = ? AND e.course_id = ?
+             ORDER BY es.submitted_at DESC`
+        ).bind(userId, enrolled.lms_course_id).all()).results
+        : [];
+    const assignments = (await c.env.DB.prepare(
+        `SELECT a.title, s.score, s.status, a.max_score, s.feedback, s.submitted_at
+         FROM assignment_submissions s
+         JOIN assignments a ON a.id = s.assignment_id
+         WHERE s.student_id = ? AND (a.session_id = ? OR (a.course_id = ? AND a.session_id IS NULL))
+         ORDER BY s.submitted_at DESC`
+    ).bind(userId, sessionId, enrolled.lms_course_id || 0).all()).results;
+    return c.json({ success: true, data: { exams: exams || [], assignments: assignments || [] } });
+});
+
 app.get('/:sessionId', async (c) => {
     const sessionId = parseInt(c.req.param('sessionId'), 10);
     const enrolled = await requireEnrollment(c, sessionId);
@@ -253,6 +278,33 @@ app.get('/:sessionId', async (c) => {
     ).bind(enrolled.enrollment_id).all();
     const logRows = logs || [];
     const attended = logRows.filter((l: { status?: string }) => isAttendedStatus(l.status)).length;
+    const userId = c.get('user').userId;
+    let pendingExams = 0;
+    let pendingAssignments = 0;
+    let pendingSurveys = 0;
+    if (enrolled.lms_course_id) {
+        const ex = await c.env.DB.prepare(
+            `SELECT COUNT(*) as n FROM exams e
+             WHERE e.course_id = ? AND IFNULL(e.is_active, 0) = 1
+               AND NOT EXISTS (SELECT 1 FROM exam_submissions s WHERE s.exam_id = e.id AND s.student_id = ?)`
+        ).bind(enrolled.lms_course_id, userId).first<{ n: number }>();
+        pendingExams = Number(ex?.n || 0);
+    }
+    const asg = await c.env.DB.prepare(
+        `SELECT COUNT(*) as n FROM assignments a
+         WHERE a.session_id = ?
+           AND NOT EXISTS (SELECT 1 FROM assignment_submissions s WHERE s.assignment_id = a.id AND s.student_id = ?)`
+    ).bind(sessionId, userId).first<{ n: number }>();
+    pendingAssignments = Number(asg?.n || 0);
+    const sv = await c.env.DB.prepare(
+        `SELECT COUNT(*) as n FROM surveys s
+         WHERE s.status = 'active'
+           AND (s.start_date IS NULL OR s.start_date <= date('now'))
+           AND (s.end_date IS NULL OR s.end_date >= date('now'))
+           AND (s.session_id = ? OR (s.course_id = ? AND s.session_id IS NULL))
+           AND NOT EXISTS (SELECT 1 FROM survey_responses r WHERE r.survey_id = s.id AND r.student_id = ?)`
+    ).bind(sessionId, enrolled.lms_course_id || 0, userId).first<{ n: number }>();
+    pendingSurveys = Number(sv?.n || 0);
     return c.json({
         success: true,
         data: {
@@ -269,6 +321,7 @@ app.get('/:sessionId', async (c) => {
                 attended,
                 rate: logRows.length ? Math.round((attended / logRows.length) * 100) : 0,
             },
+            pending: { exams: pendingExams, assignments: pendingAssignments, surveys: pendingSurveys },
             upcoming,
         },
     });
