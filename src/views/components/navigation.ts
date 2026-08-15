@@ -115,7 +115,7 @@ export const navigationHtml = (activeMenu = '') => `
                     </div>
 
                     <!-- 학사관리 (보라색 버튼) -->
-                    <div class="relative group ml-2">
+                    <div class="relative group ml-2 shrink-0">
                         <button class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded flex items-center transition-colors shadow-sm">
                             <i class="fas fa-graduation-cap mr-1.5 text-xs"></i>
                             학사관리
