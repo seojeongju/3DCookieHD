@@ -962,7 +962,12 @@ app.get('/api', (c) => {
 // 메인 페이지
 // ============================================
 app.get('/', (c) => {
-    return c.html(layoutHtml('4차산업 3D프린팅 교육 전문', homeHtml, 'home'));
+    return c.html(layoutHtml(
+        '4차산업 3D프린팅 교육 전문',
+        homeHtml,
+        'home',
+        '<link rel="preload" as="image" href="/static/hero1.jpg" fetchpriority="high">',
+    ));
 });
 
 // ============================================

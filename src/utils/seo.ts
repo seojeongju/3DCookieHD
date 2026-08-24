@@ -100,6 +100,9 @@ export function getSeoHead(baseUrl: string, options: SeoOptions, verification: S
         `<meta property="og:url" content="${escapeAttr(url)}">`,
         `<meta property="og:locale" content="ko_KR">`,
         `<meta property="og:image" content="${escapeAttr(image)}">`,
+        `<meta property="og:image:alt" content="${escapeAttr(title)}">`,
+        `<meta property="og:image:width" content="1200">`,
+        `<meta property="og:image:height" content="630">`,
         `<meta name="twitter:card" content="summary_large_image">`,
         `<meta name="twitter:title" content="${escapeAttr(title)}">`,
         `<meta name="twitter:description" content="${escapeAttr(description)}">`,
@@ -186,6 +189,9 @@ const BREADCRUMB_LABELS: Record<string, string> = {
     'national-support': '국비지원',
     'craftsman-license': '기능사·국가자격',
     'free-education': '무료·국비 교육',
+    'hongdae-3d-printing': '홍대 3D프린팅',
+    'gumi-3d-printing': '구미 3D프린팅',
+    'jeonju-3d-printing': '전주 3D프린팅',
     'small-business': '소상공인',
     prototype: '시제품 교육',
     'prototype-gallery': '시제품 사례',
@@ -495,6 +501,9 @@ export function llmsTxt(origin: string): string {
         `- 3D프린팅 국비지원 안내: ${origin}/guides/national-support`,
         `- 3D프린터 국가자격증·기능사: ${origin}/guides/craftsman-license`,
         `- 3D프린터 무료·국비 교육: ${origin}/guides/free-education`,
+        `- 홍대 3D프린팅 학원: ${origin}/guides/hongdae-3d-printing`,
+        `- 구미 3D프린팅 학원: ${origin}/guides/gumi-3d-printing`,
+        `- 전주 3D프린팅 교육: ${origin}/guides/jeonju-3d-printing`,
         `- 소상공인 교육: ${origin}/guides/small-business`,
         `- 시제품 교육: ${origin}/guides/prototype`,
         `- FAQ: ${origin}/faq`,
@@ -510,11 +519,12 @@ export function llmsTxt(origin: string): string {
     ].join('\n');
 }
 
-const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywords' | 'ogType'>> = {
+const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywords' | 'ogType' | 'image'>> = {
     '/': {
         title: '3D프린팅 국비지원 교육 전문',
         description: '홍대·구미·전주 와우쓰리디에서 국민내일배움카드 3D프린팅·3D모델링 국비지원 교육을 운영합니다. 기능사·소상공인·시제품 과정과 상담을 안내합니다.',
         keywords: DEFAULT_KEYWORDS,
+        image: '/static/hero1.jpg',
     },
     '/greeting': {
         title: '센터 소개',
@@ -604,16 +614,37 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         title: '3D프린팅 국비지원 받는 방법',
         description: '3D프린팅 국비지원은 국민내일배움카드로 와우쓰리디홍대·구미·전주센터에서 수강할 수 있습니다. 신청 절차와 모집 과정을 안내합니다.',
         keywords: '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터 무료교육',
+        image: '/static/hero2.jpg',
     },
     '/guides/craftsman-license': {
         title: '3D프린터 국가자격증·3D프린팅 기능사 학원',
         description: '3D프린터운용기능사(국가자격) 실기 대비 과정을 와우쓰리디에서 운영합니다. 3D프린팅 기능사 준비, 주말반·평일저녁반 일정과 상담 방법을 확인하세요.',
         keywords: '3D프린터 국가자격증, 3D프린팅 기능사, 3D프린터운용기능사, 3D프린터운용기능사 학원',
+        image: '/static/hero5.jpg',
     },
     '/guides/free-education': {
         title: '3D프린터 무료교육·국비지원 안내',
         description: '3D프린터 무료교육은 대개 내일배움카드 국비지원을 의미합니다. 와우쓰리디에서 훈련비 부담을 줄이는 방법과 모집 과정을 안내합니다.',
         keywords: '3D프린터 무료교육, 3D프린팅 국비지원, 내일배움카드 3D프린팅',
+        image: '/static/hero3.jpg',
+    },
+    '/guides/hongdae-3d-printing': {
+        title: '홍대 3D프린팅 학원 | 상수역 와우쓰리디',
+        description: '홍대·상수역 인근 와우쓰리디홍대센터에서 3D프린팅 국비지원·내일배움카드·3D프린터운용기능사 교육을 운영합니다. 독막로 93 4층.',
+        keywords: '홍대 3D프린팅 학원, 마포 3D프린팅 교육, 상수역 3D프린팅, 홍대 내일배움카드',
+        image: '/static/hero1.jpg',
+    },
+    '/guides/gumi-3d-printing': {
+        title: '구미 3D프린팅 학원 | 와우쓰리디 구미센터',
+        description: '경북 구미 와우쓰리디 구미센터에서 3D프린팅 국비지원·실무 교육을 안내합니다. 산호대로 253 606호.',
+        keywords: '구미 3D프린팅 학원, 구미 3D프린터 교육, 구미 내일배움카드',
+        image: '/static/hero2.jpg',
+    },
+    '/guides/jeonju-3d-printing': {
+        title: '전주 3D프린팅 교육 | 와우쓰리디 전주센터',
+        description: '전북 전주 와우쓰리디 전주센터에서 3D프린팅 직업훈련·국비지원 교육을 운영합니다. 반룡로 109 207호.',
+        keywords: '전주 3D프린팅 교육, 전주 3D프린팅 학원, 전주 내일배움카드',
+        image: '/static/hero4.jpg',
     },
     '/guides/small-business': {
         title: '소상공인 3D프린팅 교육',
@@ -709,6 +740,9 @@ export const PUBLIC_PATHS: string[] = [
     '/guides/national-support',
     '/guides/craftsman-license',
     '/guides/free-education',
+    '/guides/hongdae-3d-printing',
+    '/guides/gumi-3d-printing',
+    '/guides/jeonju-3d-printing',
     '/guides/small-business',
     '/guides/prototype',
 ];

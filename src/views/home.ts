@@ -417,6 +417,20 @@ export const homeHtml = `
                     <p class="text-sm text-gray-600">모델링부터 출력·후가공까지</p>
                 </a>
             </div>
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <a href="/guides/hongdae-3d-printing" class="bento-card block p-5 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                    <p class="text-xs font-bold text-slate-400 mb-1">지역</p>
+                    <h3 class="font-black text-gray-800">홍대 3D프린팅 학원</h3>
+                </a>
+                <a href="/guides/gumi-3d-printing" class="bento-card block p-5 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                    <p class="text-xs font-bold text-slate-400 mb-1">지역</p>
+                    <h3 class="font-black text-gray-800">구미 3D프린팅 학원</h3>
+                </a>
+                <a href="/guides/jeonju-3d-printing" class="bento-card block p-5 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                    <p class="text-xs font-bold text-slate-400 mb-1">지역</p>
+                    <h3 class="font-black text-gray-800">전주 3D프린팅 교육</h3>
+                </a>
+            </div>
         </div>
     </section>
 

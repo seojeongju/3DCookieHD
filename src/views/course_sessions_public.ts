@@ -248,8 +248,8 @@ export function courseSessionDetailHtml(
     <title>${ssrTitle} - 와우쓰리디홍대센터</title>
     <meta name="description" content="${ssrSummary}">
     <link rel="stylesheet" href="/static/tailwind-app.css">
-<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"></noscript>
     <style>
         .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); }
         .info-grid-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #f0f7ff; color: #4a90e2; }
