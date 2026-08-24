@@ -15,7 +15,7 @@ function toPlainMeta(text: string, max = 160): string {
         .trim()
         .slice(0, max);
 }
-const DEFAULT_KEYWORDS = '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린팅 학원 홍대, 와우쓰리디, 3D모델링, 구미 3D프린팅, 전주 3D프린팅, 소상공인 3D프린팅';
+const DEFAULT_KEYWORDS = '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린터 국가자격증, 3D프린팅 기능사, 3D프린터 무료교육, 3D프린팅 학원 홍대, 와우쓰리디, 3D모델링, 구미 3D프린팅, 전주 3D프린팅, 소상공인 3D프린팅';
 const DEFAULT_OG_IMAGE = '/static/hero1.jpg';
 
 export const CAMPUSES = {
@@ -311,15 +311,21 @@ export async function seoOptionsForSession(
             .replace(/\s+/g, ' ')
             .trim() || `3D프린팅 교육과정 ${id}`;
         const dates = [String(row.training_start_date || '').slice(0, 10), String(row.training_end_date || '').slice(0, 10)].filter(Boolean).join('~');
-        const title = `${display}${dates ? ` ${dates}` : ''} 국비지원 | ${campus} 3D프린팅`;
+        const isCraftsman = /기능사|운용기능사|국가자격/.test(display);
+        const titleSuffix = isCraftsman
+            ? ` 3D프린터운용기능사 | ${campus}`
+            : ` 국비지원 | ${campus} 3D프린팅`;
+        const title = `${display}${dates ? ` ${dates}` : ''}${titleSuffix}`;
         const description = toPlainMeta(
-            `${display} 내일배움카드(국비지원) 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 과정번호 ${id}. 와우쓰리디에서 수강 상담하세요.`,
+            isCraftsman
+                ? `${display} 3D프린터 국가자격증(3D프린터운용기능사) 대비 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 내일배움카드 적용 여부는 상담 시 안내합니다.`
+                : `${display} 내일배움카드(국비지원) 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 과정번호 ${id}. 와우쓰리디에서 수강 상담하세요.`,
             170,
         );
         return {
             title,
             description,
-            keywords: `${display}, 3D프린팅 국비지원, 내일배움카드 3D프린팅, ${campus} 3D프린팅 학원, 3D프린터운용기능사`,
+            keywords: `${display}, 3D프린팅 국비지원, 내일배움카드 3D프린팅, ${campus} 3D프린팅 학원, 3D프린터운용기능사, 3D프린터 국가자격증, 3D프린팅 기능사`,
             image: row.main_slide_image_url || row.course_list_image_url || DEFAULT_OG_IMAGE,
             path: `/course-sessions/${id}`,
             extraJsonLd: [buildCourseJsonLd(SITE_ORIGIN, {
@@ -394,11 +400,17 @@ export function llmsTxt(origin: string): string {
         `- 과정 목록: ${origin}/course-sessions`,
         `- 내일배움카드: ${origin}/tomorrow-learning-card`,
         `- 3D프린팅 국비지원 안내: ${origin}/guides/national-support`,
-        `- 기능사 과정: ${origin}/guides/craftsman-license`,
+        `- 3D프린터 국가자격증·기능사: ${origin}/guides/craftsman-license`,
+        `- 3D프린터 무료·국비 교육: ${origin}/guides/free-education`,
         `- 소상공인 교육: ${origin}/guides/small-business`,
         `- 시제품 교육: ${origin}/guides/prototype`,
         `- FAQ: ${origin}/faq`,
         `- 상담: ${origin}/online-consulting`,
+        '',
+        '## 핵심 키워드 정의',
+        '- 3D프린터 국가자격증 / 3D프린팅 기능사 = 국가기술자격 3D프린터운용기능사',
+        '- 3D프린터 무료교육 = 대개 국민내일배움카드(국비지원)로 훈련비 부담을 줄이는 교육 (완전 무료는 회차·자격에 따라 다름)',
+        '- 내일배움카드 = 고용노동부 국민내일배움카드로 와우쓰리디 3D프린팅 국비지원 과정 수강 가능',
         '',
         '수강 신청은 관리자 등록 후 학생이 이메일과 과정 인증 코드로 처음 비밀번호를 설정합니다.',
         '',
@@ -449,8 +461,8 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
     },
     '/tomorrow-learning-card': {
         title: '내일배움카드 3D프린팅 국비지원',
-        description: '국민내일배움카드로 3D프린팅·3D모델링 국비지원 과정을 수강할 수 있습니다. 신청 방법과 와우쓰리디 모집 과정을 안내합니다.',
-        keywords: '내일배움카드 3D프린팅, 3D프린팅 국비지원, 국민내일배움카드',
+        description: '국민내일배움카드로 3D프린팅·3D모델링 국비지원 과정을 수강할 수 있습니다. 발급 절차와 와우쓰리디 모집 과정, 무료·국비 안내를 확인하세요.',
+        keywords: '내일배움카드 3D프린팅, 3D프린팅 국비지원, 국민내일배움카드, 3D프린터 무료교육',
     },
     '/corporate-education': {
         title: '기업 맞춤형 교육',
@@ -491,18 +503,23 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
     },
     '/faq': {
         title: '3D프린팅 국비지원 FAQ',
-        description: '3D프린팅 국비지원은 어떻게 신청하나요? 내일배움카드 사용처, 홍대 학원 위치, 기능사 과정 등 자주 묻는 질문에 답합니다.',
-        keywords: '3D프린팅 국비지원 신청, 내일배움카드 3D프린팅, 홍대 3D프린팅 학원',
+        description: '3D프린터 국가자격증, 3D프린팅 기능사, 내일배움카드, 3D프린터 무료교육, 홍대 학원 위치 등 자주 묻는 질문에 답합니다.',
+        keywords: '3D프린팅 국비지원 신청, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린터 무료교육',
     },
     '/guides/national-support': {
         title: '3D프린팅 국비지원 받는 방법',
         description: '3D프린팅 국비지원은 국민내일배움카드로 와우쓰리디홍대·구미·전주센터에서 수강할 수 있습니다. 신청 절차와 모집 과정을 안내합니다.',
-        keywords: '3D프린팅 국비지원, 내일배움카드 3D프린팅',
+        keywords: '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터 무료교육',
     },
     '/guides/craftsman-license': {
-        title: '3D프린터운용기능사 학원',
-        description: '3D프린터운용기능사 실기 대비 과정은 와우쓰리디에서 운영합니다. 주말반·평일저녁반 일정과 상담 방법을 확인하세요.',
-        keywords: '3D프린터운용기능사, 3D프린터운용기능사 학원',
+        title: '3D프린터 국가자격증·3D프린팅 기능사 학원',
+        description: '3D프린터운용기능사(국가자격) 실기 대비 과정을 와우쓰리디에서 운영합니다. 3D프린팅 기능사 준비, 주말반·평일저녁반 일정과 상담 방법을 확인하세요.',
+        keywords: '3D프린터 국가자격증, 3D프린팅 기능사, 3D프린터운용기능사, 3D프린터운용기능사 학원',
+    },
+    '/guides/free-education': {
+        title: '3D프린터 무료교육·국비지원 안내',
+        description: '3D프린터 무료교육은 대개 내일배움카드 국비지원을 의미합니다. 와우쓰리디에서 훈련비 부담을 줄이는 방법과 모집 과정을 안내합니다.',
+        keywords: '3D프린터 무료교육, 3D프린팅 국비지원, 내일배움카드 3D프린팅',
     },
     '/guides/small-business': {
         title: '소상공인 3D프린팅 교육',
@@ -597,6 +614,7 @@ export const PUBLIC_PATHS: string[] = [
     '/locations/jeonju',
     '/guides/national-support',
     '/guides/craftsman-license',
+    '/guides/free-education',
     '/guides/small-business',
     '/guides/prototype',
 ];

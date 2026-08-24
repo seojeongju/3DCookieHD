@@ -39,7 +39,8 @@ export const navigationHtml = (activeMenu = '') => `
                                 <div class="w-52 shrink-0 py-2 border-l border-gray-100 bg-slate-50/60">
                                     <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">학습 가이드</p>
                                     <a href="/guides/national-support" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">국비지원 안내</a>
-                                    <a href="/guides/craftsman-license" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">기능사 자격증</a>
+                                    <a href="/guides/free-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">무료·국비 교육</a>
+                                    <a href="/guides/craftsman-license" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">기능사·국가자격</a>
                                     <a href="/guides/small-business" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">소상공인 활용</a>
                                     <a href="/guides/prototype" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">시제품 제작</a>
                                 </div>
@@ -158,7 +159,8 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/university-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">대학맞춤교육</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">학습 가이드</div>
                 <a href="/guides/national-support" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원 안내</a>
-                <a href="/guides/craftsman-license" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기능사 자격증</a>
+                <a href="/guides/free-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">무료·국비 교육</a>
+                <a href="/guides/craftsman-license" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기능사·국가자격</a>
                 <a href="/guides/small-business" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">소상공인 활용</a>
                 <a href="/guides/prototype" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">센터소개</div>

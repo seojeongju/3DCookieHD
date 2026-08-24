@@ -1,18 +1,58 @@
 import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
 
+const TLC_FAQ = [
+    {
+        q: '내일배움카드로 3D프린팅을 배울 수 있나요?',
+        a: '가능합니다. 와우쓰리디는 국민내일배움카드(국비지원) 3D프린팅·3D모델링 직업훈련을 홍대·구미·전주센터에서 운영합니다. 모집 회차는 교육과정 목록에서 확인하세요.',
+    },
+    {
+        q: '내일배움카드는 어떻게 발급받나요?',
+        a: '고용24(워크넷)에서 회원가입·로그인 후 상담·심사를 거쳐 국민내일배움카드를 발급받습니다. 자격·한도는 연도별 고시와 개인 심사 결과에 따릅니다.',
+    },
+    {
+        q: '내일배움카드로 3D프린터 무료교육이 가능한가요?',
+        a: '완전 무료 여부는 회차·자격에 따라 다릅니다. 내일배움카드로 훈련비 부담을 크게 줄일 수 있으며, 자기부담금은 상담 시 해당 회차 기준으로 안내합니다.',
+    },
+    {
+        q: '기능사·국가자격 과정도 내일배움카드로 들을 수 있나요?',
+        a: '개설 회차에 따라 다릅니다. 3D프린터운용기능사(3D프린터 국가자격증) 대비 과정 중 국비 적용 회차가 있으면 내일배움카드로 수강할 수 있습니다.',
+    },
+] as const;
+
 /** 내일배움카드 발급 안내 (고용노동부 청년 직업훈련 바우처 — 세부 기준은 매년 고시를 확인하세요) */
 export function tomorrowLearningCardHtml() {
+    const faqJsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: TLC_FAQ.map((item) => ({
+            '@type': 'Question',
+            name: item.q,
+            acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+    };
+    const faqCards = TLC_FAQ.map(
+        (item, index) => `
+            <details class="group rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden bento-card">
+                <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 sm:p-6 font-black tracking-tight text-slate-900">
+                    <span><span class="mr-3 text-emerald-600">Q${index + 1}.</span>${item.q}</span>
+                    <i class="fas fa-chevron-down text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true"></i>
+                </summary>
+                <div class="border-t border-slate-100 px-5 py-5 sm:px-6 text-slate-700 leading-7">${item.a}</div>
+            </details>`
+    ).join('');
+
     return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>내일배움카드 발급 안내 - 와우쓰리디홍대센터</title>
-    <meta name="description" content="내일배움카드란 무엇인지, 발급 절차와 국비지원 과정 연계를 안내합니다. 세부 자격·한도는 고용24 공지를 확인하세요.">
+    <title>내일배움카드 3D프린팅 국비지원 - 와우쓰리디홍대센터</title>
+    <meta name="description" content="내일배움카드로 3D프린팅·3D프린터 국비지원 교육을 수강하는 방법과 발급 절차를 안내합니다. 와우쓰리디 홍대·구미·전주.">
     <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script type="application/ld+json">${JSON.stringify(faqJsonLd).replace(/</g, '\\u003c')}</script>
     <style>
       .dot-grid-bg {
         background-color: #f8fafc;
@@ -42,10 +82,10 @@ export function tomorrowLearningCardHtml() {
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <p class="text-emerald-100/90 text-sm font-semibold tracking-widest uppercase mb-3">National Tomorrow Learning Card</p>
             <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-4">
-                <i class="fas fa-id-card-alt mr-3 opacity-90"></i>내일배움카드 발급 안내
+                <i class="fas fa-id-card-alt mr-3 opacity-90"></i>내일배움카드로 3D프린팅 배우기
             </h1>
             <p class="text-lg md:text-xl text-emerald-50/95 max-w-2xl mx-auto leading-relaxed">
-                청년 맞춤형 직업훈련 바우처로 국비지원 과정 수강을 준비하는 분들을 위한 요약 안내입니다.
+                국민내일배움카드로 3D프린팅·3D모델링 국비지원 과정을 준비하는 분을 위한 발급·수강 안내입니다.
             </p>
         </div>
     </header>
@@ -101,6 +141,17 @@ export function tomorrowLearningCardHtml() {
                             고용24 바로가기 <i class="fas fa-external-link-alt ml-2 text-xs opacity-90"></i>
                         </a>
                     </div>
+                </div>
+            </section>
+
+            <section class="bento-card rounded-[2.5rem] border border-slate-200/60 bg-white shadow-sm p-8 md:p-10 md:col-span-2">
+                <h2 class="text-xl font-black tracking-tight text-slate-900 mb-2">자주 묻는 질문</h2>
+                <p class="text-sm text-slate-500 mb-6">내일배움카드·3D프린팅 국비지원·무료교육에 대해 자주 묻는 내용입니다.</p>
+                <div class="space-y-3" aria-label="내일배움카드 자주 묻는 질문">${faqCards}</div>
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <a href="/guides/free-education" class="text-sm font-bold text-emerald-700 hover:underline">3D프린터 무료·국비 안내</a>
+                    <a href="/guides/craftsman-license" class="text-sm font-bold text-emerald-700 hover:underline">3D프린터 국가자격증·기능사</a>
+                    <a href="/faq" class="text-sm font-bold text-emerald-700 hover:underline">전체 FAQ</a>
                 </div>
             </section>
 
