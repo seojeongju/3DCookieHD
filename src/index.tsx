@@ -280,6 +280,7 @@ app.get('/robots.txt', (c) => {
         'Disallow: /register',
         'Disallow: /reset-password',
         'Sitemap: ' + origin + '/sitemap.xml',
+        '# LLM context: ' + origin + '/llms.txt',
         '',
         '# AI crawlers',
         'User-agent: GPTBot',
@@ -287,6 +288,11 @@ app.get('/robots.txt', (c) => {
         'Disallow: /admin/',
         'Disallow: /teacher/',
         'Disallow: /student/',
+        'Disallow: /api/',
+        '',
+        'User-agent: ChatGPT-User',
+        'Allow: /',
+        'Disallow: /admin/',
         'Disallow: /api/',
         '',
     ].join('\n');
@@ -836,6 +842,22 @@ app.get('/faq', async (c) => {
                 title: '소상공인도 3D프린팅 교육을 들을 수 있나요?',
                 answer: '가능합니다. 쿠키틀·몰드·소품 제품화 등 소상공인 맞춤 과정을 운영합니다. 교육과정 목록과 온라인 상담으로 일정을 안내합니다.',
             },
+            {
+                title: '와우쓰리디는 학원인가요, 직업훈련기관인가요?',
+                answer: '와우쓰리디홍대센터는 3D프린팅·3D모델링 직업훈련을 운영하는 교육기관입니다. 국민내일배움카드(국비지원) 과정과 3D프린터운용기능사 대비 교육, 소상공인·기업·대학 맞춤 교육을 제공합니다.',
+            },
+            {
+                title: '3D프린터운용기능사와 산업기사는 다른가요?',
+                answer: '다릅니다. 3D프린터운용기능사는 기능사 등급의 국가기술자격이고, 산업기사는 별도 등급·종목입니다. 와우쓰리디에서 주로 안내하는 국가자격은 3D프린터운용기능사입니다.',
+            },
+            {
+                title: '구미·전주에서도 3D프린팅을 배울 수 있나요?',
+                answer: '가능합니다. 경북 구미센터(산호대로 253)와 전북 전주센터(반룡로 109)에서도 3D프린팅 교육을 운영합니다. 지역별 안내는 홍대·구미·전주 가이드와 오시는 길 페이지를 보세요.',
+            },
+            {
+                title: '수강 신청은 어떻게 하나요?',
+                answer: '온라인 상담 또는 전화 02-3144-3137로 희망 과정·센터를 상담한 뒤 등록합니다. 국비 과정은 내일배움카드 발급 여부를 함께 확인합니다.',
+            },
         ];
         const seen = new Set<string>();
         const items: PublicFaq[] = [];
@@ -1344,11 +1366,28 @@ app.get('/sitemap', (c) => {
                                                                                     교육 과정
                                                                                 </h2>
                                                                                 <ul class="space-y-2">
-                                                                                    <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">전체 과정</a></li>
-                                                                                    <li><a href="/schedule" class="text-gray-600 hover:text-blue-600 transition">개강 일정표</a></li>
-                                                                                    <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">3D 프린팅</a></li>
-                                                                                    <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">메이커 교육</a></li>
-                                                                                    <li><a href="/#courses" class="text-gray-600 hover:text-blue-600 transition">자격증 과정</a></li>
+                                                                                    <li><a href="/course-sessions" class="text-gray-600 hover:text-blue-600 transition">국비지원·모집 과정</a></li>
+                                                                                    <li><a href="/tomorrow-learning-card" class="text-gray-600 hover:text-blue-600 transition">내일배움카드 안내</a></li>
+                                                                                    <li><a href="/schedule" class="text-gray-600 hover:text-blue-600 transition">교육 일정</a></li>
+                                                                                    <li><a href="/faq" class="text-gray-600 hover:text-blue-600 transition">FAQ</a></li>
+                                                                                </ul>
+                                                                            </div>
+
+                                                                            <!-- 학습 가이드 (AEO) -->
+                                                                            <div class="bg-white rounded-lg shadow-md p-6">
+                                                                                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                                                                    <i class="fas fa-compass text-indigo-600 mr-2"></i>
+                                                                                    학습 가이드
+                                                                                </h2>
+                                                                                <ul class="space-y-2">
+                                                                                    <li><a href="/guides/national-support" class="text-gray-600 hover:text-blue-600 transition">3D프린팅 국비지원</a></li>
+                                                                                    <li><a href="/guides/free-education" class="text-gray-600 hover:text-blue-600 transition">무료·국비 교육</a></li>
+                                                                                    <li><a href="/guides/craftsman-license" class="text-gray-600 hover:text-blue-600 transition">기능사·국가자격</a></li>
+                                                                                    <li><a href="/guides/hongdae-3d-printing" class="text-gray-600 hover:text-blue-600 transition">홍대 3D프린팅</a></li>
+                                                                                    <li><a href="/guides/gumi-3d-printing" class="text-gray-600 hover:text-blue-600 transition">구미 3D프린팅</a></li>
+                                                                                    <li><a href="/guides/jeonju-3d-printing" class="text-gray-600 hover:text-blue-600 transition">전주 3D프린팅</a></li>
+                                                                                    <li><a href="/guides/small-business" class="text-gray-600 hover:text-blue-600 transition">소상공인</a></li>
+                                                                                    <li><a href="/guides/prototype" class="text-gray-600 hover:text-blue-600 transition">시제품</a></li>
                                                                                 </ul>
                                                                             </div>
 
@@ -1359,9 +1398,10 @@ app.get('/sitemap', (c) => {
                                                                                     캠퍼스
                                                                                 </h2>
                                                                                 <ul class="space-y-2">
-                                                                                    <li><a href="/#campuses" class="text-gray-600 hover:text-blue-600 transition">캠퍼스 소개</a></li>
-                                                                                    <li><a href="/#campuses" class="text-gray-600 hover:text-blue-600 transition">위치 안내</a></li>
-                                                                                    <li><a href="/#campuses" class="text-gray-600 hover:text-blue-600 transition">시설 안내</a></li>
+                                                                                    <li><a href="/locations" class="text-gray-600 hover:text-blue-600 transition">오시는 길</a></li>
+                                                                                    <li><a href="/locations/hongdae" class="text-gray-600 hover:text-blue-600 transition">홍대센터</a></li>
+                                                                                    <li><a href="/locations/gumi" class="text-gray-600 hover:text-blue-600 transition">구미센터</a></li>
+                                                                                    <li><a href="/locations/jeonju" class="text-gray-600 hover:text-blue-600 transition">전주센터</a></li>
                                                                                 </ul>
                                                                             </div>
 
@@ -1372,9 +1412,9 @@ app.get('/sitemap', (c) => {
                                                                                     수강생
                                                                                 </h2>
                                                                                 <ul class="space-y-2">
-                                                                                    <li><a href="/#reviews" class="text-gray-600 hover:text-blue-600 transition">수강 후기</a></li>
-                                                                                    <li><a href="/#portfolios" class="text-gray-600 hover:text-blue-600 transition">포트폴리오</a></li>
-                                                                                    <li><a href="/#prototype-gallery" class="text-gray-600 hover:text-blue-600 transition">시제품 갤러리</a></li>
+                                                                                    <li><a href="/reviews" class="text-gray-600 hover:text-blue-600 transition">수강 후기</a></li>
+                                                                                    <li><a href="/portfolios" class="text-gray-600 hover:text-blue-600 transition">포트폴리오</a></li>
+                                                                                    <li><a href="/prototype-gallery" class="text-gray-600 hover:text-blue-600 transition">시제품 갤러리</a></li>
                                                                                 </ul>
                                                                             </div>
 

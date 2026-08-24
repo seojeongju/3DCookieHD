@@ -258,6 +258,44 @@ function linkClass(href: string, index: number): string {
     return 'inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-black text-slate-700 hover:border-indigo-200 hover:text-indigo-700';
 }
 
+function factBlockHtml(page: GuidePage): string {
+    const rows: Array<[string, string]> = [
+        ['기관', SITE_NAME],
+        ['대표 전화', '02-3144-3137'],
+        ['이메일', 'wow3d16@naver.com'],
+        ['국가자격 공식명', '3D프린터운용기능사'],
+        ['지원 제도', '국민내일배움카드(국비지원)'],
+        ['교육 분야', '3D프린팅·3D모델링·시제품·소상공인 맞춤'],
+    ];
+    if (page.slug === 'hongdae-3d-printing') {
+        const c = CAMPUSES.hongdae;
+        rows.push(['센터', c.name], ['주소', `${c.region} ${c.locality} ${c.street}`], ['지역 키워드', c.keyword]);
+    } else if (page.slug === 'gumi-3d-printing') {
+        const c = CAMPUSES.gumi;
+        rows.push(['센터', c.name], ['주소', `${c.region} ${c.locality} ${c.street}`], ['전화', c.telephone.replace('+82-', '0')], ['지역 키워드', c.keyword]);
+    } else if (page.slug === 'jeonju-3d-printing') {
+        const c = CAMPUSES.jeonju;
+        rows.push(['센터', c.name], ['주소', `${c.region} ${c.locality} ${c.street}`], ['지역 키워드', c.keyword]);
+    } else {
+        rows.push(['캠퍼스', '홍대·구미·전주']);
+    }
+    const items = rows
+        .map(
+            ([dt, dd]) => `
+            <div class="grid grid-cols-[7.5rem_1fr] gap-2 border-b border-slate-100 py-2.5 last:border-0 sm:grid-cols-[9rem_1fr]">
+                <dt class="text-xs font-black uppercase tracking-wider text-slate-400">${dt}</dt>
+                <dd class="text-sm font-bold text-slate-800">${dd}</dd>
+            </div>`
+        )
+        .join('');
+    return `
+        <section class="mb-8 rounded-[2.5rem] border border-slate-200/60 bg-white p-6 shadow-sm sm:p-8" aria-label="핵심 정보">
+            <h2 class="mb-4 text-lg font-black tracking-tight text-slate-900">핵심 정보</h2>
+            <p class="mb-4 text-sm leading-6 text-slate-500">답변·인용에 바로 쓸 수 있는 사실 요약입니다. 세부 자격·한도는 고용24 공지와 상담 안내가 우선합니다.</p>
+            <dl>${items}</dl>
+        </section>`;
+}
+
 function faqGraphNode(page: GuidePage) {
     return {
         '@type': 'FAQPage',
@@ -395,6 +433,8 @@ export function seoGuideHtml(slug: string): string | null {
                         </div>
                     </aside>
                 </div>
+
+                ${factBlockHtml(page)}
 
                 <section class="grid grid-cols-1 gap-4 lg:grid-cols-2">${sections}</section>
 
