@@ -41,11 +41,17 @@ export const courseSessionsListHtml = `
             </div>
         </section>
 
-        <div class="flex flex-wrap gap-2 mb-8">
+        <div class="flex flex-wrap gap-2 mb-3">
             <button onclick="loadList('')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-primary-600 text-white shadow-md active:scale-95" data-status="">전체</button>
             <button onclick="loadList('recruiting')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95" data-status="recruiting">모집중</button>
             <button onclick="loadList('in_progress')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95" data-status="in_progress">진행중</button>
             <button onclick="loadList('always_open')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95" data-status="always_open">상시모집</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-8" aria-label="과정 주제 필터">
+            <button type="button" onclick="setTopic('')" class="filter-topic px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:border-primary-400 hover:text-primary-700" data-topic="">주제 전체</button>
+            <button type="button" onclick="setTopic('기능사')" class="filter-topic px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:border-primary-400 hover:text-primary-700" data-topic="기능사">3D프린터운용기능사</button>
+            <button type="button" onclick="setTopic('국비')" class="filter-topic px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:border-primary-400 hover:text-primary-700" data-topic="국비">국비·내일배움카드</button>
+            <button type="button" onclick="setTopic('소상공인')" class="filter-topic px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:border-primary-400 hover:text-primary-700" data-topic="소상공인">소상공인</button>
         </div>
 
         <div id="sessionsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 min-h-[400px] transition-opacity duration-300">
@@ -64,10 +70,20 @@ export const courseSessionsListHtml = `
         var currentPage = 1;
         var currentStatus = '';
         var currentCategory = new URLSearchParams(window.location.search).get('category') || '';
+        var currentTopic = '';
         var lastRequestId = 0;
 
         function statusText(s) {
             return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
+        }
+
+        function topicBadges(name, category) {
+            var text = String(name || '') + ' ' + String(category || '');
+            var badges = '';
+            if (/기능사|운용기능사|국가자격/.test(text)) badges += '<span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-violet-100 text-violet-700">기능사</span>';
+            if (/국비|내일배움|NCS/.test(text)) badges += '<span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-emerald-100 text-emerald-700">국비</span>';
+            if (/소상공인|쿠키|몰드/.test(text)) badges += '<span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-100 text-amber-800">소상공인</span>';
+            return badges;
         }
 
         function updatePageHead() {
@@ -88,13 +104,23 @@ export const courseSessionsListHtml = `
                     btn.className = 'filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95';
                 }
             });
+            document.querySelectorAll('.filter-topic').forEach(function(btn) {
+                var active = (btn.dataset.topic || '') === currentTopic;
+                btn.className = active
+                    ? 'filter-topic px-4 py-2 rounded-full text-sm font-bold border border-primary-500 bg-primary-50 text-primary-700'
+                    : 'filter-topic px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:border-primary-400 hover:text-primary-700';
+            });
+        }
+
+        function setTopic(topic) {
+            currentTopic = topic || '';
+            currentPage = 1;
+            loadList();
         }
 
         function loadList(status) {
             if (status !== undefined) { 
-                var newStatus = status || '';
-                if (currentStatus === newStatus && currentPage === 1 && lastRequestId !== 0) return; // 중복 요청 방지
-                currentStatus = newStatus; 
+                currentStatus = status || ''; 
                 currentPage = 1; 
             }
             
@@ -110,6 +136,7 @@ export const courseSessionsListHtml = `
             var url = '/api/course-sessions/public?page=' + currentPage + '&limit=12';
             if (currentStatus) url += '&status=' + encodeURIComponent(currentStatus);
             if (currentCategory) url += '&category=' + encodeURIComponent(currentCategory);
+            if (currentTopic) url += '&q=' + encodeURIComponent(currentTopic);
 
             fetch(url)
                 .then(function(r) { return r.json(); })
@@ -143,13 +170,14 @@ export const courseSessionsListHtml = `
                             if (s.session_number) dn += ' + ' + s.session_number + '회차';
                             if (s.session_name) dn += ' + ' + s.session_name;
                             var nameEsc = dn.replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                            var badges = topicBadges(dn, s.category_name);
 
                             return '<a href="' + detailUrl + '" class="bg-white rounded-lg shadow-sm hover:shadow-xl transition border border-gray-100 overflow-hidden flex flex-col h-full group">' +
                                 '<div class="relative h-48 overflow-hidden bg-white/50 border-b border-gray-50">' +
                                 '<img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain group-hover:scale-105 transition duration-300" onerror="this.src=\\'/static/course_placeholder.svg\\'">' +
                                 '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusClass + '">' + statusText(s.status) + '</span>' + 
                                 sourceBadge + '</div>' +
-                                '<div class="p-5 flex-1 flex flex-col"><span class="text-xs text-primary-600 font-medium mb-1">' + (s.category_name || '과정') + '</span>' +
+                                '<div class="p-5 flex-1 flex flex-col"><div class="flex flex-wrap items-center gap-1.5 mb-2"><span class="text-xs text-primary-600 font-medium">' + (s.category_name || '과정') + '</span>' + badges + '</div>' +
                                 '<h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-primary-600">' + nameEsc + '</h3>' +
                                 '<p class="text-sm text-gray-500 mb-3">' + (s.session_number ? s.session_number + '회차' : '') + (s.instructor_name ? ' · ' + s.instructor_name : '') + '</p>' +
                                 '<div class="mt-auto pt-3 border-t border-gray-100 text-sm text-gray-500"><i class="far fa-calendar-alt mr-2"></i>' + dateStr + '</div></div></a>';
@@ -187,14 +215,38 @@ export const courseSessionsListHtml = `
 `;
 
 /** 연동 홈페이지용 과전 상세 (id는 클라이언트에서 채움) */
-export function courseSessionDetailHtml(id: string, source: 'session' | 'general' = 'session') {
+export type CourseDetailSsr = {
+    title: string;
+    summary: string;
+};
+
+function escapeHtmlText(value: string): string {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+export function courseSessionDetailHtml(
+    id: string,
+    source: 'session' | 'general' = 'session',
+    ssr?: CourseDetailSsr,
+) {
+    const fallbackTitle = source === 'general' ? `일반 교육과정 ${id}` : `3D프린팅 국비지원 과정 ${id}`;
+    const ssrTitle = escapeHtmlText(ssr?.title || fallbackTitle);
+    const ssrSummary = escapeHtmlText(
+        ssr?.summary ||
+            '와우쓰리디에서 운영하는 3D프린팅·3D모델링 교육 과정입니다. 내일배움카드(국비지원)·기능사 대비 일정과 장소를 확인하세요.',
+    );
     let html = `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${source === 'general' ? '일반 교육과정' : '3D프린팅 국비지원 과정'} ${id} - 와우쓰리디홍대센터</title>
+    <title>${ssrTitle} - 와우쓰리디홍대센터</title>
+    <meta name="description" content="${ssrSummary}">
     <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@100..900&display=swap" rel="stylesheet">
@@ -210,11 +262,17 @@ export function courseSessionDetailHtml(id: string, source: 'session' | 'general
     ` + _navigationHtml('course-sessions') + `
 
     <div id="detailContent">
-        <!-- 스켈레톤 UI -->
-        <div class="animate-pulse">
-            <div class="h-[400px] bg-slate-200"></div>
-            <div class="max-w-6xl mx-auto px-4 -mt-32 pb-20">
-                <div class="bg-white rounded-3xl p-8 shadow-xl h-96"></div>
+        <div class="max-w-6xl mx-auto px-4 py-12" id="ssrCourseDetail">
+            <p class="text-xs font-black uppercase tracking-wider text-primary-600 mb-3">${source === 'general' ? '일반 교육과정' : '국비지원·내일배움카드 과정'}</p>
+            <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 mb-4">${ssrTitle}</h1>
+            <p class="text-slate-600 leading-relaxed max-w-3xl mb-6">${ssrSummary}</p>
+            <div class="flex flex-wrap gap-2 text-sm">
+                <a href="/online-consulting" class="inline-flex rounded-xl bg-primary-600 px-4 py-2.5 font-bold text-white">수강 상담</a>
+                <a href="/course-sessions" class="inline-flex rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-slate-700">과정 목록</a>
+            </div>
+            <div class="mt-10 animate-pulse">
+                <div class="h-48 bg-slate-200 rounded-[2rem]"></div>
+                <p class="mt-4 text-sm text-slate-400 font-bold">상세 정보를 불러오는 중…</p>
             </div>
         </div>
     </div>

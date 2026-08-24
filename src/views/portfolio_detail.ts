@@ -1,13 +1,38 @@
 import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
 
-export const portfolioDetailHtml = (id: string) => `
+export type PortfolioDetailSsr = {
+  title: string;
+  summary: string;
+  studentName?: string;
+  courseTitle?: string;
+};
+
+function escapeHtmlText(value: string): string {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export const portfolioDetailHtml = (id: string, ssr?: PortfolioDetailSsr) => {
+  const title = escapeHtmlText(ssr?.title || `수강생 포트폴리오 ${id}`);
+  const summary = escapeHtmlText(
+    ssr?.summary ||
+      '와우쓰리디 교육생의 3D모델링·3D프린팅 작품입니다. 수강 과정에서 완성한 포트폴리오를 소개합니다.',
+  );
+  const student = escapeHtmlText(ssr?.studentName || '수강생');
+  const course = escapeHtmlText(ssr?.courseTitle || '');
+
+  return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>수강생 포트폴리오 ${id} - 와우쓰리디홍대센터</title>
+  <title>${title} - 와우쓰리디홍대센터</title>
+  <meta name="description" content="${summary}">
   <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   </head>
@@ -23,6 +48,13 @@ export const portfolioDetailHtml = (id: string) => `
         <a id="externalLinkTop" href="#" target="_blank" class="hidden inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white font-black hover:bg-black">
           보러가기 <i class="fas fa-arrow-right text-xs"></i>
         </a>
+      </div>
+
+      <div id="ssrPortfolio" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 mb-6">
+        <p class="text-xs font-black uppercase tracking-wider text-primary-600 mb-2">수강생 포트폴리오</p>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 mb-3">${title}</h1>
+        <p class="text-slate-600 leading-relaxed mb-3">${summary}</p>
+        <p class="text-sm font-bold text-slate-500">${student}${course ? ' · ' + course : ''}</p>
       </div>
 
       <div id="detailLoading" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center text-gray-500">
@@ -86,6 +118,7 @@ export const portfolioDetailHtml = (id: string) => `
       var loading = document.getElementById('detailLoading');
       var errorEl = document.getElementById('detailError');
       var root = document.getElementById('detailRoot');
+      var ssrEl = document.getElementById('ssrPortfolio');
 
       function esc(s) {
         return String(s || '')
@@ -137,6 +170,7 @@ export const portfolioDetailHtml = (id: string) => `
             if (linkTop) { linkTop.href = link; linkTop.classList.remove('hidden'); }
           }
 
+          if (ssrEl) ssrEl.classList.add('hidden');
           if (loading) loading.classList.add('hidden');
           if (root) root.classList.remove('hidden');
         } catch (e) {
@@ -165,4 +199,4 @@ export const portfolioDetailHtml = (id: string) => `
 </body>
 </html>
 `;
-
+};

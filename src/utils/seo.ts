@@ -583,8 +583,9 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         description: '3D프린팅 교육 수료생과 전문 인재의 구직정보를 확인하세요.',
     },
     '/reviews': {
-        title: '교육 후기',
-        description: '와우쓰리디홍대센터 교육생들의 생생한 수강 후기를 확인하세요.',
+        title: '3D프린팅 국비지원·기능사 수강후기',
+        description: '와우쓰리디 3D프린팅 국비지원·내일배움카드·3D프린터운용기능사 과정 수강생들의 생생한 교육 후기를 확인하세요.',
+        keywords: '3D프린팅 수강후기, 국비지원 후기, 3D프린터운용기능사 후기, 내일배움카드 후기',
     },
     '/portfolios': {
         title: '수강생 포트폴리오',

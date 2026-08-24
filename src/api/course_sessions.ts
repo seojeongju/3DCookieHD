@@ -176,11 +176,19 @@ app.get('/public', async (c) => {
       params.push('%' + categoryName.trim() + '%');
     }
 
+    const qRaw = (c.req.query('q') || '').trim();
+    let sessionKeywordFilter = "";
+    if (qRaw) {
+      const like = '%' + qRaw + '%';
+      sessionKeywordFilter = " AND (a.name LIKE ? OR IFNULL(s.session_name,'') LIKE ? OR IFNULL(cat.name,'') LIKE ?)";
+      params.push(like, like, like);
+    }
+
     const countRow = await DB.prepare(`
       SELECT COUNT(*) as total FROM course_sessions s
       INNER JOIN approved_courses a ON a.id = s.approved_course_id
       LEFT JOIN course_categories cat ON cat.id = a.category_id
-      WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter}
+      WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter} ${sessionKeywordFilter}
     `).bind(...params).first<{ total: number }>();
 
     const total = countRow?.total ?? 0;
@@ -202,7 +210,7 @@ app.get('/public', async (c) => {
       FROM course_sessions s
       INNER JOIN approved_courses a ON a.id = s.approved_course_id
       LEFT JOIN course_categories cat ON cat.id = a.category_id
-      WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter}
+      WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter} ${sessionKeywordFilter}
       ORDER BY s.training_start_date DESC, s.id DESC
       LIMIT ? OFFSET ?
     `).bind(...params).all();

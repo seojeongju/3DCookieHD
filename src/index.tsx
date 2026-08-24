@@ -752,11 +752,43 @@ app.get('/reset-password', (c) => c.html(resetPasswordHtml));
 app.get('/jobs', (c) => c.html(jobsListHtml));
 app.get('/jobseekers', (c) => c.html(jobseekersListHtml));
 app.get('/courses', (c) => c.redirect('/course-sessions'));
-app.get('/courses/:id', (c) => c.html(courseSessionDetailHtml(c.req.param('id'), 'general')));
+app.get('/courses/:id', async (c) => {
+    const id = c.req.param('id');
+    const seo = c.env.DB ? await seoOptionsForSession(c.env.DB, Number(id), 'general') : null;
+    return c.html(courseSessionDetailHtml(id, 'general', seo ? { title: seo.title, summary: seo.description || '' } : undefined));
+});
 app.get('/course-sessions', (c) => c.html(courseSessionsListHtml));
-app.get('/course-sessions/:id', (c) => c.html(courseSessionDetailHtml(c.req.param('id'), 'session')));
+app.get('/course-sessions/:id', async (c) => {
+    const id = c.req.param('id');
+    const seo = c.env.DB ? await seoOptionsForSession(c.env.DB, Number(id), 'session') : null;
+    return c.html(courseSessionDetailHtml(id, 'session', seo ? { title: seo.title, summary: seo.description || '' } : undefined));
+});
 app.get('/portfolios', (c) => c.html(portfoliosListHtml));
-app.get('/portfolios/:id', (c) => c.html(portfolioDetailHtml(c.req.param('id'))));
+app.get('/portfolios/:id', async (c) => {
+    const id = c.req.param('id');
+    const seo = c.env.DB ? await seoOptionsForPortfolio(c.env.DB, Number(id)) : null;
+    let studentName = '';
+    let courseTitle = '';
+    if (c.env.DB) {
+        try {
+            const row = await c.env.DB.prepare(`
+                SELECT u.name as student_name, c.title as course_title
+                FROM student_portfolios p
+                LEFT JOIN users u ON p.student_id = u.id
+                LEFT JOIN courses c ON p.course_id = c.id
+                WHERE p.id = ?
+            `).bind(id).first<{ student_name?: string; course_title?: string }>();
+            studentName = row?.student_name || '';
+            courseTitle = row?.course_title || '';
+        } catch { /* ignore */ }
+    }
+    return c.html(portfolioDetailHtml(id, seo ? {
+        title: seo.title,
+        summary: seo.description || '',
+        studentName,
+        courseTitle,
+    } : undefined));
+});
 app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/faq', async (c) => {
     try {
