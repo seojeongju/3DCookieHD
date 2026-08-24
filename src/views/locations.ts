@@ -7,16 +7,67 @@ import { navigationHtml } from './components/navigation';
 export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 'hongdae' | 'gumi' | 'jeonju' }) {
     const appKey = (options && options.kakaoMapAppKey) ? options.kakaoMapAppKey : '';
     const initialTab = options?.initialTab || 'hongdae';
+    const campusCopy = {
+        hongdae: {
+            title: '홍대 3D프린팅 학원 오시는 길',
+            lead: '서울 마포 상수역 인근 와우쓰리디홍대센터에서 3D프린팅 국비지원·내일배움카드·기능사 교육을 운영합니다.',
+            faqs: [
+                { q: '홍대에서 3D프린팅을 배울 수 있는 곳은 어디인가요?', a: '서울 마포구 독막로 93 4층(상수역 2번 출구) 와우쓰리디홍대센터입니다. 전화 02-3144-3137.' },
+                { q: '홍대센터에서 내일배움카드로 수강할 수 있나요?', a: '가능합니다. 국민내일배움카드(국비지원) 3D프린팅·3D모델링 과정을 운영하며, 모집 회차는 교육과정 목록에서 확인하세요.' },
+                { q: '3D프린터운용기능사 과정도 홍대에서 하나요?', a: '네. 3D프린터 국가자격증(3D프린터운용기능사) 실기 대비 과정(주말반·평일저녁반)을 홍대센터에서 운영합니다.' },
+            ],
+        },
+        gumi: {
+            title: '구미 3D프린팅 학원 오시는 길',
+            lead: '경북 구미시 산호대로 와우쓰리디 구미센터에서 3D프린팅 국비지원·실무 교육을 안내합니다.',
+            faqs: [
+                { q: '구미에서 3D프린팅 교육을 받을 수 있나요?', a: '경북 구미시 산호대로 253 606호 와우쓰리디 구미센터에서 3D프린팅 교육을 운영합니다. 전화 054-464-3137.' },
+                { q: '구미센터도 내일배움카드 과정이 있나요?', a: '개설 회차에 따라 국민내일배움카드(국비지원) 과정이 있습니다. 일정은 교육과정 목록과 상담으로 확인하세요.' },
+                { q: '구미센터 위치는 어디인가요?', a: '구미첨단의료기술타워 606호(공단동)입니다. 오시는 길 페이지의 구미 탭에서 지도를 확인할 수 있습니다.' },
+            ],
+        },
+        jeonju: {
+            title: '전주 3D프린팅 교육 오시는 길',
+            lead: '전북 전주시 덕진구 와우쓰리디 전주센터에서 3D프린팅 직업훈련·국비지원 교육을 운영합니다.',
+            faqs: [
+                { q: '전주에서 3D프린팅을 배울 수 있나요?', a: '전북 전주시 덕진구 반룡로 109 207호 와우쓰리디 전주센터에서 3D프린팅 교육을 운영합니다.' },
+                { q: '전주센터도 국비지원이 되나요?', a: '개설 회차에 따라 내일배움카드(국비지원) 적용이 가능합니다. 상담 시 해당 회차 기준으로 안내합니다.' },
+                { q: '전주센터 연락처는?', a: '대표 상담 전화 02-3144-3137, 이메일 wow3d16@naver.com으로 문의하시면 전주센터 일정을 안내합니다.' },
+            ],
+        },
+    } as const;
+    const copy = campusCopy[initialTab];
+    const allFaqs = campusCopy[initialTab].faqs;
+    const faqJsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: allFaqs.map((item) => ({
+            '@type': 'Question',
+            name: item.q,
+            acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+    };
+    const faqCards = allFaqs.map((item, index) => `
+        <details class="group rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-black tracking-tight text-slate-900">
+                <span><span class="mr-2 text-primary-600">Q${index + 1}.</span>${item.q}</span>
+                <i class="fas fa-chevron-down text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true"></i>
+            </summary>
+            <div class="border-t border-slate-100 px-5 py-4 text-slate-700 leading-7">${item.a}</div>
+        </details>`).join('');
+
     return `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>오시는길 - 와우쓰리디홍대센터</title>
+    <title>${copy.title} - 와우쓰리디홍대센터</title>
+    <meta name="description" content="${copy.lead}">
     <meta name="kakao-map-appkey" content="${appKey.replace(/"/g, '&quot;')}">
     <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script type="application/ld+json">${JSON.stringify(faqJsonLd).replace(/</g, '\\u003c')}</script>
     <style>
         .tab-btn.active {
             background-color: #4a90e2;
@@ -27,19 +78,30 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
 </head>
 <body class="bg-gray-50">
     <!-- 네비게이션 (공통) -->
-    ${navigationHtml('center')}
+    ${navigationHtml('locations')}
 
 
     <!-- 헤더 -->
     <div class="bg-gradient-to-r from-gray-700 to-gray-900 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-4xl font-bold mb-4">오시는길</h1>
-            <p class="text-xl text-gray-300">전국 와우쓰리디 교육센터로 오시는 길을 안내해 드립니다.</p>
+            <h1 class="text-3xl sm:text-4xl font-bold mb-4">${copy.title}</h1>
+            <p class="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">${copy.lead}</p>
+            <div class="mt-6 flex flex-wrap justify-center gap-2">
+                <a href="/course-sessions" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">모집 과정</a>
+                <a href="/guides/free-education" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">무료·국비</a>
+                <a href="/guides/craftsman-license" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">기능사·국가자격</a>
+                <a href="/tomorrow-learning-card" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">내일배움카드</a>
+            </div>
         </div>
     </div>
 
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        <section class="mb-10 space-y-3" aria-label="센터 자주 묻는 질문">
+            <h2 class="text-xl font-black tracking-tight text-slate-900 px-1">자주 묻는 질문</h2>
+            ${faqCards}
+        </section>
         
         <!-- 탭 메뉴 -->
         <div class="flex justify-center mb-12">

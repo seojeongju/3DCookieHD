@@ -1,5 +1,5 @@
 import { layoutHtml } from './components/layout';
-import { CAMPUSES, getSeoHead, getSeoOptionsForPath, SITE_ORIGIN } from '../utils/seo';
+import { buildHowTo, CAMPUSES, getSeoHead, getSeoOptionsForPath, SITE_ORIGIN } from '../utils/seo';
 
 type GuidePage = {
     slug: string;
@@ -178,6 +178,34 @@ function faqGraphNode(page: GuidePage) {
     };
 }
 
+function howToForGuide(page: GuidePage): Record<string, unknown> | null {
+    if (page.slug === 'national-support' || page.slug === 'free-education') {
+        return buildHowTo(
+            page.slug === 'free-education'
+                ? '3D프린터 국비·무료교육 수강 준비하기'
+                : '3D프린팅 국비지원 신청하기',
+            page.lead,
+            [
+                { name: '내일배움카드 확인', text: '국민내일배움카드가 없으면 고용24에서 발급을 진행합니다.' },
+                { name: '과정 확인', text: '와우쓰리디 교육과정 목록에서 모집 중인 3D프린팅 국비지원·기능사 회차를 확인합니다.' },
+                { name: '상담·등록', text: '온라인 상담 또는 전화 02-3144-3137로 센터·일정을 상담하고 등록합니다.' },
+            ],
+        );
+    }
+    if (page.slug === 'craftsman-license') {
+        return buildHowTo(
+            '3D프린터운용기능사 준비하기',
+            '3D프린터 국가자격증(3D프린터운용기능사) 실기 대비를 위한 안내입니다.',
+            [
+                { name: '자격 확인', text: '공식 명칭이 3D프린터운용기능사(국가기술자격)임을 확인합니다.' },
+                { name: '과정 선택', text: '와우쓰리디 주말반·평일저녁반 등 기능사 대비 회차를 교육과정에서 확인합니다.' },
+                { name: '상담 신청', text: '국비(내일배움카드) 적용 여부와 일정을 상담 후 등록합니다.' },
+            ],
+        );
+    }
+    return null;
+}
+
 export function seoGuideHtml(slug: string): string | null {
     const page = PAGES[slug];
     if (!page) return null;
@@ -286,7 +314,7 @@ export function seoGuideHtml(slug: string): string | null {
                     description: page.lead,
                     path: `/guides/${page.slug}`,
                 }),
-                extraJsonLd: [faqGraphNode(page)],
+                extraJsonLd: [faqGraphNode(page), howToForGuide(page)].filter(Boolean),
             }
         )
     );

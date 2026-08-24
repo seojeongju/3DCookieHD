@@ -50,7 +50,7 @@ export const navigationHtml = (activeMenu = '') => `
 
                     <!-- 센터소개 -->
                     <div class="relative group shrink-0">
-                        <button class="px-3 py-2 ${['greeting', 'photos', 'facilities', 'locations', 'education-performance', 'reviews', 'prototype'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                        <button class="px-3 py-2 ${['greeting', 'photos', 'facilities', 'locations', 'center', 'education-performance', 'reviews', 'prototype'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
                             센터소개
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>

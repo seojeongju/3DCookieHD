@@ -20,12 +20,27 @@ export const courseSessionsListHtml = `
 
     <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-4xl font-bold mb-4">교육 과정 안내</h1>
-            <p class="text-xl text-blue-100">현재 모집 중이거나 진행 중인 훈련 과정을 확인하세요.</p>
+            <h1 class="text-4xl font-bold mb-4">3D프린팅 국비지원·내일배움카드 교육과정</h1>
+            <p class="text-xl text-blue-100 max-w-3xl mx-auto">모집 중인 3D프린터운용기능사, 국비지원, 소상공인 맞춤 과정의 일정과 장소를 확인하세요.</p>
         </div>
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <section class="mb-10 rounded-[2.5rem] border border-slate-200/60 bg-white p-6 sm:p-8 shadow-sm" aria-label="교육과정 안내 요약">
+            <h2 class="text-lg font-black tracking-tight text-slate-900 mb-3">자주 찾는 안내</h2>
+            <p class="text-slate-600 text-[15px] leading-relaxed mb-5">
+                와우쓰리디는 국민내일배움카드(국비지원)로 3D프린팅을 배울 수 있는 과정을 홍대·구미·전주에서 운영합니다.
+                3D프린터 국가자격증(3D프린터운용기능사) 대비와 무료·국비 교육 문의도 상담으로 안내합니다.
+            </p>
+            <div class="flex flex-wrap gap-2">
+                <a href="/guides/free-education" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">3D프린터 무료·국비</a>
+                <a href="/guides/craftsman-license" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">기능사·국가자격</a>
+                <a href="/tomorrow-learning-card" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">내일배움카드</a>
+                <a href="/guides/national-support" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">국비지원 신청</a>
+                <a href="/faq" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">FAQ</a>
+            </div>
+        </section>
+
         <div class="flex flex-wrap gap-2 mb-8">
             <button onclick="loadList('')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-primary-600 text-white shadow-md active:scale-95" data-status="">전체</button>
             <button onclick="loadList('recruiting')" class="filter-session px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 bg-white text-gray-600 border border-gray-200 hover:border-primary-400 hover:text-primary-600 active:scale-95" data-status="recruiting">모집중</button>

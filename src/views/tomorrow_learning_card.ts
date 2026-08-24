@@ -1,5 +1,6 @@
 import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
+import { buildHowTo } from '../utils/seo';
 
 const TLC_FAQ = [
     {
@@ -31,6 +32,16 @@ export function tomorrowLearningCardHtml() {
             acceptedAnswer: { '@type': 'Answer', text: item.a },
         })),
     };
+    const howTo = buildHowTo(
+        '국민내일배움카드 발급 후 3D프린팅 수강하기',
+        '고용24에서 내일배움카드를 발급받고 와우쓰리디 3D프린팅 국비지원 과정에 등록하는 일반적인 절차입니다.',
+        [
+            { name: '고용24 가입', text: '고용24(워크넷)에서 회원가입 및 로그인을 합니다.' },
+            { name: '상담·심사', text: '청년 취업상담 등 지침에 따른 상담·심사 절차를 진행합니다.' },
+            { name: '카드 발급', text: '적격 판정 시 국민내일배움카드를 발급받고 훈련비 한도를 확인합니다.' },
+            { name: '과정 신청', text: '와우쓰리디 모집 과정에 상담·등록하거나 고용24에서 훈련과정을 신청·수강합니다.' },
+        ],
+    );
     const faqCards = TLC_FAQ.map(
         (item, index) => `
             <details class="group rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden bento-card">
@@ -53,6 +64,7 @@ export function tomorrowLearningCardHtml() {
     <link rel="stylesheet" href="/static/tailwind-app.css">
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script type="application/ld+json">${JSON.stringify(faqJsonLd).replace(/</g, '\\u003c')}</script>
+    <script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', ...howTo }).replace(/</g, '\\u003c')}</script>
     <style>
       .dot-grid-bg {
         background-color: #f8fafc;

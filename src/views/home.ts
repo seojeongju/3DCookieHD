@@ -381,8 +381,8 @@ export const homeHtml = `
                 </div>
                 <a href="/tomorrow-learning-card" class="block p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition shadow-sm hover:shadow-md text-center group">
                     <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-200 group-hover:text-primary-700 transition-colors"><i class="fas fa-graduation-cap text-2xl"></i></div>
-                    <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700 leading-snug">국비지원과정 - 내일배움카드발급안내</h3>
-                    <p class="text-gray-600 text-sm">맞춤형 국비지원 과정으로 부담 없이 학습할 수 있습니다.</p>
+                    <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700 leading-snug">내일배움카드 3D프린팅 국비지원</h3>
+                    <p class="text-gray-600 text-sm">국민내일배움카드로 3D프린팅·3D모델링을 수강하는 방법을 안내합니다.</p>
                 </a>
                 <a href="/locations" class="block p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition shadow-sm hover:shadow-md text-center group">
                     <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-200 group-hover:text-primary-700 transition-colors"><i class="fas fa-map-marker-alt text-2xl"></i></div>
@@ -390,25 +390,30 @@ export const homeHtml = `
                     <p class="text-gray-600 text-sm">전국 3개 센터에서 편리한 위치에서 수강할 수 있습니다.</p>
                 </a>
             </div>
-            <div class="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <div class="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
                 <a href="/guides/national-support" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
                     <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">국비지원 안내</h3>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">3D프린팅 국비지원</h3>
                     <p class="text-sm text-gray-600">내일배움카드로 3D프린팅을 수강하는 방법</p>
+                </a>
+                <a href="/guides/free-education" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">3D프린터 무료·국비 교육</h3>
+                    <p class="text-sm text-gray-600">무료교육 검색 시 알아야 할 국비지원 안내</p>
                 </a>
                 <a href="/guides/craftsman-license" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
                     <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">기능사 자격증</h3>
-                    <p class="text-sm text-gray-600">3D프린터운용기능사 실기 대비 과정</p>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">3D프린터 국가자격증·기능사</h3>
+                    <p class="text-sm text-gray-600">3D프린터운용기능사 실기 대비</p>
                 </a>
                 <a href="/guides/small-business" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
                     <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">소상공인 활용</h3>
-                    <p class="text-sm text-gray-600">쿠키틀·몰드 등 매장용 3D프린팅</p>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">소상공인 3D프린팅</h3>
+                    <p class="text-sm text-gray-600">쿠키틀·몰드 등 매장용 교육</p>
                 </a>
-                <a href="/guides/prototype" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
+                <a href="/guides/prototype" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition sm:col-span-2 xl:col-span-1">
                     <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">시제품 제작</h3>
+                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">시제품 제작 교육</h3>
                     <p class="text-sm text-gray-600">모델링부터 출력·후가공까지</p>
                 </a>
             </div>

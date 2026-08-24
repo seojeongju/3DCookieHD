@@ -124,6 +124,96 @@ export function escapeAttr(s: string): string {
         .replace(/>/g, '&gt;');
 }
 
+/** BreadcrumbList JSON-LD */
+export function buildBreadcrumbList(
+    origin: string,
+    items: Array<{ name: string; path: string }>,
+): Record<string, unknown> {
+    const base = origin.replace(/\/$/, '');
+    return {
+        '@type': 'BreadcrumbList',
+        itemListElement: items.map((item, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: item.name,
+            item: `${base}${item.path === '/' ? '/' : item.path}`,
+        })),
+    };
+}
+
+/** HowTo JSON-LD (발급·신청 절차 등) */
+export function buildHowTo(
+    name: string,
+    description: string,
+    steps: Array<{ name: string; text: string }>,
+): Record<string, unknown> {
+    return {
+        '@type': 'HowTo',
+        name,
+        description,
+        step: steps.map((step, index) => ({
+            '@type': 'HowToStep',
+            position: index + 1,
+            name: step.name,
+            text: step.text,
+        })),
+    };
+}
+
+const BREADCRUMB_LABELS: Record<string, string> = {
+    '': '홈',
+    greeting: '센터 소개',
+    'education-photos': '교육 현장',
+    facilities: '교육시설',
+    locations: '오시는 길',
+    hongdae: '홍대센터',
+    gumi: '구미센터',
+    jeonju: '전주센터',
+    'online-consulting': '교육 상담',
+    'tomorrow-learning-card': '내일배움카드',
+    'corporate-education': '기업 교육',
+    'university-education': '대학 교육',
+    'course-sessions': '교육과정',
+    courses: '일반과정',
+    schedule: '교육 일정',
+    jobs: '채용정보',
+    jobseekers: '구직정보',
+    reviews: '교육 후기',
+    portfolios: '포트폴리오',
+    posts: '공지·게시판',
+    faq: 'FAQ',
+    guides: '학습 가이드',
+    'national-support': '국비지원',
+    'craftsman-license': '기능사·국가자격',
+    'free-education': '무료·국비 교육',
+    'small-business': '소상공인',
+    prototype: '시제품 교육',
+    'prototype-gallery': '시제품 사례',
+    'education-performance': '교육 실적',
+    achievements: '주요 성과',
+    terms: '이용약관',
+    privacy: '개인정보처리방침',
+    partnership: '제휴 문의',
+    sitemap: '사이트맵',
+};
+
+export function breadcrumbsForPath(path: string): Array<{ name: string; path: string }> {
+    const clean = (path || '/').split('?')[0].replace(/\/$/, '') || '/';
+    if (clean === '/') return [{ name: '홈', path: '/' }];
+    const parts = clean.split('/').filter(Boolean);
+    const items: Array<{ name: string; path: string }> = [{ name: '홈', path: '/' }];
+    let acc = '';
+    for (const part of parts) {
+        acc += `/${part}`;
+        if (/^\d+$/.test(part)) {
+            items.push({ name: part, path: acc });
+        } else {
+            items.push({ name: BREADCRUMB_LABELS[part] || part, path: acc });
+        }
+    }
+    return items;
+}
+
 function campusLocalBusiness(origin: string, slug: CampusSlug) {
     const campus = CAMPUSES[slug];
     return {
@@ -197,6 +287,9 @@ function getJsonLd(
         inLanguage: 'ko-KR',
     };
     const graph: unknown[] = [organization, webSite, page];
+    if (path && path !== '/') {
+        graph.push(buildBreadcrumbList(origin, breadcrumbsForPath(path)));
+    }
     if (path === '/' || path === '/locations' || (path && path.startsWith('/locations/'))) {
         (Object.keys(CAMPUSES) as CampusSlug[]).forEach((slug) => graph.push(campusLocalBusiness(origin, slug)));
     }
@@ -473,9 +566,9 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         description: '대학과 학과의 교육 목표에 맞춘 3D프린팅 실습 및 프로젝트 교육을 제공합니다.',
     },
     '/course-sessions': {
-        title: '3D프린팅 국비지원 교육과정',
-        description: '모집 중인 3D프린팅 국비지원·내일배움카드 과정, 3D프린터운용기능사, 소상공인 맞춤 과정의 일정과 장소를 확인하세요.',
-        keywords: '3D프린팅 국비지원, 3D프린터운용기능사, 소상공인 3D프린팅 교육',
+        title: '3D프린팅 국비지원·내일배움카드 교육과정',
+        description: '모집 중인 3D프린팅 국비지원·내일배움카드 과정, 3D프린터운용기능사(국가자격), 소상공인 맞춤 과정의 일정과 장소를 확인하세요.',
+        keywords: '3D프린팅 국비지원, 3D프린터운용기능사, 내일배움카드 3D프린팅, 3D프린터 무료교육, 소상공인 3D프린팅 교육',
     },
     '/schedule': {
         title: '교육 일정',
