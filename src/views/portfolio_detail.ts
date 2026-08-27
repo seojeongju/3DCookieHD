@@ -70,7 +70,7 @@ export const portfolioDetailHtml = (id: string, ssr?: PortfolioDetailSsr) => {
           <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
           <div class="absolute bottom-0 left-0 p-6 sm:p-10 w-full">
             <span id="detailCategory" class="px-4 py-1.5 bg-primary-600 text-white text-[10px] font-black rounded-full shadow-lg uppercase tracking-[0.2em] mb-4 inline-block">CATEGORY</span>
-            <h1 id="detailTitle" class="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">TITLE</h1>
+            <p id="detailTitle" class="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">TITLE</p>
             <p class="mt-2 text-sm text-gray-500 font-bold" id="detailMeta"></p>
           </div>
         </div>
@@ -138,7 +138,7 @@ export const portfolioDetailHtml = (id: string, ssr?: PortfolioDetailSsr) => {
           var p = json.data;
           var thumb = (p.thumbnail_url || '').trim() || (p.images && p.images.length ? p.images[0] : '') || 'https://images.unsplash.com/photo-1587586062323-836091e6006e?auto=format&fit=crop&q=80&w=1200';
 
-          document.title = (p.title ? (p.title + ' - ') : '') + '포트폴리오 상세 - 와우쓰리디홍대센터';
+          document.title = (p.title ? (p.title + ' (#' + id + ') | ') : '') + (p.student_name || p.author_name || '수강생') + ' 3D프린팅 포트폴리오';
 
           var catEl = document.getElementById('detailCategory');
           var titleEl = document.getElementById('detailTitle');

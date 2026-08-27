@@ -299,7 +299,7 @@ export function courseSessionDetailHtml(
                     if (s.session_name) dn += ' + ' + s.session_name;
                     var nameEsc = dn.replace(/</g, '&lt;').replace(/"/g, '&quot;');
                     
-                    document.title = dn + ' - 와우쓰리디홍대센터';
+                    document.title = dn + ' #' + sessionId + ' - 와우쓰리디홍대센터';
                     
                     var statusMap = {
                         recruiting: { label: '모집중', color: 'bg-emerald-500' },

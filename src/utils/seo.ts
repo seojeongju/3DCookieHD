@@ -15,6 +15,8 @@ function toPlainMeta(text: string, max = 160): string {
         .trim()
         .slice(0, max);
 }
+
+export { toPlainMeta };
 const DEFAULT_KEYWORDS = '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린터 국가자격증, 3D프린팅 기능사, 3D프린터 무료교육, 3D프린팅 학원 홍대, 와우쓰리디, 3D모델링, 구미 3D프린팅, 전주 3D프린팅, 소상공인 3D프린팅';
 const DEFAULT_OG_IMAGE = '/static/hero1.jpg';
 
@@ -276,11 +278,6 @@ function getJsonLd(
         description,
         publisher: { '@id': `${origin}/#organization` },
         inLanguage: 'ko-KR',
-        potentialAction: {
-            '@type': 'SearchAction',
-            target: `${origin}/course-sessions?q={search_term_string}`,
-            'query-input': 'required name=search_term_string',
-        },
     };
     const page = {
         '@type': 'WebPage',
@@ -363,9 +360,9 @@ export async function seoOptionsForSession(
             if (!row) return null;
             const name = (row.title || `일반과정 ${id}`).trim();
             const dates = [String(row.start_date || '').slice(0, 10), String(row.end_date || '').slice(0, 10)].filter(Boolean).join('~');
-            const title = `${name}${dates ? ` (${dates})` : ` #${id}`} | 3D프린팅 교육`;
+            const title = `${name}${dates ? ` (${dates})` : ''} #${id} | 3D프린팅 교육`;
             const description = toPlainMeta(
-                row.description || `${name} 3D프린팅 일반 교육 과정입니다.${dates ? ` 교육기간 ${dates}.` : ''} 와우쓰리디에서 일정을 확인하세요.`,
+                row.description || `${name} 3D프린팅 일반 교육 과정입니다.${dates ? ` 교육기간 ${dates}.` : ''} 과정번호 ${id}. 와우쓰리디에서 일정을 확인하세요.`,
                 160,
             );
             return {
@@ -414,10 +411,10 @@ export async function seoOptionsForSession(
         const titleSuffix = isCraftsman
             ? ` 3D프린터운용기능사 | ${campus}`
             : ` 국비지원 | ${campus} 3D프린팅`;
-        const title = `${display}${dates ? ` ${dates}` : ''}${titleSuffix}`;
+        const title = `${display}${dates ? ` ${dates}` : ''}${titleSuffix} #${id}`;
         const description = toPlainMeta(
             isCraftsman
-                ? `${display} 3D프린터 국가자격증(3D프린터운용기능사) 대비 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 내일배움카드 적용 여부는 상담 시 안내합니다.`
+                ? `${display} 3D프린터 국가자격증(3D프린터운용기능사) 대비 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 과정번호 ${id}. 내일배움카드 적용 여부는 상담 시 안내합니다.`
                 : `${display} 내일배움카드(국비지원) 과정입니다. ${campus}센터${dates ? `, 교육기간 ${dates}` : ''}. 과정번호 ${id}. 와우쓰리디에서 수강 상담하세요.`,
             170,
         );
@@ -440,7 +437,7 @@ export async function seoOptionsForSession(
 export async function seoOptionsForPortfolio(db: D1Database, id: number): Promise<SeoOptions | null> {
     try {
         const row = await db.prepare(`
-            SELECT p.id, p.title, p.description, p.thumbnail_url, p.category,
+            SELECT p.id, p.title, p.description, p.thumbnail_url, p.category, p.status,
                    u.name as student_name, c.title as course_title
             FROM student_portfolios p
             LEFT JOIN users u ON p.student_id = u.id
@@ -452,17 +449,34 @@ export async function seoOptionsForPortfolio(db: D1Database, id: number): Promis
             description?: string | null;
             thumbnail_url?: string | null;
             category?: string | null;
+            status?: string | null;
             student_name?: string | null;
             course_title?: string | null;
         }>();
         if (!row) return null;
+        const published = !row.status || row.status === 'published';
+        if (!published) {
+            return {
+                title: `포트폴리오 #${id}`,
+                description: `요청하신 포트폴리오 #${id}는 현재 공개되지 않았습니다.`,
+                path: `/portfolios/${id}`,
+                noindex: true,
+            };
+        }
         const work = (row.title || `포트폴리오 ${id}`).trim();
         const author = (row.student_name || '수강생').trim();
         const course = (row.course_title || '').trim();
-        const excerpt = toPlainMeta(row.description || '', 90);
-        const title = `${work} | ${author} 3D프린팅 포트폴리오`;
+        const category = (row.category || '').trim();
+        const excerpt = toPlainMeta(row.description || '', 80);
+        const title = `${work} (#${id}) | ${author} 3D프린팅 포트폴리오`;
         const description = toPlainMeta(
-            [excerpt || `${author}의 3D모델링·3D프린팅 작품 ${work}`, course ? `과정: ${course}` : '', '와우쓰리디 수강생 포트폴리오'].filter(Boolean).join('. '),
+            [
+                excerpt || `${author}의 3D모델링·3D프린팅 작품 ${work}`,
+                course ? `과정: ${course}` : '',
+                category ? `분류: ${category}` : '',
+                `작품번호 ${id}`,
+                '와우쓰리디 수강생 포트폴리오',
+            ].filter(Boolean).join('. '),
             170,
         );
         return {
@@ -712,8 +726,8 @@ export function getSeoOptionsForPath(path: string): SeoOptions | null {
     const portfolioId = path.match(/^\/portfolios\/([0-9]+)$/)?.[1];
     if (portfolioId) {
         return {
-            title: `수강생 포트폴리오 ${portfolioId}`,
-            description: `와우쓰리디 교육생 작품 ${portfolioId}번. 3D모델링·3D프린팅 포트폴리오를 소개합니다.`,
+            title: `수강생 포트폴리오 #${portfolioId}`,
+            description: `와우쓰리디 교육생 작품 #${portfolioId}. 3D모델링·3D프린팅 포트폴리오를 소개합니다.`,
             path,
             ogType: 'article',
         };

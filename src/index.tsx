@@ -169,6 +169,7 @@ import {
     seoOptionsForPortfolio,
     seoOptionsForSession,
     SITE_ORIGIN,
+    toPlainMeta,
 } from './utils/seo';
 import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
 
@@ -192,7 +193,8 @@ app.use('*', async (c, next) => {
 
     await next();
 
-    const noindex = isNoindexPath(requestUrl.pathname) || requestUrl.hostname.endsWith('.pages.dev');
+    const hasQuery = Boolean(requestUrl.search && requestUrl.search !== '?');
+    const noindex = isNoindexPath(requestUrl.pathname) || requestUrl.hostname.endsWith('.pages.dev') || hasQuery;
     if (noindex) {
         c.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
     }
@@ -209,8 +211,23 @@ app.use('*', async (c, next) => {
     } else if (c.env.DB && portfolioMatch) {
         seoOptions = (await seoOptionsForPortfolio(c.env.DB, Number(portfolioMatch[1]))) || seoOptions;
     }
-    if (seoOptions && requestUrl.search && requestUrl.search !== '?') {
-        seoOptions = { ...seoOptions, noindex: true, path: requestUrl.pathname };
+    // 쿼리 URL은 대표 path와 같은 title/desc를 쓰지 않고, noindex + 고유 메타로 진단 중복을 줄인다
+    if (seoOptions && hasQuery) {
+        const qLabel = requestUrl.searchParams.get('category')
+            || requestUrl.searchParams.get('q')
+            || requestUrl.searchParams.get('filter')
+            || requestUrl.searchParams.get('status')
+            || 'filtered';
+        seoOptions = {
+            ...seoOptions,
+            title: `${seoOptions.title} (${qLabel})`,
+            description: toPlainMeta(
+                `${seoOptions.description || ''} 필터: ${qLabel}. 대표 안내는 ${requestUrl.pathname}에서 확인하세요.`,
+                160,
+            ),
+            noindex: true,
+            path: requestUrl.pathname,
+        };
     }
     if (!seoOptions || !contentType.includes('text/html') || c.res.status >= 400) return;
 
@@ -279,6 +296,8 @@ app.get('/robots.txt', (c) => {
         'Disallow: /login',
         'Disallow: /register',
         'Disallow: /reset-password',
+        '# 쿼리 파라미터 URL은 대표 경로만 색인 (중복 title/description 방지)',
+        'Disallow: /*?*',
         'Sitemap: ' + origin + '/sitemap.xml',
         '# LLM context: ' + origin + '/llms.txt',
         '',
