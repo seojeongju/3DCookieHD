@@ -1,5 +1,5 @@
 import { layoutHtml } from './components/layout';
-import { buildHowTo, CAMPUSES, getSeoHead, getSeoOptionsForPath, SITE_ORIGIN } from '../utils/seo';
+import { buildHowTo, CAMPUSES, getSeoHead, getSeoOptionsForPath, SITE_NAME, SITE_ORIGIN } from '../utils/seo';
 
 type GuidePage = {
     slug: string;

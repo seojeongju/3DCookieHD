@@ -374,11 +374,11 @@ export const homeHtml = `
                 <p class="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed px-1">4차산업 3D프린팅 교육 전문 기관으로, 실무 중심의 커리큘럼과 최신 장비로 여러분의 성장을 지원합니다.</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-8 text-center">
-                <div class="p-6 rounded-2xl bg-gray-50 border border-gray-100">
-                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center"><i class="fas fa-cube text-2xl"></i></div>
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">3D 모델링·프린팅</h3>
+                <a href="/course-sessions" class="block p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition shadow-sm hover:shadow-md text-center group">
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-200 group-hover:text-primary-700 transition-colors"><i class="fas fa-cube text-2xl"></i></div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700">3D 모델링·프린팅</h3>
                     <p class="text-gray-600 text-sm">산업용 3D프린터와 전문 소프트웨어로 실무 역량을 키웁니다.</p>
-                </div>
+                </a>
                 <a href="/tomorrow-learning-card" class="block p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition shadow-sm hover:shadow-md text-center group">
                     <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-200 group-hover:text-primary-700 transition-colors"><i class="fas fa-graduation-cap text-2xl"></i></div>
                     <h3 class="text-base sm:text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700 leading-snug">내일배움카드 3D프린팅 국비지원</h3>
