@@ -922,8 +922,11 @@ app.get('/locations/:campus', async (c) => {
 });
 app.get('/guides/:slug', (c) => {
     const slug = c.req.param('slug');
-    // 무료·국비 가이드는 국비지원 가이드로 통합
+    // 통합·정리된 구 URL → 대표 URL
     if (slug === 'free-education') return c.redirect('/guides/national-support', 301);
+    if (slug === 'hongdae-3d-printing') return c.redirect('/locations/hongdae', 301);
+    if (slug === 'gumi-3d-printing') return c.redirect('/locations/gumi', 301);
+    if (slug === 'jeonju-3d-printing') return c.redirect('/locations/jeonju', 301);
     const html = seoGuideHtml(slug);
     if (!html) return c.redirect('/course-sessions');
     return c.html(html);
@@ -1404,11 +1407,9 @@ app.get('/sitemap', (c) => {
                                                                                 <ul class="space-y-2">
                                                                                     <li><a href="/guides/national-support" class="text-gray-600 hover:text-blue-600 transition">국비지원·내일배움카드</a></li>
                                                                                     <li><a href="/guides/craftsman-license" class="text-gray-600 hover:text-blue-600 transition">기능사·국가자격</a></li>
-                                                                                    <li><a href="/guides/hongdae-3d-printing" class="text-gray-600 hover:text-blue-600 transition">홍대 3D프린팅</a></li>
-                                                                                    <li><a href="/guides/gumi-3d-printing" class="text-gray-600 hover:text-blue-600 transition">구미 3D프린팅</a></li>
-                                                                                    <li><a href="/guides/jeonju-3d-printing" class="text-gray-600 hover:text-blue-600 transition">전주 3D프린팅</a></li>
                                                                                     <li><a href="/guides/small-business" class="text-gray-600 hover:text-blue-600 transition">소상공인</a></li>
                                                                                     <li><a href="/guides/prototype" class="text-gray-600 hover:text-blue-600 transition">시제품</a></li>
+                                                                                    <li><a href="/locations" class="text-gray-600 hover:text-blue-600 transition">오시는 길(홍대·구미·전주)</a></li>
                                                                                 </ul>
                                                                             </div>
 

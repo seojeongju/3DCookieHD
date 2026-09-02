@@ -55,9 +55,6 @@ export const footerHtml = () => `
             <div class="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 shrink-0">
                 <a href="/guides/national-support" class="hover:text-white transition">국비지원</a>
                 <a href="/guides/craftsman-license" class="hover:text-white transition">기능사</a>
-                <a href="/guides/hongdae-3d-printing" class="hover:text-white transition">홍대</a>
-                <a href="/guides/gumi-3d-printing" class="hover:text-white transition">구미</a>
-                <a href="/guides/jeonju-3d-printing" class="hover:text-white transition">전주</a>
                 <a href="/guides/small-business" class="hover:text-white transition">소상공인</a>
                 <a href="/guides/prototype" class="hover:text-white transition">시제품</a>
                 <a href="/locations" class="hover:text-white transition">오시는길</a>

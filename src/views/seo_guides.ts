@@ -127,100 +127,10 @@ const PAGES: Record<string, GuidePage> = {
             { href: '/course-sessions', label: '교육과정' },
         ],
     },
-    'hongdae-3d-printing': {
-        slug: 'hongdae-3d-printing',
-        kicker: '지역 가이드 · 홍대',
-        icon: 'fa-map-marker-alt',
-        h1: '홍대 3D프린팅 학원, 어디서 배우나요?',
-        lead: '서울 마포 상수역 인근 와우쓰리디홍대센터에서 3D프린팅 국비지원·내일배움카드·기능사 교육을 운영합니다.',
-        sections: [
-            {
-                h2: '홍대에서 3D프린팅을 배울 수 있는 곳은?',
-                body: '서울 마포구 독막로 93 4층(상수역 2번 출구) 와우쓰리디홍대센터입니다. 전화 02-3144-3137, 이메일 wow3d16@naver.com.',
-            },
-            {
-                h2: '홍대센터에서 내일배움카드로 수강할 수 있나요?',
-                body: '가능합니다. 국민내일배움카드(국비지원) 3D프린팅·3D모델링 과정을 운영하며, 모집 회차는 교육과정 목록에서 확인하세요.',
-            },
-            {
-                h2: '3D프린터운용기능사도 홍대에서 준비할 수 있나요?',
-                body: '네. 3D프린터 국가자격증(3D프린터운용기능사) 실기 대비 과정(주말반·평일저녁반)을 홍대센터에서 운영합니다.',
-            },
-            {
-                h2: '오시는 길은 어떻게 되나요?',
-                body: '6호선 상수역 2번 출구 전방 약 50m입니다. 지도·주차·연락처는 홍대센터 오시는 길 페이지에서 확인할 수 있습니다.',
-            },
-        ],
-        links: [
-            { href: '/locations/hongdae', label: '홍대 오시는 길' },
-            { href: '/course-sessions', label: '모집 과정' },
-            { href: '/guides/craftsman-license', label: '기능사·국가자격' },
-            { href: '/online-consulting', label: '온라인 상담' },
-        ],
-    },
-    'gumi-3d-printing': {
-        slug: 'gumi-3d-printing',
-        kicker: '지역 가이드 · 구미',
-        icon: 'fa-map-marker-alt',
-        h1: '구미 3D프린팅 학원, 어디서 배우나요?',
-        lead: '경북 구미시 산호대로 와우쓰리디 구미센터에서 3D프린팅 국비지원·실무 교육을 안내합니다.',
-        sections: [
-            {
-                h2: '구미에서 3D프린팅 교육을 받을 수 있나요?',
-                body: '경북 구미시 산호대로 253 606호(구미첨단의료기술타워) 와우쓰리디 구미센터에서 운영합니다. 전화 054-464-3137.',
-            },
-            {
-                h2: '구미센터도 내일배움카드 과정이 있나요?',
-                body: '개설 회차에 따라 국민내일배움카드(국비지원) 과정이 있습니다. 일정은 교육과정 목록과 상담으로 확인하세요.',
-            },
-            {
-                h2: '기능사·국비 과정은 어떻게 신청하나요?',
-                body: '관심 회차를 확인한 뒤 온라인 상담 또는 전화로 센터·일정을 안내받으면 됩니다. 카드 미발급 시 고용24 발급 절차도 함께 안내합니다.',
-            },
-            {
-                h2: '구미센터 위치는 어디인가요?',
-                body: '구미첨단의료기술타워 606호(공단동)입니다. 지도는 구미센터 오시는 길 페이지에서 확인할 수 있습니다.',
-            },
-        ],
-        links: [
-            { href: '/locations/gumi', label: '구미 오시는 길' },
-            { href: '/course-sessions', label: '모집 과정' },
-            { href: '/guides/national-support', label: '국비지원 안내' },
-            { href: '/online-consulting', label: '온라인 상담' },
-        ],
-    },
-    'jeonju-3d-printing': {
-        slug: 'jeonju-3d-printing',
-        kicker: '지역 가이드 · 전주',
-        icon: 'fa-map-marker-alt',
-        h1: '전주 3D프린팅 교육, 어디서 배우나요?',
-        lead: '전북 전주시 덕진구 와우쓰리디 전주센터에서 3D프린팅 직업훈련·국비지원 교육을 운영합니다.',
-        sections: [
-            {
-                h2: '전주에서 3D프린팅을 배울 수 있나요?',
-                body: '전북 전주시 덕진구 반룡로 109 207호(테크노빌 A동) 와우쓰리디 전주센터에서 운영합니다.',
-            },
-            {
-                h2: '전주센터도 국비지원이 되나요?',
-                body: '개설 회차에 따라 내일배움카드(국비지원) 적용이 가능합니다. 상담 시 해당 회차 기준으로 안내합니다.',
-            },
-            {
-                h2: '전주에서 기능사 대비도 가능한가요?',
-                body: '회차 개설에 따라 3D프린터운용기능사(국가자격) 관련 교육·상담을 제공합니다. 일정은 교육과정 목록을 확인하세요.',
-            },
-            {
-                h2: '전주센터 연락처는?',
-                body: '대표 상담 전화 02-3144-3137, 이메일 wow3d16@naver.com으로 문의하시면 전주센터 일정을 안내합니다.',
-            },
-        ],
-        links: [
-            { href: '/locations/jeonju', label: '전주 오시는 길' },
-            { href: '/course-sessions', label: '모집 과정' },
-            { href: '/tomorrow-learning-card', label: '내일배움카드' },
-            { href: '/online-consulting', label: '온라인 상담' },
-        ],
-    },
 };
+
+/** 메뉴·허브에 노출하는 핵심 학습 가이드 (지역 페이지는 /locations 로 통합) */
+export const CORE_GUIDE_SLUGS = ['national-support', 'craftsman-license', 'small-business', 'prototype'] as const;
 
 export const SEO_GUIDE_SLUGS = Object.keys(PAGES);
 
@@ -241,21 +151,18 @@ function factBlockHtml(page: GuidePage): string {
         ['기관', SITE_NAME],
         ['대표 전화', '02-3144-3137'],
         ['이메일', 'wow3d16@naver.com'],
+        ['캠퍼스', '홍대·구미·전주'],
         ['국가자격 공식명', '3D프린터운용기능사'],
         ['지원 제도', '국민내일배움카드(국비지원)'],
-        ['교육 분야', '3D프린팅·3D모델링·시제품·소상공인 맞춤'],
     ];
-    if (page.slug === 'hongdae-3d-printing') {
-        const c = CAMPUSES.hongdae;
-        rows.push(['센터', c.name], ['주소', `${c.region} ${c.locality} ${c.street}`], ['지역 키워드', c.keyword]);
-    } else if (page.slug === 'gumi-3d-printing') {
-        const c = CAMPUSES.gumi;
-        rows.push(['센터', c.name], ['주소', `${c.region} ${c.locality} ${c.street}`], ['전화', c.telephone.replace('+82-', '0')], ['지역 키워드', c.keyword]);
-    } else if (page.slug === 'jeonju-3d-printing') {
-        const c = CAMPUSES.jeonju;
-        rows.push(['센터', c.name], ['주소', `${c.region} ${c.locality} ${c.street}`], ['지역 키워드', c.keyword]);
-    } else {
-        rows.push(['캠퍼스', '홍대·구미·전주']);
+    if (page.slug === 'national-support') {
+        rows.push(['이 가이드 범위', '국비지원·내일배움카드·무료교육 검색 안내']);
+    } else if (page.slug === 'craftsman-license') {
+        rows.push(['이 가이드 범위', '3D프린터운용기능사 실기 대비']);
+    } else if (page.slug === 'small-business') {
+        rows.push(['이 가이드 범위', '매장용 단기 실습(쿠키틀·몰드 등)']);
+    } else if (page.slug === 'prototype') {
+        rows.push(['이 가이드 범위', '시제품 모델링·출력·후가공']);
     }
     const items = rows
         .map(
@@ -310,15 +217,25 @@ function howToForGuide(page: GuidePage): Record<string, unknown> | null {
             ],
         );
     }
-    if (page.slug.endsWith('-3d-printing')) {
-        const city = page.slug.startsWith('hongdae') ? '홍대' : page.slug.startsWith('gumi') ? '구미' : '전주';
+    if (page.slug === 'small-business') {
         return buildHowTo(
-            `${city} 3D프린팅 교육 상담·등록하기`,
+            '소상공인 3D프린팅 과정 신청하기',
             page.lead,
             [
-                { name: '센터·과정 확인', text: `${city}센터 오시는 길과 모집 중인 3D프린팅 과정을 확인합니다.` },
-                { name: '국비·자격 확인', text: '내일배움카드 보유 여부와 기능사·국비 희망 여부를 정리합니다.' },
-                { name: '상담 신청', text: '온라인 상담 또는 전화로 일정·지원 유형을 안내받은 뒤 등록합니다.' },
+                { name: '과정 확인', text: '교육과정 목록에서 소상공인·매장용 단기 회차를 확인합니다.' },
+                { name: '상담', text: '희망 일정과 제작 목적(쿠키틀·몰드 등)을 상담합니다.' },
+                { name: '등록', text: '온라인 상담 또는 전화로 등록합니다.' },
+            ],
+        );
+    }
+    if (page.slug === 'prototype') {
+        return buildHowTo(
+            '시제품 제작 교육 상담하기',
+            page.lead,
+            [
+                { name: '사례 확인', text: '시제품 갤러리에서 제작 사례를 확인합니다.' },
+                { name: '과정·맞춤 확인', text: '공개 과정 또는 기업 맞춤 교육 여부를 확인합니다.' },
+                { name: '상담 신청', text: '온라인 상담·전화로 일정과 범위를 안내받습니다.' },
             ],
         );
     }

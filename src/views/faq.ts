@@ -61,7 +61,7 @@ export function faqPageHtml(items: PublicFaq[]): string {
                         <a href="/guides/national-support" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">국비지원</a>
                         <a href="/guides/craftsman-license" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">기능사·국가자격</a>
                         <a href="/tomorrow-learning-card" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">내일배움카드</a>
-                        <a href="/guides/hongdae-3d-printing" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">홍대</a>
+                        <a href="/locations" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">오시는 길</a>
                     </div>
                 </header>
                 <section class="space-y-4" aria-label="자주 묻는 질문과 답변">

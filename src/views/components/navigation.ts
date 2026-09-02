@@ -40,9 +40,6 @@ export const navigationHtml = (activeMenu = '') => `
                                     <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">학습 가이드</p>
                                     <a href="/guides/national-support" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">국비지원·내일배움카드</a>
                                     <a href="/guides/craftsman-license" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">기능사·국가자격</a>
-                                    <a href="/guides/hongdae-3d-printing" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">홍대 3D프린팅</a>
-                                    <a href="/guides/gumi-3d-printing" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">구미 3D프린팅</a>
-                                    <a href="/guides/jeonju-3d-printing" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">전주 3D프린팅</a>
                                     <a href="/guides/small-business" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">소상공인 활용</a>
                                     <a href="/guides/prototype" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">시제품 제작</a>
                                 </div>
@@ -162,9 +159,6 @@ export const navigationHtml = (activeMenu = '') => `
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">학습 가이드</div>
                 <a href="/guides/national-support" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원·내일배움카드</a>
                 <a href="/guides/craftsman-license" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기능사·국가자격</a>
-                <a href="/guides/hongdae-3d-printing" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">홍대 3D프린팅</a>
-                <a href="/guides/gumi-3d-printing" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">구미 3D프린팅</a>
-                <a href="/guides/jeonju-3d-printing" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">전주 3D프린팅</a>
                 <a href="/guides/small-business" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">소상공인 활용</a>
                 <a href="/guides/prototype" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">센터소개</div>
