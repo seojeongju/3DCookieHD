@@ -5,7 +5,7 @@
 
 export const SITE_ORIGIN = 'https://3dcookiehd.com';
 export const SITE_NAME = '와우쓰리디홍대센터';
-const DEFAULT_DESCRIPTION = '4차산업 3D프린팅 교육 전문. 와우쓰리디홍대센터에서 3D 모델링·프린팅 국비지원 과정, 실무 교육, NCS 기반 커리큘럼을 만나보세요. 홍대·구미·전주.';
+const DEFAULT_DESCRIPTION = '4차산업 3D프린팅 교육 전문. 와우쓰리디에서 AI를 활용한 3D모델링·3D프린팅 국비지원 과정, 실무 교육, NCS 기반 커리큘럼을 만나보세요. 홍대·구미·전주.';
 
 function toPlainMeta(text: string, max = 160): string {
     return String(text || '')
@@ -17,7 +17,7 @@ function toPlainMeta(text: string, max = 160): string {
 }
 
 export { toPlainMeta };
-const DEFAULT_KEYWORDS = '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린터 국가자격증, 3D프린팅 기능사, 3D프린터 무료교육, 3D프린팅 학원 홍대, 와우쓰리디, 3D모델링, 구미 3D프린팅, 전주 3D프린팅, 소상공인 3D프린팅';
+const DEFAULT_KEYWORDS = '3D프린팅 국비지원, AI 3D모델링, AI 3D프린팅, 내일배움카드 3D프린팅, 3D프린터운용기능사, 3D프린터 국가자격증, 3D프린팅 기능사, 3D프린터 무료교육, 3D프린팅 학원 홍대, 와우쓰리디, 3D모델링, 구미 3D프린팅, 전주 3D프린팅, 소상공인 3D프린팅';
 const DEFAULT_OG_IMAGE = '/static/hero1.jpg';
 
 export const CAMPUSES = {
@@ -548,8 +548,8 @@ export function llmsTxt(origin: string): string {
 
 const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywords' | 'ogType' | 'image'>> = {
     '/': {
-        title: '3D프린팅 국비지원 교육 전문',
-        description: '홍대·구미·전주 와우쓰리디에서 국민내일배움카드 3D프린팅·3D모델링 국비지원 교육을 운영합니다. 기능사·소상공인·시제품 과정과 상담을 안내합니다.',
+        title: '3D프린팅 국비지원·AI 3D모델링 교육',
+        description: '와우쓰리디에서 AI를 활용한 3D모델링·3D프린팅 국비지원 교육을 운영합니다. 홍대·구미·전주, 기능사·소상공인·시제품 과정과 상담을 안내합니다.',
         keywords: DEFAULT_KEYWORDS,
         image: '/static/hero1.jpg',
     },

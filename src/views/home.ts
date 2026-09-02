@@ -244,8 +244,12 @@ export const homeHtml = `
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div class="max-w-2xl text-left">
+                        <p class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs sm:text-sm font-bold text-white backdrop-blur-sm mb-4 animate-fade-in-up">
+                            <i class="fas fa-wand-magic-sparkles text-violet-200" aria-hidden="true"></i>
+                            AI 3D모델링 · AI 3D프린팅 교육
+                        </p>
                         <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">상상을 현실로,<br>미래를 디자인하다!</h1>
-                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">와우쓰리디홍대센터에서<br>3D모델링과 프린팅을 마스터하세요.</p>
+                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">와우쓰리디에서 AI를 활용한 3D모델링·3D프린팅 실무를<br class="hidden sm:inline"> 국비지원 과정으로 배우세요.</p>
                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
                             <a href="/course-sessions" class="bg-primary-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg hover:shadow-primary-500/30 text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">과정 둘러보기</a>
                             <a href="/online-consulting" class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-white hover:text-primary-600 transition text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">상담 신청</a>
@@ -254,16 +258,20 @@ export const homeHtml = `
                 </div>
             </div>
         </div>
-        <!-- 슬라이드 2 (지연 로드) -->
+        <!-- 슬라이드 2 — AI 실무 교육 (지연 로드) -->
         <div class="hero-slide" data-bg="/static/hero2.jpg" style="background-color: #4a90e2;">
             <div class="hero-overlay bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
             <div class="hero-content absolute inset-0 flex items-center">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div class="max-w-2xl text-left">
-                        <h2 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">실무 중심의<br>전문 교육 솔루션</h2>
-                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">현장 경험이 풍부한 전문 강사진과 함께<br>진짜 실력을 키우세요.</p>
+                        <p class="inline-flex items-center gap-2 rounded-full border border-violet-300/30 bg-violet-500/20 px-3 py-1.5 text-xs sm:text-sm font-bold text-violet-100 backdrop-blur-sm mb-4 animate-fade-in-up">
+                            <i class="fas fa-robot" aria-hidden="true"></i>
+                            교육과정 AI 실습
+                        </p>
+                        <h2 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">AI와 함께하는<br>3D 제작의 새 표준</h2>
+                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">아이디어 스케치부터 모델링·출력까지.<br class="hidden sm:inline"> 교육과정에서 AI 도구 활용법을 단계별로 익힙니다.</p>
                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
-                            <a href="/course-sessions" class="bg-blue-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">수강 신청하기</a>
+                            <a href="/course-sessions" class="bg-violet-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-violet-700 transition shadow-lg text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">AI 포함 과정 보기</a>
                         </div>
                     </div>
                 </div>
@@ -279,6 +287,26 @@ export const homeHtml = `
                         <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">체계적인 NCS 기반 커리큘럼으로<br>여러분의 꿈을 현실로 만듭니다.</p>
                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
                             <a href="/online-consulting" class="bg-indigo-600 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">무료 상담 받기</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 슬라이드 4 — AI 3D 전용 (지연 로드) -->
+        <div class="hero-slide" data-bg="/static/hero5.jpg" style="background-color: #6d28d9;">
+            <div class="hero-overlay bg-gradient-to-r from-violet-950/70 via-indigo-900/55 to-transparent"></div>
+            <div class="hero-content absolute inset-0 flex items-center">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                    <div class="max-w-2xl text-left">
+                        <p class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs sm:text-sm font-bold text-white backdrop-blur-sm mb-4 animate-fade-in-up">
+                            <i class="fas fa-brain" aria-hidden="true"></i>
+                            최신 AI · 3D 실무
+                        </p>
+                        <h2 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 drop-shadow-xl leading-tight text-white animate-fade-in-up">AI를 활용한<br>3D모델링 · 3D프린팅</h2>
+                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 drop-shadow-md text-gray-100 animate-fade-in-up delay-100">프롬프트로 아이디어를 모델링하고,<br class="hidden sm:inline"> 3D프린터로 시제품까지. 교육과정에서 직접 실습합니다.</p>
+                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md sm:max-w-none animate-fade-in-up delay-200">
+                            <a href="/course-sessions" class="bg-white text-violet-800 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-violet-50 transition shadow-lg text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">교육과정 둘러보기</a>
+                            <a href="/online-consulting" class="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl font-bold hover:bg-white hover:text-violet-800 transition text-center w-full sm:w-auto min-h-[48px] flex items-center justify-center">AI 과정 상담</a>
                         </div>
                     </div>
                 </div>
@@ -341,6 +369,7 @@ export const homeHtml = `
             <div class="hero-dot active" onclick="setSlide(0)"></div>
             <div class="hero-dot" onclick="setSlide(1)"></div>
             <div class="hero-dot" onclick="setSlide(2)"></div>
+            <div class="hero-dot" onclick="setSlide(3)"></div>
         </div>
     </section>
 
