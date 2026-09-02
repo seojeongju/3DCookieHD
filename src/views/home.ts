@@ -390,32 +390,63 @@ export const homeHtml = `
                     <p class="text-gray-600 text-sm">전국 3개 센터에서 편리한 위치에서 수강할 수 있습니다.</p>
                 </a>
             </div>
-            <div class="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
-                <a href="/guides/national-support" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
-                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">3D프린팅 국비지원</h3>
-                    <p class="text-sm text-gray-600">내일배움카드로 3D프린팅을 수강하는 방법</p>
-                </a>
-                <a href="/guides/free-education" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
-                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">3D프린터 무료·국비 교육</h3>
-                    <p class="text-sm text-gray-600">무료교육 검색 시 알아야 할 국비지원 안내</p>
-                </a>
-                <a href="/guides/craftsman-license" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
-                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">3D프린터 국가자격증·기능사</h3>
-                    <p class="text-sm text-gray-600">3D프린터운용기능사 실기 대비</p>
-                </a>
-                <a href="/guides/small-business" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition">
-                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">소상공인 3D프린팅</h3>
-                    <p class="text-sm text-gray-600">쿠키틀·몰드 등 매장용 교육</p>
-                </a>
-                <a href="/guides/prototype" class="bento-card block p-6 rounded-[2.5rem] bg-slate-50 border border-slate-200/60 shadow-sm hover:border-primary-200 transition sm:col-span-2 xl:col-span-1">
-                    <p class="text-xs font-bold text-primary-600 mb-2">가이드</p>
-                    <h3 class="text-lg font-black tracking-tight text-gray-800 mb-2">시제품 제작 교육</h3>
-                    <p class="text-sm text-gray-600">모델링부터 출력·후가공까지</p>
-                </a>
+            <div class="mt-8 sm:mt-10 max-w-4xl mx-auto">
+                <details id="homeGuideMenu" class="group rounded-[2.5rem] border border-slate-200/60 bg-slate-50 shadow-sm open:bg-white open:shadow-md transition-shadow">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 sm:px-8 sm:py-6 [&::-webkit-details-marker]:hidden">
+                        <span class="flex min-w-0 items-center gap-4">
+                            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-primary-600 group-open:bg-primary-600 group-open:text-white transition-colors">
+                                <i class="fas fa-book-open text-lg"></i>
+                            </span>
+                            <span class="min-w-0 text-left">
+                                <span class="block text-xs font-black uppercase tracking-wider text-primary-600 mb-1">가이드 메뉴</span>
+                                <span class="block text-lg sm:text-xl font-black tracking-tight text-gray-900">학습 가이드 보기</span>
+                                <span class="mt-1 block text-sm text-gray-500">국비지원 · 무료교육 · 기능사 · 소상공인 · 시제품</span>
+                            </span>
+                        </span>
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 group-open:rotate-180 transition-transform duration-300" aria-hidden="true">
+                            <i class="fas fa-chevron-down text-sm"></i>
+                        </span>
+                    </summary>
+                    <div class="border-t border-slate-200/70 px-4 pb-5 pt-4 sm:px-6 sm:pb-6">
+                        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="학습 가이드 목록">
+                            <a href="/guides/national-support" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-landmark"></i></span>
+                                <span>
+                                    <span class="block font-black tracking-tight text-gray-900">3D프린팅 국비지원</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">내일배움카드로 수강하는 방법</span>
+                                </span>
+                            </a>
+                            <a href="/guides/free-education" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-gift"></i></span>
+                                <span>
+                                    <span class="block font-black tracking-tight text-gray-900">3D프린터 무료·국비 교육</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">무료교육 검색 시 국비지원 안내</span>
+                                </span>
+                            </a>
+                            <a href="/guides/craftsman-license" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-id-badge"></i></span>
+                                <span>
+                                    <span class="block font-black tracking-tight text-gray-900">3D프린터 국가자격증·기능사</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">3D프린터운용기능사 실기 대비</span>
+                                </span>
+                            </a>
+                            <a href="/guides/small-business" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-store"></i></span>
+                                <span>
+                                    <span class="block font-black tracking-tight text-gray-900">소상공인 3D프린팅</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">쿠키틀·몰드 등 매장용 교육</span>
+                                </span>
+                            </a>
+                            <a href="/guides/prototype" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition sm:col-span-2">
+                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-drafting-compass"></i></span>
+                                <span>
+                                    <span class="block font-black tracking-tight text-gray-900">시제품 제작 교육</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">모델링부터 출력·후가공까지</span>
+                                </span>
+                            </a>
+                        </nav>
+                    </div>
+                </details>
             </div>
         </div>
     </section>
