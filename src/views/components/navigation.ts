@@ -85,24 +85,10 @@ export const navigationHtml = (activeMenu = '') => `
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- 채용정보 (드롭다운) -->
-                    <div class="relative group shrink-0">
-                        <button class="px-3 py-2 ${['jobs', 'jobseekers'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
-                            채용정보
-                            <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
-                        </button>
-                        <div class="absolute left-0 top-full z-50 mt-0 w-max min-w-[14rem] bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100">
-                            <div class="py-1">
-                                <a href="/jobs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">구인정보 (채용공고)</a>
-                                <a href="/jobseekers" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">구직정보 (인재풀)</a>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- 상담센터 -->
+                    <!-- 상담센터 (채용정보 포함) -->
                     <div class="relative group shrink-0">
-                        <button class="px-3 py-2 ${['consulting'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                        <button class="px-3 py-2 ${['consulting', 'jobs', 'jobseekers'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
                             상담센터
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>
@@ -110,6 +96,10 @@ export const navigationHtml = (activeMenu = '') => `
                             <div class="py-1">
                                 <a href="/online-consulting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">온라인상담신청</a>
                                 <a href="/tomorrow-learning-card" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">내일배움카드발급안내</a>
+                                <div class="my-1 border-t border-gray-100"></div>
+                                <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">채용정보</p>
+                                <a href="/jobs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">구인정보 (채용공고)</a>
+                                <a href="/jobseekers" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">구직정보 (인재풀)</a>
                             </div>
                         </div>
                     </div>
@@ -176,12 +166,12 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/faq" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
                 <a href="/posts?category=qna" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">Q&A</a>
                 <a href="/portfolios" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
-                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">채용정보</div>
-                <a href="/jobs" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">구인정보</a>
-                <a href="/jobseekers" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">구직정보</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">상담센터</div>
                 <a href="/online-consulting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">온라인상담신청</a>
                 <a href="/tomorrow-learning-card" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">내일배움카드발급안내</a>
+                <div class="px-2 py-1 mt-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">채용정보</div>
+                <a href="/jobs" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">구인정보 (채용공고)</a>
+                <a href="/jobseekers" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">구직정보 (인재풀)</a>
                 ${socialLinksMobileNavHtml()}
                 <div class="border-t border-gray-100 mt-2 pt-2">
                     <a href="/login" class="block px-4 py-3 text-gray-700 hover:bg-gray-50"><i class="fas fa-sign-in-alt mr-2 text-gray-400"></i>로그인</a>
