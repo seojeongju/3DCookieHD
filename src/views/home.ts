@@ -373,7 +373,7 @@ export const homeHtml = `
                 <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">와우쓰리디홍대센터</h2>
                 <p class="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed px-1">4차산업 3D프린팅 교육 전문 기관으로, 실무 중심의 커리큘럼과 최신 장비로 여러분의 성장을 지원합니다.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-8 text-center">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-8 text-center">
                 <a href="/course-sessions" class="block p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition shadow-sm hover:shadow-md text-center group">
                     <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-200 group-hover:text-primary-700 transition-colors"><i class="fas fa-cube text-2xl"></i></div>
                     <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700">3D 모델링·프린팅</h3>
@@ -389,52 +389,47 @@ export const homeHtml = `
                     <h3 class="text-lg font-bold text-gray-800 mb-2 group-hover:text-primary-700">홍대·구미·전주</h3>
                     <p class="text-gray-600 text-sm">전국 3개 센터에서 편리한 위치에서 수강할 수 있습니다.</p>
                 </a>
-            </div>
-            <div class="mt-8 sm:mt-10 max-w-4xl mx-auto">
-                <details id="homeGuideMenu" class="group rounded-[2.5rem] border border-slate-200/60 bg-slate-50 shadow-sm open:bg-white open:shadow-md transition-shadow">
-                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 sm:px-8 sm:py-6 [&::-webkit-details-marker]:hidden">
-                        <span class="flex min-w-0 items-center gap-4">
-                            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-primary-600 group-open:bg-primary-600 group-open:text-white transition-colors">
-                                <i class="fas fa-book-open text-lg"></i>
-                            </span>
-                            <span class="min-w-0 text-left">
-                                <span class="block text-xs font-black uppercase tracking-wider text-primary-600 mb-1">가이드 메뉴</span>
-                                <span class="block text-lg sm:text-xl font-black tracking-tight text-gray-900">학습 가이드 보기</span>
-                                <span class="mt-1 block text-sm text-gray-500">국비지원 · 기능사 · 소상공인 · 시제품</span>
-                            </span>
+                <details id="homeGuideMenu" class="group rounded-2xl border border-gray-100 bg-gray-50 shadow-sm open:border-primary-200 open:bg-white open:shadow-md transition text-left">
+                    <summary class="flex cursor-pointer list-none flex-col items-center p-6 text-center [&::-webkit-details-marker]:hidden">
+                        <span class="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-100 text-primary-600 transition-colors group-open:bg-primary-600 group-open:text-white mb-4">
+                            <i class="fas fa-book-open text-2xl"></i>
                         </span>
-                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 group-open:rotate-180 transition-transform duration-300" aria-hidden="true">
-                            <i class="fas fa-chevron-down text-sm"></i>
+                        <span class="block text-lg font-bold text-gray-800 mb-2 group-open:text-primary-700">학습 가이드 보기</span>
+                        <span class="block text-gray-600 text-sm">국비지원 · 기능사 · 소상공인 · 시제품</span>
+                        <span class="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary-600" aria-hidden="true">
+                            <span class="group-open:hidden">펼치기</span>
+                            <span class="hidden group-open:inline">접기</span>
+                            <i class="fas fa-chevron-down text-[10px] transition-transform duration-300 group-open:rotate-180"></i>
                         </span>
                     </summary>
-                    <div class="border-t border-slate-200/70 px-4 pb-5 pt-4 sm:px-6 sm:pb-6">
-                        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="학습 가이드 목록">
-                            <a href="/guides/national-support" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
-                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-landmark"></i></span>
-                                <span>
-                                    <span class="block font-black tracking-tight text-gray-900">국비지원·내일배움카드</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">무료교육 검색·신청 절차 한눈에</span>
+                    <div class="border-t border-gray-100 px-4 pb-5 pt-4 sm:px-5">
+                        <nav class="grid grid-cols-1 gap-2.5" aria-label="학습 가이드 목록">
+                            <a href="/guides/national-support" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-3.5 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-landmark text-sm"></i></span>
+                                <span class="min-w-0 text-left">
+                                    <span class="block text-sm font-black tracking-tight text-gray-900">국비지원·내일배움카드</span>
+                                    <span class="mt-0.5 block text-xs text-gray-500">무료교육 검색·신청 절차</span>
                                 </span>
                             </a>
-                            <a href="/guides/craftsman-license" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
-                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-id-badge"></i></span>
-                                <span>
-                                    <span class="block font-black tracking-tight text-gray-900">3D프린터운용기능사</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">국가자격 실기 대비 과정</span>
+                            <a href="/guides/craftsman-license" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-3.5 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-id-badge text-sm"></i></span>
+                                <span class="min-w-0 text-left">
+                                    <span class="block text-sm font-black tracking-tight text-gray-900">3D프린터운용기능사</span>
+                                    <span class="mt-0.5 block text-xs text-gray-500">국가자격 실기 대비</span>
                                 </span>
                             </a>
-                            <a href="/guides/small-business" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
-                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-store"></i></span>
-                                <span>
-                                    <span class="block font-black tracking-tight text-gray-900">소상공인 3D프린팅</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">쿠키틀·몰드 등 매장용 단기 교육</span>
+                            <a href="/guides/small-business" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-3.5 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-store text-sm"></i></span>
+                                <span class="min-w-0 text-left">
+                                    <span class="block text-sm font-black tracking-tight text-gray-900">소상공인 3D프린팅</span>
+                                    <span class="mt-0.5 block text-xs text-gray-500">쿠키틀·몰드 매장용 교육</span>
                                 </span>
                             </a>
-                            <a href="/guides/prototype" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
-                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-drafting-compass"></i></span>
-                                <span>
-                                    <span class="block font-black tracking-tight text-gray-900">시제품 제작 교육</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">모델링·출력·후가공 실무</span>
+                            <a href="/guides/prototype" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-3.5 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-drafting-compass text-sm"></i></span>
+                                <span class="min-w-0 text-left">
+                                    <span class="block text-sm font-black tracking-tight text-gray-900">시제품 제작 교육</span>
+                                    <span class="mt-0.5 block text-xs text-gray-500">모델링·출력·후가공</span>
                                 </span>
                             </a>
                         </nav>
