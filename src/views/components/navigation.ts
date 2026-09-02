@@ -22,7 +22,7 @@ export const navigationHtml = (activeMenu = '') => `
                 <div class="hidden lg:flex space-x-1 items-center">
                     <!-- 과정안내 -->
                     <div class="relative group shrink-0">
-                        <a href="/course-sessions" class="px-3 py-2 ${['courses', 'course-sessions'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                        <a href="/course-sessions" class="px-3 py-2 ${['courses', 'course-sessions', 'guides'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
                             과정안내
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </a>
@@ -38,7 +38,7 @@ export const navigationHtml = (activeMenu = '') => `
                                 </div>
                                 <div class="w-52 shrink-0 py-2 border-l border-gray-100 bg-slate-50/60">
                                     <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">학습 가이드</p>
-                                    <a href="/guides/national-support" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">국비지원·내일배움카드</a>
+                                    <a href="/guides/national-support" class="block px-4 py-2 text-sm ${activeMenu === 'guides' ? 'bg-white text-primary-600 font-bold' : 'text-gray-700 hover:bg-white hover:text-primary-600'} whitespace-nowrap">국비지원·내일배움카드</a>
                                     <a href="/guides/craftsman-license" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">기능사·국가자격</a>
                                     <a href="/guides/small-business" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">소상공인 활용</a>
                                     <a href="/guides/prototype" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">시제품 제작</a>

@@ -255,6 +255,10 @@ app.get('/', async (c) => {
         whereClauses.push(' AND p.status = ?');
         params.push('published');
       }
+      // 공개 수강후기: 실제 회원(author_id) 작성분만 노출
+      if (category === 'review') {
+        whereClauses.push(' AND p.author_id IS NOT NULL');
+      }
     }
 
     const whereSql = whereClauses.join('');
@@ -268,7 +272,14 @@ app.get('/', async (c) => {
       (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
       COALESCE(c.title, ac.name) as course_title
       ${base}${whereSql}
-      ORDER BY p.pinned DESC, ${sort === 'created_at' ? 'p.created_at' : sort === 'title' ? 'p.title' : sort === 'views' ? 'p.views' : 'p.created_at'} ${order} LIMIT ? OFFSET ?
+      ORDER BY p.pinned DESC, ${
+        sort === 'created_at' ? 'p.created_at'
+        : sort === 'title' ? 'p.title'
+        : sort === 'views' ? 'p.views'
+        : sort === 'rating' ? 'p.rating'
+        : sort === 'likes' ? 'p.likes'
+        : 'p.created_at'
+      } ${order} LIMIT ? OFFSET ?
     `;
     const dataParams = [...params, limit, offset];
     const { results } = await DB.prepare(dataQuery).bind(...dataParams).all();

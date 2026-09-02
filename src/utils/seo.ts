@@ -639,7 +639,7 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
     },
     '/guides/national-support': {
         title: '3D프린팅 국비지원·내일배움카드 신청 안내',
-        description: '3D프린터 무료교육 검색은 대개 국비지원을 의미합니다. 내일배움카드 발급·신청 절차와 와우쓰리디 홍대·구미·전주 모집 과정을 한 페이지에서 안내합니다.',
+        description: '3D프린터 무료교육 검색은 대개 국비지원을 의미합니다. 와우쓰리디 국비 과정 종류·신청 절차·센터 안내. 카드 발급 상세는 내일배움카드 페이지.',
         keywords: '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터 무료교육, 국비지원 신청',
         image: '/static/hero2.jpg',
     },
@@ -651,13 +651,13 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
     },
     '/guides/small-business': {
         title: '소상공인 3D프린팅 교육',
-        description: '쿠키틀·몰드·소품 제품화를 위한 소상공인 3D프린팅 맞춤 교육을 홍대센터에서 운영합니다.',
-        keywords: '소상공인 3D프린팅 교육, 쿠키틀 3D프린팅',
+        description: '쿠키틀·스텐실·몰드·소품 제품화를 위한 소상공인 3D프린팅 단기 실습 과정 안내. 홍대센터 회차별 일정·신청 절차·국비 정규과정과의 차이를 정리했습니다.',
+        keywords: '소상공인 3D프린팅 교육, 쿠키틀 3D프린팅, 스텐실 3D프린터, 소상공인 전문기술교육',
     },
     '/guides/prototype': {
         title: '3D프린팅 시제품 제작 교육',
-        description: '3D프린팅 시제품 제작 교육과 사례를 안내합니다. 기업·개인 실무에 바로 쓰는 모델링·출력 과정을 운영합니다.',
-        keywords: '3D프린팅 시제품 제작 교육, 시제품 3D프린팅',
+        description: '아이디어·도면을 시제품으로 만드는 모델링·출력·후가공 실무 교육 안내. 단기 워크숍·NCS 정규·기업 맞춤 과정과 신청 방법을 확인하세요.',
+        keywords: '3D프린팅 시제품 제작 교육, 시제품 3D프린팅, 제품개발 3D프린팅',
     },
     '/prototype-gallery': {
         title: '시제품 제작 사례',

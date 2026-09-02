@@ -103,6 +103,9 @@ export function tomorrowLearningCardHtml() {
     </header>
 
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        <div class="mb-8 flex flex-col gap-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-emerald-900"><i class="fas fa-id-card-alt mr-2"></i>이 페이지는 <strong>카드 발급·고용24 절차</strong> 안내입니다. 과정 선택·등록 흐름은 <a href="/guides/national-support" class="font-bold underline hover:no-underline">국비지원 학습 가이드</a>를 참고하세요.</p>
+        </div>
         <p class="text-center text-sm text-slate-500 mb-10 max-w-3xl mx-auto">
             아래 내용은 이해를 돕기 위한 요약이며, <strong class="text-slate-700">자격·한도·절차는 매년 고시 및 고용24(워크넷) 공지가 우선</strong>합니다. 신청 전 반드시 최신 공지를 확인해 주세요.
         </p>
@@ -161,8 +164,8 @@ export function tomorrowLearningCardHtml() {
                 <p class="text-sm text-slate-500 mb-6">내일배움카드·3D프린팅 국비지원·무료교육에 대해 자주 묻는 내용입니다.</p>
                 <div class="space-y-3" aria-label="내일배움카드 자주 묻는 질문">${faqCards}</div>
                 <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="/guides/national-support" class="text-sm font-bold text-emerald-700 hover:underline">국비지원·내일배움카드 안내</a>
-                    <a href="/guides/craftsman-license" class="text-sm font-bold text-emerald-700 hover:underline">3D프린터 국가자격증·기능사</a>
+                    <a href="/guides/national-support" class="inline-flex items-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 hover:bg-emerald-50">국비지원·수강 등록 가이드</a>
+                    <a href="/guides/craftsman-license" class="text-sm font-bold text-emerald-700 hover:underline">기능사·국가자격</a>
                     <a href="/faq" class="text-sm font-bold text-emerald-700 hover:underline">전체 FAQ</a>
                 </div>
             </section>

@@ -73,12 +73,15 @@ export const reviewsListHtml = `
     <!-- 메인 컨텐츠 -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <!-- 정렬 (작성은 학생 대시보드 나의 강의실 → 수강후기에서만 가능) -->
-        <div class="flex flex-wrap items-center gap-2 mb-8">
-            <span class="text-gray-600 font-medium">정렬:</span>
-            <select id="sortOrder" onchange="loadReviews()" class="border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring focus:ring-green-200 focus:ring-opacity-50">
-                <option value="latest">최신순</option>
-                <option value="rating">평점순</option>
-            </select>
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-gray-600 font-medium">정렬:</span>
+                <select id="sortOrder" onchange="loadReviews(1)" class="border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring focus:ring-green-200 focus:ring-opacity-50">
+                    <option value="latest">최신순</option>
+                    <option value="rating">평점순</option>
+                </select>
+            </div>
+            <p id="reviewCount" class="text-sm text-gray-500"></p>
         </div>
 
         <!-- 리뷰 목록 -->
@@ -101,17 +104,106 @@ export const reviewsListHtml = `
     ${footerHtml()}
 
     <script>
+        let currentPage = 1;
+        const itemsPerPage = 8;
+
         document.addEventListener('DOMContentLoaded', () => {
-            loadReviews();
+            const urlPage = Number(new URLSearchParams(window.location.search).get('page')) || 1;
+            loadReviews(urlPage > 0 ? urlPage : 1);
         });
 
-        async function loadReviews() {
+        function getSortParams() {
+            const sortOrder = document.getElementById('sortOrder')?.value || 'latest';
+            if (sortOrder === 'rating') {
+                return { sort: 'rating', order: 'DESC' };
+            }
+            return { sort: 'created_at', order: 'DESC' };
+        }
+
+        function syncPageUrl(page) {
+            const url = new URL(window.location.href);
+            if (page <= 1) {
+                url.searchParams.delete('page');
+            } else {
+                url.searchParams.set('page', String(page));
+            }
+            window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        }
+
+        function renderPagination(pagination) {
+            const paginationEl = document.getElementById('pagination');
+            if (!paginationEl) return;
+
+            const totalPages = pagination?.totalPages || 1;
+            const pageNum = pagination?.page || 1;
+
+            if (totalPages <= 1) {
+                paginationEl.innerHTML = '';
+                return;
+            }
+
+            const radius = 2;
+            const pages = [];
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= pageNum - radius && i <= pageNum + radius)) {
+                    pages.push(i);
+                } else if (pages[pages.length - 1] !== '...') {
+                    pages.push('...');
+                }
+            }
+
+            let html = '<nav class="flex flex-wrap items-center justify-center gap-2" aria-label="페이지 이동">';
+            html += '<button type="button" onclick="loadReviews(' + (pageNum - 1) + ')" ' +
+                (pageNum <= 1 ? 'disabled' : '') +
+                ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' +
+                (pageNum <= 1 ? 'opacity-50 cursor-not-allowed text-gray-400 bg-gray-50' : 'text-gray-700 hover:bg-gray-50 bg-white') +
+                '"><i class="fas fa-chevron-left mr-1"></i> 이전</button>';
+
+            pages.forEach(function(n) {
+                if (n === '...') {
+                    html += '<span class="px-2 py-2 text-gray-400">…</span>';
+                } else {
+                    const active = n === pageNum;
+                    html += '<button type="button" onclick="loadReviews(' + n + ')" class="min-w-[2.5rem] px-3 py-2 rounded-lg border text-sm font-medium transition ' +
+                        (active ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50 bg-white') +
+                        '">' + n + '</button>';
+                }
+            });
+
+            html += '<button type="button" onclick="loadReviews(' + (pageNum + 1) + ')" ' +
+                (pageNum >= totalPages ? 'disabled' : '') +
+                ' class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ' +
+                (pageNum >= totalPages ? 'opacity-50 cursor-not-allowed text-gray-400 bg-gray-50' : 'text-gray-700 hover:bg-gray-50 bg-white') +
+                '">다음 <i class="fas fa-chevron-right ml-1"></i></button>';
+            html += '</nav>';
+
+            paginationEl.innerHTML = html;
+        }
+
+        async function loadReviews(page) {
+            const reviewsList = document.getElementById('reviewsList');
+            const reviewCountEl = document.getElementById('reviewCount');
+            const paginationEl = document.getElementById('pagination');
+
+            if (!page || page < 1) page = 1;
+            currentPage = page;
+
+            const { sort, order } = getSortParams();
+            const url = '/api/posts?category=review&status=published&page=' + page +
+                '&limit=' + itemsPerPage + '&sort=' + sort + '&order=' + order;
+
+            reviewsList.innerHTML = \`
+                <div class="col-span-full text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-4xl text-green-500 mb-4"></i>
+                    <p class="text-gray-500">후기를 불러오는 중입니다...</p>
+                </div>
+            \`;
+            if (paginationEl) paginationEl.innerHTML = '';
+
             try {
-                const response = await fetch('/api/posts?category=review&status=published');
+                const response = await fetch(url);
                 const result = await response.json();
-                
-                const reviewsList = document.getElementById('reviewsList');
-                
+
                 if (!result.success) {
                     reviewsList.innerHTML = \`
                         <div class="col-span-full text-center py-12 bg-white rounded-lg shadow-sm">
@@ -119,10 +211,33 @@ export const reviewsListHtml = `
                             <p class="text-gray-600">데이터를 불러오는데 실패했습니다.</p>
                         </div>
                     \`;
+                    if (reviewCountEl) reviewCountEl.textContent = '';
                     return;
                 }
 
-                if (result.data.length === 0) {
+                const pagination = result.pagination || {};
+                const total = pagination.total != null ? pagination.total : (result.data || []).length;
+                const totalPages = pagination.totalPages != null ? pagination.totalPages : 1;
+                const pageNum = pagination.page != null ? pagination.page : page;
+
+                if (pageNum > totalPages && totalPages > 0) {
+                    loadReviews(totalPages);
+                    return;
+                }
+
+                syncPageUrl(pageNum);
+
+                if (reviewCountEl) {
+                    if (total === 0) {
+                        reviewCountEl.textContent = '';
+                    } else {
+                        const start = (pageNum - 1) * itemsPerPage + 1;
+                        const end = Math.min(pageNum * itemsPerPage, total);
+                        reviewCountEl.textContent = '총 ' + total + '건 · ' + start + '-' + end + '번째';
+                    }
+                }
+
+                if (!result.data || result.data.length === 0) {
                     reviewsList.innerHTML = \`
                         <div class="col-span-full text-center py-16 bg-white rounded-lg shadow-sm">
                             <i class="fas fa-comment-slash text-4xl text-gray-300 mb-4"></i>
@@ -130,6 +245,7 @@ export const reviewsListHtml = `
                             <p class="text-gray-500 mt-2">첫 번째 후기의 주인공이 되어보세요!</p>
                         </div>
                     \`;
+                    renderPagination(pagination);
                     return;
                 }
 
@@ -165,22 +281,29 @@ export const reviewsListHtml = `
                         </div>
                     </div>
                 \`).join('');
-                
+
+                renderPagination(pagination);
+
+                if (page > 1) {
+                    const listTop = reviewsList.getBoundingClientRect().top + window.scrollY - 100;
+                    window.scrollTo({ top: listTop, behavior: 'smooth' });
+                }
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('reviewsList').innerHTML = \`
+                reviewsList.innerHTML = \`
                     <div class="col-span-full text-center py-12 bg-white rounded-lg shadow-sm">
                         <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
                         <p class="text-gray-600">오류가 발생했습니다.</p>
                     </div>
                 \`;
+                if (reviewCountEl) reviewCountEl.textContent = '';
             }
         }
 
         async function markHelpful(id) {
             try {
                 await fetch(\`/api/posts/\${id}/like\`, { method: 'POST' });
-                loadReviews(); // 카운트 갱신을 위해 목록 다시 로드
+                loadReviews(currentPage);
             } catch (error) {
                 console.error('Error:', error);
             }

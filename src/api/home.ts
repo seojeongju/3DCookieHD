@@ -85,7 +85,7 @@ app.get('/', async (c) => {
       DB.prepare(`
         SELECT id, title, content, author_name, rating, created_at
         FROM posts
-        WHERE category = 'review' AND status = 'published'
+        WHERE category = 'review' AND status = 'published' AND author_id IS NOT NULL
         ORDER BY created_at DESC
         LIMIT 12
       `).all(),
