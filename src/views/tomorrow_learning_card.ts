@@ -161,7 +161,7 @@ export function tomorrowLearningCardHtml() {
                 <p class="text-sm text-slate-500 mb-6">내일배움카드·3D프린팅 국비지원·무료교육에 대해 자주 묻는 내용입니다.</p>
                 <div class="space-y-3" aria-label="내일배움카드 자주 묻는 질문">${faqCards}</div>
                 <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="/guides/free-education" class="text-sm font-bold text-emerald-700 hover:underline">3D프린터 무료·국비 안내</a>
+                    <a href="/guides/national-support" class="text-sm font-bold text-emerald-700 hover:underline">국비지원·내일배움카드 안내</a>
                     <a href="/guides/craftsman-license" class="text-sm font-bold text-emerald-700 hover:underline">3D프린터 국가자격증·기능사</a>
                     <a href="/faq" class="text-sm font-bold text-emerald-700 hover:underline">전체 FAQ</a>
                 </div>

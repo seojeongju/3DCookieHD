@@ -91,7 +91,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                 <a href="/guides/hongdae-3d-printing" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">홍대 가이드</a>
                 <a href="/guides/gumi-3d-printing" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">구미 가이드</a>
                 <a href="/guides/jeonju-3d-printing" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">전주 가이드</a>
-                <a href="/guides/free-education" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">무료·국비</a>
+                <a href="/guides/national-support" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">국비지원</a>
                 <a href="/guides/craftsman-license" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">기능사·국가자격</a>
                 <a href="/tomorrow-learning-card" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">내일배움카드</a>
             </div>

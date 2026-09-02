@@ -921,7 +921,10 @@ app.get('/locations/:campus', async (c) => {
     return c.html(locationsHtml({ kakaoMapAppKey: appKey, initialTab: campus as 'hongdae' | 'gumi' | 'jeonju' }));
 });
 app.get('/guides/:slug', (c) => {
-    const html = seoGuideHtml(c.req.param('slug'));
+    const slug = c.req.param('slug');
+    // 무료·국비 가이드는 국비지원 가이드로 통합
+    if (slug === 'free-education') return c.redirect('/guides/national-support', 301);
+    const html = seoGuideHtml(slug);
     if (!html) return c.redirect('/course-sessions');
     return c.html(html);
 });
@@ -1399,8 +1402,7 @@ app.get('/sitemap', (c) => {
                                                                                     학습 가이드
                                                                                 </h2>
                                                                                 <ul class="space-y-2">
-                                                                                    <li><a href="/guides/national-support" class="text-gray-600 hover:text-blue-600 transition">3D프린팅 국비지원</a></li>
-                                                                                    <li><a href="/guides/free-education" class="text-gray-600 hover:text-blue-600 transition">무료·국비 교육</a></li>
+                                                                                    <li><a href="/guides/national-support" class="text-gray-600 hover:text-blue-600 transition">국비지원·내일배움카드</a></li>
                                                                                     <li><a href="/guides/craftsman-license" class="text-gray-600 hover:text-blue-600 transition">기능사·국가자격</a></li>
                                                                                     <li><a href="/guides/hongdae-3d-printing" class="text-gray-600 hover:text-blue-600 transition">홍대 3D프린팅</a></li>
                                                                                     <li><a href="/guides/gumi-3d-printing" class="text-gray-600 hover:text-blue-600 transition">구미 3D프린팅</a></li>

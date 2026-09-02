@@ -400,7 +400,7 @@ export const homeHtml = `
                             <span class="min-w-0 text-left">
                                 <span class="block text-xs font-black uppercase tracking-wider text-primary-600 mb-1">가이드 메뉴</span>
                                 <span class="block text-lg sm:text-xl font-black tracking-tight text-gray-900">학습 가이드 보기</span>
-                                <span class="mt-1 block text-sm text-gray-500">국비지원 · 무료교육 · 기능사 · 소상공인 · 시제품</span>
+                                <span class="mt-1 block text-sm text-gray-500">국비지원 · 기능사 · 소상공인 · 시제품</span>
                             </span>
                         </span>
                         <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 group-open:rotate-180 transition-transform duration-300" aria-hidden="true">
@@ -412,36 +412,29 @@ export const homeHtml = `
                             <a href="/guides/national-support" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
                                 <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-landmark"></i></span>
                                 <span>
-                                    <span class="block font-black tracking-tight text-gray-900">3D프린팅 국비지원</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">내일배움카드로 수강하는 방법</span>
-                                </span>
-                            </a>
-                            <a href="/guides/free-education" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
-                                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-gift"></i></span>
-                                <span>
-                                    <span class="block font-black tracking-tight text-gray-900">3D프린터 무료·국비 교육</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">무료교육 검색 시 국비지원 안내</span>
+                                    <span class="block font-black tracking-tight text-gray-900">국비지원·내일배움카드</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">무료교육 검색·신청 절차 한눈에</span>
                                 </span>
                             </a>
                             <a href="/guides/craftsman-license" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
                                 <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-id-badge"></i></span>
                                 <span>
-                                    <span class="block font-black tracking-tight text-gray-900">3D프린터 국가자격증·기능사</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">3D프린터운용기능사 실기 대비</span>
+                                    <span class="block font-black tracking-tight text-gray-900">3D프린터운용기능사</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">국가자격 실기 대비 과정</span>
                                 </span>
                             </a>
                             <a href="/guides/small-business" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
                                 <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-store"></i></span>
                                 <span>
                                     <span class="block font-black tracking-tight text-gray-900">소상공인 3D프린팅</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">쿠키틀·몰드 등 매장용 교육</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">쿠키틀·몰드 등 매장용 단기 교육</span>
                                 </span>
                             </a>
-                            <a href="/guides/prototype" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition sm:col-span-2">
+                            <a href="/guides/prototype" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-4 hover:border-primary-200 transition">
                                 <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-drafting-compass"></i></span>
                                 <span>
                                     <span class="block font-black tracking-tight text-gray-900">시제품 제작 교육</span>
-                                    <span class="mt-0.5 block text-sm text-gray-500">모델링부터 출력·후가공까지</span>
+                                    <span class="mt-0.5 block text-sm text-gray-500">모델링·출력·후가공 실무</span>
                                 </span>
                             </a>
                         </nav>

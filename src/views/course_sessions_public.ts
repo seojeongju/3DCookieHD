@@ -30,13 +30,12 @@ export const courseSessionsListHtml = `
             <h2 class="text-lg font-black tracking-tight text-slate-900 mb-3">자주 찾는 안내</h2>
             <p class="text-slate-600 text-[15px] leading-relaxed mb-5">
                 와우쓰리디는 국민내일배움카드(국비지원)로 3D프린팅을 배울 수 있는 과정을 홍대·구미·전주에서 운영합니다.
-                3D프린터 국가자격증(3D프린터운용기능사) 대비와 무료·국비 교육 문의도 상담으로 안내합니다.
+                3D프린터 국가자격증(3D프린터운용기능사) 대비와 국비지원(내일배움카드) 문의도 상담으로 안내합니다.
             </p>
             <div class="flex flex-wrap gap-2">
-                <a href="/guides/free-education" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">3D프린터 무료·국비</a>
+                <a href="/guides/national-support" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">국비지원·내일배움카드</a>
                 <a href="/guides/craftsman-license" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">기능사·국가자격</a>
-                <a href="/tomorrow-learning-card" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">내일배움카드</a>
-                <a href="/guides/national-support" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">국비지원 신청</a>
+                <a href="/tomorrow-learning-card" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">내일배움카드 발급</a>
                 <a href="/faq" class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:border-primary-300 hover:text-primary-700">FAQ</a>
             </div>
         </section>

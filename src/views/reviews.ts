@@ -64,7 +64,7 @@ export const reviewsListHtml = `
             <p class="text-xl text-green-100 max-w-3xl mx-auto">국비지원·내일배움카드·3D프린터운용기능사 과정을 수강한 분들이 전하는 생생한 후기입니다.</p>
             <div class="mt-6 flex flex-wrap justify-center gap-2 text-sm">
                 <a href="/guides/craftsman-license" class="inline-flex rounded-full bg-white/15 px-4 py-2 font-bold text-white hover:bg-white/25">기능사·국가자격</a>
-                <a href="/guides/free-education" class="inline-flex rounded-full bg-white/15 px-4 py-2 font-bold text-white hover:bg-white/25">무료·국비</a>
+                <a href="/guides/national-support" class="inline-flex rounded-full bg-white/15 px-4 py-2 font-bold text-white hover:bg-white/25">국비지원</a>
                 <a href="/course-sessions" class="inline-flex rounded-full bg-white/15 px-4 py-2 font-bold text-white hover:bg-white/25">모집 과정</a>
             </div>
         </div>

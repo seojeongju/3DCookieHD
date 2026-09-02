@@ -58,7 +58,7 @@ export function faqPageHtml(items: PublicFaq[]): string {
                     <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">자주 묻는 질문</h1>
                     <p class="mt-4 max-w-2xl leading-7 text-slate-600">국비지원, 내일배움카드, 3D프린터 국가자격증(기능사), 무료교육 오해, 홍대·구미·전주 센터에 대해 자주 문의하시는 내용을 답변드립니다.</p>
                     <div class="mt-5 flex flex-wrap gap-2">
-                        <a href="/guides/free-education" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">무료·국비</a>
+                        <a href="/guides/national-support" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">국비지원</a>
                         <a href="/guides/craftsman-license" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">기능사·국가자격</a>
                         <a href="/tomorrow-learning-card" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">내일배움카드</a>
                         <a href="/guides/hongdae-3d-printing" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">홍대</a>
