@@ -54,6 +54,7 @@ app.get('/', async (c) => {
           a.name as course_name,
           cat.name as category_name,
           s.status,
+          s.recruitment_status,
           s.training_start_date,
           s.training_end_date,
           s.instructor_name,
@@ -66,7 +67,7 @@ app.get('/', async (c) => {
         WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL)
           AND ${sqlWhereEffectiveActive('s')}
         ORDER BY s.training_start_date DESC, s.id DESC
-        LIMIT 8
+        LIMIT 12
       `).all(),
       DB.prepare(`
         SELECT id, title, content, images, thumbnail_url, author_name, created_at
@@ -149,6 +150,7 @@ app.get('/', async (c) => {
         courses: applyEffectiveStatusToList(
           (coursesRows.results || []) as Array<{
             status: string;
+            recruitment_status?: string;
             training_start_date?: string;
             training_end_date?: string;
           }>

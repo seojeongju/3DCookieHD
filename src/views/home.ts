@@ -475,8 +475,8 @@ export const homeHtml = `
                 <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">교육 과정</h2>
                 <p class="text-base sm:text-lg md:text-xl text-gray-600">다양한 분야의 전문 교육 프로그램</p>
             </div>
-            <div id="courseList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                <!-- 로딩 표시 -->
+            <div id="courseList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8" data-home-course-max="12">
+                <!-- 로딩 표시: 노출 과정 수에 따라 최대 4×3(12개)까지 능동 확장 -->
                 <div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
                 </div>
@@ -673,10 +673,11 @@ export const homeHtml = `
         async function loadCourses(prefetchedList) {
             var container = document.getElementById('courseList');
             if (!container) return;
+            var HOME_COURSE_MAX = 12; // 4열 × 최대 3행
             try {
                 var list = Array.isArray(prefetchedList) ? prefetchedList : null;
                 if (!list) {
-                    var res = await fetch('/api/course-sessions/public?limit=8&page=1');
+                    var res = await fetch('/api/course-sessions/public?limit=' + HOME_COURSE_MAX + '&page=1');
                     var result = await res.json();
                     if (!result.success) {
                         container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12"><p class="text-gray-500">과정 목록을 불러오지 못했습니다.</p><button onclick="loadCourses()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">다시 시도</button></div>';
@@ -684,6 +685,17 @@ export const homeHtml = `
                     }
                     list = result.data || [];
                 }
+                // 프리패치가 8개만 온 경우 등: 최대 12개까지 맞추기 위해 부족하면 공개 API로 보강
+                if (list.length > 0 && list.length < HOME_COURSE_MAX && Array.isArray(prefetchedList)) {
+                    try {
+                        var refill = await fetch('/api/course-sessions/public?limit=' + HOME_COURSE_MAX + '&page=1');
+                        var refillJson = await refill.json();
+                        if (refillJson.success && Array.isArray(refillJson.data) && refillJson.data.length > list.length) {
+                            list = refillJson.data;
+                        }
+                    } catch (refillErr) { /* keep prefetched */ }
+                }
+                if (list.length > HOME_COURSE_MAX) list = list.slice(0, HOME_COURSE_MAX);
                 if (list.length === 0) {
                     container.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12 text-gray-500">등록된 교육 과정이 없습니다.<br><span class="text-sm">관리자에서 회차별로 &#8216;홈페이지 등록&#8217;을 한 과정만 여기에 노출됩니다.</span></div>';
                     return;
