@@ -125,10 +125,11 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                 <div class="relative w-full h-96 bg-gray-200" style="min-height: 24rem;">
                     <div id="map-hongdae" class="absolute inset-0 w-full h-full" style="z-index: 0;"></div>
                     <div id="map-hongdae-placeholder" class="absolute inset-0 flex items-center justify-center bg-gray-200" style="z-index: 1;">
-                        <div class="text-center px-4">
+                        <div class="text-center px-4 max-w-md">
                             <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
                             <p class="text-gray-500 font-medium">서울 홍대센터 지도</p>
-                            <p class="text-xs text-gray-400 mt-2" id="map-hongdae-msg">카카오맵 JavaScript 키를 설정하면 지도가 표시됩니다. (관리자 &gt; 훈련기관 정보설정)</p>
+                            <p class="text-xs text-gray-400 mt-2" id="map-hongdae-msg">카카오맵 JavaScript 키를 설정하면 지도가 표시됩니다.</p>
+                            <a href="/admin/settings" class="inline-block mt-3 text-xs font-bold text-primary-600 hover:underline">관리자 · 훈련기관 정보설정</a>
                         </div>
                     </div>
                 </div>
@@ -188,10 +189,11 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                 <div class="relative w-full h-96 bg-gray-200" style="min-height: 24rem;">
                     <div id="map-gumi" class="absolute inset-0 w-full h-full" style="z-index: 0;"></div>
                     <div id="map-gumi-placeholder" class="absolute inset-0 flex items-center justify-center bg-gray-200" style="z-index: 1;">
-                        <div class="text-center px-4">
+                        <div class="text-center px-4 max-w-md">
                             <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
                             <p class="text-gray-500 font-medium">경북 구미센터 지도</p>
-                            <p class="text-xs text-gray-400 mt-2">카카오맵 JavaScript 키를 설정하면 지도가 표시됩니다.</p>
+                            <p class="text-xs text-gray-400 mt-2" id="map-gumi-msg">카카오맵 JavaScript 키를 설정하면 지도가 표시됩니다.</p>
+                            <a href="/admin/settings" class="inline-block mt-3 text-xs font-bold text-primary-600 hover:underline">관리자 · 훈련기관 정보설정</a>
                         </div>
                     </div>
                 </div>
@@ -237,10 +239,11 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                 <div class="relative w-full h-96 bg-gray-200" style="min-height: 24rem;">
                     <div id="map-jeonju" class="absolute inset-0 w-full h-full" style="z-index: 0;"></div>
                     <div id="map-jeonju-placeholder" class="absolute inset-0 flex items-center justify-center bg-gray-200" style="z-index: 1;">
-                        <div class="text-center px-4">
+                        <div class="text-center px-4 max-w-md">
                             <i class="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
                             <p class="text-gray-500 font-medium">전북 전주센터 지도</p>
-                            <p class="text-xs text-gray-400 mt-2">카카오맵 JavaScript 키를 설정하면 지도가 표시됩니다.</p>
+                            <p class="text-xs text-gray-400 mt-2" id="map-jeonju-msg">카카오맵 JavaScript 키를 설정하면 지도가 표시됩니다.</p>
+                            <a href="/admin/settings" class="inline-block mt-3 text-xs font-bold text-primary-600 hover:underline">관리자 · 훈련기관 정보설정</a>
                         </div>
                     </div>
                 </div>
@@ -311,8 +314,13 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
         function setPlaceholderMessage(centerId, msg) {
             var ph = document.getElementById('map-' + centerId + '-placeholder');
             if (!ph) return;
-            var p = ph.querySelector('p.text-xs');
+            var p = ph.querySelector('p.text-xs') || document.getElementById('map-' + centerId + '-msg');
             if (p) p.textContent = msg;
+        }
+
+        function mapLoadFailMessage() {
+            var origin = window.location.origin || '';
+            return '지도 스크립트 로드 실패. 카카오 디벨로퍼스 → 플랫폼 키 → JavaScript 키 → JavaScript SDK 도메인에 「' + origin + '」을 등록했는지 확인하세요. (관리자 > 훈련기관 정보설정)';
         }
 
         function initMap(centerId) {
@@ -359,13 +367,18 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
         (function loadKakaoMap() {
             var meta = document.querySelector('meta[name="kakao-map-appkey"]');
             var appkey = (meta && meta.getAttribute('content')) ? meta.getAttribute('content').trim() : '';
-            if (!appkey) return;
+            if (!appkey) {
+                ['hongdae','gumi','jeonju'].forEach(function(id) {
+                    setPlaceholderMessage(id, '카카오맵 JavaScript 키가 없습니다. 관리자 > 훈련기관 정보설정에서 키를 저장하세요.');
+                });
+                return;
+            }
             var s = document.createElement('script');
             s.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(appkey) + '&autoload=false&libraries=services';
             s.async = true;
             s.onload = function() {
                 if (typeof window.kakao === 'undefined' || !window.kakao.maps) {
-                    ['hongdae','gumi','jeonju'].forEach(function(id) { setPlaceholderMessage(id, '지도 로드 실패. JavaScript 키와 카카오 개발자 콘솔의 웹 도메인 설정을 확인해 주세요.'); });
+                    ['hongdae','gumi','jeonju'].forEach(function(id) { setPlaceholderMessage(id, mapLoadFailMessage()); });
                     return;
                 }
                 window.kakao.maps.load(function() {
@@ -373,7 +386,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                 });
             };
             s.onerror = function() {
-                ['hongdae','gumi','jeonju'].forEach(function(id) { setPlaceholderMessage(id, '지도 스크립트 로드 실패. 앱키와 도메인(카카오 개발자 콘솔)을 확인해 주세요.'); });
+                ['hongdae','gumi','jeonju'].forEach(function(id) { setPlaceholderMessage(id, mapLoadFailMessage()); });
             };
             document.head.appendChild(s);
         })();

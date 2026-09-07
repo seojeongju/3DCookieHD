@@ -57,17 +57,21 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start pt-6 border-t border-slate-100">
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">카카오맵 JavaScript 키</label>
-                                    <p class="text-xs text-slate-500 leading-relaxed">오시는길(/locations) 페이지 지도 표시용. 카카오 개발자 콘솔에서 JavaScript 키를 발급받고, 웹 플랫폼에 사이트 도메인을 등록하세요.</p>
+                                    <p class="text-xs text-slate-500 leading-relaxed">오시는길(<a href="/locations" target="_blank" class="text-indigo-600 font-semibold hover:underline">/locations</a>) 지도 표시용. <strong class="font-bold text-slate-600">JavaScript 키</strong>만 입력하세요 (REST API 키 아님).</p>
+                                    <p id="kakaoMapKeyStatus" class="mt-2 text-xs font-bold hidden"></p>
                                 </div>
-                                <div class="md:col-span-2">
+                                <div class="md:col-span-2 space-y-3">
                                     <div class="relative group">
                                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                             <i class="fas fa-map-marked-alt text-slate-400 group-focus-within:text-indigo-500 transition-colors"></i>
                                         </div>
                                         <input type="text" id="kakaoMapAppkeyInput" autocomplete="off"
                                             class="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all outline-none font-mono text-sm text-slate-800"
-                                            placeholder="예: a1b2c3d4e5f6g7h8i9j0...">
+                                            placeholder="카카오 디벨로퍼스 JavaScript 키 붙여넣기">
                                     </div>
+                                    <a href="/locations" target="_blank" class="inline-flex items-center gap-2 text-sm font-bold text-indigo-600 hover:text-indigo-800">
+                                        <i class="fas fa-external-link-alt"></i> 오시는길에서 지도 확인
+                                    </a>
                                 </div>
                             </div>
 
@@ -99,6 +103,50 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
                         </div>
                     </div>
 
+                    <!-- 카카오맵 설정 가이드 -->
+                    <div class="mt-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-hidden">
+                        <div class="p-8 border-b border-slate-200/60 bg-sky-50/80">
+                            <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-map-marked-alt text-sky-600"></i>
+                                카카오맵 API 설정 가이드
+                            </h2>
+                            <p class="text-sm text-slate-500 mt-1">지도가 안 보이면 대부분 <strong class="font-bold text-slate-700">JavaScript 키</strong> 또는 <strong class="font-bold text-slate-700">SDK 도메인 미등록</strong>입니다.</p>
+                        </div>
+                        <div class="p-8 space-y-6 text-sm text-slate-700 leading-relaxed">
+                            <ol class="space-y-4 list-decimal ml-5">
+                                <li>
+                                    <a href="https://developers.kakao.com/" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline">카카오 디벨로퍼스</a>에 로그인 후
+                                    <strong class="font-bold">내 애플리케이션</strong>에서 앱을 생성하거나 기존 앱을 선택합니다.
+                                </li>
+                                <li>
+                                    좌측 <strong class="font-bold">제품 설정 → 카카오맵</strong>에서 사용 설정을 <strong class="font-bold text-emerald-700">ON</strong>으로 켭니다.
+                                </li>
+                                <li>
+                                    <strong class="font-bold">앱 → 플랫폼 키 → JavaScript 키</strong>를 연 뒤 키 값을 복사해 위 입력란에 붙여넣고 저장합니다.
+                                    <span class="block text-xs text-slate-500 mt-1">※ REST API 키·네이티브 앱 키가 아니라 JavaScript 키여야 합니다.</span>
+                                </li>
+                                <li>
+                                    같은 JavaScript 키 상세의 <strong class="font-bold">JavaScript SDK 도메인</strong>에 아래 주소를 모두 등록합니다.
+                                    <ul id="kakaoDomainChecklist" class="mt-3 space-y-2 font-mono text-xs bg-slate-50 rounded-2xl border border-slate-200 p-4">
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-500 mt-0.5"></i><span>https://3dcookiehd.com</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-500 mt-0.5"></i><span>https://www.3dcookiehd.com</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-500 mt-0.5"></i><span>http://localhost:5173</span> <span class="text-slate-400 font-sans">(로컬 개발 시)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-emerald-500 mt-0.5"></i><span>http://127.0.0.1:5173</span></li>
+                                        <li class="flex items-start gap-2 text-slate-500"><i class="fas fa-info-circle text-sky-500 mt-0.5"></i><span class="font-sans">Cloudflare Pages 미리보기 도메인(<code class="bg-white px-1 rounded">*.pages.dev</code>)도 사용 중이면 해당 Origin을 추가하세요.</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    저장 후 <a href="/locations" target="_blank" class="font-bold text-sky-700 hover:underline">오시는길</a>을 새로고침해 지도를 확인합니다.
+                                    도메인 반영까지 수 분이 걸릴 수 있습니다.
+                                </li>
+                            </ol>
+                            <p class="text-xs text-slate-500 border-t border-slate-100 pt-4">
+                                참고: 도메인 등록 위치가 예전 <em>앱 → 플랫폼 → Web</em>에서
+                                <strong class="font-bold text-slate-700">앱 → 플랫폼 키 → JavaScript 키 → JavaScript SDK 도메인</strong>으로 변경되었습니다.
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- 안내 카드 -->
                     <div class="mt-8 bg-amber-50 rounded-[2rem] p-8 border border-amber-100 flex gap-6">
                         <div class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-amber-500 shadow-sm shrink-0">
@@ -109,6 +157,7 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
                             <ul class="text-sm text-amber-800/80 space-y-1 ml-4 list-disc">
                                 <li>훈련기관명을 변경하면 기존에 작성된 모든 훈련일지의 출력 양식에 즉시 반영됩니다.</li>
                                 <li>공식적인 행정 처리를 위해 정확한 명칭을 입력해 주시기 바랍니다.</li>
+                                <li>카카오맵 키는 브라우저에 노출되는 공개 키입니다. 반드시 JavaScript SDK 도메인을 제한해 주세요.</li>
                             </ul>
                         </div>
                     </div>
@@ -131,8 +180,18 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
                     document.getElementById('institutionNameInput').value = instResult.data;
                 }
                 const kakaoResult = await kakaoRes.json();
-                if (kakaoResult.success && kakaoResult.data != null) {
+                const kakaoStatus = document.getElementById('kakaoMapKeyStatus');
+                if (kakaoResult.success && kakaoResult.data != null && String(kakaoResult.data).trim() !== '') {
                     document.getElementById('kakaoMapAppkeyInput').value = kakaoResult.data;
+                    if (kakaoStatus) {
+                        kakaoStatus.classList.remove('hidden', 'text-amber-600');
+                        kakaoStatus.classList.add('text-emerald-600');
+                        kakaoStatus.textContent = '키 저장됨 · 지도가 안 보이면 SDK 도메인 등록을 확인하세요.';
+                    }
+                } else if (kakaoStatus) {
+                    kakaoStatus.classList.remove('hidden', 'text-emerald-600');
+                    kakaoStatus.classList.add('text-amber-600');
+                    kakaoStatus.textContent = '미설정 · 아래 가이드대로 JavaScript 키를 발급해 입력하세요.';
                 }
                 const openaiResult = await openaiRes.json();
                 if (openaiResult.success && openaiResult.data != null) {
@@ -171,7 +230,16 @@ export const adminSettingsHtml = (sidebarHtml?: string) => `
             }
         }
 
-        window.onload = fetchSettings;
+        window.onload = function() {
+            fetchSettings();
+            var list = document.getElementById('kakaoDomainChecklist');
+            if (list && window.location.origin) {
+                var li = document.createElement('li');
+                li.className = 'flex items-start gap-2';
+                li.innerHTML = '<i class="fas fa-star text-amber-500 mt-0.5"></i><span>' + window.location.origin + '</span> <span class="text-amber-700 font-sans font-bold">(지금 접속 중인 Origin — 반드시 등록)</span>';
+                list.insertBefore(li, list.firstChild);
+            }
+        };
     </script>
 </body>
 </html>
