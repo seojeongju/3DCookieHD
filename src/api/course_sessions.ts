@@ -7,6 +7,9 @@ import {
   getEffectiveSessionStatus,
   sqlWhereEffectiveActive,
   sqlWhereEffectiveStatusEquals,
+  sqlOrderHomeCourses,
+  sqlWhereRecruitmentClosed,
+  sqlWhereDateUpcomingOrInProgress,
 } from '../utils/course_session_status';
 import { getCourseSessionTimetableHeaderByLmsCourseId } from '../lib/lmsCourseContext';
 import { ensureDedicatedLmsCourseForSession } from '../utils/sessionCourseResolution';
@@ -143,17 +146,20 @@ app.get('/public', async (c) => {
     const status = c.req.query('status');
     const categoryName = c.req.query('category');
     const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
-    const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '12', 10)));
+    const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '12', 10)));
     const offset = (page - 1) * limit;
     const { DB } = c.env;
 
     const params: (string | number)[] = [];
 
     let sessionStatusFilter = "";
+    let useHomeOrder = false;
     if (status && status.trim() !== '') {
       const s = status.trim();
       if (s === 'recruiting' || s === 'in_progress' || s === 'completed') {
         sessionStatusFilter = ` AND ${sqlWhereEffectiveStatusEquals('s', s)}`;
+      } else if (s === 'recruitment_closed' || s === '마감') {
+        sessionStatusFilter = ` AND ${sqlWhereRecruitmentClosed('s')} AND ${sqlWhereDateUpcomingOrInProgress('s')}`;
       } else if (s === 'always_open') {
         sessionStatusFilter = ` AND s.status = 'always_open' AND (
           s.training_end_date IS NULL
@@ -168,6 +174,7 @@ app.get('/public', async (c) => {
       }
     } else {
       sessionStatusFilter = ` AND ${sqlWhereEffectiveActive('s')}`;
+      useHomeOrder = true;
     }
 
     let sessionCategoryFilter = "";
@@ -212,7 +219,7 @@ app.get('/public', async (c) => {
       INNER JOIN approved_courses a ON a.id = s.approved_course_id
       LEFT JOIN course_categories cat ON cat.id = a.category_id
       WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL) ${sessionStatusFilter} ${sessionCategoryFilter} ${sessionKeywordFilter}
-      ORDER BY s.training_start_date DESC, s.id DESC
+      ORDER BY ${useHomeOrder ? sqlOrderHomeCourses('s') : 's.training_start_date DESC, s.id DESC'}
       LIMIT ? OFFSET ?
     `).bind(...params).all();
 

@@ -239,32 +239,64 @@ export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progres
 }
 
 /**
- * 홈·공개 목록용:
- * - 모집중·진행중·상시모집(종료 전)
- * - 모집 마감이지만 수업 미시작·진행중인 과정도 포함 (배지「모집 마감」)
+ * 홈·메인 교육과정 노출:
+ * - 모집중 (개강 전)
+ * - 진행중 (운영기간 중)
+ * - 모집 마감 (관리자 마감, 단 수업 미시작·진행중이면 포함)
+ * - 상시모집 (종료 전)
+ * 수업이 완전히 끝난 과정·폐강은 제외
  */
 export function sqlWhereEffectiveActive(alias: string): string {
   const a = alias;
   const today = SQL_TODAY_KST;
   return `(
-    (
-      ${sqlWhereRecruitmentNotClosed(a)}
-      AND (
-        ${sqlWhereEffectiveStatusEquals(a, 'recruiting')}
-        OR ${sqlWhereEffectiveStatusEquals(a, 'in_progress')}
-        OR (
-          ${a}.status = 'always_open'
-          AND (
-            ${a}.training_end_date IS NULL
-            OR length(trim(${a}.training_end_date)) = 0
-            OR date(${a}.training_end_date) >= ${today}
+    ${a}.status <> 'closed'
+    AND ${a}.status <> 'completed'
+    AND (
+      (
+        ${sqlWhereRecruitmentNotClosed(a)}
+        AND (
+          ${sqlWhereEffectiveStatusEquals(a, 'recruiting')}
+          OR ${sqlWhereEffectiveStatusEquals(a, 'in_progress')}
+          OR (
+            ${a}.status = 'always_open'
+            AND (
+              ${a}.training_end_date IS NULL
+              OR length(trim(${a}.training_end_date)) = 0
+              OR date(${a}.training_end_date) >= ${today}
+            )
           )
         )
       )
-    )
-    OR (
-      ${sqlWhereRecruitmentClosed(a)}
-      AND ${sqlWhereDateUpcomingOrInProgress(a)}
+      OR (
+        ${sqlWhereRecruitmentClosed(a)}
+        AND ${sqlWhereDateUpcomingOrInProgress(a)}
+      )
     )
   )`;
+}
+
+/** 메인 목록 정렬: 모집중 → 모집마감 → 진행중 → 상시, 동일 그룹 내 개강일 가까운 순 */
+export function sqlOrderHomeCourses(alias: string): string {
+  const a = alias;
+  const today = SQL_TODAY_KST;
+  return `
+    CASE
+      WHEN ${sqlWhereRecruitmentClosed(a)} THEN 2
+      WHEN ${a}.status = 'always_open' THEN 3
+      WHEN ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
+           AND date(${a}.training_start_date) > ${today} THEN 1
+      WHEN ${a}.status = 'recruiting'
+           AND (${a}.training_start_date IS NULL OR length(trim(${a}.training_start_date)) = 0) THEN 1
+      ELSE 4
+    END ASC,
+    CASE
+      WHEN ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
+           AND date(${a}.training_start_date) >= ${today}
+        THEN date(${a}.training_start_date)
+      ELSE date('9999-12-31')
+    END ASC,
+    ${a}.training_start_date DESC,
+    ${a}.id DESC
+  `;
 }

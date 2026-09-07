@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
-import { applyEffectiveStatusToList, sqlWhereEffectiveActive } from '../utils/course_session_status';
+import { applyEffectiveStatusToList, sqlWhereEffectiveActive, sqlOrderHomeCourses } from '../utils/course_session_status';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -66,8 +66,8 @@ app.get('/', async (c) => {
         LEFT JOIN course_categories cat ON cat.id = a.category_id
         WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL)
           AND ${sqlWhereEffectiveActive('s')}
-        ORDER BY s.training_start_date DESC, s.id DESC
-        LIMIT 12
+        ORDER BY ${sqlOrderHomeCourses('s')}
+        LIMIT 100
       `).all(),
       DB.prepare(`
         SELECT id, title, content, images, thumbnail_url, author_name, created_at

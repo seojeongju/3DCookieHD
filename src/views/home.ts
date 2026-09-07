@@ -475,8 +475,8 @@ export const homeHtml = `
                 <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight">교육 과정</h2>
                 <p class="text-base sm:text-lg md:text-xl text-gray-600">다양한 분야의 전문 교육 프로그램</p>
             </div>
-            <div id="courseList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8" data-home-course-max="12">
-                <!-- 로딩 표시: 노출 과정 수에 따라 최대 4×3(12개)까지 능동 확장 -->
+            <div id="courseList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8" data-home-course-statuses="recruiting,in_progress,recruitment_closed">
+                <!-- 모집중·진행중·모집마감(해당 기간) 전체 — 4열, 행 수 능동 확장 -->
                 <div class="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-12">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
                 </div>
@@ -673,9 +673,10 @@ export const homeHtml = `
         async function loadCourses(prefetchedList) {
             var container = document.getElementById('courseList');
             if (!container) return;
-            var HOME_COURSE_MAX = 12; // 4열 × 최대 3행
+            // 모집중·진행중·모집마감(해당 기간) 과정 전체 — 4열 그리드가 행을 능동 확장
+            var HOME_COURSE_MAX = 100;
             try {
-                var list = Array.isArray(prefetchedList) ? prefetchedList : null;
+                var list = Array.isArray(prefetchedList) ? prefetchedList.slice() : null;
                 if (!list) {
                     var res = await fetch('/api/course-sessions/public?limit=' + HOME_COURSE_MAX + '&page=1');
                     var result = await res.json();
@@ -684,13 +685,11 @@ export const homeHtml = `
                         return;
                     }
                     list = result.data || [];
-                }
-                // 프리패치가 8개만 온 경우 등: 최대 12개까지 맞추기 위해 부족하면 공개 API로 보강
-                if (list.length > 0 && list.length < HOME_COURSE_MAX && Array.isArray(prefetchedList)) {
+                } else if (list.length < HOME_COURSE_MAX) {
                     try {
                         var refill = await fetch('/api/course-sessions/public?limit=' + HOME_COURSE_MAX + '&page=1');
                         var refillJson = await refill.json();
-                        if (refillJson.success && Array.isArray(refillJson.data) && refillJson.data.length > list.length) {
+                        if (refillJson.success && Array.isArray(refillJson.data) && refillJson.data.length >= list.length) {
                             list = refillJson.data;
                         }
                     } catch (refillErr) { /* keep prefetched */ }
