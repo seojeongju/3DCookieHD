@@ -24,9 +24,11 @@ export async function resolveSessionToLmsCourseId(DB: any, id: string | number):
 
     if (session.lms_course_id != null && session.lms_course_id > 0) {
         const existingCourse: any = await DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(session.lms_course_id).first();
-        const titleMatches = existingCourse && existingCourse.title != null && (
-            String(existingCourse.title).trim() === expectedTitle ||
-            String(existingCourse.title).trim() === `${session.course_name || '과정'} (${session.session_number}회차)`.trim()
+        const titleMatches = existingCourse && isExpectedLmsTitle(
+            existingCourse.title,
+            session.course_name,
+            session.session_number,
+            session.session_name
         );
         const otherSession: any = await DB.prepare(
             'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
@@ -73,9 +75,60 @@ const TRAINING_LOG_SESSION_SELECT = `
     FROM course_sessions s
 `;
 
+/** 회차 기대 LMS 과정 제목 (풀네임 / 회차만) */
+export function expectedLmsTitlesForSession(courseName: string | null | undefined, sessionNumber: unknown, sessionName?: string | null): { full: string; short: string } {
+  const base = (courseName || '과정').trim() || '과정';
+  const num = sessionNumber != null && String(sessionNumber).trim() !== '' ? String(sessionNumber).trim() : '';
+  const sn = (sessionName || '').trim();
+  const short = `${base} (${num}회차)`.trim();
+  const full = sn ? `${base} (${num}회차 - ${sn})`.trim() : short;
+  return { full, short };
+}
+
+export function isExpectedLmsTitle(title: unknown, courseName: string | null | undefined, sessionNumber: unknown, sessionName?: string | null): boolean {
+  const t = String(title ?? '').trim();
+  if (!t) return false;
+  const { full, short } = expectedLmsTitlesForSession(courseName, sessionNumber, sessionName);
+  return t === full || t === short;
+}
+
+/**
+ * 잘못된/공유 LMS에 묶인 일지 중 이 회차 운영기간에 해당하는 건만 전용 과정으로 이전
+ */
+async function migrateSessionPeriodLogs(
+  DB: D1Database,
+  fromCourseId: number,
+  toCourseId: number,
+  startDate?: string | null,
+  endDate?: string | null
+): Promise<void> {
+  if (!fromCourseId || !toCourseId || fromCourseId === toCourseId) return;
+  const start = startDate ? String(startDate).substring(0, 10) : '';
+  const end = endDate ? String(endDate).substring(0, 10) : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return;
+  try {
+    const { results } = await DB.prepare(
+      `SELECT id, date FROM training_logs WHERE course_id = ? AND date >= ? AND date <= ?`
+    ).bind(fromCourseId, start, end).all();
+    for (const row of results || []) {
+      const logId = Number((row as any).id);
+      const logDate = String((row as any).date || '').substring(0, 10);
+      if (!logId || !logDate) continue;
+      const clash = await DB.prepare(
+        'SELECT id FROM training_logs WHERE course_id = ? AND date = ? LIMIT 1'
+      ).bind(toCourseId, logDate).first();
+      if (clash) continue;
+      await DB.prepare('UPDATE training_logs SET course_id = ? WHERE id = ?').bind(toCourseId, logId).run();
+    }
+  } catch (e) {
+    console.error('[migrateSessionPeriodLogs]', e);
+  }
+}
+
 /**
  * 회차 전용 LMS courses.id 보장.
  * - 다른 회차와 lms_course_id를 공유하지 않음
+ * - 제목이 회차(승인과정명·회차·회차명)와 일치할 때만 기존 연결 유지 (타 과정 일지 혼입 방지)
  * - 없으면 courses 행을 만들고 course_sessions.lms_course_id에 연결
  */
 export async function ensureDedicatedLmsCourseForSession(
@@ -86,51 +139,78 @@ export async function ensureDedicatedLmsCourseForSession(
   if (!Number.isFinite(sid) || sid < 1) return null;
 
   const session: any = await DB.prepare(`
-    SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
+    SELECT s.id, s.session_number, s.session_name, s.lms_course_id,
+           s.training_start_date, s.training_end_date, a.name as course_name
     FROM course_sessions s
     JOIN approved_courses a ON s.approved_course_id = a.id
     WHERE s.id = ?
   `).bind(sid).first();
   if (!session) return null;
 
-  const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
+  const { full: expectedTitle, short: shortTitle } = expectedLmsTitlesForSession(
+    session.course_name,
+    session.session_number,
+    session.session_name
+  );
+  let staleCourseId: number | null = null;
 
   if (session.lms_course_id != null && Number(session.lms_course_id) > 0) {
     const lmsId = Number(session.lms_course_id);
     const other = await DB.prepare(
       'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
     ).bind(lmsId, sid).first();
-    const course = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(lmsId).first();
-    if (course && !other) return lmsId;
-    if (other) {
+    const course: any = await DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(lmsId).first();
+    const titleOk = course && isExpectedLmsTitle(course.title, session.course_name, session.session_number, session.session_name);
+    // 제목이 회차와 일치하고 다른 회차와 공유하지 않을 때만 재사용
+    if (course && !other && titleOk) return lmsId;
+    if (course && (!titleOk || other)) {
+      staleCourseId = lmsId;
       try {
         await DB.prepare('UPDATE course_sessions SET lms_course_id = NULL WHERE id = ?').bind(sid).run();
       } catch (_) { /* ignore */ }
     }
   }
 
-  const byTitle: any = await DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(expectedTitle).first();
-  if (byTitle?.id != null) {
+  const findUnusedByTitle = async (title: string): Promise<number | null> => {
+    const row: any = await DB.prepare('SELECT id, title FROM courses WHERE title = ? LIMIT 1').bind(title).first();
+    if (row?.id == null) return null;
     const used = await DB.prepare(
       'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-    ).bind(byTitle.id, sid).first();
-    if (!used) {
-      try {
-        await DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(byTitle.id, sid).run();
-      } catch (_) { /* ignore */ }
-      return Number(byTitle.id);
-    }
+    ).bind(row.id, sid).first();
+    if (used) return null;
+    return Number(row.id);
+  };
+
+  let dedicatedId = await findUnusedByTitle(expectedTitle);
+  if (dedicatedId == null && shortTitle !== expectedTitle) {
+    dedicatedId = await findUnusedByTitle(shortTitle);
   }
 
-  const insert = await DB.prepare(
-    `INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')`
-  ).bind(expectedTitle).run();
-  const newId = insert.meta?.last_row_id;
-  if (newId == null) return null;
+  if (dedicatedId == null) {
+    const insert = await DB.prepare(
+      `INSERT INTO courses (title, category, status) VALUES (?, '국비지원', 'active')`
+    ).bind(expectedTitle).run();
+    const newId = insert.meta?.last_row_id;
+    if (newId == null) return null;
+    dedicatedId = Number(newId);
+  }
+
   try {
-    await DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(Number(newId), sid).run();
+    await DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(dedicatedId, sid).run();
   } catch (_) { /* ignore */ }
-  return Number(newId);
+
+  // 잘못 연결됐던 LMS에 남아 있는 ‘이 회차 기간’ 일지만 전용 과정으로 이전
+  if (staleCourseId != null && dedicatedId != null) {
+    await migrateSessionPeriodLogs(
+      DB,
+      staleCourseId,
+      dedicatedId,
+      session.training_start_date,
+      session.training_end_date
+    );
+  }
+
+  return dedicatedId;
 }
 
 /**

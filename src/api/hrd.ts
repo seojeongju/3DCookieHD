@@ -2916,6 +2916,8 @@ app.get('/training-logs', async (c) => {
         let resolvedCourseId: number | null = null;
         let sessionPk: number | null = null;
         let assignedDailyHours: number | null = null;
+        let sessionStart: string | null = null;
+        let sessionEnd: string | null = null;
 
         // 저장 API와 동일: session_id + LMS courseId로 회차·과정 해석
         const session = await resolveTrainingLogSession(c.env.DB, courseIdParam, sessionIdParam);
@@ -2923,6 +2925,7 @@ app.get('/training-logs', async (c) => {
             sessionPk = Number(session.id);
             const sessionDetail: any = await c.env.DB.prepare(`
                 SELECT s.id, s.session_number, s.session_name, s.lms_course_id,
+                       s.training_start_date, s.training_end_date,
                        a.name as course_name, a.daily_hours, a.total_hours, a.total_days
                 FROM course_sessions s
                 LEFT JOIN approved_courses a ON s.approved_course_id = a.id
@@ -2938,8 +2941,13 @@ app.get('/training-logs', async (c) => {
                     if (th > 0) assignedDailyHours = Math.round((th / td) * 10) / 10;
                 }
 
+                const ts = sessionDetail.training_start_date ? String(sessionDetail.training_start_date).substring(0, 10) : '';
+                const te = sessionDetail.training_end_date ? String(sessionDetail.training_end_date).substring(0, 10) : '';
+                if (/^\d{4}-\d{2}-\d{2}$/.test(ts)) sessionStart = ts;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(te)) sessionEnd = te;
+
                 // URL path courses.id를 회차에 덮어쓰지 않음 — 복사본이 원본 LMS를 가로채는 원인
-                // 회차 전용 LMS만 사용 (없으면 생성)
+                // 회차 전용 LMS만 사용 (제목 불일치·공유 시 분리)
                 resolvedCourseId = await ensureDedicatedLmsCourseForSession(c.env.DB, sessionPk);
             }
         } else {
@@ -2960,11 +2968,19 @@ app.get('/training-logs', async (c) => {
         }
         const placeholders = courseIds.map(() => '?').join(',');
 
+        // 회차 운영기간 밖 일지(타 과정 혼입) 차단 — 클라이언트 기간과 교집합
+        let filterStart = startDate || null;
+        let filterEnd = endDate || null;
+        if (sessionStart && sessionEnd) {
+            if (!filterStart || filterStart < sessionStart) filterStart = sessionStart;
+            if (!filterEnd || filterEnd > sessionEnd) filterEnd = sessionEnd;
+        }
+
         let countQuery = `SELECT COUNT(*) as total FROM training_logs t WHERE t.course_id IN (${placeholders})`;
         const countParams: any[] = [...courseIds];
-        if (startDate && endDate) {
+        if (filterStart && filterEnd) {
             countQuery += " AND t.date BETWEEN ? AND ?";
-            countParams.push(startDate, endDate);
+            countParams.push(filterStart, filterEnd);
         }
 
         const countRow: any = await c.env.DB.prepare(countQuery).bind(...countParams).first();
@@ -2979,9 +2995,9 @@ app.get('/training-logs', async (c) => {
         `;
         const params: any[] = [...courseIds];
 
-        if (startDate && endDate) {
+        if (filterStart && filterEnd) {
             query += " AND t.date BETWEEN ? AND ?";
-            params.push(startDate, endDate);
+            params.push(filterStart, filterEnd);
         }
 
         query += " ORDER BY t.date DESC LIMIT ? OFFSET ?";
@@ -3177,22 +3193,24 @@ app.post('/training-logs', async (c) => {
                 Number.isFinite(bodySessionId) && bodySessionId >= 1 ? bodySessionId : null;
 
             try {
-                // 1) 클라이언트가 보낸 LMS courses.id가 유효하면 우선 사용
-                if (Number.isFinite(bodyLmsCourseId) && bodyLmsCourseId >= 1) {
-                    const lmsExists = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(bodyLmsCourseId).first();
-                    if (lmsExists) {
-                        resolvedCourseId = bodyLmsCourseId;
-                        if (sessionPkForLink != null) {
-                            resolvedViaSession = true;
-                            try {
-                                await c.env.DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ? AND (lms_course_id IS NULL OR lms_course_id != ?)')
-                                    .bind(bodyLmsCourseId, sessionPkForLink, bodyLmsCourseId).run();
-                            } catch (_) { }
-                        }
+                // 회차 PK가 있으면 전용 LMS만 사용 (URL path의 LMS id를 그대로 쓰면 타 과정 일지가 섞임)
+                if (sessionPkForLink != null) {
+                    const dedicated = await ensureDedicatedLmsCourseForSession(c.env.DB, sessionPkForLink);
+                    if (dedicated != null) {
+                        resolvedCourseId = dedicated;
+                        resolvedViaSession = true;
                     }
                 }
 
-                // 2) session_id로 회차의 lms_course_id 조회 (PK 충돌 없는 경로)
+                // 1) 회차 없이 LMS courses.id만 온 경우
+                if (resolvedCourseId == null && Number.isFinite(bodyLmsCourseId) && bodyLmsCourseId >= 1) {
+                    const lmsExists = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(bodyLmsCourseId).first();
+                    if (lmsExists) {
+                        resolvedCourseId = bodyLmsCourseId;
+                    }
+                }
+
+                // 2) session_id로 회차의 lms_course_id 조회 (위에서 전용 과정 미확정 시)
                 if (resolvedCourseId == null && sessionPkForLink != null) {
                     const sessionRow: any = await c.env.DB.prepare(
                         'SELECT id, lms_course_id FROM course_sessions WHERE id = ?'
