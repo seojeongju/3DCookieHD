@@ -3084,8 +3084,9 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
         const isClosed = ['completed', 'closed'].includes(String(session.status)) ||
             (session.training_end_date && String(session.training_end_date).substring(0, 10) < today);
 
-        const lmsCourseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
-        const dates = await getSessionTrainingDatesForLogs(
+        // 목록과 동일하게 전용 LMS 보장 + 고아 일지 회수
+        const lmsCourseId = await ensureDedicatedLmsCourseForSession(c.env.DB, sessionId);
+        let dates = await getSessionTrainingDatesForLogs(
             c.env.DB,
             sessionId,
             session.training_start_date,
@@ -3094,6 +3095,16 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
             lmsCourseId,
             session.session_name
         );
+
+        // 회차 운영기간 밖 날짜(타 과정 일지 잔여)는 선택 목록에서 제외
+        const sessStart = session.training_start_date ? String(session.training_start_date).substring(0, 10) : '';
+        const sessEnd = session.training_end_date ? String(session.training_end_date).substring(0, 10) : '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(sessStart) && /^\d{4}-\d{2}-\d{2}$/.test(sessEnd)) {
+            dates = (dates || []).filter((d: string) => {
+                const day = String(d).substring(0, 10);
+                return day >= sessStart && day <= sessEnd;
+            });
+        }
 
         return c.json({
             success: true,

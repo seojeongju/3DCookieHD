@@ -75,21 +75,27 @@ const TRAINING_LOG_SESSION_SELECT = `
     FROM course_sessions s
 `;
 
-/** 회차 기대 LMS 과정 제목 (풀네임 / 회차만) */
-export function expectedLmsTitlesForSession(courseName: string | null | undefined, sessionNumber: unknown, sessionName?: string | null): { full: string; short: string } {
+/** 회차 기대 LMS 과정 제목 (풀네임 / 회차만 / UI 표기 변형) */
+export function expectedLmsTitlesForSession(courseName: string | null | undefined, sessionNumber: unknown, sessionName?: string | null): { full: string; short: string; altFull: string } {
   const base = (courseName || '과정').trim() || '과정';
   const num = sessionNumber != null && String(sessionNumber).trim() !== '' ? String(sessionNumber).trim() : '';
   const sn = (sessionName || '').trim();
   const short = `${base} (${num}회차)`.trim();
   const full = sn ? `${base} (${num}회차 - ${sn})`.trim() : short;
-  return { full, short };
+  // UI/헤더 표기: "과정명 (N회차) - 회차명"
+  const altFull = sn ? `${base} (${num}회차) - ${sn}`.trim() : short;
+  return { full, short, altFull };
 }
 
 export function isExpectedLmsTitle(title: unknown, courseName: string | null | undefined, sessionNumber: unknown, sessionName?: string | null): boolean {
   const t = String(title ?? '').trim();
   if (!t) return false;
-  const { full, short } = expectedLmsTitlesForSession(courseName, sessionNumber, sessionName);
-  return t === full || t === short;
+  const { full, short, altFull } = expectedLmsTitlesForSession(courseName, sessionNumber, sessionName);
+  if (t === full || t === short || t === altFull) return true;
+  // 공백·하이픈 주변 차이 허용
+  const norm = (s: string) => s.replace(/\s+/g, ' ').replace(/\s*-\s*/g, ' - ').trim();
+  const nt = norm(t);
+  return nt === norm(full) || nt === norm(short) || nt === norm(altFull);
 }
 
 /**
@@ -108,14 +114,14 @@ async function migrateSessionPeriodLogs(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return;
   try {
     const { results } = await DB.prepare(
-      `SELECT id, date FROM training_logs WHERE course_id = ? AND date >= ? AND date <= ?`
+      `SELECT id, date FROM training_logs WHERE course_id = ? AND substr(date, 1, 10) >= ? AND substr(date, 1, 10) <= ?`
     ).bind(fromCourseId, start, end).all();
     for (const row of results || []) {
       const logId = Number((row as any).id);
       const logDate = String((row as any).date || '').substring(0, 10);
       if (!logId || !logDate) continue;
       const clash = await DB.prepare(
-        'SELECT id FROM training_logs WHERE course_id = ? AND date = ? LIMIT 1'
+        `SELECT id FROM training_logs WHERE course_id = ? AND substr(date, 1, 10) = ? LIMIT 1`
       ).bind(toCourseId, logDate).first();
       if (clash) continue;
       await DB.prepare('UPDATE training_logs SET course_id = ? WHERE id = ?').bind(toCourseId, logId).run();
@@ -126,10 +132,73 @@ async function migrateSessionPeriodLogs(
 }
 
 /**
+ * 회차 운영기간 일지 중 전용 LMS에 없고,
+ * 다른 회차 운영기간에도 속하지 않는(고아/잘못 묶인) 일지를 회수한다.
+ */
+async function recoverOrphanPeriodLogs(
+  DB: D1Database,
+  sessionId: number,
+  dedicatedCourseId: number,
+  startDate?: string | null,
+  endDate?: string | null
+): Promise<void> {
+  const start = startDate ? String(startDate).substring(0, 10) : '';
+  const end = endDate ? String(endDate).substring(0, 10) : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return;
+  if (!dedicatedCourseId) return;
+
+  try {
+    // 레거시: course_id = 회차 PK 로 저장된 일지
+    await migrateSessionPeriodLogs(DB, sessionId, dedicatedCourseId, start, end);
+
+    const { results } = await DB.prepare(
+      `SELECT id, course_id, date FROM training_logs
+       WHERE substr(date, 1, 10) >= ? AND substr(date, 1, 10) <= ?
+         AND course_id != ?`
+    ).bind(start, end, dedicatedCourseId).all();
+
+    for (const row of results || []) {
+      const logId = Number((row as any).id);
+      const fromId = Number((row as any).course_id);
+      const logDate = String((row as any).date || '').substring(0, 10);
+      if (!logId || !fromId || !logDate) continue;
+
+      // 다른 회차가 이 LMS를 쓰고, 해당 일자가 그 회차 운영기간 안이면 건드리지 않음
+      const owner: any = await DB.prepare(`
+        SELECT s.id, s.training_start_date, s.training_end_date
+        FROM course_sessions s
+        WHERE s.lms_course_id = ? AND s.id != ?
+        LIMIT 1
+      `).bind(fromId, sessionId).first();
+
+      if (owner) {
+        const oStart = owner.training_start_date ? String(owner.training_start_date).substring(0, 10) : '';
+        const oEnd = owner.training_end_date ? String(owner.training_end_date).substring(0, 10) : '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(oStart) && /^\d{4}-\d{2}-\d{2}$/.test(oEnd)
+            && logDate >= oStart && logDate <= oEnd) {
+          continue;
+        }
+      }
+
+      const clash = await DB.prepare(
+        `SELECT id FROM training_logs WHERE course_id = ? AND substr(date, 1, 10) = ? LIMIT 1`
+      ).bind(dedicatedCourseId, logDate).first();
+      if (clash) continue;
+
+      await DB.prepare('UPDATE training_logs SET course_id = ? WHERE id = ?')
+        .bind(dedicatedCourseId, logId).run();
+    }
+  } catch (e) {
+    console.error('[recoverOrphanPeriodLogs]', e);
+  }
+}
+
+/**
  * 회차 전용 LMS courses.id 보장.
  * - 다른 회차와 lms_course_id를 공유하지 않음
  * - 제목이 회차(승인과정명·회차·회차명)와 일치할 때만 기존 연결 유지 (타 과정 일지 혼입 방지)
  * - 없으면 courses 행을 만들고 course_sessions.lms_course_id에 연결
+ * - 운영기간 고아 일지는 전용 과정으로 회수
  */
 export async function ensureDedicatedLmsCourseForSession(
   DB: D1Database,
@@ -147,7 +216,7 @@ export async function ensureDedicatedLmsCourseForSession(
   `).bind(sid).first();
   if (!session) return null;
 
-  const { full: expectedTitle, short: shortTitle } = expectedLmsTitlesForSession(
+  const { full: expectedTitle, short: shortTitle, altFull } = expectedLmsTitlesForSession(
     session.course_name,
     session.session_number,
     session.session_name
@@ -161,8 +230,11 @@ export async function ensureDedicatedLmsCourseForSession(
     ).bind(lmsId, sid).first();
     const course: any = await DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(lmsId).first();
     const titleOk = course && isExpectedLmsTitle(course.title, session.course_name, session.session_number, session.session_name);
-    // 제목이 회차와 일치하고 다른 회차와 공유하지 않을 때만 재사용
-    if (course && !other && titleOk) return lmsId;
+    // 제목이 회차와 일치하고 다른 회차와 공유하지 않을 때만 재사용 (+ 고아 일지 회수)
+    if (course && !other && titleOk) {
+      await recoverOrphanPeriodLogs(DB, sid, lmsId, session.training_start_date, session.training_end_date);
+      return lmsId;
+    }
     if (course && (!titleOk || other)) {
       staleCourseId = lmsId;
       try {
@@ -182,6 +254,9 @@ export async function ensureDedicatedLmsCourseForSession(
   };
 
   let dedicatedId = await findUnusedByTitle(expectedTitle);
+  if (dedicatedId == null && altFull !== expectedTitle) {
+    dedicatedId = await findUnusedByTitle(altFull);
+  }
   if (dedicatedId == null && shortTitle !== expectedTitle) {
     dedicatedId = await findUnusedByTitle(shortTitle);
   }
@@ -209,6 +284,14 @@ export async function ensureDedicatedLmsCourseForSession(
       session.training_end_date
     );
   }
+
+  await recoverOrphanPeriodLogs(
+    DB,
+    sid,
+    dedicatedId,
+    session.training_start_date,
+    session.training_end_date
+  );
 
   return dedicatedId;
 }
