@@ -276,27 +276,16 @@ export function sqlWhereEffectiveActive(alias: string): string {
   )`;
 }
 
-/** 메인 목록 정렬: 모집중 → 모집마감 → 진행중 → 상시, 동일 그룹 내 개강일 가까운 순 */
+/** 메인 목록 정렬: 개강일(훈련 시작일) 오름차순 — 상태와 무관하게 일자순 */
 export function sqlOrderHomeCourses(alias: string): string {
   const a = alias;
-  const today = SQL_TODAY_KST;
   return `
     CASE
-      WHEN ${sqlWhereRecruitmentClosed(a)} THEN 2
-      WHEN ${a}.status = 'always_open' THEN 3
       WHEN ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
-           AND date(${a}.training_start_date) > ${today} THEN 1
-      WHEN ${a}.status = 'recruiting'
-           AND (${a}.training_start_date IS NULL OR length(trim(${a}.training_start_date)) = 0) THEN 1
-      ELSE 4
+        THEN 0
+      ELSE 1
     END ASC,
-    CASE
-      WHEN ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
-           AND date(${a}.training_start_date) >= ${today}
-        THEN date(${a}.training_start_date)
-      ELSE date('9999-12-31')
-    END ASC,
-    ${a}.training_start_date DESC,
-    ${a}.id DESC
+    date(${a}.training_start_date) ASC,
+    ${a}.id ASC
   `;
 }
