@@ -133,6 +133,16 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                         </div>
                     </div>
                 </div>
+                <div class="px-4 py-3 sm:px-6 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 justify-center sm:justify-start">
+                    <a id="dir-hongdae" href="https://map.kakao.com/link/to/%EC%99%80%EC%9A%B0%EC%93%B0%EB%A6%AC%EB%94%94%ED%99%8D%EB%8C%80%EC%84%BC%ED%84%B0,37.5475,126.9240" target="_blank" rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#FEE500] text-slate-900 font-black text-sm hover:brightness-95 transition shadow-sm min-h-[44px]">
+                        <i class="fas fa-directions"></i> 카카오맵 길찾기
+                    </a>
+                    <a id="maplink-hongdae" href="https://map.kakao.com/link/map/%EC%99%80%EC%9A%B0%EC%93%B0%EB%A6%AC%EB%94%94%ED%99%8D%EB%8C%80%EC%84%BC%ED%84%B0,37.5475,126.9240" target="_blank" rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-100 transition min-h-[44px]">
+                        <i class="fas fa-external-link-alt"></i> 지도 크게 보기
+                    </a>
+                </div>
                 
                 <div class="p-8">
                     <div class="grid md:grid-cols-2 gap-8">
@@ -197,6 +207,16 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                         </div>
                     </div>
                 </div>
+                <div class="px-4 py-3 sm:px-6 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 justify-center sm:justify-start">
+                    <a id="dir-gumi" href="#" target="_blank" rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#FEE500] text-slate-900 font-black text-sm hover:brightness-95 transition shadow-sm min-h-[44px]">
+                        <i class="fas fa-directions"></i> 카카오맵 길찾기
+                    </a>
+                    <a id="maplink-gumi" href="#" target="_blank" rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-100 transition min-h-[44px]">
+                        <i class="fas fa-external-link-alt"></i> 지도 크게 보기
+                    </a>
+                </div>
                 
                 <div class="p-8">
                     <div class="grid md:grid-cols-2 gap-8">
@@ -246,6 +266,16 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                             <a href="/admin/settings" class="inline-block mt-3 text-xs font-bold text-primary-600 hover:underline">관리자 · 훈련기관 정보설정</a>
                         </div>
                     </div>
+                </div>
+                <div class="px-4 py-3 sm:px-6 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 justify-center sm:justify-start">
+                    <a id="dir-jeonju" href="#" target="_blank" rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#FEE500] text-slate-900 font-black text-sm hover:brightness-95 transition shadow-sm min-h-[44px]">
+                        <i class="fas fa-directions"></i> 카카오맵 길찾기
+                    </a>
+                    <a id="maplink-jeonju" href="#" target="_blank" rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-100 transition min-h-[44px]">
+                        <i class="fas fa-external-link-alt"></i> 지도 크게 보기
+                    </a>
                 </div>
                 
                 <div class="p-8">
@@ -297,6 +327,35 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
             jeonju:   { lat: 35.8242, lng: 127.1480, name: '와우쓰리디전주센터', address: '전북 전주시 덕진구 반룡로 109 207호 (팔복동, 테크노빌 A동)' }
         };
 
+        function kakaoDirectionsUrl(name, lat, lng) {
+            return 'https://map.kakao.com/link/to/' + encodeURIComponent(name) + ',' + lat + ',' + lng;
+        }
+        function kakaoMapUrl(name, lat, lng) {
+            return 'https://map.kakao.com/link/map/' + encodeURIComponent(name) + ',' + lat + ',' + lng;
+        }
+        function bindDirectionLinks(centerId, lat, lng) {
+            var c = CENTERS[centerId];
+            if (!c) return;
+            var dir = document.getElementById('dir-' + centerId);
+            var maplink = document.getElementById('maplink-' + centerId);
+            if (dir) dir.href = kakaoDirectionsUrl(c.name, lat, lng);
+            if (maplink) maplink.href = kakaoMapUrl(c.name, lat, lng);
+        }
+        function infoWindowHtml(centerId, lat, lng) {
+            var c = CENTERS[centerId];
+            var dirUrl = kakaoDirectionsUrl(c.name, lat, lng);
+            return '<div style="padding:10px 12px;min-width:180px;line-height:1.4;">' +
+                '<div style="font-size:13px;font-weight:800;color:#111;margin-bottom:8px;">' + c.name + '</div>' +
+                '<a href="' + dirUrl + '" target="_blank" rel="noopener noreferrer" ' +
+                'style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;background:#FEE500;color:#111;font-size:12px;font-weight:800;text-decoration:none;">' +
+                '카카오맵 길찾기</a></div>';
+        }
+
+        // 지도 로드 전에도 버튼이 동작하도록 기본 좌표로 연결
+        Object.keys(CENTERS).forEach(function(id) {
+            bindDirectionLinks(id, CENTERS[id].lat, CENTERS[id].lng);
+        });
+
         function switchTab(center) {
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -323,6 +382,26 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
             return '지도 스크립트 로드 실패. 카카오 디벨로퍼스 → 플랫폼 키 → JavaScript 키 → JavaScript SDK 도메인에 「' + origin + '」을 등록했는지 확인하세요. (관리자 > 훈련기관 정보설정)';
         }
 
+        function renderMap(centerId, coords) {
+            var el = document.getElementById('map-' + centerId);
+            var ph = document.getElementById('map-' + centerId + '-placeholder');
+            var c = CENTERS[centerId];
+            var kakao = window.kakao;
+            var lat = coords.getLat();
+            var lng = coords.getLng();
+            bindDirectionLinks(centerId, lat, lng);
+            var map = new kakao.maps.Map(el, { center: coords, level: 3 });
+            var marker = new kakao.maps.Marker({ position: coords });
+            marker.setMap(map);
+            var iw = new kakao.maps.InfoWindow({ content: infoWindowHtml(centerId, lat, lng) });
+            iw.open(map, marker);
+            kakao.maps.event.addListener(marker, 'click', function() {
+                iw.open(map, marker);
+            });
+            locationMaps[centerId] = { map: map, marker: marker, lat: lat, lng: lng };
+            if (ph) ph.style.display = 'none';
+        }
+
         function initMap(centerId) {
             if (locationMaps[centerId]) return;
             var el = document.getElementById('map-' + centerId);
@@ -332,7 +411,6 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
             if (!c) return;
             var kakao = window.kakao;
             if (!kakao || !kakao.maps) return;
-            var container = el;
             var geocoder = kakao.maps.services && new kakao.maps.services.Geocoder();
             if (geocoder) {
                 geocoder.addressSearch(c.address, function(result, status) {
@@ -342,25 +420,10 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
                     } else {
                         coords = new kakao.maps.LatLng(c.lat, c.lng);
                     }
-                    var options = { center: coords, level: 3 };
-                    var map = new kakao.maps.Map(container, options);
-                    var marker = new kakao.maps.Marker({ position: coords });
-                    marker.setMap(map);
-                    var iw = new kakao.maps.InfoWindow({ content: '<div style="padding:8px 10px;font-size:13px;font-weight:bold;white-space:nowrap;">' + c.name + '</div>' });
-                    iw.open(map, marker);
-                    locationMaps[centerId] = { map: map, marker: marker };
-                    ph.style.display = 'none';
+                    renderMap(centerId, coords);
                 });
             } else {
-                var options = { center: new kakao.maps.LatLng(c.lat, c.lng), level: 3 };
-                var map = new kakao.maps.Map(container, options);
-                var markerPosition = new kakao.maps.LatLng(c.lat, c.lng);
-                var marker = new kakao.maps.Marker({ position: markerPosition });
-                marker.setMap(map);
-                var iw = new kakao.maps.InfoWindow({ content: '<div style="padding:8px 10px;font-size:13px;font-weight:bold;white-space:nowrap;">' + c.name + '</div>' });
-                iw.open(map, marker);
-                locationMaps[centerId] = { map: map, marker: marker };
-                ph.style.display = 'none';
+                renderMap(centerId, new kakao.maps.LatLng(c.lat, c.lng));
             }
         }
 
