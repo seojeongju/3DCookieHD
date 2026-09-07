@@ -73,7 +73,7 @@ export const courseSessionsListHtml = `
         var lastRequestId = 0;
 
         function statusText(s) {
-            return { recruiting: '모집중', in_progress: '진행중', completed: '마감', always_open: '상시모집', closed: '폐강' }[s] || s;
+            return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강', recruitment_closed: '모집 마감' }[s] || s;
         }
 
         function topicBadges(name, category) {
@@ -160,7 +160,7 @@ export const courseSessionsListHtml = `
                             var start = (s.training_start_date || '').trim();
                             var end = (s.training_end_date || '').trim();
                             var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
-                            var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : 'bg-gray-500';
+                            var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : s.status === 'recruitment_closed' ? 'bg-amber-600' : s.status === 'completed' ? 'bg-slate-500' : 'bg-gray-500';
                             
                             var detailUrl = s.source === 'session' ? '/course-sessions/' + s.id : '/courses/' + s.id;
                             var sourceBadge = s.source === 'session' ? '' : '<span class="absolute top-3 left-3 px-2 py-0.5 text-[10px] font-bold rounded bg-black/50 text-white backdrop-blur-sm shadow-sm">일반과정</span>';
@@ -303,9 +303,10 @@ export function courseSessionDetailHtml(
                     var statusMap = {
                         recruiting: { label: '모집중', color: 'bg-emerald-500' },
                         in_progress: { label: '진행중', color: 'bg-blue-500' },
-                        completed: { label: '마감', color: 'bg-slate-500' },
+                        completed: { label: '종료', color: 'bg-slate-500' },
                         always_open: { label: '상시모집', color: 'bg-indigo-500' },
-                        closed: { label: '폐강', color: 'bg-red-500' }
+                        closed: { label: '폐강', color: 'bg-red-500' },
+                        recruitment_closed: { label: '모집 마감', color: 'bg-amber-600' }
                     };
                     var status = statusMap[s.status] || { label: s.status, color: 'bg-slate-500' };
                     var imgUrl = (s.image_url || s.main_slide_image_url || s.course_list_image_url || '').trim() || '/static/hero1.jpg';

@@ -25,6 +25,7 @@ function toTeacherCourseStatus(effective: string): string {
     always_open: 'always_open',
     completed: 'completed',
     closed: 'completed',
+    recruitment_closed: 'active',
   };
   return map[effective] || effective || 'upcoming';
 }
