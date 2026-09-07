@@ -689,14 +689,14 @@ export const homeHtml = `
                     return;
                 }
                 function statusText(s) {
-                    return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
+                    return { recruiting: '모집중', in_progress: '진행중', completed: '마감', always_open: '상시모집', closed: '폐강' }[s] || s;
                 }
                 container.innerHTML = list.map(function(s) {
                     var imgUrl = ((s.image_url || '').trim() || '/static/hero1.jpg');
                     var start = (s.training_start_date || '').trim();
                     var end = (s.training_end_date || '').trim();
                     var dateStr = start && end ? (new Date(start).toLocaleDateString('ko-KR') + ' ~ ' + new Date(end).toLocaleDateString('ko-KR')) : (start ? new Date(start).toLocaleDateString('ko-KR') + '~' : '일정 미정');
-                    var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : 'bg-gray-500';
+                    var statusClass = s.status === 'recruiting' ? 'bg-green-500' : s.status === 'in_progress' ? 'bg-blue-500' : s.status === 'always_open' ? 'bg-emerald-500' : s.status === 'completed' ? 'bg-slate-500' : 'bg-gray-500';
                     // 교육과정명 형식: 승인받은 과정명 + 회차 + 회차별과정명
                     var courseName = (s.course_name || '').trim();
                     var sessionNumber = s.session_number ? (s.session_number + '회차') : '';

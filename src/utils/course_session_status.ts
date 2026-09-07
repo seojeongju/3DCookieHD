@@ -1,15 +1,19 @@
 /**
- * 훈련과정(회차) 상태: 개강일·종료일에 따라 유효 상태를 계산합니다.
+ * 훈련과정(회차) 상태: 개강일·종료일·모집상황·진행상황에 따라 유효 상태를 계산합니다.
+ * - recruitment_status = closed(모집 마감) → completed (메인/공개에 모집중으로 덮어쓰지 않음)
+ * - status = closed(폐강) → 항상 closed
+ * - status = completed(종료) → 항상 completed (관리자 수동 종료 존중)
  * - 오늘 < 개강일 → recruiting (모집중)
  * - 개강일 <= 오늘 <= 종료일 → in_progress (훈련중)
  * - 오늘 > 종료일 → completed (종료/마감)
- * - status가 closed(폐강)이면 항상 closed
  * - always_open은 종료일이 지나면 completed, 아니면 always_open
  */
 export type SessionLike = {
   status: string;
   training_start_date?: string | null;
   training_end_date?: string | null;
+  /** 연동 홈페이지 모집상황: normal | suspended | closed(마감) */
+  recruitment_status?: string | null;
 };
 
 /** 한국(Asia/Seoul) 기준 오늘 날짜 YYYY-MM-DD */
@@ -27,11 +31,18 @@ export const SQL_TODAY_KST = `date('now', '+9 hours')`;
 
 export function getEffectiveSessionStatus(session: SessionLike, asOfDate?: string): string {
   const dbStatus = (session.status || '').trim().toLowerCase();
+  const recruitment = (session.recruitment_status || '').trim().toLowerCase();
   const start = session.training_start_date ? String(session.training_start_date).trim().slice(0, 10) : null;
   const end = session.training_end_date ? String(session.training_end_date).trim().slice(0, 10) : null;
   const today = asOfDate ? asOfDate.slice(0, 10) : todayKST();
 
+  // 관리자「모집상황 > 마감」— 개강일 전이어도 모집중으로 재계산하지 않음
+  if (recruitment === 'closed') return 'completed';
+
   if (dbStatus === 'closed') return 'closed';
+
+  // 관리자「진행상황 > 종료」수동 지정 존중
+  if (dbStatus === 'completed') return 'completed';
 
   if (dbStatus === 'always_open') {
     if (end && today > end) return 'completed';
@@ -61,6 +72,16 @@ export function applyEffectiveStatusToList<T extends SessionLike>(rows: T[]): T[
   return rows.map((row) => applyEffectiveStatus(row));
 }
 
+/** 모집 마감이 아닌 경우 (NULL/빈값/normal/suspended) */
+export function sqlWhereRecruitmentNotClosed(alias: string): string {
+  const a = alias;
+  return `(
+    ${a}.recruitment_status IS NULL
+    OR TRIM(COALESCE(${a}.recruitment_status, '')) = ''
+    OR LOWER(TRIM(${a}.recruitment_status)) IN ('normal', 'suspended')
+  )`;
+}
+
 /**
  * SQLite WHERE 절: getEffectiveSessionStatus(행) === target (개강일·종료일 기준, DB status만으로는 부족할 때 사용)
  * @param alias course_sessions 테이블 별칭 (예: s)
@@ -71,7 +92,9 @@ export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progres
   if (target === 'in_progress') {
     return `(
       ${a}.status <> 'closed'
+      AND ${a}.status <> 'completed'
       AND ${a}.status <> 'always_open'
+      AND ${sqlWhereRecruitmentNotClosed(a)}
       AND (
         (
           ${a}.training_start_date IS NOT NULL AND ${a}.training_end_date IS NOT NULL
@@ -99,7 +122,9 @@ export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progres
   if (target === 'recruiting') {
     return `(
       ${a}.status <> 'closed'
+      AND ${a}.status <> 'completed'
       AND ${a}.status <> 'always_open'
+      AND ${sqlWhereRecruitmentNotClosed(a)}
       AND (
         (
           ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
@@ -112,40 +137,49 @@ export function sqlWhereEffectiveStatusEquals(alias: string, target: 'in_progres
       )
     )`;
   }
-  // completed
+  // completed — 종료일 경과 + 관리자 종료/모집마감
   return `(
-    ${a}.status <> 'closed'
-    AND (
-      (
-        ${a}.status = 'always_open'
-        AND ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
-        AND date(${a}.training_end_date) < ${today}
-      )
-      OR (
-        ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
-        AND date(${a}.training_end_date) < ${today}
-        AND NOT (
-          ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
-          AND date(${a}.training_start_date) > ${today}
+    (
+      LOWER(TRIM(COALESCE(${a}.recruitment_status, ''))) = 'closed'
+    )
+    OR ${a}.status = 'completed'
+    OR (
+      ${a}.status <> 'closed'
+      AND (
+        (
+          ${a}.status = 'always_open'
+          AND ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
+          AND date(${a}.training_end_date) < ${today}
+        )
+        OR (
+          ${a}.training_end_date IS NOT NULL AND length(trim(${a}.training_end_date)) > 0
+          AND date(${a}.training_end_date) < ${today}
+          AND NOT (
+            ${a}.training_start_date IS NOT NULL AND length(trim(${a}.training_start_date)) > 0
+            AND date(${a}.training_start_date) > ${today}
+          )
         )
       )
     )
   )`;
 }
 
-/** 홈·공개 목록용: 모집중·진행중·상시모집(종료 전) */
+/** 홈·공개 목록용: 모집중·진행중·상시모집(종료 전) — 모집마감·수동종료 제외 */
 export function sqlWhereEffectiveActive(alias: string): string {
   const a = alias;
   const today = SQL_TODAY_KST;
   return `(
-    ${sqlWhereEffectiveStatusEquals(a, 'recruiting')}
-    OR ${sqlWhereEffectiveStatusEquals(a, 'in_progress')}
-    OR (
-      ${a}.status = 'always_open'
-      AND (
-        ${a}.training_end_date IS NULL
-        OR length(trim(${a}.training_end_date)) = 0
-        OR date(${a}.training_end_date) >= ${today}
+    ${sqlWhereRecruitmentNotClosed(a)}
+    AND (
+      ${sqlWhereEffectiveStatusEquals(a, 'recruiting')}
+      OR ${sqlWhereEffectiveStatusEquals(a, 'in_progress')}
+      OR (
+        ${a}.status = 'always_open'
+        AND (
+          ${a}.training_end_date IS NULL
+          OR length(trim(${a}.training_end_date)) = 0
+          OR date(${a}.training_end_date) >= ${today}
+        )
       )
     )
   )`;

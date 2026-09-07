@@ -73,7 +73,7 @@ export const courseSessionsListHtml = `
         var lastRequestId = 0;
 
         function statusText(s) {
-            return { recruiting: '모집중', in_progress: '진행중', completed: '종료', always_open: '상시모집', closed: '폐강' }[s] || s;
+            return { recruiting: '모집중', in_progress: '진행중', completed: '마감', always_open: '상시모집', closed: '폐강' }[s] || s;
         }
 
         function topicBadges(name, category) {
@@ -303,7 +303,7 @@ export function courseSessionDetailHtml(
                     var statusMap = {
                         recruiting: { label: '모집중', color: 'bg-emerald-500' },
                         in_progress: { label: '진행중', color: 'bg-blue-500' },
-                        completed: { label: '종료', color: 'bg-slate-500' },
+                        completed: { label: '마감', color: 'bg-slate-500' },
                         always_open: { label: '상시모집', color: 'bg-indigo-500' },
                         closed: { label: '폐강', color: 'bg-red-500' }
                     };

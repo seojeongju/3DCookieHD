@@ -201,6 +201,7 @@ app.get('/public', async (c) => {
         a.name as course_name,
         cat.name as category_name,
         s.status,
+        s.recruitment_status,
         s.training_start_date,
         s.training_end_date,
         s.instructor_name,
@@ -215,7 +216,7 @@ app.get('/public', async (c) => {
       LIMIT ? OFFSET ?
     `).bind(...params).all();
 
-    const list = applyEffectiveStatusToList((rows.results || []) as { status: string; training_start_date?: string; training_end_date?: string }[]);
+    const list = applyEffectiveStatusToList((rows.results || []) as { status: string; recruitment_status?: string; training_start_date?: string; training_end_date?: string }[]);
     return c.json({
       success: true,
       data: list,
@@ -425,12 +426,13 @@ app.post('/sync-status', authMiddleware, requireAdmin, async (c) => {
     const result = await DB.prepare(`
       UPDATE course_sessions SET status = CASE
         WHEN status = 'closed' THEN 'closed'
-        WHEN status = 'always_open' AND training_end_date IS NOT NULL AND TRIM(COALESCE(training_end_date,'')) <> '' AND date(training_end_date) < date('now') THEN 'completed'
+        WHEN status = 'completed' THEN 'completed'
+        WHEN status = 'always_open' AND training_end_date IS NOT NULL AND TRIM(COALESCE(training_end_date,'')) <> '' AND date(training_end_date) < date('now', '+9 hours') THEN 'completed'
         WHEN status = 'always_open' THEN 'always_open'
-        WHEN training_start_date IS NOT NULL AND TRIM(COALESCE(training_start_date,'')) <> '' AND date(training_start_date) > date('now') THEN 'recruiting'
-        WHEN training_end_date IS NOT NULL AND TRIM(COALESCE(training_end_date,'')) <> '' AND date(training_end_date) < date('now') THEN 'completed'
-        WHEN (training_start_date IS NULL OR TRIM(COALESCE(training_start_date,'')) = '' OR date(training_start_date) <= date('now'))
-             AND (training_end_date IS NULL OR TRIM(COALESCE(training_end_date,'')) = '' OR date(training_end_date) >= date('now')) THEN 'in_progress'
+        WHEN training_start_date IS NOT NULL AND TRIM(COALESCE(training_start_date,'')) <> '' AND date(training_start_date) > date('now', '+9 hours') THEN 'recruiting'
+        WHEN training_end_date IS NOT NULL AND TRIM(COALESCE(training_end_date,'')) <> '' AND date(training_end_date) < date('now', '+9 hours') THEN 'completed'
+        WHEN (training_start_date IS NULL OR TRIM(COALESCE(training_start_date,'')) = '' OR date(training_start_date) <= date('now', '+9 hours'))
+             AND (training_end_date IS NULL OR TRIM(COALESCE(training_end_date,'')) = '' OR date(training_end_date) >= date('now', '+9 hours')) THEN 'in_progress'
         ELSE status
       END
     `).run();

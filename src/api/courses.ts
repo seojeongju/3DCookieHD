@@ -47,7 +47,7 @@ async function enrichCoursesWithLinkedSessionStatus(db: D1Database, courseRows: 
     const ph = chunk.map(() => '?').join(',');
     const { results } = await db
       .prepare(
-        `SELECT id, lms_course_id, status, training_start_date, training_end_date
+        `SELECT id, lms_course_id, status, recruitment_status, training_start_date, training_end_date
          FROM course_sessions
          WHERE lms_course_id IN (${ph})`
       )
@@ -68,6 +68,7 @@ async function enrichCoursesWithLinkedSessionStatus(db: D1Database, courseRows: 
     if (linked) {
       const effective = getEffectiveSessionStatus({
         status: linked.status,
+        recruitment_status: linked.recruitment_status,
         training_start_date: linked.training_start_date,
         training_end_date: linked.training_end_date,
       });
@@ -255,7 +256,7 @@ courses.get('/', async (c) => {
 
       const hrdRows = await c.env.DB.prepare(`
         SELECT DISTINCT s.id, s.session_number, s.session_name, s.status as session_status,
-               s.training_start_date, s.training_end_date, s.lms_course_id,
+               s.recruitment_status, s.training_start_date, s.training_end_date, s.lms_course_id,
                a.name as course_name, cc.name as category_name
         FROM session_timetable st
         INNER JOIN course_sessions s ON st.session_id = s.id
@@ -306,6 +307,7 @@ courses.get('/', async (c) => {
       for (const r of hrdRows.results || []) {
         const effective = getEffectiveSessionStatus({
           status: (r as any).session_status,
+          recruitment_status: (r as any).recruitment_status,
           training_start_date: (r as any).training_start_date,
           training_end_date: (r as any).training_end_date,
         });
