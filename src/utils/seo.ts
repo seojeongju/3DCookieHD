@@ -451,14 +451,7 @@ export async function seoOptionsForPortfolio(db: D1Database, id: number): Promis
         }>();
         if (!row) return null;
         const published = !row.status || row.status === 'published';
-        if (!published) {
-            return {
-                title: `포트폴리오 #${id}`,
-                description: `요청하신 포트폴리오 #${id}는 현재 공개되지 않았습니다.`,
-                path: `/portfolios/${id}`,
-                noindex: true,
-            };
-        }
+        if (!published) return null;
         const work = (row.title || `포트폴리오 ${id}`).trim();
         const author = (row.student_name || '수강생').trim();
         const course = (row.course_title || '').trim();
@@ -709,6 +702,13 @@ export function getSeoOptionsForPath(path: string): SeoOptions | null {
 
 export function isNoindexPath(path: string): boolean {
     return /^(\/api(?:\/|$)|\/admin(?:\/|$)|\/teacher(?:\/|$)|\/student(?:\/|$)|\/login$|\/register$|\/reset-password(?:\/|$))/.test(path);
+}
+
+/** UTM·클릭 추적 등 색인 가치 없는 쿼리만 있는지 */
+export function isTrackingOnlyQuery(searchParams: URLSearchParams): boolean {
+    const keys = [...searchParams.keys()];
+    if (keys.length === 0) return false;
+    return keys.every((key) => /^(utm_|gclid|fbclid|msclkid|_ga|mc_|pk_|ref$)/i.test(key));
 }
 
 /** sitemap.xml에 넣을 공개 URL 목록 (경로만, 앞에 / 포함) */

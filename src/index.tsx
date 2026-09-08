@@ -164,6 +164,7 @@ import {
     getSeoHead,
     getSeoOptionsForPath,
     isNoindexPath,
+    isTrackingOnlyQuery,
     llmsTxt,
     PUBLIC_PATHS,
     seoOptionsForPortfolio,
@@ -172,6 +173,7 @@ import {
     toPlainMeta,
 } from './utils/seo';
 import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
+import { publicNotFoundHtml } from './views/not_found';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -191,15 +193,27 @@ app.use('*', async (c, next) => {
         return c.redirect(`${canonicalOrigin}${requestUrl.pathname}${requestUrl.search}`, 308);
     }
 
+    // UTM·광고 추적 파라미터만 있는 URL → 클린 경로로 301 (중복 크롤 감소)
+    if (requestUrl.search && isTrackingOnlyQuery(requestUrl.searchParams)) {
+        return c.redirect(`${canonicalOrigin}${requestUrl.pathname}`, 301);
+    }
+
     await next();
 
     const hasQuery = Boolean(requestUrl.search && requestUrl.search !== '?');
-    const noindex = isNoindexPath(requestUrl.pathname) || requestUrl.hostname.endsWith('.pages.dev') || hasQuery;
+    const status = c.res.status;
+    const noindex =
+        status >= 400 ||
+        isNoindexPath(requestUrl.pathname) ||
+        requestUrl.hostname.endsWith('.pages.dev') ||
+        hasQuery;
     if (noindex) {
         c.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
     }
 
     const contentType = c.res.headers.get('Content-Type') || '';
+    if (status >= 400 || !contentType.includes('text/html')) return;
+
     let seoOptions = getSeoOptionsForPath(requestUrl.pathname);
     const sessionMatch = requestUrl.pathname.match(/^\/course-sessions\/(\d+)$/);
     const generalMatch = requestUrl.pathname.match(/^\/courses\/(\d+)$/);
@@ -229,7 +243,7 @@ app.use('*', async (c, next) => {
             path: requestUrl.pathname,
         };
     }
-    if (!seoOptions || !contentType.includes('text/html') || c.res.status >= 400) return;
+    if (!seoOptions) return;
 
     const html = await c.res.text();
     if (html.includes('rel="canonical"') || html.includes("rel='canonical'")) {
@@ -289,6 +303,7 @@ app.get('/robots.txt', (c) => {
     const body = [
         'User-agent: *',
         'Allow: /',
+        '# 관리·학습 영역 (색인 불필요)',
         'Disallow: /admin/',
         'Disallow: /teacher/',
         'Disallow: /student/',
@@ -296,7 +311,7 @@ app.get('/robots.txt', (c) => {
         'Disallow: /login',
         'Disallow: /register',
         'Disallow: /reset-password',
-        '# 쿼리 파라미터 URL은 대표 경로만 색인 (중복 title/description 방지)',
+        '# 필터·검색 쿼리 URL은 대표 경로만 색인 (canonical + noindex와 병행)',
         'Disallow: /*?*',
         'Sitemap: ' + origin + '/sitemap.xml',
         '# LLM context: ' + origin + '/llms.txt',
@@ -337,13 +352,16 @@ app.get('/sitemap.xml', async (c) => {
             const result = await c.env.DB.prepare(`
                 SELECT id, created_at
                 FROM course_sessions
-                WHERE homepage_exposed = 1 OR homepage_exposed IS NULL
+                WHERE (homepage_exposed = 1 OR homepage_exposed IS NULL)
+                  AND LOWER(TRIM(COALESCE(status, ''))) <> 'closed'
                 ORDER BY id
             `).all<{ id: number; created_at?: string }>();
             sessions = result.results || [];
         } catch {
             const result = await c.env.DB.prepare(
-                'SELECT id, created_at FROM course_sessions ORDER BY id'
+                `SELECT id, created_at FROM course_sessions
+                 WHERE LOWER(TRIM(COALESCE(status, ''))) <> 'closed'
+                 ORDER BY id`
             ).all<{ id: number; created_at?: string }>();
             sessions = result.results || [];
         }
@@ -778,20 +796,41 @@ app.get('/jobs', (c) => c.html(jobsListHtml));
 app.get('/jobseekers', (c) => c.html(jobseekersListHtml));
 app.get('/courses', (c) => c.redirect('/course-sessions'));
 app.get('/courses/:id', async (c) => {
-    const id = c.req.param('id');
-    const seo = c.env.DB ? await seoOptionsForSession(c.env.DB, Number(id), 'general') : null;
-    return c.html(courseSessionDetailHtml(id, 'general', seo ? { title: seo.title, summary: seo.description || '' } : undefined));
+    const rawId = c.req.param('id');
+    const id = Number(rawId);
+    if (!Number.isFinite(id) || id <= 0) {
+        return c.html(publicNotFoundHtml('잘못된 과정 주소입니다.', '/course-sessions'), 404);
+    }
+    const seo = c.env.DB ? await seoOptionsForSession(c.env.DB, id, 'general') : null;
+    if (!seo) {
+        return c.html(publicNotFoundHtml('요청하신 일반 교육과정을 찾을 수 없습니다.', '/course-sessions'), 404);
+    }
+    return c.html(courseSessionDetailHtml(String(id), 'general', { title: seo.title, summary: seo.description || '' }));
 });
 app.get('/course-sessions', (c) => c.html(courseSessionsListHtml));
 app.get('/course-sessions/:id', async (c) => {
-    const id = c.req.param('id');
-    const seo = c.env.DB ? await seoOptionsForSession(c.env.DB, Number(id), 'session') : null;
-    return c.html(courseSessionDetailHtml(id, 'session', seo ? { title: seo.title, summary: seo.description || '' } : undefined));
+    const rawId = c.req.param('id');
+    const id = Number(rawId);
+    if (!Number.isFinite(id) || id <= 0) {
+        return c.html(publicNotFoundHtml('잘못된 과정 주소입니다.', '/course-sessions'), 404);
+    }
+    const seo = c.env.DB ? await seoOptionsForSession(c.env.DB, id, 'session') : null;
+    if (!seo) {
+        return c.html(publicNotFoundHtml('요청하신 교육과정을 찾을 수 없습니다.', '/course-sessions'), 404);
+    }
+    return c.html(courseSessionDetailHtml(String(id), 'session', { title: seo.title, summary: seo.description || '' }));
 });
 app.get('/portfolios', (c) => c.html(portfoliosListHtml));
 app.get('/portfolios/:id', async (c) => {
-    const id = c.req.param('id');
-    const seo = c.env.DB ? await seoOptionsForPortfolio(c.env.DB, Number(id)) : null;
+    const rawId = c.req.param('id');
+    const id = Number(rawId);
+    if (!Number.isFinite(id) || id <= 0) {
+        return c.html(publicNotFoundHtml('잘못된 포트폴리오 주소입니다.', '/portfolios'), 404);
+    }
+    const seo = c.env.DB ? await seoOptionsForPortfolio(c.env.DB, id) : null;
+    if (!seo) {
+        return c.html(publicNotFoundHtml('요청하신 포트폴리오를 찾을 수 없거나 비공개입니다.', '/portfolios'), 404);
+    }
     let studentName = '';
     let courseTitle = '';
     if (c.env.DB) {
@@ -807,12 +846,12 @@ app.get('/portfolios/:id', async (c) => {
             courseTitle = row?.course_title || '';
         } catch { /* ignore */ }
     }
-    return c.html(portfolioDetailHtml(id, seo ? {
+    return c.html(portfolioDetailHtml(String(id), {
         title: seo.title,
         summary: seo.description || '',
         studentName,
         courseTitle,
-    } : undefined));
+    }));
 });
 app.get('/posts', (c) => c.html(postsListHtml));
 app.get('/faq', async (c) => {
@@ -3093,6 +3132,10 @@ app.get('/university-education', (c) => {
 // 404 핸들러
 // ============================================
 app.notFound((c) => {
+    const accept = c.req.header('Accept') || '';
+    if (accept.includes('text/html') || !accept.includes('application/json')) {
+        return c.html(publicNotFoundHtml(), 404);
+    }
     return c.json({
         success: false,
         error: 'Not Found',
@@ -3105,6 +3148,10 @@ app.notFound((c) => {
 // ============================================
 app.onError((err, c) => {
     console.error('Server error:', err);
+    const accept = c.req.header('Accept') || '';
+    if (accept.includes('text/html')) {
+        return c.html(publicNotFoundHtml('일시적인 서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', '/'), 500);
+    }
     return c.json({
         success: false,
         error: 'Internal Server Error',
