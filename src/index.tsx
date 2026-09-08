@@ -358,12 +358,16 @@ app.get('/sitemap.xml', async (c) => {
             `).all<{ id: number; created_at?: string }>();
             sessions = result.results || [];
         } catch {
-            const result = await c.env.DB.prepare(
-                `SELECT id, created_at FROM course_sessions
-                 WHERE LOWER(TRIM(COALESCE(status, ''))) <> 'closed'
-                 ORDER BY id`
-            ).all<{ id: number; created_at?: string }>();
-            sessions = result.results || [];
+            try {
+                const result = await c.env.DB.prepare(
+                    `SELECT id, created_at FROM course_sessions
+                     WHERE LOWER(TRIM(COALESCE(status, ''))) <> 'closed'
+                     ORDER BY id`
+                ).all<{ id: number; created_at?: string }>();
+                sessions = result.results || [];
+            } catch (e) {
+                console.error('sitemap sessions query failed:', e);
+            }
         }
         for (const row of sessions) {
             entries.push({
@@ -373,18 +377,22 @@ app.get('/sitemap.xml', async (c) => {
             });
         }
 
-        const courses = await c.env.DB.prepare(`
-            SELECT id, updated_at
-            FROM courses
-            WHERE status = 'active'
-            ORDER BY id
-        `).all<{ id: number; updated_at?: string }>();
-        for (const row of courses.results || []) {
-            entries.push({
-                path: `/courses/${row.id}`,
-                lastmod: normalizeSitemapDate(row.updated_at),
-                priority: '0.7',
-            });
+        try {
+            const courses = await c.env.DB.prepare(`
+                SELECT id, updated_at
+                FROM courses
+                WHERE status = 'active'
+                ORDER BY id
+            `).all<{ id: number; updated_at?: string }>();
+            for (const row of courses.results || []) {
+                entries.push({
+                    path: `/courses/${row.id}`,
+                    lastmod: normalizeSitemapDate(row.updated_at),
+                    priority: '0.7',
+                });
+            }
+        } catch (e) {
+            console.error('sitemap courses query failed:', e);
         }
 
         let portfolios: Array<{ id: number; updated_at?: string }> = [];
@@ -397,10 +405,14 @@ app.get('/sitemap.xml', async (c) => {
             `).all<{ id: number; updated_at?: string }>();
             portfolios = result.results || [];
         } catch {
-            const result = await c.env.DB.prepare(
-                'SELECT id, updated_at FROM student_portfolios ORDER BY id'
-            ).all<{ id: number; updated_at?: string }>();
-            portfolios = result.results || [];
+            try {
+                const result = await c.env.DB.prepare(
+                    'SELECT id, updated_at FROM student_portfolios ORDER BY id'
+                ).all<{ id: number; updated_at?: string }>();
+                portfolios = result.results || [];
+            } catch (e) {
+                console.error('sitemap portfolios query failed:', e);
+            }
         }
         for (const row of portfolios) {
             entries.push({
@@ -410,21 +422,34 @@ app.get('/sitemap.xml', async (c) => {
             });
         }
     } catch (error) {
+        // DB 장애 시에도 정적 URL만이라도 200으로 반환 (GSC 5xx 방지)
         console.error('Dynamic sitemap query failed:', error);
     }
 
-    const urls = entries.map(({ path, lastmod, priority }) => {
-        const loc = path === '/' ? origin + '/' : origin + path;
-        const lastmodXml = lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : '';
-        return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmodXml}\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
-    }).join('\n');
-    const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + '\n</urlset>';
-    return new Response(xml, {
-        headers: {
-            'Content-Type': 'application/xml; charset=utf-8',
-            'Cache-Control': 'public, max-age=86400'
-        }
-    });
+    try {
+        const urls = entries.map(({ path, lastmod, priority }) => {
+            const loc = path === '/' ? origin + '/' : origin + path;
+            const lastmodXml = lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : '';
+            return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmodXml}\n    <changefreq>weekly</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+        }).join('\n');
+        const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + '\n</urlset>';
+        return new Response(xml, {
+            headers: {
+                'Content-Type': 'application/xml; charset=utf-8',
+                'Cache-Control': 'public, max-age=3600',
+            },
+        });
+    } catch (error) {
+        console.error('sitemap xml build failed:', error);
+        const fallback = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${escapeXml(origin + '/')}</loc><priority>1.0</priority></url>\n</urlset>`;
+        return new Response(fallback, {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/xml; charset=utf-8',
+                'Cache-Control': 'public, max-age=300',
+            },
+        });
+    }
 });
 
 function normalizeSitemapDate(value?: string): string | undefined {
