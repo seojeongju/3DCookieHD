@@ -5,6 +5,21 @@ import { successResponse, errorResponse } from '../utils/response';
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+const POPUP_SIZES = ['sm', 'md', 'lg', 'xl', 'xxl'] as const;
+const POPUP_POSITIONS = [
+  'center',
+  'top',
+  'bottom',
+  'top-left',
+  'top-center',
+  'top-right',
+  'center-left',
+  'center-right',
+  'bottom-left',
+  'bottom-center',
+  'bottom-right',
+] as const;
+
 type HomePopupRow = {
   id: number;
   title: string;
@@ -16,6 +31,8 @@ type HomePopupRow = {
   start_at: string | null;
   end_at: string | null;
   sort_order: number;
+  popup_size?: string | null;
+  popup_position?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -37,6 +54,27 @@ async function ensureHomePopupsTable(DB: D1Database): Promise<void> {
       updated_at TEXT NOT NULL DEFAULT (datetime('now', '+9 hours'))
     )
   `).run();
+  const layoutAlters = [
+    "ALTER TABLE home_popups ADD COLUMN popup_size TEXT DEFAULT 'md'",
+    "ALTER TABLE home_popups ADD COLUMN popup_position TEXT DEFAULT 'center'",
+  ];
+  for (const sql of layoutAlters) {
+    try {
+      await DB.prepare(sql).run();
+    } catch {
+      /* column already exists */
+    }
+  }
+}
+
+function normalizePopupSize(value: unknown): string {
+  const s = String(value ?? 'md').trim().toLowerCase();
+  return (POPUP_SIZES as readonly string[]).includes(s) ? s : 'md';
+}
+
+function normalizePopupPosition(value: unknown): string {
+  const s = String(value ?? 'center').trim().toLowerCase();
+  return (POPUP_POSITIONS as readonly string[]).includes(s) ? s : 'center';
 }
 
 function todayKST(): string {
@@ -67,7 +105,9 @@ app.get('/public', async (c) => {
     await ensureHomePopupsTable(DB);
     const today = todayKST();
     const result = await DB.prepare(`
-      SELECT id, title, content, image_url, link_url, link_label, sort_order
+      SELECT id, title, content, image_url, link_url, link_label, sort_order,
+             COALESCE(NULLIF(trim(popup_size), ''), 'md') AS popup_size,
+             COALESCE(NULLIF(trim(popup_position), ''), 'center') AS popup_position
       FROM home_popups
       WHERE is_active = 1
         AND (start_at IS NULL OR length(trim(start_at)) = 0 OR date(start_at) <= date(?))
@@ -130,14 +170,17 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
     const startAt = normalizeOptionalDate(body.start_at);
     const endAt = normalizeOptionalDate(body.end_at);
     const sortOrder = Number.isFinite(Number(body.sort_order)) ? Math.trunc(Number(body.sort_order)) : 0;
+    const popupSize = normalizePopupSize(body.popup_size);
+    const popupPosition = normalizePopupPosition(body.popup_position);
 
     const { DB } = c.env;
     await ensureHomePopupsTable(DB);
     const result = await DB.prepare(`
       INSERT INTO home_popups (
         title, content, image_url, link_url, link_label,
-        is_active, start_at, end_at, sort_order, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
+        is_active, start_at, end_at, sort_order,
+        popup_size, popup_position, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))
     `).bind(
       title,
       content || null,
@@ -148,6 +191,8 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       startAt,
       endAt,
       sortOrder,
+      popupSize,
+      popupPosition,
     ).run();
 
     return successResponse(c, { id: result.meta.last_row_id }, '팝업이 등록되었습니다.');
@@ -174,6 +219,8 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     const startAt = normalizeOptionalDate(body.start_at);
     const endAt = normalizeOptionalDate(body.end_at);
     const sortOrder = Number.isFinite(Number(body.sort_order)) ? Math.trunc(Number(body.sort_order)) : 0;
+    const popupSize = normalizePopupSize(body.popup_size);
+    const popupPosition = normalizePopupPosition(body.popup_position);
 
     const { DB } = c.env;
     await ensureHomePopupsTable(DB);
@@ -184,6 +231,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       UPDATE home_popups SET
         title = ?, content = ?, image_url = ?, link_url = ?, link_label = ?,
         is_active = ?, start_at = ?, end_at = ?, sort_order = ?,
+        popup_size = ?, popup_position = ?,
         updated_at = datetime('now', '+9 hours')
       WHERE id = ?
     `).bind(
@@ -196,6 +244,8 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       startAt,
       endAt,
       sortOrder,
+      popupSize,
+      popupPosition,
       id,
     ).run();
 

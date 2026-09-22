@@ -39,6 +39,7 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
                                 <li>활성 상태이고 게시 기간에 해당하는 팝업만 메인(/)에 표시됩니다.</li>
                                 <li>방문자는 「오늘 하루 보지 않기」를 선택할 수 있습니다.</li>
                                 <li>이미지가 있으면 이미지 중심, 없으면 제목·내용 텍스트로 표시됩니다.</li>
+                                <li><strong>팝업 크기</strong>와 <strong>화면 위치</strong>를 등록 시 지정할 수 있습니다.</li>
                             </ul>
                         </div>
                     </div>
@@ -98,6 +99,43 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
                             class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-bold">
                     </div>
                 </div>
+                <div class="rounded-[2rem] border border-slate-200/60 bg-slate-50/80 p-5 space-y-4">
+                    <p class="text-sm font-black text-slate-800 tracking-tight"><i class="fas fa-expand-arrows-alt text-indigo-500 mr-2"></i>표시 레이아웃</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">팝업 크기</label>
+                            <select id="popupSize"
+                                class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-bold">
+                                <option value="sm">작게 (320px)</option>
+                                <option value="md" selected>보통 (448px)</option>
+                                <option value="lg">크게 (512px)</option>
+                                <option value="xl">매우 크게 (672px)</option>
+                                <option value="xxl">전체형 (896px)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">화면 위치</label>
+                            <select id="popupPosition"
+                                class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-bold">
+                                <option value="center" selected>가운데</option>
+                                <option value="top">상단 중앙</option>
+                                <option value="bottom">하단 중앙</option>
+                                <option value="top-left">좌상단</option>
+                                <option value="top-center">상단 중앙 (여백)</option>
+                                <option value="top-right">우상단</option>
+                                <option value="center-left">좌측 중앙</option>
+                                <option value="center-right">우측 중앙</option>
+                                <option value="bottom-left">좌하단</option>
+                                <option value="bottom-center">하단 중앙 (여백)</option>
+                                <option value="bottom-right">우하단</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-500 mb-2">위치 미리보기 (클릭)</p>
+                        <div id="popupPositionGrid" class="grid grid-cols-3 gap-1.5 max-w-[12rem] p-2 bg-white rounded-2xl border border-slate-200/60"></div>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1.5">게시 시작일</label>
@@ -140,6 +178,47 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
             if (!start && !end) return '상시';
             return (start || '시작일 없음') + ' ~ ' + (end || '종료일 없음');
         }
+        var POPUP_SIZE_LABELS = { sm: '작게', md: '보통', lg: '크게', xl: '매우크게', xxl: '전체형' };
+        var POPUP_POSITION_LABELS = {
+            center: '가운데', top: '상단', bottom: '하단',
+            'top-left': '좌상', 'top-center': '상중', 'top-right': '우상',
+            'center-left': '좌중', 'center-right': '우중',
+            'bottom-left': '좌하', 'bottom-center': '하중', 'bottom-right': '우하'
+        };
+        var POPUP_POSITION_GRID = [
+            'top-left', 'top-center', 'top-right',
+            'center-left', 'center', 'center-right',
+            'bottom-left', 'bottom-center', 'bottom-right'
+        ];
+
+        function setPopupPositionValue(val) {
+            var sel = document.getElementById('popupPosition');
+            if (sel) sel.value = val || 'center';
+            syncPositionGridHighlight();
+        }
+        function syncPositionGridHighlight() {
+            var current = (document.getElementById('popupPosition') || {}).value || 'center';
+            document.querySelectorAll('[data-popup-pos]').forEach(function(btn) {
+                var on = btn.getAttribute('data-popup-pos') === current;
+                btn.className = 'h-8 rounded-lg text-[10px] font-black transition ' +
+                    (on ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200');
+            });
+        }
+        function initPopupPositionGrid() {
+            var grid = document.getElementById('popupPositionGrid');
+            if (!grid || grid.dataset.ready) return;
+            grid.dataset.ready = '1';
+            grid.innerHTML = POPUP_POSITION_GRID.map(function(pos) {
+                return '<button type="button" data-popup-pos="' + pos + '" class="h-8 rounded-lg text-[10px] font-black bg-slate-100">' +
+                    escapeHtml(POPUP_POSITION_LABELS[pos] || pos) + '</button>';
+            }).join('');
+            grid.addEventListener('click', function(ev) {
+                var btn = ev.target && ev.target.closest ? ev.target.closest('[data-popup-pos]') : null;
+                if (btn) setPopupPositionValue(btn.getAttribute('data-popup-pos'));
+            });
+            syncPositionGridHighlight();
+        }
+        document.getElementById('popupPosition').addEventListener('change', syncPositionGridHighlight);
 
         var popupList = [];
 
@@ -165,7 +244,8 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
                         '<div class="flex items-start justify-between gap-3">' +
                         '<div class="min-w-0">' +
                         '<h3 class="font-black tracking-tight text-slate-900 truncate">' + escapeHtml(p.title) + '</h3>' +
-                        '<p class="text-xs text-slate-500 mt-1">' + escapeHtml(formatPeriod(p.start_at, p.end_at)) + ' · 정렬 ' + (p.sort_order || 0) + '</p>' +
+                        '<p class="text-xs text-slate-500 mt-1">' + escapeHtml(formatPeriod(p.start_at, p.end_at)) + ' · 정렬 ' + (p.sort_order || 0) +
+                        ' · ' + escapeHtml(POPUP_SIZE_LABELS[p.popup_size] || '보통') + ' · ' + escapeHtml(POPUP_POSITION_LABELS[p.popup_position] || '가운데') + '</p>' +
                         '</div>' +
                         '<span class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black ' + (active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500') + '">' + (active ? '활성' : '비활성') + '</span>' +
                         '</div>' +
@@ -187,7 +267,10 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
             document.getElementById('popupId').value = '';
             document.getElementById('popupLinkLabel').value = '바로가기';
             document.getElementById('popupSortOrder').value = '0';
+            document.getElementById('popupSize').value = 'md';
+            setPopupPositionValue('center');
             document.getElementById('popupIsActive').checked = false;
+            initPopupPositionGrid();
             var preview = document.getElementById('popupImagePreview');
             preview.classList.add('hidden');
             preview.src = '';
@@ -205,6 +288,8 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
                     document.getElementById('popupEndAt').value = (p.end_at || '').slice(0, 10);
                     document.getElementById('popupSortOrder').value = String(p.sort_order || 0);
                     document.getElementById('popupIsActive').checked = Number(p.is_active) === 1;
+                    document.getElementById('popupSize').value = p.popup_size || 'md';
+                    setPopupPositionValue(p.popup_position || 'center');
                     if (p.image_url) {
                         preview.src = p.image_url;
                         preview.classList.remove('hidden');
@@ -256,7 +341,9 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
                 start_at: document.getElementById('popupStartAt').value || null,
                 end_at: document.getElementById('popupEndAt').value || null,
                 sort_order: parseInt(document.getElementById('popupSortOrder').value, 10) || 0,
-                is_active: document.getElementById('popupIsActive').checked ? 1 : 0
+                is_active: document.getElementById('popupIsActive').checked ? 1 : 0,
+                popup_size: document.getElementById('popupSize').value || 'md',
+                popup_position: document.getElementById('popupPosition').value || 'center'
             };
             try {
                 var res = await fetch(id ? '/api/home-popups/' + id : '/api/home-popups', {
@@ -308,6 +395,7 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
             else { preview.classList.add('hidden'); preview.src = ''; }
         });
 
+        initPopupPositionGrid();
         window.onload = loadPopups;
     </script>
 </body>

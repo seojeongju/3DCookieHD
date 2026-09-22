@@ -1097,9 +1097,51 @@ export const homeHtml = `
                 localStorage.setItem(homePopupStorageKey(id), today);
             } catch (e) { /* ignore */ }
         }
+        var HOME_POPUP_OVERLAY_BASE = 'fixed inset-0 z-[80] hidden p-4 sm:p-6 bg-black/50';
+        var HOME_POPUP_OVERLAY_POS = {
+            center: 'items-center justify-center',
+            top: 'items-start justify-center pt-8 sm:pt-12',
+            bottom: 'items-end justify-center pb-8 sm:pb-12',
+            'top-left': 'items-start justify-start',
+            'top-center': 'items-start justify-center pt-8 sm:pt-12',
+            'top-right': 'items-start justify-end',
+            'center-left': 'items-center justify-start',
+            'center-right': 'items-center justify-end',
+            'bottom-left': 'items-end justify-start pb-8 sm:pb-12',
+            'bottom-center': 'items-end justify-center pb-8 sm:pb-12',
+            'bottom-right': 'items-end justify-end pb-8 sm:pb-12'
+        };
+        var HOME_POPUP_WIDTH = {
+            sm: 'max-w-xs',
+            md: 'max-w-md',
+            lg: 'max-w-lg',
+            xl: 'max-w-2xl',
+            xxl: 'max-w-4xl'
+        };
+        var HOME_POPUP_IMG_MAX = {
+            sm: 'max-h-[min(40vh,18rem)]',
+            md: 'max-h-[min(50vh,28rem)]',
+            lg: 'max-h-[min(58vh,32rem)]',
+            xl: 'max-h-[min(65vh,36rem)]',
+            xxl: 'max-h-[min(75vh,42rem)]'
+        };
+        function homePopupOverlayClass(position) {
+            var pos = String(position || 'center').toLowerCase();
+            var align = HOME_POPUP_OVERLAY_POS[pos] || HOME_POPUP_OVERLAY_POS.center;
+            return HOME_POPUP_OVERLAY_BASE + ' ' + align;
+        }
+        function homePopupWidthClass(size) {
+            var s = String(size || 'md').toLowerCase();
+            return HOME_POPUP_WIDTH[s] || HOME_POPUP_WIDTH.md;
+        }
+        function homePopupImageMaxClass(size) {
+            var s = String(size || 'md').toLowerCase();
+            return HOME_POPUP_IMG_MAX[s] || HOME_POPUP_IMG_MAX.md;
+        }
         function closeHomePopup() {
             var root = document.getElementById('homePopupRoot');
             if (!root) return;
+            root.className = homePopupOverlayClass('center');
             root.classList.add('hidden');
             root.classList.remove('flex');
             root.setAttribute('aria-hidden', 'true');
@@ -1123,10 +1165,22 @@ export const homeHtml = `
             var linkLabel = (p.link_label || '바로가기').replace(/</g, '&lt;');
             var safeImg = img.replace(/"/g, '&quot;');
             var safeLink = link.replace(/"/g, '&quot;');
-            var html = '<div class="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl border border-slate-200/60 overflow-hidden">' +
-                '<button type="button" onclick="closeHomePopup()" class="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-black/40 text-white hover:bg-black/60" aria-label="닫기"><i class="fas fa-times"></i></button>' +
-                (img ? (link ? '<a href="' + safeLink + '" class="block">' : '<div class="block">') + '<img src="' + safeImg + '" alt="' + title + '" class="w-full max-h-[55vh] object-cover bg-slate-100">' + (link ? '</a>' : '</div>') : '') +
-                '<div class="p-6">' +
+            var popupSize = (p.popup_size || 'md').toLowerCase();
+            var popupPosition = (p.popup_position || 'center').toLowerCase();
+            var widthCls = homePopupWidthClass(popupSize);
+            var imgMaxCls = homePopupImageMaxClass(popupSize);
+            var imgWrapStart = img
+                ? (link ? '<a href="' + safeLink + '" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-2xl">' : '<div class="block">') +
+                  '<div class="mx-5 mt-5 rounded-2xl bg-slate-50/80 border border-slate-200/60 p-4 flex items-center justify-center">' +
+                  '<img src="' + safeImg + '" alt="' + title + '" class="w-full h-auto max-w-full ' + imgMaxCls + ' object-contain object-center">' +
+                  '</div>'
+                : '';
+            var imgWrapEnd = img ? (link ? '</a>' : '</div>') : '';
+            root.className = homePopupOverlayClass(popupPosition) + ' flex';
+            var html = '<div class="relative w-full ' + widthCls + ' bg-white rounded-[2rem] shadow-2xl border border-slate-200/60 overflow-hidden">' +
+                '<button type="button" onclick="closeHomePopup()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/95 text-slate-600 border border-slate-200/70 shadow-sm hover:bg-white hover:text-slate-900" aria-label="닫기"><i class="fas fa-times"></i></button>' +
+                imgWrapStart + imgWrapEnd +
+                '<div class="px-6 pb-6 ' + (img ? 'pt-4' : 'pt-10') + '">' +
                 '<h2 class="text-xl font-black tracking-tight text-slate-900 mb-2">' + title + '</h2>' +
                 (content ? '<p class="text-sm text-slate-600 leading-relaxed mb-4">' + content + '</p>' : '') +
                 (link ? '<a href="' + safeLink + '" class="inline-flex w-full items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition mb-3">' + linkLabel + '</a>' : '') +
@@ -1136,7 +1190,6 @@ export const homeHtml = `
                 '</div></div></div>';
             root.innerHTML = html;
             root.classList.remove('hidden');
-            root.classList.add('flex');
             root.setAttribute('aria-hidden', 'false');
             root.onclick = function(ev) {
                 if (ev.target === root) confirmCloseHomePopup();
