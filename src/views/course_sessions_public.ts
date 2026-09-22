@@ -425,18 +425,23 @@ function renderDetailFacts(ssr: CourseDetailSsr | undefined, source: 'session' |
             + '<p class="text-slate-600 leading-relaxed">' + esc(plain) + '</p></section>'
         : '';
 
-    const guide = source === 'general'
-        ? ''
-        : '<section class="mb-2" aria-label="수강 안내">'
-            + '<h2 class="text-lg font-black tracking-tight text-slate-900 mb-2">수강 안내</h2>'
-            + '<p class="text-slate-600 leading-relaxed">'
-            + '이 과정은 국민내일배움카드(국비지원)로 수강 가능 여부를 상담받을 수 있습니다. '
+    const guideText = source === 'general'
+        ? '이 과정은 와우쓰리디홍대센터에서 운영하는 3D프린팅·3D모델링 교육입니다. '
+            + '모델링 설계와 슬라이싱, 출력, 후가공까지 실습 중심으로 진행하며 수강 인원과 장비 여건에 따라 일정이 조정될 수 있습니다. '
+            + '국민내일배움카드(국비지원) 적용 여부와 수강료는 회차별로 다르므로 상담 시 안내해 드립니다. '
+            + '모집 중인 다른 과정은 교육과정 안내에서 확인할 수 있고, 문의는 전화(02-3144-3137) 또는 온라인 상담으로 받습니다.'
+        : '이 과정은 국민내일배움카드(국비지원)로 수강 가능 여부를 상담받을 수 있습니다. '
             + '자기부담금과 지원율은 회차와 개인 심사 결과에 따라 달라지며, 고용24(워크넷) 공고가 기준입니다. '
             + '3D프린터운용기능사 등 국가자격 대비 과정은 실기 중심으로 운영합니다. '
-            + '자세한 일정과 준비물은 전화(02-3144-3137) 또는 온라인 상담으로 안내해 드립니다.'
-            + '</p></section>';
+            + '자세한 일정과 준비물은 전화(02-3144-3137) 또는 온라인 상담으로 안내해 드립니다.';
+    const guide = '<section class="mb-2" aria-label="수강 안내">'
+        + '<h2 class="text-lg font-black tracking-tight text-slate-900 mb-2">수강 안내</h2>'
+        + '<p class="text-slate-600 leading-relaxed">' + guideText + '</p>'
+        + '<p class="mt-3 text-sm text-slate-500">'
+        + '관련 안내: <a href="/guides/national-support" class="text-primary-700 font-bold">국비지원·내일배움카드</a>'
+        + ' · <a href="/guides/craftsman-license" class="text-primary-700 font-bold">3D프린터운용기능사</a>'
+        + ' · <a href="/faq" class="text-primary-700 font-bold">자주 묻는 질문</a></p></section>';
 
-    if (!factsHtml && !descHtml) return guide;
     return factsHtml + descHtml + guide;
 }
 
