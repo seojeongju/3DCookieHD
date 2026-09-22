@@ -69,7 +69,7 @@ export const postsListHtml = `
     <div class="bg-gradient-to-r from-gray-700 to-gray-900 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 class="text-4xl font-bold mb-4">게시판</h1>
-            <p class="text-xl text-gray-300">공지사항 · FAQ · Q&A를 확인하세요. 수강생 작품 포트폴리오는 <a href="/portfolios" class="text-white underline underline-offset-2 hover:text-primary-200 font-semibold">포트폴리오 갤러리</a>에서 보실 수 있습니다.</p>
+            <p class="text-xl text-gray-300">공지사항 · FAQ를 확인하세요. 개별 문의는 <a href="/online-consulting" class="text-white underline underline-offset-2 hover:text-primary-200 font-semibold">온라인 상담</a> 또는 전화(02-3144-3137)로 안내해 드립니다.</p>
         </div>
     </div>
 
@@ -82,9 +82,6 @@ export const postsListHtml = `
             </button>
             <button onclick="filterCategory('faq')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="faq">
                 FAQ
-            </button>
-            <button onclick="filterCategory('qna')" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent whitespace-nowrap" data-category="qna">
-                Q&A
             </button>
         </div>
 

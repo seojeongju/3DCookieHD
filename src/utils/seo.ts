@@ -183,8 +183,6 @@ const BREADCRUMB_LABELS: Record<string, string> = {
     'course-sessions': '교육과정',
     courses: '일반과정',
     schedule: '교육 일정',
-    jobs: '채용정보',
-    jobseekers: '구직정보',
     reviews: '교육 후기',
     portfolios: '포트폴리오',
     posts: '공지·게시판',
@@ -606,14 +604,6 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         title: '교육 일정',
         description: '와우쓰리디홍대센터의 교육과정 일정과 모집 현황을 확인하세요.',
     },
-    '/jobs': {
-        title: '채용정보',
-        description: '3D프린팅·설계·디자인 분야의 채용정보를 확인하세요.',
-    },
-    '/jobseekers': {
-        title: '구직정보',
-        description: '3D프린팅 교육 수료생과 전문 인재의 구직정보를 확인하세요.',
-    },
     '/reviews': {
         title: '3D프린팅 국비지원·기능사 수강후기',
         description: '와우쓰리디 3D프린팅 국비지원·내일배움카드·3D프린터운용기능사 과정 수강생들의 생생한 교육 후기를 확인하세요.',
@@ -726,8 +716,6 @@ export const PUBLIC_PATHS: string[] = [
     '/university-education',
     '/course-sessions',
     '/schedule',
-    '/jobs',
-    '/jobseekers',
     '/reviews',
     '/portfolios',
     '/posts',

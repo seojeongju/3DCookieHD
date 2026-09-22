@@ -48,8 +48,6 @@ import { adminAnalyticsHtml } from './views/admin_analytics';
 import { adminHomePopupsHtml } from './views/admin_home_popups';
 import { adminJobsListHtml } from './views/admin_jobs';
 import { adminJobseekersListHtml } from './views/admin_jobseekers';
-import { jobsListHtml } from './views/jobs';
-import { jobseekersListHtml } from './views/jobseekers';
 import { adminCoursesListHtml } from './views/admin_courses';
 import { adminCoursesMainHtml } from './views/admin_courses_main';
 import {
@@ -832,8 +830,10 @@ app.get('/teacher/courses/:id/training-logs', (c) => {
 app.get('/login', (c) => c.html(loginHtml));
 app.get('/register', (c) => c.html(registerHtml));
 app.get('/reset-password', (c) => c.html(resetPasswordHtml));
-app.get('/jobs', (c) => c.html(jobsListHtml));
-app.get('/jobseekers', (c) => c.html(jobseekersListHtml));
+// 채용정보(구인·구직)는 유선·이메일 상담으로 운영하므로 공개 페이지를 상담으로 통합한다.
+// 관리자(/admin/jobs, /admin/jobseekers)와 API는 그대로 유지한다.
+app.get('/jobs', (c) => c.redirect('/online-consulting', 301));
+app.get('/jobseekers', (c) => c.redirect('/online-consulting', 301));
 /** 과정 상세를 서버에서 렌더링하기 위한 회차 정보 (실패해도 페이지는 정상 동작) */
 async function loadSessionDetailFacts(DB: D1Database | undefined, id: number) {
     if (!DB) return {};
@@ -1005,7 +1005,13 @@ app.get('/portfolios/:id', async (c) => {
         plainDescription,
     }));
 });
-app.get('/posts', (c) => c.html(postsListHtml));
+app.get('/posts', (c) => {
+    // Q&A는 상담 채널로 일원화했으므로 기존 링크는 FAQ로 넘긴다
+    if ((c.req.query('category') || '').toLowerCase() === 'qna') {
+        return c.redirect('/faq', 301);
+    }
+    return c.html(postsListHtml);
+});
 app.get('/faq', async (c) => {
     try {
         const result = await c.env.DB.prepare(`
@@ -3069,13 +3075,6 @@ app.get('/corporate-education', (c) => {
                                                                                                                                                                 </body>
                                                                                                                                                             </html>
                                                                                                                                                             `);
-});
-
-// ============================================
-// 채용정보 페이지 (공개)
-// ============================================
-app.get('/jobs', (c) => {
-    return c.html(jobsListHtml);
 });
 
 // ============================================
