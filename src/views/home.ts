@@ -590,7 +590,7 @@ export const homeHtml = `
     </section>
 
     <!-- 메인 공지 팝업 -->
-    <div id="homePopupRoot" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-black/50" aria-hidden="true"></div>
+    <div id="homePopupRoot" class="fixed inset-0 z-[80] hidden" aria-hidden="true"></div>
 
     <script>
         function stripHtml(html) {
@@ -1097,20 +1097,8 @@ export const homeHtml = `
                 localStorage.setItem(homePopupStorageKey(id), today);
             } catch (e) { /* ignore */ }
         }
-        var HOME_POPUP_OVERLAY_BASE = 'fixed inset-0 z-[80] hidden p-4 sm:p-6 bg-black/50';
-        var HOME_POPUP_OVERLAY_POS = {
-            center: 'items-center justify-center',
-            top: 'items-start justify-center pt-8 sm:pt-12',
-            bottom: 'items-end justify-center pb-8 sm:pb-12',
-            'top-left': 'items-start justify-start',
-            'top-center': 'items-start justify-center pt-8 sm:pt-12',
-            'top-right': 'items-start justify-end',
-            'center-left': 'items-center justify-start',
-            'center-right': 'items-center justify-end',
-            'bottom-left': 'items-end justify-start pb-8 sm:pb-12',
-            'bottom-center': 'items-end justify-center pb-8 sm:pb-12',
-            'bottom-right': 'items-end justify-end pb-8 sm:pb-12'
-        };
+        var HOME_POPUP_ROOT_HIDDEN = 'fixed inset-0 z-[80] hidden';
+        var HOME_POPUP_STAGE_PAD = 16;
         var HOME_POPUP_WIDTH = {
             sm: 'max-w-xs',
             md: 'max-w-md',
@@ -1125,11 +1113,6 @@ export const homeHtml = `
             xl: 'max-h-[min(65vh,36rem)]',
             xxl: 'max-h-[min(75vh,42rem)]'
         };
-        function homePopupOverlayClass(position) {
-            var pos = String(position || 'center').toLowerCase();
-            var align = HOME_POPUP_OVERLAY_POS[pos] || HOME_POPUP_OVERLAY_POS.center;
-            return HOME_POPUP_OVERLAY_BASE + ' ' + align;
-        }
         function homePopupWidthClass(size) {
             var s = String(size || 'md').toLowerCase();
             return HOME_POPUP_WIDTH[s] || HOME_POPUP_WIDTH.md;
@@ -1138,15 +1121,127 @@ export const homeHtml = `
             var s = String(size || 'md').toLowerCase();
             return HOME_POPUP_IMG_MAX[s] || HOME_POPUP_IMG_MAX.md;
         }
+        function homePopupInitialCoords(position, sw, sh, pw, ph, pad) {
+            var p = String(position || 'center').toLowerCase();
+            var x = (sw - pw) / 2;
+            var y = (sh - ph) / 2;
+            if (p === 'top' || p === 'top-center') y = pad;
+            else if (p === 'bottom' || p === 'bottom-center') y = sh - ph - pad;
+            else if (p === 'top-left') { x = pad; y = pad; }
+            else if (p === 'top-right') { x = sw - pw - pad; y = pad; }
+            else if (p === 'bottom-left') { x = pad; y = sh - ph - pad; }
+            else if (p === 'bottom-right') { x = sw - pw - pad; y = sh - ph - pad; }
+            else if (p === 'center-left') { x = pad; y = (sh - ph) / 2; }
+            else if (p === 'center-right') { x = sw - pw - pad; y = (sh - ph) / 2; }
+            return {
+                left: Math.max(pad, Math.min(sw - pw - pad, x)),
+                top: Math.max(pad, Math.min(sh - ph - pad, y))
+            };
+        }
+        function positionHomePopupPanel(panel, position) {
+            var stage = document.getElementById('homePopupStage');
+            if (!panel || !stage) return;
+            panel.style.position = 'absolute';
+            panel.style.margin = '0';
+            panel.style.left = '0px';
+            panel.style.top = '0px';
+            var pad = HOME_POPUP_STAGE_PAD;
+            var sw = stage.clientWidth;
+            var sh = stage.clientHeight;
+            var pw = panel.offsetWidth;
+            var ph = panel.offsetHeight;
+            var c = homePopupInitialCoords(position, sw, sh, pw, ph, pad);
+            panel.style.left = c.left + 'px';
+            panel.style.top = c.top + 'px';
+        }
+        function setupHomePopupBackdrop(backdrop) {
+            if (!backdrop || backdrop.dataset.bound) return;
+            backdrop.dataset.bound = '1';
+            backdrop.addEventListener('click', function() {
+                if (window.__homePopupSuppressBackdropClose) return;
+                confirmCloseHomePopup();
+            });
+        }
+        function setupHomePopupDrag(panel, stage) {
+            if (!panel || !stage || panel.dataset.dragBound) return;
+            panel.dataset.dragBound = '1';
+            var pad = HOME_POPUP_STAGE_PAD;
+            var dragging = false;
+            var moved = false;
+            var startX = 0;
+            var startY = 0;
+            var startLeft = 0;
+            var startTop = 0;
+            function isDragExcluded(target) {
+                if (!target || !target.closest) return false;
+                return !!target.closest('a, button, input, textarea, select, label');
+            }
+            function clampPanel(left, top) {
+                var maxL = Math.max(pad, stage.clientWidth - panel.offsetWidth - pad);
+                var maxT = Math.max(pad, stage.clientHeight - panel.offsetHeight - pad);
+                return {
+                    left: Math.max(pad, Math.min(maxL, left)),
+                    top: Math.max(pad, Math.min(maxT, top))
+                };
+            }
+            panel.addEventListener('click', function(ev) {
+                if (window.__homePopupBlockClick) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                }
+            }, true);
+            panel.addEventListener('pointerdown', function(ev) {
+                if (ev.button !== 0 || isDragExcluded(ev.target)) return;
+                dragging = true;
+                moved = false;
+                startX = ev.clientX;
+                startY = ev.clientY;
+                startLeft = panel.offsetLeft;
+                startTop = panel.offsetTop;
+                if (panel.setPointerCapture) panel.setPointerCapture(ev.pointerId);
+                panel.classList.add('cursor-grabbing');
+                panel.classList.remove('cursor-grab');
+            });
+            panel.addEventListener('pointermove', function(ev) {
+                if (!dragging) return;
+                var dx = ev.clientX - startX;
+                var dy = ev.clientY - startY;
+                if (!moved && (Math.abs(dx) + Math.abs(dy) > 5)) moved = true;
+                if (!moved) return;
+                ev.preventDefault();
+                var next = clampPanel(startLeft + dx, startTop + dy);
+                panel.style.left = next.left + 'px';
+                panel.style.top = next.top + 'px';
+            });
+            function endDrag(ev) {
+                if (!dragging) return;
+                dragging = false;
+                if (panel.releasePointerCapture) {
+                    try { panel.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+                }
+                panel.classList.remove('cursor-grabbing');
+                panel.classList.add('cursor-grab');
+                if (moved) {
+                    window.__homePopupBlockClick = true;
+                    window.__homePopupSuppressBackdropClose = true;
+                    setTimeout(function() {
+                        window.__homePopupBlockClick = false;
+                        window.__homePopupSuppressBackdropClose = false;
+                    }, 320);
+                }
+            }
+            panel.addEventListener('pointerup', endDrag);
+            panel.addEventListener('pointercancel', endDrag);
+        }
         function closeHomePopup() {
             var root = document.getElementById('homePopupRoot');
             if (!root) return;
-            root.className = homePopupOverlayClass('center');
-            root.classList.add('hidden');
-            root.classList.remove('flex');
+            root.className = HOME_POPUP_ROOT_HIDDEN;
             root.setAttribute('aria-hidden', 'true');
             root.innerHTML = '';
             window.__homePopupCurrentId = null;
+            window.__homePopupBlockClick = false;
+            window.__homePopupSuppressBackdropClose = false;
         }
         function confirmCloseHomePopup() {
             var c = document.getElementById('homePopupHideToday');
@@ -1176,24 +1271,36 @@ export const homeHtml = `
                   '</div>'
                 : '';
             var imgWrapEnd = img ? (link ? '</a>' : '</div>') : '';
-            root.className = homePopupOverlayClass(popupPosition) + ' flex';
-            var html = '<div class="relative w-full ' + widthCls + ' bg-white rounded-[2rem] shadow-2xl border border-slate-200/60 overflow-hidden">' +
-                '<button type="button" onclick="closeHomePopup()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/95 text-slate-600 border border-slate-200/70 shadow-sm hover:bg-white hover:text-slate-900" aria-label="닫기"><i class="fas fa-times"></i></button>' +
+            root.className = 'fixed inset-0 z-[80]';
+            var panelHtml = '<div id="homePopupPanel" role="dialog" aria-modal="true" class="relative w-full ' + widthCls + ' bg-white rounded-[2rem] shadow-2xl border border-slate-200/60 overflow-hidden cursor-grab touch-none">' +
+                '<div class="flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-50/90 border-b border-slate-100 text-[10px] font-bold text-slate-400 pointer-events-none">' +
+                '<i class="fas fa-grip-lines"></i><span>끌어서 위치 이동 · 배경 클릭 시 닫기</span></div>' +
+                '<button type="button" onclick="closeHomePopup()" class="absolute top-12 right-4 z-10 w-10 h-10 rounded-full bg-white/95 text-slate-600 border border-slate-200/70 shadow-sm hover:bg-white hover:text-slate-900 cursor-pointer select-auto" aria-label="닫기"><i class="fas fa-times"></i></button>' +
                 imgWrapStart + imgWrapEnd +
-                '<div class="px-6 pb-6 ' + (img ? 'pt-4' : 'pt-10') + '">' +
+                '<div class="px-6 pb-6 ' + (img ? 'pt-4' : 'pt-10') + ' select-text">' +
                 '<h2 class="text-xl font-black tracking-tight text-slate-900 mb-2">' + title + '</h2>' +
                 (content ? '<p class="text-sm text-slate-600 leading-relaxed mb-4">' + content + '</p>' : '') +
                 (link ? '<a href="' + safeLink + '" class="inline-flex w-full items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition mb-3">' + linkLabel + '</a>' : '') +
                 '<div class="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">' +
                 '<label class="flex items-center gap-2 text-xs font-bold text-slate-500 cursor-pointer"><input type="checkbox" id="homePopupHideToday" class="rounded border-slate-300 text-primary-600"> 오늘 하루 보지 않기</label>' +
                 '<button type="button" onclick="confirmCloseHomePopup()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200">닫기</button>' +
-                '</div></div></div>';
-            root.innerHTML = html;
+                '</div></div>';
+            root.innerHTML =
+                '<div id="homePopupBackdrop" class="absolute inset-0 bg-black/50"></div>' +
+                '<div id="homePopupStage" class="absolute inset-0 p-4 sm:p-6 overflow-hidden">' +
+                panelHtml +
+                '</div>';
             root.classList.remove('hidden');
             root.setAttribute('aria-hidden', 'false');
-            root.onclick = function(ev) {
-                if (ev.target === root) confirmCloseHomePopup();
-            };
+            window.__homePopupBlockClick = false;
+            window.__homePopupSuppressBackdropClose = false;
+            var backdrop = document.getElementById('homePopupBackdrop');
+            var panel = document.getElementById('homePopupPanel');
+            setupHomePopupBackdrop(backdrop);
+            requestAnimationFrame(function() {
+                positionHomePopupPanel(panel, popupPosition);
+                setupHomePopupDrag(panel, document.getElementById('homePopupStage'));
+            });
         }
         async function loadHomePopups() {
             try {
