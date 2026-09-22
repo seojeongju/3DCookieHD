@@ -226,6 +226,8 @@ export const adminHomePopupsHtml = (sidebarHtml?: string) => `
             if (!input.files || !input.files[0]) return;
             var fd = new FormData();
             fd.append('file', input.files[0]);
+            fd.append('category', 'images');
+            fd.append('folder', 'home-popups');
             try {
                 var res = await fetch('/api/upload', { method: 'POST', headers: authHeaders(), body: fd });
                 var result = await res.json();
