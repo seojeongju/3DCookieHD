@@ -54,3 +54,8 @@ Thumbs.db
 
 # Backups
 /backups/
+
+# SEO 점검용 임시 수집 파일
+chk_*.html
+*_check.html
+sitemap_check.xml
