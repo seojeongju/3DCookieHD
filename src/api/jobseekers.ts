@@ -4,6 +4,78 @@ import { authMiddleware, requireAdmin } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+/** 홈페이지 인재풀용 — 연락처·메모 등 민감 정보 제외 */
+function toPublicJobseeker(row: Record<string, unknown>) {
+    return {
+        id: row.id,
+        name: row.name,
+        birth_date: row.birth_date,
+        education: row.education,
+        career: row.career,
+        skills: row.skills,
+        address: row.address,
+        resume_file: row.resume_file,
+        portfolio_file: row.portfolio_file,
+        status: row.status,
+        created_at: row.created_at,
+    };
+}
+
+// ============================================
+// 구직자 목록 조회 (공개 — 구직중만)
+// GET /api/jobseekers/public
+// ============================================
+app.get('/public', async (c) => {
+    try {
+        const { DB } = c.env;
+        const search = (c.req.query('search') || '').trim();
+        const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+        const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '12', 10)));
+        const offset = (page - 1) * limit;
+
+        let whereClause = "WHERE status = 'active'";
+        const params: (string | number)[] = [];
+
+        if (search) {
+            whereClause += ' AND (name LIKE ? OR education LIKE ? OR career LIKE ? OR skills LIKE ?)';
+            const q = `%${search}%`;
+            params.push(q, q, q, q);
+        }
+
+        const countResult = await DB.prepare(
+            `SELECT COUNT(*) as total FROM jobseekers ${whereClause}`,
+        ).bind(...params).first<{ total: number }>();
+        const total = countResult?.total || 0;
+
+        const result = await DB.prepare(`
+      SELECT id, name, birth_date, education, career, skills, address,
+             resume_file, portfolio_file, status, created_at
+      FROM jobseekers
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `).bind(...params, limit, offset).all();
+
+        const data = (result.results || []).map((row) =>
+            toPublicJobseeker(row as Record<string, unknown>),
+        );
+
+        return c.json({
+            success: true,
+            data,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching public jobseekers:', error);
+        return c.json({ success: false, error: '인재 목록 조회 중 오류가 발생했습니다' }, 500);
+    }
+});
+
 // ============================================
 // 구직자 목록 조회 (관리자 전용)
 // GET /api/jobseekers

@@ -178,9 +178,8 @@ export const jobseekersListHtml = `
             const search = searchInput ? searchInput.value : '';
             
             try {
-                // 구직중인 인재만 조회
-                let url = '/api/jobseekers?status=active';
-                if (search) url += '&search=' + encodeURIComponent(search);
+                let url = '/api/jobseekers/public';
+                if (search) url += '?search=' + encodeURIComponent(search);
 
                 const response = await fetch(url);
                 const result = await response.json();
