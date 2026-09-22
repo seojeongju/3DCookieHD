@@ -589,6 +589,9 @@ export const homeHtml = `
         </div>
     </section>
 
+    <!-- 메인 공지 팝업 -->
+    <div id="homePopupRoot" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-black/50" aria-hidden="true"></div>
+
     <script>
         function stripHtml(html) {
             if (!html) return '';
@@ -1040,6 +1043,8 @@ export const homeHtml = `
                 loadCourses();
             });
 
+            loadHomePopups();
+
             lazyLoadSection('education-photos', function() {
                 homeDataPromise.then(function(data) {
                     return loadEducationPhotos(data && data.educationPhotos);
@@ -1074,6 +1079,84 @@ export const homeHtml = `
                 setSlide(0);
             }
         });
+
+        function homePopupStorageKey(id) {
+            return 'home_popup_hide_' + id;
+        }
+        function isHomePopupHiddenToday(id) {
+            try {
+                var raw = localStorage.getItem(homePopupStorageKey(id));
+                if (!raw) return false;
+                var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+                return raw === today;
+            } catch (e) { return false; }
+        }
+        function hideHomePopupToday(id) {
+            try {
+                var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+                localStorage.setItem(homePopupStorageKey(id), today);
+            } catch (e) { /* ignore */ }
+        }
+        function closeHomePopup() {
+            var root = document.getElementById('homePopupRoot');
+            if (!root) return;
+            root.classList.add('hidden');
+            root.classList.remove('flex');
+            root.setAttribute('aria-hidden', 'true');
+            root.innerHTML = '';
+            window.__homePopupCurrentId = null;
+        }
+        function confirmCloseHomePopup() {
+            var c = document.getElementById('homePopupHideToday');
+            var id = window.__homePopupCurrentId;
+            if (c && c.checked && id != null) hideHomePopupToday(id);
+            closeHomePopup();
+        }
+        function showHomePopup(p) {
+            var root = document.getElementById('homePopupRoot');
+            if (!root || !p) return;
+            window.__homePopupCurrentId = p.id;
+            var title = (p.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            var content = (p.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\n/g, '<br>');
+            var img = (p.image_url || '').trim();
+            var link = (p.link_url || '').trim();
+            var linkLabel = (p.link_label || '바로가기').replace(/</g, '&lt;');
+            var safeImg = img.replace(/"/g, '&quot;');
+            var safeLink = link.replace(/"/g, '&quot;');
+            var html = '<div class="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl border border-slate-200/60 overflow-hidden">' +
+                '<button type="button" onclick="closeHomePopup()" class="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-black/40 text-white hover:bg-black/60" aria-label="닫기"><i class="fas fa-times"></i></button>' +
+                (img ? (link ? '<a href="' + safeLink + '" class="block">' : '<div class="block">') + '<img src="' + safeImg + '" alt="' + title + '" class="w-full max-h-[55vh] object-cover bg-slate-100">' + (link ? '</a>' : '</div>') : '') +
+                '<div class="p-6">' +
+                '<h2 class="text-xl font-black tracking-tight text-slate-900 mb-2">' + title + '</h2>' +
+                (content ? '<p class="text-sm text-slate-600 leading-relaxed mb-4">' + content + '</p>' : '') +
+                (link ? '<a href="' + safeLink + '" class="inline-flex w-full items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition mb-3">' + linkLabel + '</a>' : '') +
+                '<div class="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">' +
+                '<label class="flex items-center gap-2 text-xs font-bold text-slate-500 cursor-pointer"><input type="checkbox" id="homePopupHideToday" class="rounded border-slate-300 text-primary-600"> 오늘 하루 보지 않기</label>' +
+                '<button type="button" onclick="confirmCloseHomePopup()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200">닫기</button>' +
+                '</div></div></div>';
+            root.innerHTML = html;
+            root.classList.remove('hidden');
+            root.classList.add('flex');
+            root.setAttribute('aria-hidden', 'false');
+            root.onclick = function(ev) {
+                if (ev.target === root) confirmCloseHomePopup();
+            };
+        }
+        async function loadHomePopups() {
+            try {
+                var res = await fetch('/api/home-popups/public');
+                var result = await res.json();
+                if (!result.success || !result.data || !result.data.length) return;
+                var list = result.data.filter(function(p) { return !isHomePopupHiddenToday(p.id); });
+                if (!list.length) return;
+                showHomePopup(list[0]);
+            } catch (e) {
+                console.error('loadHomePopups error:', e);
+            }
+        }
+        window.closeHomePopup = closeHomePopup;
+        window.confirmCloseHomePopup = confirmCloseHomePopup;
+        window.hideHomePopupToday = hideHomePopupToday;
 
         var lazyLoadedSections = {};
         function lazyLoadSection(sectionId, loader) {

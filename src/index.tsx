@@ -42,8 +42,10 @@ import educationPerformance from './api/education_performance';
 import { setupApi } from './api/setup';
 import analytics from './api/analytics';
 import homeApi from './api/home';
+import homePopupsApi from './api/home_popups';
 import { adminDashboardHtml } from './views/admin';
 import { adminAnalyticsHtml } from './views/admin_analytics';
+import { adminHomePopupsHtml } from './views/admin_home_popups';
 import { adminJobsListHtml } from './views/admin_jobs';
 import { adminJobseekersListHtml } from './views/admin_jobseekers';
 import { jobsListHtml } from './views/jobs';
@@ -597,6 +599,7 @@ app.route('/api/ncs', ncs);
 app.route('/api/setup', setupApi);
 app.route('/api/analytics', analytics);
 app.route('/api/home', homeApi);
+app.route('/api/home-popups', homePopupsApi);
 
 app.get('/admin', (c) => c.html(adminDashboardHtml));
 app.get('/admin/analytics', (c) => c.html(adminAnalyticsHtml()));
@@ -638,6 +641,7 @@ app.get('/admin/ncs', (c) => c.html(adminNcsHtml));
 app.get('/admin/ncs/viewer', (c) => c.html(adminNcsViewerHtml()));
 app.get('/admin/ncs/upload', (c) => c.html(adminNcsUploadHtml()));
 app.get('/admin/settings', (c) => c.html(adminSettingsHtml()));
+app.get('/admin/home-popups', (c) => c.html(adminHomePopupsHtml()));
 
 app.get('/admin/ncs/approved', (c) => c.redirect('/admin/courses/approved'));
 app.get('/admin/ncs/approved/list', (c) => c.redirect('/admin/courses/approved'));
