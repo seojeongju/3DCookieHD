@@ -131,7 +131,7 @@ import { adminLmsNcsEvalExecHtml } from './views/admin_lms_ncs_eval_exec';
 import { adminNcsEvalResultHtml, adminLmsNcsEvalResultHtml } from './views/admin_ncs_eval_result';
 import { adminLmsNcsEvalDashboardHtml } from './views/admin_lms_ncs_eval_dashboard';
 import { adminHrdSurveysHtml } from './views/admin_hrd_surveys';
-import { reviewsListHtml } from './views/reviews';
+import { reviewsListHtml, type PublicReviewCard } from './views/reviews';
 import { loginHtml } from './views/login';
 import { registerHtml } from './views/register';
 import { adminReviewsListHtml } from './views/admin_reviews';
@@ -155,7 +155,8 @@ import { locationsHtml } from './views/locations';
 import { educationPerformanceHtml } from './views/education_performance';
 import { tomorrowLearningCardHtml } from './views/tomorrow_learning_card';
 import { coursesListHtml } from './views/courses';
-import { courseSessionsListHtml, courseSessionDetailHtml } from './views/course_sessions_public';
+import { courseSessionsListHtml, courseSessionDetailHtml, type PublicSessionCard } from './views/course_sessions_public';
+import { applyEffectiveStatusToList, sqlWhereEffectiveActive, sqlOrderHomeCourses } from './utils/course_session_status';
 import { achievementsHtml } from './views/achievements';
 import { footerHtml } from './views/footer';
 import { navigationHtml } from './views/components/navigation';
@@ -315,6 +316,14 @@ app.get('/robots.txt', (c) => {
         'Disallow: /reset-password',
         '# 필터·검색 쿼리 URL은 대표 경로만 색인 (canonical + noindex와 병행)',
         'Disallow: /*?*',
+        '# 광고·유입 추적 파라미터는 크롤 허용 (대표 URL로 301 리다이렉트)',
+        'Allow: /*?utm_source=',
+        'Allow: /*?utm_medium=',
+        'Allow: /*?utm_campaign=',
+        'Allow: /*?utm_term=',
+        'Allow: /*?utm_content=',
+        'Allow: /*?gclid=',
+        'Allow: /*?fbclid=',
         'Sitemap: ' + origin + '/sitemap.xml',
         '# LLM context: ' + origin + '/llms.txt',
         '',
@@ -397,26 +406,28 @@ app.get('/sitemap.xml', async (c) => {
             console.error('sitemap courses query failed:', e);
         }
 
-        let portfolios: Array<{ id: number; updated_at?: string }> = [];
+        let portfolios: Array<{ id: number; updated_at?: string; description?: string }> = [];
         try {
             const result = await c.env.DB.prepare(`
-                SELECT id, updated_at
+                SELECT id, updated_at, description
                 FROM student_portfolios
                 WHERE status IS NULL OR status = 'published'
                 ORDER BY id
-            `).all<{ id: number; updated_at?: string }>();
+            `).all<{ id: number; updated_at?: string; description?: string }>();
             portfolios = result.results || [];
         } catch {
             try {
                 const result = await c.env.DB.prepare(
-                    'SELECT id, updated_at FROM student_portfolios ORDER BY id'
-                ).all<{ id: number; updated_at?: string }>();
+                    'SELECT id, updated_at, description FROM student_portfolios ORDER BY id'
+                ).all<{ id: number; updated_at?: string; description?: string }>();
                 portfolios = result.results || [];
             } catch (e) {
                 console.error('sitemap portfolios query failed:', e);
             }
         }
+        // 설명이 이미지 래퍼 HTML뿐인 작품은 색인 가치가 낮아 사이트맵에서 제외한다
         for (const row of portfolios) {
+            if (toPlainMeta(row.description || '', 400).length < 40) continue;
             entries.push({
                 path: `/portfolios/${row.id}`,
                 lastmod: normalizeSitemapDate(row.updated_at),
@@ -823,6 +834,67 @@ app.get('/register', (c) => c.html(registerHtml));
 app.get('/reset-password', (c) => c.html(resetPasswordHtml));
 app.get('/jobs', (c) => c.html(jobsListHtml));
 app.get('/jobseekers', (c) => c.html(jobseekersListHtml));
+/** 과정 상세를 서버에서 렌더링하기 위한 회차 정보 (실패해도 페이지는 정상 동작) */
+async function loadSessionDetailFacts(DB: D1Database | undefined, id: number) {
+    if (!DB) return {};
+    try {
+        const row = await DB.prepare(`
+            SELECT s.status, s.recruitment_status, s.training_start_date, s.training_end_date,
+                   s.instructor_name, s.location, s.days_of_week, s.target_audience,
+                   s.training_time_start, s.training_time_end, s.course_detail_description,
+                   a.name as course_name, a.total_hours, cat.name as category_name
+            FROM course_sessions s
+            INNER JOIN approved_courses a ON a.id = s.approved_course_id
+            LEFT JOIN course_categories cat ON cat.id = a.category_id
+            WHERE s.id = ?
+        `).bind(id).first<Record<string, any>>();
+        if (!row) return {};
+        const [normalized] = applyEffectiveStatusToList([row as any]);
+        return {
+            courseName: row.course_name,
+            categoryName: row.category_name,
+            status: (normalized as any)?.status ?? row.status,
+            startDate: row.training_start_date,
+            endDate: row.training_end_date,
+            location: row.location,
+            instructorName: row.instructor_name,
+            totalHours: row.total_hours,
+            timeStart: row.training_time_start,
+            timeEnd: row.training_time_end,
+            daysOfWeek: row.days_of_week,
+            targetAudience: row.target_audience,
+            detailDescription: row.course_detail_description,
+        };
+    } catch (e) {
+        console.error('session detail SSR facts failed:', e);
+        return {};
+    }
+}
+
+/** 일반 과정 상세의 서버 렌더링 정보 */
+async function loadGeneralCourseFacts(DB: D1Database | undefined, id: number) {
+    if (!DB) return {};
+    try {
+        const row = await DB.prepare(`
+            SELECT title, description, category, start_date, end_date, duration_hours, status
+            FROM courses WHERE id = ?
+        `).bind(id).first<Record<string, any>>();
+        if (!row) return {};
+        return {
+            courseName: row.title,
+            categoryName: row.category,
+            status: row.status === 'active' ? 'recruiting' : 'completed',
+            startDate: row.start_date,
+            endDate: row.end_date,
+            totalHours: row.duration_hours,
+            detailDescription: row.description,
+        };
+    } catch (e) {
+        console.error('general course SSR facts failed:', e);
+        return {};
+    }
+}
+
 app.get('/courses', (c) => c.redirect('/course-sessions'));
 app.get('/courses/:id', async (c) => {
     const rawId = c.req.param('id');
@@ -834,9 +906,47 @@ app.get('/courses/:id', async (c) => {
     if (!seo) {
         return c.html(publicNotFoundHtml('요청하신 일반 교육과정을 찾을 수 없습니다.', '/course-sessions'), 404);
     }
-    return c.html(courseSessionDetailHtml(String(id), 'general', { title: seo.title, summary: seo.description || '' }));
+    const facts = await loadGeneralCourseFacts(c.env.DB, id);
+    return c.html(courseSessionDetailHtml(String(id), 'general', {
+        title: seo.title,
+        summary: seo.description || '',
+        ...facts,
+    }));
 });
-app.get('/course-sessions', (c) => c.html(courseSessionsListHtml));
+app.get('/course-sessions', async (c) => {
+    // 검색엔진·AI 크롤러가 JS 없이도 과정 목록을 읽을 수 있도록 첫 페이지를 서버에서 렌더링한다
+    let rows: PublicSessionCard[] = [];
+    try {
+        if (c.env.DB) {
+            const result = await c.env.DB.prepare(`
+                SELECT
+                    'session' as source,
+                    s.id,
+                    a.name as course_name,
+                    cat.name as category_name,
+                    s.status,
+                    s.recruitment_status,
+                    s.training_start_date,
+                    s.training_end_date,
+                    s.instructor_name,
+                    COALESCE(NULLIF(TRIM(s.course_list_image_url), ''), NULLIF(TRIM(s.main_slide_image_url), ''), '/static/course_placeholder.svg') as image_url,
+                    s.session_number,
+                    s.session_name
+                FROM course_sessions s
+                INNER JOIN approved_courses a ON a.id = s.approved_course_id
+                LEFT JOIN course_categories cat ON cat.id = a.category_id
+                WHERE (s.homepage_exposed = 1 OR s.homepage_exposed IS NULL)
+                  AND ${sqlWhereEffectiveActive('s')}
+                ORDER BY ${sqlOrderHomeCourses('s')}
+                LIMIT 12
+            `).all();
+            rows = applyEffectiveStatusToList((result.results || []) as any) as PublicSessionCard[];
+        }
+    } catch (e) {
+        console.error('course-sessions SSR list failed:', e);
+    }
+    return c.html(courseSessionsListHtml(rows));
+});
 app.get('/course-sessions/:id', async (c) => {
     const rawId = c.req.param('id');
     const id = Number(rawId);
@@ -847,7 +957,12 @@ app.get('/course-sessions/:id', async (c) => {
     if (!seo) {
         return c.html(publicNotFoundHtml('요청하신 교육과정을 찾을 수 없습니다.', '/course-sessions'), 404);
     }
-    return c.html(courseSessionDetailHtml(String(id), 'session', { title: seo.title, summary: seo.description || '' }));
+    const facts = await loadSessionDetailFacts(c.env.DB, id);
+    return c.html(courseSessionDetailHtml(String(id), 'session', {
+        title: seo.title,
+        summary: seo.description || '',
+        ...facts,
+    }));
 });
 app.get('/portfolios', (c) => c.html(portfoliosListHtml));
 app.get('/portfolios/:id', async (c) => {
@@ -862,17 +977,23 @@ app.get('/portfolios/:id', async (c) => {
     }
     let studentName = '';
     let courseTitle = '';
+    let category = '';
+    let plainDescription = '';
     if (c.env.DB) {
         try {
             const row = await c.env.DB.prepare(`
-                SELECT u.name as student_name, c.title as course_title
+                SELECT u.name as student_name, c.title as course_title,
+                       p.category, p.description
                 FROM student_portfolios p
                 LEFT JOIN users u ON p.student_id = u.id
                 LEFT JOIN courses c ON p.course_id = c.id
                 WHERE p.id = ?
-            `).bind(id).first<{ student_name?: string; course_title?: string }>();
+            `).bind(id).first<{ student_name?: string; course_title?: string; category?: string; description?: string }>();
             studentName = row?.student_name || '';
             courseTitle = row?.course_title || '';
+            category = row?.category && row.category !== 'other' ? row.category : '';
+            const plain = toPlainMeta(row?.description || '', 600);
+            plainDescription = plain.length >= 40 ? plain : '';
         } catch { /* ignore */ }
     }
     return c.html(portfolioDetailHtml(String(id), {
@@ -880,6 +1001,8 @@ app.get('/portfolios/:id', async (c) => {
         summary: seo.description || '',
         studentName,
         courseTitle,
+        category,
+        plainDescription,
     }));
 });
 app.get('/posts', (c) => c.html(postsListHtml));
@@ -1002,7 +1125,27 @@ app.get('/guides/:slug', (c) => {
 app.get('/education-performance', (c) => c.html(educationPerformanceHtml()));
 app.get('/tomorrow-learning-card', (c) => c.html(tomorrowLearningCardHtml()));
 app.get('/achievements', (c) => c.html(achievementsHtml));
-app.get('/reviews', (c) => c.html(reviewsListHtml));
+app.get('/reviews', async (c) => {
+    // 후기 1페이지를 서버에서 렌더링해 JS 없이도 본문이 남도록 한다
+    let rows: PublicReviewCard[] = [];
+    try {
+        if (c.env.DB) {
+            const result = await c.env.DB.prepare(`
+                SELECT p.id, p.title, p.content, p.author_name, p.rating, p.created_at,
+                       c.title as course_title
+                FROM posts p
+                LEFT JOIN courses c ON p.course_id = c.id
+                WHERE p.category = 'review' AND p.status = 'published'
+                ORDER BY p.created_at DESC
+                LIMIT 8
+            `).all<PublicReviewCard>();
+            rows = result.results || [];
+        }
+    } catch (e) {
+        console.error('reviews SSR list failed:', e);
+    }
+    return c.html(reviewsListHtml(rows));
+});
 
 // ============================================
 // 헬스체크 엔드포인트
@@ -2933,13 +3076,6 @@ app.get('/corporate-education', (c) => {
 // ============================================
 app.get('/jobs', (c) => {
     return c.html(jobsListHtml);
-});
-
-// ============================================
-// 수강후기 페이지 (공개)
-// ============================================
-app.get('/reviews', (c) => {
-    return c.html(reviewsListHtml);
 });
 
 // ============================================

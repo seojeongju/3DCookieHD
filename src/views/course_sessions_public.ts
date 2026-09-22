@@ -4,8 +4,140 @@ import { navigationHtml } from './components/navigation';
 const _navigationHtml = navigationHtml;
 const _footerHtml = footerHtml;
 
+/** 서버에서 미리 그려 둘 과정 카드 데이터 (검색엔진이 JS 없이 읽을 수 있도록) */
+export type PublicSessionCard = {
+    source?: string | null;
+    id: number;
+    course_name?: string | null;
+    category_name?: string | null;
+    status?: string | null;
+    training_start_date?: string | null;
+    training_end_date?: string | null;
+    instructor_name?: string | null;
+    image_url?: string | null;
+    session_number?: number | null;
+    session_name?: string | null;
+};
+
+function esc(value: unknown): string {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function statusLabel(status?: string | null): string {
+    const map: Record<string, string> = {
+        recruiting: '모집중',
+        in_progress: '진행중',
+        completed: '종료',
+        always_open: '상시모집',
+        closed: '폐강',
+        recruitment_closed: '모집 마감',
+    };
+    return map[String(status || '')] || String(status || '');
+}
+
+function statusColor(status?: string | null): string {
+    const map: Record<string, string> = {
+        recruiting: 'bg-green-500',
+        in_progress: 'bg-blue-500',
+        always_open: 'bg-emerald-500',
+        recruitment_closed: 'bg-amber-600',
+        completed: 'bg-slate-500',
+    };
+    return map[String(status || '')] || 'bg-gray-500';
+}
+
+/** 클라이언트 JS와 동일한 "2026. 10. 7." 표기 */
+function formatKoDate(value?: string | null): string {
+    const m = String(value || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return '';
+    return `${m[1]}. ${Number(m[2])}. ${Number(m[3])}.`;
+}
+
+function periodText(start?: string | null, end?: string | null): string {
+    const s = formatKoDate(start);
+    const e = formatKoDate(end);
+    if (s && e) return `${s} ~ ${e}`;
+    if (s) return `${s}~`;
+    return '일정 미정';
+}
+
+function topicBadgeHtml(name: string, category?: string | null): string {
+    const text = `${name} ${category || ''}`;
+    let html = '';
+    if (/기능사|운용기능사|국가자격/.test(text)) html += '<span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-violet-100 text-violet-700">기능사</span>';
+    if (/국비|내일배움|NCS/.test(text)) html += '<span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-emerald-100 text-emerald-700">국비</span>';
+    if (/소상공인|쿠키|몰드/.test(text)) html += '<span class="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-100 text-amber-800">소상공인</span>';
+    return html;
+}
+
+export function sessionDisplayName(row: PublicSessionCard): string {
+    return [row.course_name, row.session_number ? `${row.session_number}회차` : '', row.session_name]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/** 과정 목록 카드를 서버에서 HTML로 렌더링 */
+export function renderSessionCards(rows: PublicSessionCard[]): string {
+    if (!rows.length) {
+        return '<div class="col-span-full text-center py-16 bg-white rounded-lg shadow-sm">'
+            + '<p class="text-gray-600">현재 개설된 과정이 없습니다. 개강 예정 일정은 상담으로 안내해 드립니다.</p></div>';
+    }
+    return rows.map((row) => {
+        const detailUrl = row.source === 'general' ? `/courses/${row.id}` : `/course-sessions/${row.id}`;
+        const name = sessionDisplayName(row) || `3D프린팅 교육과정 ${row.id}`;
+        const image = (row.image_url || '').trim() || '/static/course_placeholder.svg';
+        const sourceBadge = row.source === 'general'
+            ? '<span class="absolute top-3 left-3 px-2 py-0.5 text-[10px] font-bold rounded bg-black/50 text-white backdrop-blur-sm shadow-sm">일반과정</span>'
+            : '';
+        const meta = [row.session_number ? `${row.session_number}회차` : '', row.instructor_name || '']
+            .filter(Boolean)
+            .join(' · ');
+        return '<a href="' + detailUrl + '" class="bg-white rounded-lg shadow-sm hover:shadow-xl transition border border-gray-100 overflow-hidden flex flex-col h-full group">'
+            + '<div class="relative h-48 overflow-hidden bg-white/50 border-b border-gray-50">'
+            + '<img src="' + esc(image) + '" alt="' + esc(name) + ' 과정 이미지" loading="lazy" class="w-full h-full object-contain group-hover:scale-105 transition duration-300">'
+            + '<span class="absolute top-3 right-3 px-2.5 py-1 text-xs font-bold rounded-full text-white ' + statusColor(row.status) + '">' + esc(statusLabel(row.status)) + '</span>'
+            + sourceBadge + '</div>'
+            + '<div class="p-5 flex-1 flex flex-col"><div class="flex flex-wrap items-center gap-1.5 mb-2">'
+            + '<span class="text-xs text-primary-600 font-medium">' + esc(row.category_name || '과정') + '</span>'
+            + topicBadgeHtml(name, row.category_name) + '</div>'
+            + '<h3 class="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-primary-600">' + esc(name) + '</h3>'
+            + '<p class="text-sm text-gray-500 mb-3">' + esc(meta) + '</p>'
+            + '<div class="mt-auto pt-3 border-t border-gray-100 text-sm text-gray-500">'
+            + '<i class="far fa-calendar-alt mr-2"></i>' + esc(periodText(row.training_start_date, row.training_end_date))
+            + '</div></div></a>';
+    }).join('');
+}
+
+/** 검색엔진·AI 크롤러가 읽을 과정 요약 목록 (JS 없이도 본문에 남는다) */
+export function renderSessionSummaryList(rows: PublicSessionCard[]): string {
+    if (!rows.length) return '';
+    const items = rows.map((row) => {
+        const detailUrl = row.source === 'general' ? `/courses/${row.id}` : `/course-sessions/${row.id}`;
+        const name = sessionDisplayName(row) || `3D프린팅 교육과정 ${row.id}`;
+        const parts = [
+            statusLabel(row.status),
+            periodText(row.training_start_date, row.training_end_date),
+            row.category_name || '',
+            row.instructor_name ? `담당 ${row.instructor_name}` : '',
+        ].filter(Boolean).join(' · ');
+        return '<li class="py-2.5 border-b border-slate-100 last:border-0">'
+            + '<a href="' + detailUrl + '" class="font-bold text-slate-800 hover:text-primary-700">' + esc(name) + '</a>'
+            + '<span class="block text-sm text-slate-500 mt-0.5">' + esc(parts) + '</span></li>';
+    }).join('');
+    return '<section class="mt-12 rounded-[2.5rem] border border-slate-200/60 bg-white p-6 sm:p-8 shadow-sm" aria-label="개설 과정 요약">'
+        + '<h2 class="text-lg font-black tracking-tight text-slate-900 mb-2">개설 과정 한눈에 보기</h2>'
+        + '<p class="text-sm text-slate-500 mb-4">모집 중이거나 진행 예정인 3D프린팅 국비지원·기능사·소상공인 과정 목록입니다.</p>'
+        + '<ul class="divide-y-0">' + items + '</ul></section>';
+}
+
 /** 연동 홈페이지용 회차별 과정 목록 */
-export const courseSessionsListHtml = `
+export const courseSessionsListTemplate = `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -54,13 +186,12 @@ export const courseSessionsListHtml = `
         </div>
 
         <div id="sessionsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 min-h-[400px] transition-opacity duration-300">
-            <div class="col-span-full text-center py-12">
-                <i class="fas fa-spinner fa-spin text-4xl text-primary-500 mb-4"></i>
-                <p class="text-gray-500">과정을 불러오는 중입니다...</p>
-            </div>
+            {{SSR_CARDS}}
         </div>
 
         <div id="sessionsPagination" class="mt-8 flex justify-center gap-2"></div>
+
+        {{SSR_SUMMARY}}
     </div>
 
     ` + _footerHtml() + `
@@ -207,17 +338,107 @@ export const courseSessionsListHtml = `
             loadList(); 
         }
 
-        document.addEventListener('DOMContentLoaded', function() { loadList(); });
+        document.addEventListener('DOMContentLoaded', function() {
+            // 서버가 이미 첫 페이지를 그려 둔 경우 초기 재요청을 생략한다
+            var prerendered = document.getElementById('sessionsList');
+            if (prerendered && prerendered.dataset.ssr === '1' && !currentCategory) {
+                updateTabStyles();
+                return;
+            }
+            loadList();
+        });
     </script>
 </body>
 </html>
 `;
 
+/**
+ * 과정 목록 페이지 HTML.
+ * rows가 있으면 서버에서 카드를 그려 JS 없이도 본문이 남도록 한다.
+ */
+export function courseSessionsListHtml(rows: PublicSessionCard[] = []): string {
+    const hasRows = rows.length > 0;
+    const cards = hasRows
+        ? renderSessionCards(rows)
+        : '<div class="col-span-full text-center py-12">'
+            + '<i class="fas fa-spinner fa-spin text-4xl text-primary-500 mb-4"></i>'
+            + '<p class="text-gray-500">과정을 불러오는 중입니다...</p></div>';
+    return courseSessionsListTemplate
+        .replace('{{SSR_CARDS}}', cards)
+        .replace('{{SSR_SUMMARY}}', hasRows ? renderSessionSummaryList(rows) : '')
+        .replace('<div id="sessionsList" class="grid', `<div id="sessionsList" data-ssr="${hasRows ? '1' : '0'}" class="grid`);
+}
+
 /** 연동 홈페이지용 과전 상세 (id는 클라이언트에서 채움) */
 export type CourseDetailSsr = {
     title: string;
     summary: string;
+    /** 서버에서 미리 보여 줄 과정 정보 (검색엔진이 JS 없이 읽는 본문) */
+    courseName?: string | null;
+    categoryName?: string | null;
+    status?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    location?: string | null;
+    instructorName?: string | null;
+    totalHours?: number | string | null;
+    timeStart?: string | null;
+    timeEnd?: string | null;
+    daysOfWeek?: string | null;
+    targetAudience?: string | null;
+    detailDescription?: string | null;
 };
+
+/** 상세 페이지 본문에 남길 과정 정보 표 + 설명 */
+function renderDetailFacts(ssr: CourseDetailSsr | undefined, source: 'session' | 'general'): string {
+    if (!ssr) return '';
+    const facts: Array<[string, string]> = [];
+    const period = periodText(ssr.startDate, ssr.endDate);
+    if (period !== '일정 미정') facts.push(['교육 기간', period]);
+    if (ssr.status) facts.push(['모집 상태', statusLabel(ssr.status)]);
+    if (ssr.timeStart && ssr.timeEnd) facts.push(['교육 시간', `${ssr.timeStart} ~ ${ssr.timeEnd}`]);
+    if (ssr.daysOfWeek) facts.push(['교육 요일', String(ssr.daysOfWeek)]);
+    if (ssr.totalHours) facts.push(['총 훈련시간', `${ssr.totalHours}시간`]);
+    if (ssr.location) facts.push(['교육 장소', String(ssr.location)]);
+    if (ssr.instructorName) facts.push(['담당 강사', String(ssr.instructorName)]);
+    if (ssr.categoryName) facts.push(['과정 분류', String(ssr.categoryName)]);
+    if (ssr.targetAudience) facts.push(['교육 대상', String(ssr.targetAudience)]);
+
+    const factsHtml = facts.length
+        ? '<dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mb-8">'
+            + facts.map(([label, value]) =>
+                '<div class="flex gap-3 py-2 border-b border-slate-100">'
+                + '<dt class="w-28 shrink-0 text-sm font-bold text-slate-500">' + esc(label) + '</dt>'
+                + '<dd class="text-sm text-slate-800 font-semibold">' + esc(value) + '</dd></div>').join('')
+            + '</dl>'
+        : '';
+
+    const plain = String(ssr.detailDescription || '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 1200);
+    const descHtml = plain
+        ? '<section class="mb-8" aria-label="과정 소개">'
+            + '<h2 class="text-lg font-black tracking-tight text-slate-900 mb-2">과정 소개</h2>'
+            + '<p class="text-slate-600 leading-relaxed">' + esc(plain) + '</p></section>'
+        : '';
+
+    const guide = source === 'general'
+        ? ''
+        : '<section class="mb-2" aria-label="수강 안내">'
+            + '<h2 class="text-lg font-black tracking-tight text-slate-900 mb-2">수강 안내</h2>'
+            + '<p class="text-slate-600 leading-relaxed">'
+            + '이 과정은 국민내일배움카드(국비지원)로 수강 가능 여부를 상담받을 수 있습니다. '
+            + '자기부담금과 지원율은 회차와 개인 심사 결과에 따라 달라지며, 고용24(워크넷) 공고가 기준입니다. '
+            + '3D프린터운용기능사 등 국가자격 대비 과정은 실기 중심으로 운영합니다. '
+            + '자세한 일정과 준비물은 전화(02-3144-3137) 또는 온라인 상담으로 안내해 드립니다.'
+            + '</p></section>';
+
+    if (!factsHtml && !descHtml) return guide;
+    return factsHtml + descHtml + guide;
+}
 
 function escapeHtmlText(value: string): string {
     return String(value || '')
@@ -265,10 +486,11 @@ export function courseSessionDetailHtml(
             <p class="text-xs font-black uppercase tracking-wider text-primary-600 mb-3">${source === 'general' ? '일반 교육과정' : '국비지원·내일배움카드 과정'}</p>
             <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 mb-4">${ssrTitle}</h1>
             <p class="text-slate-600 leading-relaxed max-w-3xl mb-6">${ssrSummary}</p>
-            <div class="flex flex-wrap gap-2 text-sm">
+            <div class="flex flex-wrap gap-2 text-sm mb-10">
                 <a href="/online-consulting" class="inline-flex rounded-xl bg-primary-600 px-4 py-2.5 font-bold text-white">수강 상담</a>
                 <a href="/course-sessions" class="inline-flex rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-slate-700">과정 목록</a>
             </div>
+            ${renderDetailFacts(ssr, source)}
             <div class="mt-10 animate-pulse">
                 <div class="h-48 bg-slate-200 rounded-[2rem]"></div>
                 <p class="mt-4 text-sm text-slate-400 font-bold">상세 정보를 불러오는 중…</p>

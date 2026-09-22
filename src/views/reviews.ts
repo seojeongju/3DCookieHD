@@ -1,7 +1,55 @@
 import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
 
-export const reviewsListHtml = `
+/** 서버에서 미리 그릴 후기 데이터 */
+export type PublicReviewCard = {
+    id: number;
+    title?: string | null;
+    content?: string | null;
+    author_name?: string | null;
+    course_title?: string | null;
+    rating?: number | null;
+    created_at?: string | null;
+};
+
+function escReview(value: unknown): string {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+/** 클라이언트 maskName과 동일하게 가운데 글자를 가린다 */
+function maskAuthor(name?: string | null): string {
+    const n = String(name || '').trim();
+    if (n.length <= 1) return n || '익명';
+    if (n.length === 2) return n[0] + '*';
+    return n[0] + '*'.repeat(n.length - 2) + n[n.length - 1];
+}
+
+/** 검색엔진이 JS 없이 읽을 후기 카드 */
+export function renderReviewCards(rows: PublicReviewCard[]): string {
+    if (!rows.length) return '';
+    return rows.map((row) => {
+        const rating = Math.max(0, Math.min(5, Number(row.rating) || 0));
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        const content = String(row.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400);
+        const date = String(row.created_at || '').slice(0, 10);
+        return '<div class="bg-white rounded-lg shadow-sm hover:shadow-md transition duration-200 p-6 border border-gray-100">'
+            + '<div class="flex justify-between items-start mb-4">'
+            + '<div class="flex items-center"><div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 mr-3"><i class="fas fa-user"></i></div>'
+            + '<div><p class="font-medium text-gray-800">' + escReview(maskAuthor(row.author_name)) + '</p>'
+            + '<p class="text-xs text-gray-500">' + escReview(date) + '</p></div></div>'
+            + '<div class="text-yellow-400 text-sm" aria-label="별점 ' + rating + '점">' + stars + '</div></div>'
+            + '<div class="mb-3"><span class="inline-block px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md mb-2">'
+            + escReview(row.course_title || '과정명 없음') + '</span>'
+            + '<h3 class="text-lg font-bold text-gray-800">' + escReview(row.title || '') + '</h3></div>'
+            + '<p class="text-gray-600 text-sm leading-relaxed mb-4">' + escReview(content) + '</p></div>';
+    }).join('');
+}
+
+const reviewsListTemplate = `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -86,11 +134,7 @@ export const reviewsListHtml = `
 
         <!-- 리뷰 목록 -->
         <div id="reviewsList" class="grid md:grid-cols-2 gap-6">
-            <!-- 로딩 중 표시 -->
-            <div class="col-span-full text-center py-12">
-                <i class="fas fa-spinner fa-spin text-4xl text-green-500 mb-4"></i>
-                <p class="text-gray-500">후기를 불러오는 중입니다...</p>
-            </div>
+            {{SSR_REVIEWS}}
         </div>
         
         <!-- 페이지네이션 -->
@@ -109,6 +153,9 @@ export const reviewsListHtml = `
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlPage = Number(new URLSearchParams(window.location.search).get('page')) || 1;
+            // 서버가 1페이지를 이미 그려 둔 경우 초기 재요청을 생략한다
+            const list = document.getElementById('reviewsList');
+            if (urlPage <= 1 && list && list.dataset.ssr === '1') return;
             loadReviews(urlPage > 0 ? urlPage : 1);
         });
 
@@ -330,3 +377,16 @@ export const reviewsListHtml = `
 </body>
 </html>
 `;
+
+/** 후기 목록 페이지. rows가 있으면 1페이지를 서버에서 렌더링한다. */
+export function reviewsListHtml(rows: PublicReviewCard[] = []): string {
+    const hasRows = rows.length > 0;
+    const cards = hasRows
+        ? renderReviewCards(rows)
+        : '<div class="col-span-full text-center py-12">'
+            + '<i class="fas fa-spinner fa-spin text-4xl text-green-500 mb-4"></i>'
+            + '<p class="text-gray-500">후기를 불러오는 중입니다...</p></div>';
+    return reviewsListTemplate
+        .replace('{{SSR_REVIEWS}}', cards)
+        .replace('<div id="reviewsList" class="grid', `<div id="reviewsList" data-ssr="${hasRows ? '1' : '0'}" class="grid`);
+}

@@ -6,6 +6,9 @@ export type PortfolioDetailSsr = {
   summary: string;
   studentName?: string;
   courseTitle?: string;
+  category?: string;
+  /** 설명에서 태그를 제거한 본문 (검색엔진이 JS 없이 읽는 텍스트) */
+  plainDescription?: string;
 };
 
 function escapeHtmlText(value: string): string {
@@ -24,6 +27,25 @@ export const portfolioDetailHtml = (id: string, ssr?: PortfolioDetailSsr) => {
   );
   const student = escapeHtmlText(ssr?.studentName || '수강생');
   const course = escapeHtmlText(ssr?.courseTitle || '');
+  const category = escapeHtmlText(ssr?.category || '');
+  const plain = escapeHtmlText(ssr?.plainDescription || '');
+
+  // 작품 설명이 이미지 위주라도 페이지가 빈 본문이 되지 않도록 맥락 문단을 함께 남긴다
+  const ssrBody = [
+    plain
+      ? `<section class="mt-6" aria-label="작품 설명"><h2 class="text-base font-black tracking-tight text-slate-900 mb-2">작품 설명</h2><p class="text-slate-600 leading-relaxed">${plain}</p></section>`
+      : '',
+    `<section class="mt-6" aria-label="제작 과정 안내">
+        <h2 class="text-base font-black tracking-tight text-slate-900 mb-2">제작 과정</h2>
+        <p class="text-slate-600 leading-relaxed">
+          이 작품은 와우쓰리디홍대센터의 3D모델링·3D프린팅 교육 과정에서 제작되었습니다.
+          ${course ? `수강 과정은 <strong>${course}</strong>이며, ` : ''}모델링 설계부터 슬라이싱, 출력, 후가공까지 실습으로 진행합니다.
+          ${category ? `작품 분류는 ${category}입니다. ` : ''}
+          같은 과정의 다른 작품은 <a href="/portfolios" class="text-primary-700 font-bold">수강생 포트폴리오</a>에서,
+          모집 중인 과정은 <a href="/course-sessions" class="text-primary-700 font-bold">교육과정 안내</a>에서 확인할 수 있습니다.
+        </p>
+     </section>`,
+  ].join('');
 
   return `
 <!DOCTYPE html>
@@ -55,6 +77,7 @@ export const portfolioDetailHtml = (id: string, ssr?: PortfolioDetailSsr) => {
         <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 mb-3">${title}</h1>
         <p class="text-slate-600 leading-relaxed mb-3">${summary}</p>
         <p class="text-sm font-bold text-slate-500">${student}${course ? ' · ' + course : ''}</p>
+        ${ssrBody}
       </div>
 
       <div id="detailLoading" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center text-gray-500">

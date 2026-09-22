@@ -85,7 +85,9 @@ export function getSeoHead(baseUrl: string, options: SeoOptions, verification: S
     const keywords = options.keywords ?? DEFAULT_KEYWORDS;
     const rawImage = options.image || DEFAULT_OG_IMAGE;
     const image = rawImage.startsWith('http') ? rawImage : `${origin}${rawImage.startsWith('/') ? rawImage : '/' + rawImage}`;
-    const url = `${origin}${(options.path ?? '/').replace(/^\//, '/')}`.replace(/([^/])\/$/, '$1');
+    // 루트는 sitemap과 동일하게 슬래시를 유지하고, 하위 경로만 끝 슬래시를 제거한다
+    const rawPath = options.path ?? '/';
+    const url = rawPath === '/' ? `${origin}/` : `${origin}${rawPath.startsWith('/') ? rawPath : '/' + rawPath}`.replace(/\/$/, '');
     const noindex = options.noindex === true;
     const ogType = options.ogType ?? 'website';
 
