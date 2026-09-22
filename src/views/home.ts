@@ -1273,9 +1273,7 @@ export const homeHtml = `
             var imgWrapEnd = img ? (link ? '</a>' : '</div>') : '';
             root.className = 'fixed inset-0 z-[80]';
             var panelHtml = '<div id="homePopupPanel" role="dialog" aria-modal="true" class="relative w-full ' + widthCls + ' bg-white rounded-[2rem] shadow-2xl border border-slate-200/60 overflow-hidden cursor-grab touch-none">' +
-                '<div class="flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-50/90 border-b border-slate-100 text-[10px] font-bold text-slate-400 pointer-events-none">' +
-                '<i class="fas fa-grip-lines"></i><span>끌어서 위치 이동 · 배경 클릭 시 닫기</span></div>' +
-                '<button type="button" onclick="closeHomePopup()" class="absolute top-12 right-4 z-10 w-10 h-10 rounded-full bg-white/95 text-slate-600 border border-slate-200/70 shadow-sm hover:bg-white hover:text-slate-900 cursor-pointer select-auto" aria-label="닫기"><i class="fas fa-times"></i></button>' +
+                '<button type="button" onclick="closeHomePopup()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/95 text-slate-600 border border-slate-200/70 shadow-sm hover:bg-white hover:text-slate-900 cursor-pointer select-auto" aria-label="닫기"><i class="fas fa-times"></i></button>' +
                 imgWrapStart + imgWrapEnd +
                 '<div class="px-6 pb-6 ' + (img ? 'pt-4' : 'pt-10') + ' select-text">' +
                 '<h2 class="text-xl font-black tracking-tight text-slate-900 mb-2">' + title + '</h2>' +
