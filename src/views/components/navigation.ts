@@ -23,25 +23,26 @@ export const navigationHtml = (activeMenu = '') => `
                     <!-- 과정안내 -->
                     <div class="relative group shrink-0">
                         <a href="/course-sessions" class="px-3 py-2 ${['courses', 'course-sessions', 'guides'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                            <i class="fas fa-book-open mr-1.5 text-xs" aria-hidden="true"></i>
                             과정안내
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </a>
                         <div class="absolute left-0 top-full z-50 mt-0 w-max min-w-[26rem] bg-white rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100">
                             <div class="flex">
                                 <div class="w-52 shrink-0 py-2">
-                                    <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">모집 과정</p>
-                                    <a href="/course-sessions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">국비지원과정</a>
-                                    <a href="/course-sessions?category=일반과정" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">일반과정</a>
-                                    <a href="/course-sessions?category=학생" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">체험과정</a>
-                                    <a href="/corporate-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">기업단체교육</a>
-                                    <a href="/university-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">대학맞춤교육</a>
+                                    <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap"><i class="fas fa-bullseye mr-1.5" aria-hidden="true"></i>모집 과정</p>
+                                    <a href="/course-sessions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-hand-holding-dollar w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>국비지원과정</a>
+                                    <a href="/course-sessions?category=일반과정" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-cube w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>일반과정</a>
+                                    <a href="/course-sessions?category=학생" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-wand-magic-sparkles w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>체험과정</a>
+                                    <a href="/corporate-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-briefcase w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>기업단체교육</a>
+                                    <a href="/university-education" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-building-columns w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>대학맞춤교육</a>
                                 </div>
                                 <div class="w-52 shrink-0 py-2 border-l border-gray-100 bg-slate-50/60">
-                                    <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">학습 가이드</p>
-                                    <a href="/guides/national-support" class="block px-4 py-2 text-sm ${activeMenu === 'guides' ? 'bg-white text-primary-600 font-bold' : 'text-gray-700 hover:bg-white hover:text-primary-600'} whitespace-nowrap">국비지원·내일배움카드</a>
-                                    <a href="/guides/craftsman-license" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">기능사·국가자격</a>
-                                    <a href="/guides/small-business" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">소상공인 활용</a>
-                                    <a href="/guides/prototype" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap">시제품 제작</a>
+                                    <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap"><i class="fas fa-compass mr-1.5" aria-hidden="true"></i>학습 가이드</p>
+                                    <a href="/guides/national-support" class="block px-4 py-2 text-sm ${activeMenu === 'guides' ? 'bg-white text-primary-600 font-bold' : 'text-gray-700 hover:bg-white hover:text-primary-600'} whitespace-nowrap"><i class="fas fa-id-card w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>국비지원·내일배움카드</a>
+                                    <a href="/guides/craftsman-license" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap"><i class="fas fa-certificate w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>기능사·국가자격</a>
+                                    <a href="/guides/small-business" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap"><i class="fas fa-store w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>소상공인 활용</a>
+                                    <a href="/guides/prototype" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap"><i class="fas fa-screwdriver-wrench w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>시제품 제작</a>
                                 </div>
                             </div>
                         </div>
@@ -50,22 +51,23 @@ export const navigationHtml = (activeMenu = '') => `
                     <!-- 센터소개 -->
                     <div class="relative group shrink-0">
                         <button class="px-3 py-2 ${['greeting', 'photos', 'facilities', 'locations', 'center', 'education-performance', 'reviews', 'prototype'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                            <i class="fas fa-building mr-1.5 text-xs" aria-hidden="true"></i>
                             센터소개
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>
                         <div class="absolute left-0 top-full z-50 mt-0 w-max min-w-[13rem] bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100">
                             <div class="py-1">
-                                <a href="/greeting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">인사말</a>
-                                <a href="/education-photos" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">교육사진</a>
-                                <a href="/education-performance" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">교육실적</a>
+                                <a href="/greeting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-handshake w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>인사말</a>
+                                <a href="/education-photos" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-images w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>교육사진</a>
+                                <a href="/education-performance" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-chart-line w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>교육실적</a>
                                 <!-- 시설안내: 현재 비노출 (필요 시 hidden 제거) -->
-                                <a href="/facilities" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">시설안내</a>
-                                <a href="/locations" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">오시는길</a>
-                                <a href="/locations/hongdae" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">홍대센터</a>
-                                <a href="/locations/gumi" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">구미센터</a>
-                                <a href="/locations/jeonju" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">전주센터</a>
-                                <a href="/reviews" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">수강후기</a>
-                                <a href="/prototype-gallery" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">시제품 제작사진</a>
+                                <a href="/facilities" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-print w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>시설안내</a>
+                                <a href="/locations" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-map-location-dot w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>오시는길</a>
+                                <a href="/locations/hongdae" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-location-dot w-4 text-center mr-2.5 text-[10px] text-gray-400" aria-hidden="true"></i>홍대센터</a>
+                                <a href="/locations/gumi" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-location-dot w-4 text-center mr-2.5 text-[10px] text-gray-400" aria-hidden="true"></i>구미센터</a>
+                                <a href="/locations/jeonju" class="block px-4 py-2 pl-6 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-location-dot w-4 text-center mr-2.5 text-[10px] text-gray-400" aria-hidden="true"></i>전주센터</a>
+                                <a href="/reviews" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-star w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>수강후기</a>
+                                <a href="/prototype-gallery" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-cubes w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>시제품 제작사진</a>
                             </div>
                         </div>
                     </div>
@@ -73,14 +75,15 @@ export const navigationHtml = (activeMenu = '') => `
                     <!-- 게시판 (탭 순서: /posts 페이지와 동일) -->
                     <div class="relative group shrink-0">
                         <button class="px-3 py-2 ${['board', 'portfolios'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                            <i class="fas fa-clipboard-list mr-1.5 text-xs" aria-hidden="true"></i>
                             게시판
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>
                         <div class="absolute left-0 top-full z-50 mt-0 w-max min-w-[11rem] bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100">
                             <div class="py-1">
-                                <a href="/posts?category=notice" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">공지사항</a>
-                                <a href="/faq" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">FAQ</a>
-                                <a href="/portfolios" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">포트폴리오</a>
+                                <a href="/posts?category=notice" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-bullhorn w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>공지사항</a>
+                                <a href="/faq" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-circle-question w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>FAQ</a>
+                                <a href="/portfolios" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-palette w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>포트폴리오</a>
                             </div>
                         </div>
                     </div>
@@ -88,13 +91,14 @@ export const navigationHtml = (activeMenu = '') => `
                     <!-- 상담센터 -->
                     <div class="relative group shrink-0">
                         <button class="px-3 py-2 ${activeMenu === 'consulting' ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                            <i class="fas fa-headset mr-1.5 text-xs" aria-hidden="true"></i>
                             상담센터
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
                         </button>
                         <div class="absolute left-0 top-full z-50 mt-0 w-max min-w-[16rem] bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100">
                             <div class="py-1">
-                                <a href="/online-consulting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">온라인상담신청</a>
-                                <a href="/tomorrow-learning-card" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap">내일배움카드발급안내</a>
+                                <a href="/online-consulting" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-comments w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>온라인상담신청</a>
+                                <a href="/tomorrow-learning-card" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 whitespace-nowrap"><i class="fas fa-credit-card w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>내일배움카드발급안내</a>
                             </div>
                         </div>
                     </div>
@@ -135,34 +139,34 @@ export const navigationHtml = (activeMenu = '') => `
                 <button type="button" id="navMobileMenuClose" aria-label="메뉴 닫기" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 active:bg-gray-50"><i class="fas fa-times text-lg"></i></button>
             </div>
             <div class="py-2 pb-6">
-                <a href="/course-sessions" class="block px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider hover:text-primary-600 transition-colors">과정안내 <i class="fas fa-chevron-right ml-1 text-[8px]"></i></a>
-                <a href="/course-sessions" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원과정</a>
-                <a href="/course-sessions?category=일반과정" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">일반과정</a>
-                <a href="/course-sessions?category=학생" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">체험과정</a>
-                <a href="/corporate-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기업단체교육</a>
-                <a href="/university-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">대학맞춤교육</a>
-                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">학습 가이드</div>
-                <a href="/guides/national-support" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">국비지원·내일배움카드</a>
-                <a href="/guides/craftsman-license" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">기능사·국가자격</a>
-                <a href="/guides/small-business" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">소상공인 활용</a>
-                <a href="/guides/prototype" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작</a>
-                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">센터소개</div>
-                <a href="/greeting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">인사말</a>
-                <a href="/education-photos" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육사진</a>
-                <a href="/education-performance" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">교육실적</a>
-                <a href="/locations" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">오시는길</a>
-                <a href="/locations/hongdae" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600">홍대센터</a>
-                <a href="/locations/gumi" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600">구미센터</a>
-                <a href="/locations/jeonju" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600">전주센터</a>
-                <a href="/reviews" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">수강후기</a>
-                <a href="/prototype-gallery" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">시제품 제작사진</a>
-                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">게시판</div>
-                <a href="/posts?category=notice" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">공지사항</a>
-                <a href="/faq" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">FAQ</a>
-                <a href="/portfolios" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">포트폴리오</a>
-                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">상담센터</div>
-                <a href="/online-consulting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">온라인상담신청</a>
-                <a href="/tomorrow-learning-card" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600">내일배움카드발급안내</a>
+                <a href="/course-sessions" class="block px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider hover:text-primary-600 transition-colors"><i class="fas fa-book-open mr-1.5" aria-hidden="true"></i>과정안내 <i class="fas fa-chevron-right ml-1 text-[8px]"></i></a>
+                <a href="/course-sessions" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-hand-holding-dollar w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>국비지원과정</a>
+                <a href="/course-sessions?category=일반과정" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-cube w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>일반과정</a>
+                <a href="/course-sessions?category=학생" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-wand-magic-sparkles w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>체험과정</a>
+                <a href="/corporate-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-briefcase w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>기업단체교육</a>
+                <a href="/university-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-building-columns w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>대학맞춤교육</a>
+                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider"><i class="fas fa-compass mr-1.5" aria-hidden="true"></i>학습 가이드</div>
+                <a href="/guides/national-support" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-id-card w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>국비지원·내일배움카드</a>
+                <a href="/guides/craftsman-license" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-certificate w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>기능사·국가자격</a>
+                <a href="/guides/small-business" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-store w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>소상공인 활용</a>
+                <a href="/guides/prototype" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-screwdriver-wrench w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>시제품 제작</a>
+                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider"><i class="fas fa-building mr-1.5" aria-hidden="true"></i>센터소개</div>
+                <a href="/greeting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-handshake w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>인사말</a>
+                <a href="/education-photos" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-images w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>교육사진</a>
+                <a href="/education-performance" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-chart-line w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>교육실적</a>
+                <a href="/locations" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-map-location-dot w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>오시는길</a>
+                <a href="/locations/hongdae" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-location-dot w-5 text-center mr-2.5 text-[11px] text-gray-400" aria-hidden="true"></i>홍대센터</a>
+                <a href="/locations/gumi" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-location-dot w-5 text-center mr-2.5 text-[11px] text-gray-400" aria-hidden="true"></i>구미센터</a>
+                <a href="/locations/jeonju" class="block px-4 py-3 pl-6 text-gray-600 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-location-dot w-5 text-center mr-2.5 text-[11px] text-gray-400" aria-hidden="true"></i>전주센터</a>
+                <a href="/reviews" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-star w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>수강후기</a>
+                <a href="/prototype-gallery" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-cubes w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>시제품 제작사진</a>
+                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider"><i class="fas fa-clipboard-list mr-1.5" aria-hidden="true"></i>게시판</div>
+                <a href="/posts?category=notice" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-bullhorn w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>공지사항</a>
+                <a href="/faq" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-circle-question w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>FAQ</a>
+                <a href="/portfolios" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-palette w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>포트폴리오</a>
+                <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider"><i class="fas fa-headset mr-1.5" aria-hidden="true"></i>상담센터</div>
+                <a href="/online-consulting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-comments w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>온라인상담신청</a>
+                <a href="/tomorrow-learning-card" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-credit-card w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>내일배움카드발급안내</a>
                 ${socialLinksMobileNavHtml()}
                 <div class="border-t border-gray-100 mt-2 pt-2">
                     <a href="/login" class="block px-4 py-3 text-gray-700 hover:bg-gray-50"><i class="fas fa-sign-in-alt mr-2 text-gray-400"></i>로그인</a>
