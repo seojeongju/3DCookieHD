@@ -235,7 +235,8 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
             const countEl = document.getElementById('counselingCount');
             const periodEl = document.getElementById('counselingPeriod');
             try {
-                const res = await fetch('/api/hrd/counseling?course_id=' + courseId, { headers });
+                const sidQ = new URLSearchParams(window.location.search).get('session_id');
+                const res = await fetch('/api/hrd/counseling?' + (sidQ ? 'session_id=' + encodeURIComponent(sidQ) : 'course_id=' + courseId), { headers });
                 const result = await res.json();
                 if (result.success) {
                     var logs = result.data || [];

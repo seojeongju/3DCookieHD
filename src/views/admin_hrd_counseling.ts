@@ -433,6 +433,8 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
         let currentFilter = 'all'; // 누락된 변수 선언 추가
         const COURSE_ID = '${courseId || ''}';
         const IS_LMS_MODE = !!COURSE_ID;
+        // 경로의 ID는 LMS 과정(courses.id)이고 회차 PK는 ?session_id= 로 전달됨 — 두 ID 체계가 겹칠 수 있음
+        const SESSION_ID = new URLSearchParams(window.location.search).get('session_id') || COURSE_ID;
         
         // 데이터 저장 변수
         let counselingData = [];
@@ -596,7 +598,7 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                 let url = '/api/students';
                 if (IS_LMS_MODE) {
                     // LMS 모드일 때는 해당 회차의 수강생만 로드
-                    url = '/api/course-sessions/' + COURSE_ID + '/enrollments';
+                    url = '/api/course-sessions/' + SESSION_ID + '/enrollments';
                 }
                 
                 const token = localStorage.getItem('token');
@@ -669,8 +671,8 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                 if (search) url += "search=" + encodeURIComponent(search) + "&";
                 
                 // LMS 모드: 회차(session) 기준 담당학생 상담이력 연동 — session_id로 필터
-                if (IS_LMS_MODE && COURSE_ID) {
-                    url += "session_id=" + encodeURIComponent(COURSE_ID) + "&";
+                if (IS_LMS_MODE && SESSION_ID) {
+                    url += "session_id=" + encodeURIComponent(SESSION_ID) + "&";
                 } else if (courseId) {
                     url += "course_id=" + encodeURIComponent(courseId) + "&";
                 }
@@ -713,7 +715,7 @@ export function adminHrdCounselingHtml(courseId?: string, sidebar: string = hrdS
                 if (sid != null) { countByStudent[sid] = (countByStudent[sid] || 0) + 1; }
             });
             const basePath = '/teacher/courses/' + COURSE_ID + '/lms/students/';
-            const linkSuffix = 'consultation?type=hrd';
+            const linkSuffix = 'consultation?type=hrd' + (SESSION_ID !== COURSE_ID ? '&session_id=' + encodeURIComponent(SESSION_ID) : '');
             el.innerHTML = sessionStudentsList.map(s => {
                 const cnt = countByStudent[s.id] || 0;
                 return \`<a href="\${basePath}\${s.id}/\${linkSuffix}" class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition text-left">
