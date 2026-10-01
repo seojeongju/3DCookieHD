@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types';
-import { authMiddleware, requireAdmin } from '../middleware/auth';
+import { authMiddleware, requireAdmin, requireRole } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -63,8 +63,9 @@ app.get('/', async (c) => {
 
 // ============================================
 // 통합 일정 조회 (FullCalendar 호환) - 순서 중요: /:id 보다 먼저 정의
+// 상담 문의자 연락처·상담 일지가 포함되므로 교직원 전용
 // ============================================
-app.get('/integrated', async (c) => {
+app.get('/integrated', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   const { DB } = c.env;
   const startStr = c.req.query('start');
   const endStr = c.req.query('end');

@@ -268,7 +268,7 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
             if (search) url += \`&search=\${encodeURIComponent(search)}\`;
 
             try {
-                const res = await fetch(url);
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await res.json();
                 
                 const tbody = document.getElementById('inquiriesList');
@@ -360,7 +360,7 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
 
         async function openModal(id) {
             try {
-                const res = await fetch(\`/api/consultations/\${id}\`);
+                const res = await fetch(\`/api/consultations/\${id}\`, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await res.json();
                 if (result.success) {
                     currentItem = result.data;
@@ -428,7 +428,9 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
         async function loadCounselingHistory(consultationId) {
             const container = document.getElementById('counselingHistory');
             try {
-                const res = await fetch(\`/api/hrd/counseling?type=admission&consultation_id=\${consultationId}\`);
+                const res = await fetch(\`/api/hrd/counseling?type=admission&consultation_id=\${consultationId}\`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                });
                 const result = await res.json();
                 
                 if (result.success && result.data && result.data.length > 0) {
@@ -519,7 +521,7 @@ export const adminInquiriesHtml = (sidebar: string | null = null) => `
             try {
                 const res = await fetch(\`/api/consultations/\${id}\`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                     body: JSON.stringify({ status, memo })
                 });
                 const result = await res.json();

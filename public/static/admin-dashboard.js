@@ -378,7 +378,13 @@ function initDashboardCalendar() {
         locale: 'ko',
         headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek' },
         height: 600,
-        events: '/api/schedules/integrated',
+        events: function(info, successCallback, failureCallback) {
+            var qs = 'start=' + encodeURIComponent(info.startStr) + '&end=' + encodeURIComponent(info.endStr);
+            fetch('/api/schedules/integrated?' + qs, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) { successCallback(Array.isArray(data) ? data : []); })
+                .catch(failureCallback);
+        },
         eventClassNames: function(arg) {
             var props = arg.event.extendedProps;
             var cls = 'fc-event-' + (props.type || 'general');

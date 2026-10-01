@@ -1,7 +1,11 @@
 import { Hono } from 'hono';
 import { Bindings } from '../types';
+import { authMiddleware, requireRole } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+// 상담 신청(POST)은 홈페이지 비회원용 공개, 나머지는 문의자 연락처가 포함되어 교직원 전용
+const requireStaff = requireRole('admin', 'teacher', 'instructor');
 
 // 상담 신청 생성
 app.post('/', async (c) => {
@@ -28,7 +32,7 @@ app.post('/', async (c) => {
 });
 
 // 관리자: 상담 목록 조회
-app.get('/', async (c) => {
+app.get('/', authMiddleware, requireStaff, async (c) => {
     try {
         const { DB } = c.env;
         const query = c.req.query();
@@ -89,7 +93,7 @@ app.get('/', async (c) => {
 });
 
 // 관리자: 상담 상세 조회
-app.get('/:id', async (c) => {
+app.get('/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const item = await c.env.DB.prepare('SELECT * FROM consultations WHERE id = ?').bind(id).first();
@@ -104,7 +108,7 @@ app.get('/:id', async (c) => {
 });
 
 // 관리자: 상담 상태/메모 수정 (답변)
-app.put('/:id', async (c) => {
+app.put('/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();

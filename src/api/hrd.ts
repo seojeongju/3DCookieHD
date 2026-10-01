@@ -1,12 +1,15 @@
 import { Hono } from 'hono';
 import { Bindings, JWTPayload, Variables } from '../types';
 import { successResponse, errorResponse, forbiddenResponse } from '../utils/response';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, requireRole } from '../middleware/auth';
 import { ensureDedicatedLmsCourseForSession, resolveSessionToLmsCourseId, resolveTrainingLogSession } from '../utils/sessionCourseResolution';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { datesToTrainingDayLabels, getSessionTrainingDates, getSessionTrainingDatesForLogs, normalizeTrainingDate } from '../utils/session_training_dates';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
+
+// 상담 일지에는 연락처 등 개인정보가 포함되므로 교직원만 접근
+const requireCounselingStaff = requireRole('admin', 'teacher', 'instructor');
 
 function timeToMinutesSinceMidnight(s: string | null | undefined): number | null {
     if (!s || typeof s !== 'string') return null;
@@ -1290,7 +1293,7 @@ app.get('/counselors', authMiddleware, async (c) => {
 });
 
 // 상담 이력 조회 (상담일지 통합 및 권한 필터링)
-app.get('/students/:id/consultations', authMiddleware, async (c) => {
+app.get('/students/:id/consultations', authMiddleware, requireCounselingStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const user = c.get('user'); // JWTPayload
@@ -1332,7 +1335,7 @@ app.get('/students/:id/consultations', authMiddleware, async (c) => {
 });
 
 // 상담 이력 추가 (상담일지 통합) — 로그인한 사용자를 상담자로 사용
-app.post('/students/:id/consultations', authMiddleware, async (c) => {
+app.post('/students/:id/consultations', authMiddleware, requireCounselingStaff, async (c) => {
     try {
         const studentId = c.req.param('id');
         const body = await c.req.json();
@@ -2476,7 +2479,7 @@ app.get('/stats', async (c) => {
 // ==========================================
 
 // GET /api/hrd/counseling - 상담 일지 목록 조회 (session_id: 회차별 담당학생 상담이력 연동)
-app.get('/counseling', async (c) => {
+app.get('/counseling', authMiddleware, requireCounselingStaff, async (c) => {
     try {
         const studentId = c.req.query('student_id');
         const courseId = c.req.query('course_id');
@@ -2549,7 +2552,7 @@ app.get('/counseling', async (c) => {
 });
 
 // POST /api/hrd/counseling - 상담 일지 등록 (로그인한 사용자를 상담자로 저장)
-app.post('/counseling', authMiddleware, async (c) => {
+app.post('/counseling', authMiddleware, requireCounselingStaff, async (c) => {
     try {
         const body = await c.req.json();
         const user = c.get('user') as JWTPayload;
@@ -2589,7 +2592,7 @@ app.post('/counseling', authMiddleware, async (c) => {
 });
 
 // PUT /api/hrd/counseling/:id - 상담 일지 수정
-app.put('/counseling/:id', authMiddleware, async (c) => {
+app.put('/counseling/:id', authMiddleware, requireCounselingStaff, async (c) => {
     const id = c.req.param('id');
     try {
         const body = await c.req.json();
@@ -2624,7 +2627,7 @@ app.put('/counseling/:id', authMiddleware, async (c) => {
 });
 
 // DELETE /api/hrd/counseling/:id - 상담 일지 삭제
-app.delete('/counseling/:id', authMiddleware, async (c) => {
+app.delete('/counseling/:id', authMiddleware, requireCounselingStaff, async (c) => {
     const id = c.req.param('id');
     try {
         await c.env.DB.prepare('DELETE FROM hrd_counseling_logs WHERE id = ?').bind(id).run();

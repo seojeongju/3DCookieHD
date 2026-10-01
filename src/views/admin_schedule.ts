@@ -218,7 +218,13 @@ export const adminScheduleHtml = `
                 navLinks: true, 
                 selectable: true,
                 dayMaxEvents: true,
-                events: '/api/schedules/integrated',
+                events: function(info, successCallback, failureCallback) {
+                    const qs = 'start=' + encodeURIComponent(info.startStr) + '&end=' + encodeURIComponent(info.endStr);
+                    fetch('/api/schedules/integrated?' + qs, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) { successCallback(Array.isArray(data) ? data : []); })
+                        .catch(failureCallback);
+                },
                 eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: false, hour12: false },
                 eventClick: function(info) { showEventDetail(info.event); },
                 select: function(info) { openAddEventModal(info); },

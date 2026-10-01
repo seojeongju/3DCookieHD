@@ -2,8 +2,12 @@ import { Hono } from 'hono';
 import type { Bindings } from '../types';
 
 import { verifyToken } from '../utils/jwt';
+import { authMiddleware, requireRole } from '../middleware/auth';
 
 const students = new Hono<{ Bindings: Bindings }>();
+
+// 학생 연락처·상담 이력을 다루므로 전 라우트 교직원 전용
+students.use('*', authMiddleware, requireRole('admin', 'teacher', 'instructor'));
 
 // GET /api/students - 전체 학생 목록 조회
 students.get('/', async (c) => {
