@@ -635,13 +635,21 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
             refreshCurrentTab();
         }
 
-        function refreshCurrentTab() {
-            loadAccessStatsSummary(); // KPI 요약 카드는 항상 최신 상태 업데이트
-            if (state.activeTab === 'overview') loadOverviewData();
-            else if (state.activeTab === 'traffic') loadTrafficData();
-            else if (state.activeTab === 'pages') loadPagesData();
-            else if (state.activeTab === 'visitors') loadVisitorsData();
-            else if (state.activeTab === 'logs') loadLogsData();
+        async function refreshCurrentTab() {
+            if (state.activeTab === 'overview') {
+                await loadOverviewData();
+            } else if (state.activeTab === 'traffic') {
+                await loadTrafficData();
+            } else if (state.activeTab === 'pages') {
+                await fetchAccessStats();
+                await loadPagesData();
+            } else if (state.activeTab === 'visitors') {
+                await fetchAccessStats();
+                await loadVisitorsData();
+            } else if (state.activeTab === 'logs') {
+                await fetchAccessStats();
+                await loadLogsData();
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -649,9 +657,9 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
         });
 
         // -------------------------------------------------------------------
-        // API 1: KPI 요약 & 개요 (access-stats)
+        // API 1: KPI 요약 & 통계 데이터 조회 (단일 원자적 fetch로 동기화 보장)
         // -------------------------------------------------------------------
-        async function loadAccessStatsSummary() {
+        async function fetchAccessStats() {
             try {
                 let url = '/api/analytics/access-stats?scope=' + state.scope;
                 if (state.from && state.to) {
@@ -660,54 +668,75 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                 const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
                 if (res.status === 401) {
                     location.replace('/login?redirect=' + encodeURIComponent(location.pathname));
-                    return;
+                    return null;
                 }
                 const result = await res.json();
-                if (!result.success) return;
+                if (!result.success) return null;
                 const d = result.data;
 
-                // KPI 바인딩
-                document.getElementById('kpi-pv').textContent = (d.totals && d.totals.pv != null ? d.totals.pv : 0).toLocaleString();
-                document.getElementById('kpi-uv').textContent = (d.totals && d.totals.uv != null ? d.totals.uv : 0).toLocaleString();
-                document.getElementById('kpi-external').textContent = (d.totals && d.totals.externalIn != null ? d.totals.externalIn : 0).toLocaleString();
-                document.getElementById('kpi-members').textContent = (d.totals && d.totals.members != null ? d.totals.members : 0).toLocaleString();
-                document.getElementById('kpi-pages').textContent = (d.totals && d.totals.pages != null ? d.totals.pages : 0).toLocaleString();
-                document.getElementById('kpi-bots').textContent = (d.totals && d.totals.bots != null ? d.totals.bots : 0).toLocaleString();
+                // KPI 요약 카드 즉시 동기화
+                const totalPv = d.totals && d.totals.pv != null ? d.totals.pv : 0;
+                const totalUv = d.totals && d.totals.uv != null ? d.totals.uv : 0;
+                const externalIn = d.totals && d.totals.externalIn != null ? d.totals.externalIn : 0;
+                const members = d.totals && d.totals.members != null ? d.totals.members : 0;
+                const pages = d.totals && d.totals.pages != null ? d.totals.pages : 0;
+                const bots = d.totals && d.totals.bots != null ? d.totals.bots : 0;
 
-                const extPct = (d.totals && d.totals.pv) ? Math.round(((d.totals.externalIn || 0) / d.totals.pv) * 100) : 0;
+                document.getElementById('kpi-pv').textContent = totalPv.toLocaleString();
+                document.getElementById('kpi-uv').textContent = totalUv.toLocaleString();
+                document.getElementById('kpi-external').textContent = externalIn.toLocaleString();
+                document.getElementById('kpi-members').textContent = members.toLocaleString();
+                document.getElementById('kpi-pages').textContent = pages.toLocaleString();
+                document.getElementById('kpi-bots').textContent = bots.toLocaleString();
+
+                const extPct = totalPv > 0 ? Math.round((externalIn / totalPv) * 100) : 0;
                 document.getElementById('kpi-external-sub').textContent = '전체 PV의 ' + extPct + '%';
 
                 window._lastAccessStats = d;
+                return d;
             } catch (e) {
-                console.error('loadAccessStatsSummary error:', e);
+                console.error('fetchAccessStats error:', e);
+                return null;
             }
         }
 
         async function loadOverviewData() {
-            if (!window._lastAccessStats) await loadAccessStatsSummary();
-            const d = window._lastAccessStats;
+            const d = await fetchAccessStats();
             if (!d) return;
 
             document.getElementById('trendRangeLabel').textContent = d.range ? (d.range.from + ' ~ ' + d.range.to) : '';
 
-            // 일별 추이 차트
+            // 일별 추이 차트 (막대 Bar 차트로 선명하게 일별 PV / UV 비교)
             const dailyTrend = d.dailyTrend || [];
             const labels = dailyTrend.map(function(t) { return (t.date || '').substring(5); });
             if (dailyTrendChartInst) dailyTrendChartInst.destroy();
             dailyTrendChartInst = new Chart(document.getElementById('dailyTrendChart').getContext('2d'), {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: '페이지뷰 (PV)', data: dailyTrend.map(function(t) { return t.pv || 0; }), borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.1)', fill: true, tension: 0.3, borderWidth: 2 },
-                        { label: '순 방문자 (UV)', data: dailyTrend.map(function(t) { return t.uv || 0; }), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3, borderWidth: 2 }
+                        { label: '페이지뷰 (PV)', data: dailyTrend.map(function(t) { return t.pv || 0; }), backgroundColor: 'rgba(99, 102, 241, 0.75)', borderColor: '#4f46e5', borderWidth: 1, borderRadius: 6 },
+                        { label: '순 방문자 (UV)', data: dailyTrend.map(function(t) { return t.uv || 0; }), backgroundColor: 'rgba(16, 185, 129, 0.75)', borderColor: '#10b981', borderWidth: 1, borderRadius: 6 }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { beginAtZero: true } }
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const idx = context[0].dataIndex;
+                                    return dailyTrend[idx] ? dailyTrend[idx].date : context[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: { grid: { display: false } }
+                    }
                 }
             });
 
@@ -720,13 +749,13 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                 type: 'bar',
                 data: {
                     labels: hourLabels,
-                    datasets: [{ label: '접속 수', data: hourData, backgroundColor: 'rgba(99, 102, 241, 0.7)', borderRadius: 4 }]
+                    datasets: [{ label: '접속 수', data: hourData, backgroundColor: 'rgba(99, 102, 241, 0.65)', borderRadius: 4 }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
                 }
             });
 
@@ -739,13 +768,13 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                 type: 'bar',
                 data: {
                     labels: dowNames,
-                    datasets: [{ label: '접속 수', data: dowData, backgroundColor: 'rgba(20, 184, 166, 0.7)', borderRadius: 4 }]
+                    datasets: [{ label: '접속 수', data: dowData, backgroundColor: 'rgba(20, 184, 166, 0.65)', borderRadius: 4 }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
                 }
             });
 
@@ -784,8 +813,7 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
         // API 2: 유입 경로 분석 (Traffic Sources & Referrers)
         // -------------------------------------------------------------------
         async function loadTrafficData() {
-            if (!window._lastAccessStats) await loadAccessStatsSummary();
-            const d = window._lastAccessStats;
+            const d = await fetchAccessStats();
             if (d) {
                 // 채널 카테고리 그리드
                 const channels = d.channels || [];
