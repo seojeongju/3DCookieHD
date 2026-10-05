@@ -424,7 +424,7 @@ export const homeHtml = `
                             <i class="fas fa-book-open text-2xl"></i>
                         </span>
                         <span class="block text-lg font-bold text-gray-800 mb-2 group-open:text-primary-700">학습 가이드 보기</span>
-                        <span class="block text-gray-600 text-sm">국비지원 · 기능사 · 소상공인 · 시제품</span>
+                        <span class="block break-keep text-gray-600 text-sm">3D프린팅 기초 · 국비지원 · 기능사 · 소상공인 · 시제품</span>
                         <span class="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary-600" aria-hidden="true">
                             <span class="group-open:hidden">펼치기</span>
                             <span class="hidden group-open:inline">접기</span>
@@ -433,6 +433,13 @@ export const homeHtml = `
                     </summary>
                     <div class="border-t border-gray-100 px-4 pb-5 pt-4 sm:px-5">
                         <nav class="grid grid-cols-1 gap-2.5" aria-label="학습 가이드 목록">
+                            <a href="/guides/3d-printing" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-3.5 hover:border-primary-200 transition">
+                                <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-lightbulb text-sm"></i></span>
+                                <span class="min-w-0 text-left">
+                                    <span class="block text-sm font-black tracking-tight text-gray-900">3D프린팅 기초</span>
+                                    <span class="mt-0.5 block text-xs text-gray-500">원리·역사·출력 방식·소재·안전</span>
+                                </span>
+                            </a>
                             <a href="/guides/national-support" class="bento-card flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-3.5 hover:border-primary-200 transition">
                                 <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><i class="fas fa-landmark text-sm"></i></span>
                                 <span class="min-w-0 text-left">
