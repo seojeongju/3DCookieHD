@@ -125,6 +125,24 @@ const BOT_NAME_SQL = caseSql(UA, BOT_NAME_RULES, '기타 봇');
 const SOURCE_SQL = `CASE WHEN ${REF} = '' THEN ${sqlStr(SOURCE_DIRECT)} ELSE ${caseSql(REF, SOURCE_RULES, SOURCE_OTHER)} END`;
 const EXTERNAL_REF_SQL = `(${REF} <> '' AND NOT ${likeAny(REF, INTERNAL_HOSTS)})`;
 
+/** 검색 사이트별 구분 규칙 (포털 검색 + AI 검색) */
+export const SEARCH_ENGINE_RULES: readonly Rule[] = [
+    { label: '네이버', any: ['search.naver.com', 'naver.com', 'naver.me'] },
+    { label: '구글', any: ['google.com', 'google.co.kr', 'google.'] },
+    { label: '다음', any: ['daum.net', 'search.daum.net'] },
+    { label: 'Bing', any: ['bing.com'] },
+    { label: '줌(Zum)', any: ['zum.com'] },
+    { label: '야후', any: ['yahoo.com', 'yahoo.co.jp'] },
+    { label: 'ChatGPT', any: ['chatgpt.com', 'openai.com'] },
+    { label: 'Perplexity', any: ['perplexity.ai'] },
+    { label: 'Claude', any: ['claude.ai', 'anthropic.com'] },
+    { label: 'Gemini', any: ['gemini.google'] },
+    { label: 'Copilot', any: ['copilot.microsoft'] },
+];
+const SEARCH_ENGINE_SQL = caseSql(REF, SEARCH_ENGINE_RULES, '기타 검색');
+const SEARCH_ENGINE_PATTERNS = SEARCH_ENGINE_RULES.flatMap((r) => r.any);
+export const IS_SEARCH_ENGINE_SQL = `(${likeAny(REF, SEARCH_ENGINE_PATTERNS)} AND NOT ${likeAny(REF, INTERNAL_HOSTS)})`;
+
 /** 사람이 실제로 본 공개 페이지만: GET·정상 응답·관리/API/크롤링 파일 제외·봇 제외 */
 export const PUBLIC_VISIT_SQL = [
     `w.method = 'GET'`,
@@ -275,6 +293,9 @@ app.get('/access-stats', authMiddleware, requireAdmin, async (c) => {
             DB.prepare(`SELECT w.page_visited AS path, count(*) AS pv, count(DISTINCT w.ip_address) AS uv
                 FROM website_visits w WHERE ${WS} AND ${EXTERNAL_REF_SQL}
                 GROUP BY w.page_visited ORDER BY pv DESC LIMIT 10`).bind(...rb),
+            DB.prepare(`SELECT ${SEARCH_ENGINE_SQL} AS label, count(*) AS pv, count(DISTINCT w.ip_address) AS uv
+                FROM website_visits w WHERE ${WS} AND ${IS_SEARCH_ENGINE_SQL}
+                GROUP BY label ORDER BY pv DESC`).bind(...rb),
         ]);
         const rows = <T>(i: number) => (results[i]?.results ?? []) as T[];
         const one = <T>(i: number) => rows<T>(i)[0];
@@ -345,6 +366,7 @@ app.get('/access-stats', authMiddleware, requireAdmin, async (c) => {
                 crawlers: rows<LabelCount>(11),
                 keywords,
                 landingPages: rows<{ path: string; pv: number; uv: number }>(13),
+                searchEngines: rows<LabelCount>(14),
             },
         });
     } catch (e) {
@@ -395,11 +417,20 @@ app.get('/referrers', authMiddleware, requireAdmin, async (c) => {
         const range = parseRange(c);
         const scope = parseScope(c.req.query('scope'));
         const { page, size, offset } = parsePaging(c);
+        const engine = c.req.query('engine')?.trim().toLowerCase();
+        let engineFilter = '';
+        if (engine === 'naver') engineFilter = ` AND ${likeAny('w.referrer', ['naver.com', 'naver.me'])}`;
+        else if (engine === 'google') engineFilter = ` AND ${likeAny('w.referrer', ['google.'])}`;
+        else if (engine === 'daum') engineFilter = ` AND ${likeAny('w.referrer', ['daum.net'])}`;
+        else if (engine === 'bing') engineFilter = ` AND ${likeAny('w.referrer', ['bing.com'])}`;
+        else if (engine === 'ai') engineFilter = ` AND ${likeAny('w.referrer', ['chatgpt.com', 'openai.com', 'perplexity.ai', 'claude.ai', 'gemini.google', 'copilot.microsoft'])}`;
+        else if (engine === 'search_all') engineFilter = ` AND ${IS_SEARCH_ENGINE_SQL}`;
+
         const cte = `WITH r AS (
                 SELECT w.ip_address AS ip, w.referrer AS ref, w.timestamp AS ts,
                     CASE WHEN instr(w.referrer, '://') > 0 THEN substr(w.referrer, instr(w.referrer, '://') + 3) ELSE w.referrer END AS rest
                 FROM website_visits w
-                WHERE w.timestamp >= ?1 AND w.timestamp < ?2 AND ${SCOPE_SQL[scope]} AND ${EXTERNAL_REF_SQL}
+                WHERE w.timestamp >= ?1 AND w.timestamp < ?2 AND ${SCOPE_SQL[scope]} AND ${EXTERNAL_REF_SQL}${engineFilter}
             ), h AS (
                 SELECT lower(CASE WHEN instr(rest, '/') > 0 THEN substr(rest, 1, instr(rest, '/') - 1) ELSE rest END) AS host, ip, ref, ts FROM r
             )`;

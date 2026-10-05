@@ -229,6 +229,23 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                             </div>
                         </div>
 
+                        <!-- 🔍 검색 사이트별 유입 현황 (Search Engines & AI) -->
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-xs border border-emerald-200/60">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <h3 class="text-base font-black text-slate-900 tracking-tight">검색 사이트별 유입 현황 (Search Engines & AI)</h3>
+                                </div>
+                                <span class="text-xs font-semibold text-slate-400">포털 및 생성형 AI 검색엔진 집계</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-4">네이버, 구글, 다음, Bing 및 ChatGPT·Perplexity 등 AI 검색을 통한 유입 분포입니다. 카드를 클릭하면 하단 리퍼러 목록이 즉시 필터링됩니다.</p>
+                            <div id="searchEngineGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                                <div class="text-slate-400 text-xs col-span-full">데이터를 불러오고 있습니다...</div>
+                            </div>
+                        </div>
+
                         <!-- 상세 소스 & 검색어 & 랜딩 페이지 Grid -->
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <!-- 상세 유입 출처 TOP -->
@@ -263,19 +280,33 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                         </div>
 
                         <!-- 외부 유입 도메인(Referrers) 목록 (페이지네이션) -->
-                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
-                            <div class="px-8 py-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
-                                <div>
-                                    <h3 class="text-base font-black text-slate-900 tracking-tight">외부 유입 도메인 / 리퍼러 목록 (Referrer Hosts)</h3>
-                                    <p class="text-xs text-slate-500 mt-0.5">외부 사이트 및 검색엔진에서 연결된 호스트별 상세 접속 건수 목록입니다.</p>
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden" id="referrerSectionAnchor">
+                            <div class="px-8 py-6 border-b border-slate-100 space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                    <div>
+                                        <h3 class="text-base font-black text-slate-900 tracking-tight">외부 유입 도메인 / 리퍼러 목록 (Referrer Hosts)</h3>
+                                        <p class="text-xs text-slate-500 mt-0.5">외부 사이트 및 검색엔진에서 연결된 호스트별 상세 접속 건수 목록입니다.</p>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-xs">
+                                        <span class="text-slate-500 font-medium">보기:</span>
+                                        <select id="refSizeSelect" onchange="changeRefPageSize()" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                                            <option value="10">10개씩</option>
+                                            <option value="20" selected>20개씩</option>
+                                            <option value="50">50개씩</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-3 text-xs">
-                                    <span class="text-slate-500 font-medium">보기:</span>
-                                    <select id="refSizeSelect" onchange="changeRefPageSize()" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700">
-                                        <option value="10">10개씩</option>
-                                        <option value="20" selected>20개씩</option>
-                                        <option value="50">50개씩</option>
-                                    </select>
+
+                                <!-- 검색엔진 전용 필터 버튼 그룹 -->
+                                <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                                    <span class="text-xs font-bold text-slate-500 mr-1"><i class="fas fa-filter text-slate-400 mr-1"></i>엔진 필터:</span>
+                                    <button type="button" onclick="setReferrerEngine('')" id="refEngineBtn-" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-sm transition">전체 외부 유입</button>
+                                    <button type="button" onclick="setReferrerEngine('search_all')" id="refEngineBtn-search_all" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition">🔍 검색 유입 전체</button>
+                                    <button type="button" onclick="setReferrerEngine('naver')" id="refEngineBtn-naver" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition">네이버 (Naver)</button>
+                                    <button type="button" onclick="setReferrerEngine('google')" id="refEngineBtn-google" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-blue-200 text-blue-700 hover:bg-blue-50 transition">구글 (Google)</button>
+                                    <button type="button" onclick="setReferrerEngine('daum')" id="refEngineBtn-daum" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-200 text-amber-700 hover:bg-amber-50 transition">다음 (Daum)</button>
+                                    <button type="button" onclick="setReferrerEngine('bing')" id="refEngineBtn-bing" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-sky-200 text-sky-700 hover:bg-sky-50 transition">Bing</button>
+                                    <button type="button" onclick="setReferrerEngine('ai')" id="refEngineBtn-ai" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-purple-200 text-purple-700 hover:bg-purple-50 transition">🤖 AI 검색 (GPT/Perplexity 등)</button>
                                 </div>
                             </div>
 
@@ -515,7 +546,7 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
             to: '',
             activeTab: 'overview',
             pages: { page: 1, size: 20, q: '', sort: 'pv' },
-            referrers: { page: 1, size: 20 },
+            referrers: { page: 1, size: 20, engine: '' },
             visitors: { page: 1, size: 20, kind: 'all', q: '', sort: 'pv' },
             logs: { page: 1, size: 20, device: '', source: '', kind: 'all', q: '' }
         };
@@ -832,6 +863,47 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                     }).join('');
                 }
 
+                // 🔍 검색 사이트별 유입 현황 그리드 (Search Engines & AI)
+                const searchEngines = d.searchEngines || [];
+                const searchGrid = document.getElementById('searchEngineGrid');
+                if (searchEngines.length === 0) {
+                    searchGrid.innerHTML = '<div class="text-slate-400 text-xs col-span-full">집계된 검색 사이트 유입 데이터가 없습니다.</div>';
+                } else {
+                    const totalSearchPv = searchEngines.reduce(function(acc, cur) { return acc + (cur.pv || 0); }, 0) || 1;
+                    const engineMeta = {
+                        '네이버': { key: 'naver', icon: 'N', bg: 'bg-emerald-50/70', text: 'text-emerald-700', border: 'border-emerald-200' },
+                        '구글': { key: 'google', icon: 'G', bg: 'bg-blue-50/70', text: 'text-blue-700', border: 'border-blue-200' },
+                        '다음': { key: 'daum', icon: 'D', bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-200' },
+                        'Bing': { key: 'bing', icon: 'B', bg: 'bg-sky-50/70', text: 'text-sky-700', border: 'border-sky-200' },
+                        'ChatGPT': { key: 'ai', icon: 'GPT', bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200' },
+                        'Perplexity': { key: 'ai', icon: 'PX', bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200' },
+                        'Claude': { key: 'ai', icon: 'CL', bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200' },
+                        'Gemini': { key: 'ai', icon: 'GM', bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200' },
+                        'Copilot': { key: 'ai', icon: 'CP', bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200' },
+                        '줌(Zum)': { key: 'search_all', icon: 'Z', bg: 'bg-cyan-50/70', text: 'text-cyan-700', border: 'border-cyan-200' },
+                        '야후': { key: 'search_all', icon: 'Y', bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-200' }
+                    };
+
+                    searchGrid.innerHTML = searchEngines.map(function(s) {
+                        const meta = engineMeta[s.label] || { key: 'search_all', icon: '🔍', bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' };
+                        const pct = Math.round((s.pv / totalSearchPv) * 100);
+                        return '<div onclick="filterBySearchEngineCard(\'' + meta.key + '\')" class="cursor-pointer group hover:border-indigo-500 hover:shadow-md transition-all ' + meta.bg + ' border ' + meta.border + ' p-3.5 rounded-2xl flex flex-col justify-between">' +
+                            '<div>' +
+                                '<div class="flex items-center justify-between mb-2">' +
+                                    '<span class="font-extrabold text-xs ' + meta.text + '">' + escapeHtml(s.label) + '</span>' +
+                                    '<span class="w-6 h-5 rounded-md bg-white font-black text-[10px] ' + meta.text + ' flex items-center justify-center shadow-xs border border-slate-100">' + meta.icon + '</span>' +
+                                '</div>' +
+                                '<div class="text-xl font-black text-slate-900">' + s.pv.toLocaleString() + '<span class="text-xs text-slate-400 font-normal ml-1">PV</span></div>' +
+                                '<div class="text-[11px] font-bold ' + meta.text + ' mt-0.5">' + pct + '% 비중 (' + s.uv.toLocaleString() + ' UV)</div>' +
+                            '</div>' +
+                            '<div class="mt-3 pt-2 border-t border-slate-200/50 text-[10px] text-slate-500 group-hover:text-indigo-600 font-bold flex items-center justify-between transition">' +
+                                '<span>리퍼러 필터</span>' +
+                                '<i class="fas fa-arrow-down text-[9px] group-hover:translate-y-0.5 transition-transform"></i>' +
+                            '</div>' +
+                        '</div>';
+                    }).join('');
+                }
+
                 // 상세 유입 소스
                 const sources = (d.sources || []).slice(0, 10);
                 const sourceList = document.getElementById('sourceList');
@@ -882,6 +954,9 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
             const tbody = document.getElementById('referrersTableBody');
             try {
                 let url = '/api/analytics/referrers?scope=' + state.scope + '&page=' + state.referrers.page + '&size=' + state.referrers.size;
+                if (state.referrers.engine) {
+                    url += '&engine=' + encodeURIComponent(state.referrers.engine);
+                }
                 if (state.from && state.to) {
                     url += '&from=' + encodeURIComponent(state.from) + '&to=' + encodeURIComponent(state.to);
                 }
@@ -897,7 +972,7 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                 const rows = data.rows || [];
 
                 if (rows.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">외부 유입 도메인 데이터가 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">선택한 조건의 외부 유입 도메인 데이터가 없습니다.</td></tr>';
                 } else {
                     tbody.innerHTML = rows.map(function(r) {
                         return '<tr class="hover:bg-slate-50 transition">' +
@@ -925,6 +1000,37 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
             state.referrers.size = parseInt(document.getElementById('refSizeSelect').value, 10) || 20;
             state.referrers.page = 1;
             fetchReferrersList();
+        }
+
+        function setReferrerEngine(engine) {
+            state.referrers.engine = engine || '';
+            state.referrers.page = 1;
+
+            ['', 'search_all', 'naver', 'google', 'daum', 'bing', 'ai'].forEach(function(key) {
+                const btn = document.getElementById('refEngineBtn-' + key);
+                if (!btn) return;
+                if (key === state.referrers.engine) {
+                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-sm transition';
+                } else {
+                    let defaultColor = 'border border-slate-200 text-slate-600 hover:bg-slate-50';
+                    if (key === 'naver') defaultColor = 'border border-emerald-200 text-emerald-700 hover:bg-emerald-50';
+                    else if (key === 'google') defaultColor = 'border border-blue-200 text-blue-700 hover:bg-blue-50';
+                    else if (key === 'daum') defaultColor = 'border border-amber-200 text-amber-700 hover:bg-amber-50';
+                    else if (key === 'bing') defaultColor = 'border border-sky-200 text-sky-700 hover:bg-sky-50';
+                    else if (key === 'ai') defaultColor = 'border border-purple-200 text-purple-700 hover:bg-purple-50';
+                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold ' + defaultColor + ' transition';
+                }
+            });
+
+            fetchReferrersList();
+        }
+
+        function filterBySearchEngineCard(engineKey) {
+            setReferrerEngine(engineKey);
+            const anchor = document.getElementById('referrerSectionAnchor');
+            if (anchor) {
+                anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         // -------------------------------------------------------------------
