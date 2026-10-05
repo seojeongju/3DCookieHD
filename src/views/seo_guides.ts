@@ -1,5 +1,5 @@
 import { layoutHtml } from './components/layout';
-import { buildHowTo, CAMPUSES, getSeoHead, getSeoOptionsForPath, SITE_NAME, SITE_ORIGIN } from '../utils/seo';
+import { breadcrumbsForPath, buildHowTo, CAMPUSES, getSeoHead, getSeoOptionsForPath, PAGE_LASTMOD, SITE_NAME, SITE_ORIGIN } from '../utils/seo';
 import { learnHeadAssets, learnScript, renderInfographic, type Infographic } from './components/learn_infographics';
 
 type GuideSection = {
@@ -35,6 +35,49 @@ type GuidePage = {
     /** cards: 아코디언 대신 인포그래픽 카드로 펼쳐 보여줌 (절차 타임라인은 섹션 인포그래픽으로 대체) */
     layout?: 'cards';
     hero?: 'card' | 'license';
+    /** 본문 근거가 된 공식 자료 (화면 표시 + Article citation) */
+    sources?: Array<{ label: string; href: string }>;
+    /** 페이지가 설명하는 대상(자격증·제도 등) JSON-LD */
+    entities?: Array<Record<string, unknown>>;
+};
+
+const HRDK = { '@type': 'GovernmentOrganization', name: '한국산업인력공단', url: 'https://www.q-net.or.kr' };
+
+const CREDENTIAL_ENTITIES: Array<Record<string, unknown>> = [
+    {
+        '@type': 'EducationalOccupationalCredential',
+        '@id': `${SITE_ORIGIN}/guides/craftsman-license#craftsman`,
+        name: '3D프린터운용기능사',
+        alternateName: ['3D프린팅 기능사', '3D프린터 국가자격증', 'Craftsman 3D Printer Operation'],
+        credentialCategory: '국가기술자격 (기능사)',
+        description: '3D프린터 기반으로 제품을 제작하기 위해 데이터 생성, 3D프린터 설정, 제품 출력 및 안전관리를 수행하는 능력을 검증하는 국가기술자격. 필기 객관식 60문항·60분, 실기 작업형 약 4시간, 각 60점 이상 합격.',
+        competencyRequired: ['3D 모델링', '슬라이싱·G코드 생성', '3D프린터 설정·출력', '후가공', '안전관리'],
+        recognizedBy: HRDK,
+        url: 'https://www.q-net.or.kr/crf005.do?gSite=Q&id=crf00505&jmCd=7785',
+    },
+    {
+        '@type': 'EducationalOccupationalCredential',
+        '@id': `${SITE_ORIGIN}/guides/craftsman-license#engineer`,
+        name: '3D프린터개발산업기사',
+        alternateName: ['3D프린터 산업기사', 'Industrial Engineer 3D Printer Development'],
+        credentialCategory: '국가기술자격 (산업기사)',
+        description: '3D프린터의 기구·제어회로·구동장치·제어 프로그램을 설계하고 테스트·안전관리를 수행하는 능력을 검증하는 국가기술자격. 필기 4과목 80문항·2시간, 실기 필답형 1시간(45점)+작업형 약 4시간(55점).',
+        competencyRequired: ['3D프린터 회로 및 기구', '3D프린터 장치', '3D프린터 프로그램', '품질보증 및 안전관리'],
+        recognizedBy: HRDK,
+        url: 'https://www.q-net.or.kr/crf005.do?gSite=Q&id=crf00505&jmCd=2177',
+    },
+];
+
+const CARD_ENTITY: Record<string, unknown> = {
+    '@type': 'GovernmentService',
+    '@id': `${SITE_ORIGIN}/guides/national-support#card`,
+    name: '국민내일배움카드',
+    alternateName: ['내일배움카드', '국비지원 직업훈련'],
+    serviceType: '직업훈련비 지원',
+    description: '발급일부터 5년간 훈련비 300만원 한도(특정 대상 최대 500만원)로 직업훈련비를 지원하는 제도. 일반 훈련 자기부담 0~55%, 특화 훈련 90% 이상 지원. 2026년 기준 요약이며 고용24 공지가 우선.',
+    provider: { '@type': 'GovernmentOrganization', name: '고용노동부', url: 'https://www.moel.go.kr' },
+    areaServed: { '@type': 'Country', name: '대한민국' },
+    availableChannel: { '@type': 'ServiceChannel', name: '고용24', serviceUrl: 'https://www.work24.go.kr' },
 };
 
 const CAMPUS_TONES = ['indigo', 'sky', 'emerald'] as const;
@@ -74,6 +117,11 @@ const PAGES: Record<string, GuidePage> = {
         banner: '<i class="fas fa-info-circle mr-2"></i>금액·자격 기준은 <strong>2026년 고용노동부 기준 요약</strong>입니다. 실제 적용은 <a href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer" class="font-bold underline hover:no-underline">고용24</a> 공지와 개인 심사 결과가 우선하며, 발급 FAQ는 <a href="/tomorrow-learning-card" class="font-bold underline hover:no-underline">내일배움카드 발급 안내</a>에서 볼 수 있습니다.',
         layout: 'cards',
         hero: 'card',
+        sources: [
+            { label: '고용24 — 국민내일배움카드 안내', href: 'https://www.work24.go.kr' },
+            { label: '고용노동부 — 직업능력개발 정책', href: 'https://www.moel.go.kr' },
+        ],
+        entities: [CARD_ENTITY],
         factRows: [
             ['지원 제도', '국민내일배움카드(고용노동부)'],
             ['훈련비 한도', '5년간 300만원 (특정 대상 최대 500만원)'],
@@ -286,6 +334,13 @@ const PAGES: Record<string, GuidePage> = {
         banner: '<i class="fas fa-info-circle mr-2"></i>시험 구성은 <strong>한국산업인력공단 출제기준(2024~) 요약</strong>입니다. 일정·응시 자격·원서 접수·공개문제는 <a href="https://www.q-net.or.kr" target="_blank" rel="noopener noreferrer" class="font-bold underline hover:no-underline">Q-Net(큐넷)</a> 공식 공지가 우선합니다.',
         layout: 'cards',
         hero: 'license',
+        sources: [
+            { label: 'Q-Net — 3D프린터운용기능사 시험정보', href: 'https://www.q-net.or.kr/crf005.do?gSite=Q&id=crf00505&jmCd=7785' },
+            { label: 'Q-Net — 3D프린터개발산업기사 시험정보', href: 'https://www.q-net.or.kr/crf005.do?gSite=Q&id=crf00505&jmCd=2177' },
+            { label: 'Q-Net — 공개문제 자료실', href: 'https://www.q-net.or.kr/cst006.do?id=cst00602&gSite=Q' },
+            { label: '과정평가형 자격 안내', href: 'https://c.q-net.or.kr' },
+        ],
+        entities: CREDENTIAL_ENTITIES,
         factRows: [
             ['국가자격 종목', '3D프린터운용기능사 · 3D프린터개발산업기사'],
             ['시행기관', '한국산업인력공단 (큐넷)'],
@@ -362,7 +417,7 @@ const PAGES: Record<string, GuidePage> = {
                         { icon: 'fa-hand-sparkles', title: '회수·후가공', desc: '지지대 제거·정리 후 제출' },
                     ],
                 },
-                outro: '실격·감점 기준과 지참물은 회차별 <a href="https://www.q-net.or.kr" target="_blank" rel="noopener noreferrer" class="font-bold text-indigo-600 hover:underline">큐넷 공개문제</a>의 수험자 유의사항을 꼭 확인하세요.',
+                outro: '실격·감점 기준과 지참물은 회차별 <a href="https://www.q-net.or.kr" target="_blank" rel="noopener noreferrer" class="font-bold text-indigo-600 hover:underline">큐넷 공개문제</a>의 수험자 유의사항을 꼭 확인하세요. 실기에서 다루는 FDM 방식의 원리는 <a href="/guides/3d-printing/process" class="font-bold text-indigo-600 hover:underline">3D프린팅 출력 방식</a>, 후가공 시 보호구·환기는 <a href="/guides/3d-printing/safety" class="font-bold text-indigo-600 hover:underline">3D프린팅 안전 수칙</a>에서 미리 익혀 두면 좋습니다.',
             },
             {
                 id: 'engineer-exam',
@@ -832,6 +887,10 @@ function campusStripHtml(): string {
         </section>`;
 }
 
+function plainText(html: string): string {
+    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').replace(/\s+([.,)])/g, '$1').trim();
+}
+
 function faqGraphNode(page: GuidePage) {
     return {
         '@type': 'FAQPage',
@@ -840,9 +899,53 @@ function faqGraphNode(page: GuidePage) {
         mainEntity: page.sections.map((s) => ({
             '@type': 'Question',
             name: s.h2,
-            acceptedAnswer: { '@type': 'Answer', text: s.body.replace(/<[^>]+>/g, ' ') },
+            acceptedAnswer: { '@type': 'Answer', text: plainText(s.body) },
         })),
     };
+}
+
+function articleGraphNode(page: GuidePage, title: string, description: string, modified: string): Record<string, unknown> {
+    const url = `${SITE_ORIGIN}/guides/${page.slug}`;
+    return {
+        '@type': 'Article',
+        '@id': `${url}#article`,
+        headline: title,
+        description,
+        inLanguage: 'ko-KR',
+        dateModified: modified,
+        mainEntityOfPage: { '@id': `${url}#webpage` },
+        author: { '@id': `${SITE_ORIGIN}/#organization` },
+        publisher: { '@id': `${SITE_ORIGIN}/#organization` },
+        ...(page.entities?.length ? { about: page.entities.map((e) => ({ '@id': e['@id'] })) } : {}),
+        ...(page.sources?.length ? { citation: page.sources.map((s) => s.href) } : {}),
+    };
+}
+
+function guideBreadcrumbHtml(path: string): string {
+    const items = breadcrumbsForPath(path);
+    return `<nav aria-label="현재 위치" class="mb-4 text-xs font-bold text-slate-400"><ol class="flex flex-wrap items-center gap-1.5">${items
+        .map((item, i) =>
+            i === items.length - 1
+                ? `<li class="text-slate-600" aria-current="page">${item.name}</li>`
+                : `<li><a href="${item.path}" class="hover:text-indigo-600">${item.name}</a></li><li aria-hidden="true"><i class="fas fa-chevron-right text-[8px]"></i></li>`
+        )
+        .join('')}</ol></nav>`;
+}
+
+function sourcesHtml(page: GuidePage, modified?: string): string {
+    if (!page.sources?.length) return '';
+    const items = page.sources
+        .map(
+            (s) =>
+                `<li><a href="${s.href}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-indigo-700"><i class="fas fa-arrow-up-right-from-square text-[10px] text-slate-400" aria-hidden="true"></i>${s.label}</a></li>`
+        )
+        .join('');
+    return `
+        <section class="mt-8 rounded-[2.5rem] border border-slate-200/60 bg-white p-6 shadow-sm sm:p-8" aria-label="참고 자료">
+            <h2 class="mb-2 text-base font-black tracking-tight text-slate-900">참고 자료</h2>
+            <p class="mb-4 text-xs leading-5 text-slate-500">이 가이드는 아래 공식 자료를 바탕으로 ${SITE_NAME} 교육팀이 요약했습니다${modified ? ` (최종 확인 ${modified.replace(/-/g, '.')})` : ''}. 제도·시험 기준이 바뀌면 공식 공지가 우선합니다.</p>
+            <ul class="space-y-2">${items}</ul>
+        </section>`;
 }
 
 function howToForGuide(page: GuidePage): Record<string, unknown> | null {
@@ -861,6 +964,9 @@ export function seoGuideHtml(slug: string): string | null {
     if (!page) return null;
 
     const cards = page.layout === 'cards';
+    const path = `/guides/${page.slug}`;
+    const modified = PAGE_LASTMOD[path];
+    const seo = getSeoOptionsForPath(path) || { title: page.h1, description: page.lead, path };
     const primaryLinks = page.links.filter((l) => l.primary);
     const primary = primaryLinks[0] || page.links[0];
     const headerCtas = primaryLinks
@@ -900,11 +1006,13 @@ export function seoGuideHtml(slug: string): string | null {
                     <div class="lg:col-span-9">
                         <header class="bento-card mb-6 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10 ${page.hero ? 'md:grid md:grid-cols-[1fr_15rem] md:items-center md:gap-8 lg:grid-cols-[1fr_17rem]' : ''}">
                             <div>
+                                ${guideBreadcrumbHtml(path)}
                                 <p class="mb-3 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
                                     <i class="fas ${page.icon}"></i> ${page.kicker}
                                 </p>
                                 <h1 class="break-keep text-2xl font-black tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">${page.h1}</h1>
                                 <p class="mt-4 max-w-2xl break-keep text-[15px] leading-7 text-slate-600 sm:text-base">${page.lead}</p>
+                                ${modified ? `<p class="mt-3 text-xs font-bold text-slate-400">${SITE_NAME} 교육팀 · 최종 수정 <time datetime="${modified}">${modified.replace(/-/g, '.')}</time></p>` : ''}
                                 <div class="mt-6 flex flex-wrap gap-3">${headerCtas}</div>
                             </div>
                             ${page.hero === 'card' ? cardHeroHtml() : page.hero === 'license' ? licenseHeroHtml() : ''}
@@ -920,6 +1028,7 @@ export function seoGuideHtml(slug: string): string | null {
                                 : `<section class="space-y-3" aria-label="자주 묻는 질문">${sectionsAccordionHtml(page.sections)}</section>`
                         }
 
+                        ${sourcesHtml(page, modified)}
                         ${relatedLinksHtml(page)}
                         ${page.showCampusStrip ? campusStripHtml() : ''}
                     </div>
@@ -938,12 +1047,13 @@ export function seoGuideHtml(slug: string): string | null {
         getSeoHead(
             SITE_ORIGIN,
             {
-                ...(getSeoOptionsForPath(`/guides/${page.slug}`) || {
-                    title: page.h1,
-                    description: page.lead,
-                    path: `/guides/${page.slug}`,
-                }),
-                extraJsonLd: [faqGraphNode(page), howToForGuide(page)].filter(Boolean),
+                ...seo,
+                extraJsonLd: [
+                    faqGraphNode(page),
+                    howToForGuide(page),
+                    modified ? articleGraphNode(page, seo.title, seo.description || page.lead, modified) : null,
+                    ...(page.entities ?? []),
+                ].filter(Boolean),
             }
         ) + (cards ? learnHeadAssets() : '')
     );

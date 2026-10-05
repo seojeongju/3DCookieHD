@@ -168,6 +168,7 @@ import {
     isNoindexPath,
     isTrackingOnlyQuery,
     llmsTxt,
+    PAGE_LASTMOD,
     PUBLIC_PATHS,
     seoOptionsForPortfolio,
     seoOptionsForSession,
@@ -339,6 +340,15 @@ app.get('/robots.txt', (c) => {
         'Disallow: /admin/',
         'Disallow: /api/',
         '',
+        ...['OAI-SearchBot', 'ClaudeBot', 'Claude-SearchBot', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended'].flatMap((bot) => [
+            `User-agent: ${bot}`,
+            'Allow: /',
+            'Disallow: /admin/',
+            'Disallow: /teacher/',
+            'Disallow: /student/',
+            'Disallow: /api/',
+            '',
+        ]),
     ].join('\n');
     return new Response(body, {
         headers: {
@@ -353,7 +363,8 @@ app.get('/sitemap.xml', async (c) => {
     const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
     const entries: Array<{ path: string; lastmod?: string; priority: string }> = PUBLIC_PATHS.map((path) => ({
         path,
-        priority: path === '/' ? '1.0' : '0.8',
+        lastmod: PAGE_LASTMOD[path],
+        priority: path === '/' ? '1.0' : path.startsWith('/guides/') ? '0.9' : '0.8',
     }));
 
     try {
@@ -1118,6 +1129,7 @@ app.get('/locations/:campus', async (c) => {
     }
     return c.html(locationsHtml({ kakaoMapAppKey: appKey, initialTab: campus as 'hongdae' | 'gumi' | 'jeonju' }));
 });
+app.get('/guides', (c) => c.redirect('/guides/3d-printing', 301));
 app.get('/guides/3d-printing', (c) => c.html(learn3dPrintingHtml('') as string));
 app.get('/guides/3d-printing/:topic', (c) => {
     const html = learn3dPrintingHtml(c.req.param('topic'));
