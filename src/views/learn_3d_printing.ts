@@ -12,7 +12,7 @@ import {
     type Infographic,
 } from './components/learn_infographics';
 
-type LearnSection = { id: string; h2: string; html: string; figure?: Infographic; outro?: string };
+type LearnSection = { id: string; h2: string; html: string; figure?: Infographic | Infographic[]; outro?: string };
 type LearnFaq = { q: string; a: string };
 type LearnTable = { caption: string; head: string[]; rows: string[][]; note?: string };
 
@@ -276,52 +276,154 @@ const PAGES: LearnPage[] = [
         ],
         sections: [
             {
+                id: 'map',
+                h2: '3D프린팅 방식 7가지는 어떻게 나뉘나요?',
+                html: `7가지 방식은 ${strong('어떤 형태의 재료를')} ${strong('어떻게 굳히거나 붙이는지')}로 구분됩니다. 재료 형태별로 묶어 보면 한눈에 정리됩니다.`,
+                figure: {
+                    kind: 'processMap',
+                    caption: '번호는 ISO/ASTM 52900의 7가지 공정입니다. 교육 현장에서 가장 많이 쓰는 방식은 01 재료 압출(FDM)입니다.',
+                    groups: [
+                        { form: '고체 필라멘트', icon: 'fa-circle-nodes', items: [{ name: '재료 압출', tech: 'FDM · FFF', how: '녹인 플라스틱을 노즐로 짜내며 쌓기', highlight: true }] },
+                        {
+                            form: '액체 수지',
+                            icon: 'fa-droplet',
+                            items: [
+                                { name: '광중합', tech: 'SLA · DLP · LCD', how: '수조의 레진에 빛을 비춰 한 층씩 굳히기' },
+                                { name: '재료 분사', tech: '폴리젯 · 멀티젯', how: '잉크젯처럼 수지 방울을 뿌리고 UV로 굳히기' },
+                            ],
+                        },
+                        {
+                            form: '분말',
+                            icon: 'fa-braille',
+                            items: [
+                                { name: '분말 융접', tech: 'SLS · MJF · SLM · DMLS', how: '깔아 둔 분말을 레이저·열로 녹여 붙이기' },
+                                { name: '접착제 분사', tech: '바인더 젯팅', how: '분말 위에 결합제를 뿌려 굳히기' },
+                            ],
+                        },
+                        { form: '금속 와이어·분말 공급', icon: 'fa-fire-flame-curved', items: [{ name: '고에너지 직접 적층', tech: 'DED · WAAM', how: '재료를 공급하면서 레이저·아크로 녹여 쌓기' }] },
+                        { form: '얇은 시트', icon: 'fa-note-sticky', items: [{ name: '시트 적층', tech: 'LOM · UAM', how: '종이·필름·금속 박판을 붙이고 잘라 쌓기' }] },
+                    ],
+                },
+            },
+            {
                 id: 'extrusion',
                 h2: 'FDM(재료 압출) 방식은 어떻게 출력하나요?',
-                html: `실 형태의 플라스틱 필라멘트를 가열된 노즐에서 녹여 짜내며 한 층씩 쌓습니다. 장비와 소재가 저렴하고 사용이 쉬워 가정·학교·직업훈련에서 가장 많이 쓰이며, ${link('/guides/craftsman-license', '3D프린터운용기능사')} 실기에서도 이 방식의 프린터를 다룹니다.${list([
-                    `${strong('장점')} — 저렴한 장비·소재, PLA·ABS·PETG·TPU 등 다양한 소재, 큰 출력물 제작 용이`,
-                    `${strong('단점')} — 적층 줄무늬가 보이고, 미세한 디테일 표현과 Z축 강도가 상대적으로 약함`,
-                    `${strong('품질 핵심 설정')} — 노즐 지름(보통 0.4mm), 레이어 높이, 노즐·베드 온도, 출력 속도, 채우기(인필), 서포트`,
-                ])}`,
+                html: `실 형태의 플라스틱 ${term('필라멘트')}를 가열된 ${term('노즐')}에서 녹여 짜내며 한 층씩 쌓습니다. 장비와 소재가 저렴하고 사용이 쉬워 가정·학교·직업훈련에서 가장 많이 쓰이며, ${link('/guides/craftsman-license', '3D프린터운용기능사')} 실기에서도 이 방식의 프린터를 다룹니다.`,
+                figure: [
+                    {
+                        kind: 'schematic',
+                        visual: 'fdm',
+                        caption: '장비에 따라 베드가 움직이는 방식과 노즐이 움직이는 방식(코어XY 등)이 있지만, 녹여서 쌓는 원리는 같습니다.',
+                        labels: [
+                            { title: '필라멘트 스풀', desc: '지름 1.75mm 플라스틱 실이 감겨 있고, 압출기가 조금씩 당겨 보냅니다.' },
+                            { title: '핫엔드(가열부)', desc: '히터가 소재별 온도(PLA 약 200℃)로 필라멘트를 녹입니다.' },
+                            { title: '노즐', desc: '보통 지름 0.4mm 구멍으로 녹은 재료를 가늘게 짜냅니다.' },
+                            { title: term('히트베드'), desc: '바닥판을 데워 첫 층이 잘 붙고 모서리가 들뜨지 않게 합니다.' },
+                        ],
+                    },
+                    { kind: 'fdmSettings', caption: '출력 품질은 레이어 높이·인필 외에도 노즐·베드 온도, 출력 속도, 서포트 설정에 따라 달라집니다.' },
+                ],
+                outro: `${strong('장점')}은 저렴한 장비·소재와 다양한 소재 선택, 큰 출력물 제작이고, ${strong('단점')}은 적층 줄무늬가 보이고 미세한 디테일과 Z축 강도가 상대적으로 약하다는 점입니다.`,
             },
             {
                 id: 'vat',
                 h2: 'SLA·DLP·LCD(광중합) 방식은 무엇이 다른가요?',
-                html: `수조에 담긴 액체 광경화성 수지(레진)에 빛을 비춰 한 층씩 굳힙니다. 빛을 비추는 방법에 따라 이름이 나뉩니다.${list([
-                    `${strong('SLA')} — 레이저 점으로 단면을 그리며 경화`,
-                    `${strong('DLP')} — 프로젝터로 한 층 전체를 한 번에 경화`,
-                    `${strong('LCD(MSLA)')} — UV 광원 앞의 LCD 화면이 마스크 역할을 해 한 층 전체를 경화 (보급형에 많음)`,
-                ])}<p class="mt-3">표면이 매끈하고 정밀해 피규어, 치과 모형, 주얼리 원형에 적합합니다. 다만 출력 후 IPA(이소프로필 알코올) 세척과 UV 2차 경화가 필요하고, 미경화 레진은 피부 자극이 있어 장갑과 환기가 필수입니다.</p>`,
+                html: `수조에 담긴 액체 ${term('레진')}에 빛을 비춰 한 층씩 굳히는 ${term('광중합')} 방식입니다. 보급형 장비는 대부분 ${term('빌드 플레이트')}가 출력물을 거꾸로 매단 채 한 층씩 올라가는 구조입니다. 세 방식은 ${strong('빛을 비추는 방법')}만 다릅니다.`,
+                figure: [
+                    {
+                        kind: 'schematic',
+                        visual: 'vat',
+                        caption: '한 층이 굳을 때마다 플레이트가 살짝 올라가 굳은 층을 수조 바닥 필름에서 떼어 냅니다.',
+                        labels: [
+                            { title: '빌드 플레이트', desc: '출력물이 거꾸로 붙어 만들어지는 판으로, 한 층마다 위로 올라갑니다.' },
+                            { title: '레진 수조', desc: '바닥이 투명한 필름(FEP)이라 아래에서 빛이 통과합니다.' },
+                            { title: '광원', desc: '레이저(SLA)·프로젝터(DLP)·LCD 화면+UV(LCD)가 단면 모양대로 빛을 비춥니다.' },
+                            { title: '경화된 출력물', desc: '빛을 받은 부분만 굳어 층층이 쌓입니다.' },
+                        ],
+                    },
+                    {
+                        kind: 'iconGrid',
+                        caption: 'LCD 방식은 한 층을 통째로 굳혀 속도가 빠르고 장비가 저렴해 개인·교육용으로 많이 쓰입니다.',
+                        items: [
+                            { icon: 'fa-crosshairs', tone: 'violet', title: 'SLA', desc: '레이저 점이 단면을 그리듯 이동하며 굳힘' },
+                            { icon: 'fa-video', tone: 'indigo', title: 'DLP', desc: '프로젝터가 한 층 전체 이미지를 한 번에 비춤' },
+                            { icon: 'fa-display', tone: 'sky', title: 'LCD (MSLA)', desc: 'UV 광원 앞의 LCD 화면이 마스크가 되어 한 층을 통째로 굳힘' },
+                        ],
+                    },
+                ],
+                outro: `표면이 매끈하고 정밀해 피규어, 치과 모형, 주얼리 원형에 적합합니다. 다만 출력 후 ${term('IPA')} 세척과 UV ${term('2차 경화')}가 필요하고, 미경화 레진은 피부 자극이 있어 장갑과 환기가 필수입니다.`,
             },
             {
                 id: 'powder',
                 h2: 'SLS·MJF·금속 프린팅(분말 융접)은 어떤 방식인가요?',
-                html: `얇게 깐 분말 위에 열원을 쬐어 단면만 녹여 붙이고, 다시 분말을 깔기를 반복합니다. 녹지 않은 주변 분말이 출력물을 받쳐 주므로 폴리머 방식은 ${strong('서포트가 거의 필요 없습니다')}.${list([
-                    `${strong('SLS')} — 레이저로 나일론(PA12 등) 분말을 소결`,
-                    `${strong('MJF')} — HP의 방식. 분말 위에 융해제를 분사한 뒤 적외선으로 한 층을 녹임`,
-                    `${strong('SLM·DMLS')} — 고출력 레이저로 스테인리스·티타늄·알루미늄 등 금속 분말을 용융`,
-                    `${strong('EBM')} — 진공 속에서 전자빔으로 금속 분말을 용융`,
-                ])}<p class="mt-3">강도가 높아 최종 부품 생산에도 쓰이지만, 장비가 비싸고 분말 취급·후처리 설비가 필요해 주로 산업 현장과 출력 서비스 업체에서 운용합니다.</p>`,
+                html: `얇게 깐 분말 위에 열원을 쬐어 단면만 녹이거나 ${term('소결')}하고, 다시 분말을 깔기를 반복합니다. 녹지 않은 주변 분말이 출력물을 받쳐 주므로 폴리머 방식은 ${strong('서포트가 거의 필요 없습니다')}.`,
+                figure: [
+                    {
+                        kind: 'schematic',
+                        visual: 'powder',
+                        caption: '출력이 끝나면 분말 덩어리 속에서 출력물을 꺼내고, 남은 분말은 걸러서 다시 사용합니다.',
+                        labels: [
+                            { title: '레이저', desc: '거울로 방향을 바꿔 가며 단면 모양대로 분말을 녹입니다.' },
+                            { title: `${term('리코터')}(롤러)`, desc: '한 층이 끝날 때마다 옆 공급부의 분말을 얇게 펴 바릅니다.' },
+                            { title: '분말 베드', desc: '나일론·금속 분말이 층층이 깔리는 작업 공간입니다.' },
+                            { title: '출력물', desc: '녹은 부분만 굳어 분말 속에 묻힌 채 완성됩니다.' },
+                        ],
+                    },
+                    {
+                        kind: 'iconGrid',
+                        caption: '금속 분말 방식은 장비와 분말 취급 설비가 필요해 주로 산업 현장과 출력 서비스 업체에서 운용합니다.',
+                        items: [
+                            { icon: 'fa-bolt', tone: 'indigo', title: 'SLS', desc: '레이저로 나일론(PA12 등) 분말을 소결' },
+                            { icon: 'fa-spray-can', tone: 'sky', title: 'MJF', desc: '융해제를 분사한 뒤 적외선으로 한 층을 녹임 (HP 방식)' },
+                            { icon: 'fa-gear', tone: 'violet', title: 'SLM · DMLS', desc: '고출력 레이저로 스테인리스·티타늄·알루미늄 분말을 용융' },
+                            { icon: 'fa-atom', tone: 'rose', title: 'EBM', desc: '진공 속에서 전자빔으로 금속 분말을 용융' },
+                        ],
+                    },
+                ],
             },
             {
                 id: 'others',
                 h2: '나머지 4가지 방식은 언제 쓰이나요?',
-                html: `${list([
-                    `${strong('재료 분사(Material Jetting)')} — 잉크젯처럼 광경화 수지 방울을 분사한 뒤 UV로 굳힘. 여러 색·여러 재질을 한 번에 출력할 수 있어 정밀 시제품에 쓰입니다. (예: 폴리젯)`,
-                    `${strong('접착제 분사(Binder Jetting)')} — 분말 위에 결합제를 뿌려 굳힘. 풀컬러 모형, 주조용 모래 틀, 소결 후 금속 부품에 쓰입니다.`,
-                    `${strong('고에너지 직접 적층(DED)')} — 금속 분말이나 와이어를 공급하면서 레이저·전자빔·아크로 녹여 쌓음. 대형 금속 부품 제작과 마모 부품 보수에 쓰입니다.`,
-                    `${strong('시트 적층(Sheet Lamination)')} — 종이·필름·금속 박판을 한 장씩 붙이고 잘라 쌓음. 저가 모형이나 초음파 금속 접합에 쓰입니다.`,
-                ])}`,
+                html: '재료 분사, 접착제 분사, 고에너지 직접 적층, 시트 적층은 특정 산업 용도에 맞춰 쓰이는 방식입니다.',
+                figure: {
+                    kind: 'iconGrid',
+                    caption: '7가지 방식의 재료·장점·용도는 아래 비교표에서 한 번에 확인할 수 있습니다.',
+                    items: [
+                        { icon: 'fa-palette', tone: 'violet', title: '재료 분사 (Material Jetting)', desc: '잉크젯처럼 광경화 수지 방울을 분사한 뒤 UV로 굳힘. 여러 색·재질을 한 번에 출력해 정밀 시제품에 쓰입니다.' },
+                        { icon: 'fa-fill-drip', tone: 'amber', title: '접착제 분사 (Binder Jetting)', desc: '분말 위에 결합제를 뿌려 굳힘. 풀컬러 모형, 주조용 모래 틀, 소결 후 금속 부품에 쓰입니다.' },
+                        { icon: 'fa-fire', tone: 'rose', title: '고에너지 직접 적층 (DED)', desc: '금속 분말·와이어를 공급하며 레이저·아크로 녹여 쌓음. 대형 금속 부품 제작과 마모 부품 보수에 쓰입니다.' },
+                        { icon: 'fa-layer-group', tone: 'emerald', title: '시트 적층 (Sheet Lamination)', desc: '종이·필름·금속 박판을 한 장씩 붙이고 잘라 쌓음. 저가 모형이나 초음파 금속 접합에 쓰입니다.' },
+                    ],
+                },
             },
             {
                 id: 'choose',
                 h2: '용도에 따라 어떤 방식을 고르면 되나요?',
-                html: `${list([
-                    `${strong('처음 배우거나 큰 시제품')} → FDM. 장비·소재가 저렴하고 출력 실패 원인을 이해하기 쉽습니다.`,
-                    `${strong('작고 정밀한 모형')} → 광중합(SLA·DLP·LCD). 피규어, 치과·주얼리 원형에 적합합니다.`,
-                    `${strong('튼튼한 기능 부품 소량 생산')} → SLS·MJF. 복잡한 형상도 서포트 없이 출력합니다.`,
-                    `${strong('금속 최종 부품')} → SLM·DMLS 또는 DED. 전문 출력 서비스를 이용하는 경우가 많습니다.`,
-                ])}<p class="mt-3">각 방식에 맞는 재료는 ${link(`${LEARN_BASE_PATH}/materials`, '3D프린팅 출력 소재')}에서 자세히 비교했습니다.</p>`,
+                html: '만들려는 물건의 크기·정밀도·강도와 예산을 기준으로 고르면 됩니다.',
+                figure: [
+                    {
+                        kind: 'decision',
+                        caption: '처음 배운다면 FDM으로 원리를 익힌 뒤, 필요에 따라 광중합·분말 방식으로 넓혀 가는 것이 일반적입니다.',
+                        options: [
+                            { icon: 'fa-graduation-cap', tone: 'indigo', when: '처음 배우거나 큰 시제품을 만들 때', pick: 'FDM (재료 압출)', why: '장비·소재가 저렴하고 출력 실패 원인을 이해하기 쉽습니다.' },
+                            { icon: 'fa-gem', tone: 'violet', when: '작고 정밀한 모형이 필요할 때', pick: '광중합 (SLA · DLP · LCD)', why: '피규어, 치과·주얼리 원형처럼 매끈한 표면에 적합합니다.' },
+                            { icon: 'fa-gears', tone: 'sky', when: '튼튼한 기능 부품을 소량 생산할 때', pick: '분말 융접 (SLS · MJF)', why: '복잡한 형상도 서포트 없이 출력합니다.' },
+                            { icon: 'fa-industry', tone: 'rose', when: '금속 최종 부품이 필요할 때', pick: 'SLM · DMLS 또는 DED', why: '전문 출력 서비스를 이용하는 경우가 많습니다.' },
+                        ],
+                    },
+                    {
+                        kind: 'ratings',
+                        caption: '5단계 상대 비교로, 장비 등급과 소재에 따라 달라질 수 있습니다. 비용·난이도는 막대가 길수록 부담이 큽니다.',
+                        metrics: ['표면 정밀도', '부품 강도', '장비·운영 비용', '입문 난이도'],
+                        rows: [
+                            { name: 'FDM', sub: '재료 압출', tone: 'indigo', scores: [2, 3, 1, 1] },
+                            { name: '광중합', sub: 'SLA·DLP·LCD', tone: 'violet', scores: [5, 2, 2, 3] },
+                            { name: '분말 융접', sub: 'SLS·MJF', tone: 'sky', scores: [4, 4, 4, 4] },
+                            { name: '금속 분말', sub: 'SLM·DMLS', tone: 'rose', scores: [4, 5, 5, 5] },
+                        ],
+                    },
+                ],
+                outro: `각 방식에 맞는 재료는 ${link(`${LEARN_BASE_PATH}/materials`, '3D프린팅 출력 소재')}에서 자세히 비교했습니다.`,
             },
         ],
         table: {
@@ -337,7 +439,7 @@ const PAGES: LearnPage[] = [
                 ['시트 적층', 'LOM, UAM', '종이·필름·금속 박판', '재료 저렴', '모형, 금속 접합'],
             ],
         },
-        tableAfter: 3,
+        tableAfter: 4,
         faqs: [
             {
                 q: 'FDM과 SLA의 가장 큰 차이는 무엇인가요?',
@@ -376,59 +478,143 @@ const PAGES: LearnPage[] = [
             {
                 id: 'filament',
                 h2: 'FDM 필라멘트는 어떤 종류가 있나요?',
-                html: `필라멘트는 보통 지름 1.75mm 규격이 가장 많이 쓰입니다. 대표 소재의 특징은 다음과 같습니다.${list([
-                    `${strong('PLA')} — 옥수수 전분 등 식물성 원료로 만든 바이오 플라스틱. 수축과 뒤틀림이 적어 출력이 쉽지만, 약 60℃ 전후에서 물러지므로 뜨거운 곳에는 맞지 않습니다.`,
-                    `${strong('ABS')} — 단단하고 충격과 열에 강합니다. 식으면서 수축이 커 모서리가 들뜨기 쉬우므로 밀폐형 챔버와 환기가 권장됩니다. 아세톤으로 표면을 녹여 매끈하게 다듬을 수 있습니다.`,
-                    `${strong('PETG')} — 페트병 소재(PET)를 개량한 소재로 강도·내화학성이 좋고 투명하게 출력할 수 있습니다. 실처럼 늘어지는 현상(스트링)이 생기기 쉽습니다.`,
-                    `${strong('TPU')} — 고무처럼 휘어지는 유연 소재. 휴대폰 케이스, 패킹, 신발 밑창 시제품에 쓰입니다. 천천히 출력해야 합니다.`,
-                    `${strong('ASA')} — ABS와 비슷하지만 자외선에 강해 실외용 부품에 적합합니다.`,
-                    `${strong('나일론(PA)')} — 질기고 마모에 강하지만 습기를 잘 흡수해 출력 전 건조가 필요합니다.`,
-                    `${strong('복합 소재')} — 탄소섬유(CF)·유리섬유(GF)를 섞어 강성을 높인 소재. 노즐을 빨리 마모시키므로 경화강 노즐을 씁니다.`,
-                    `${strong('서포트 전용')} — 물에 녹는 PVA, 리모넨 용액에 녹는 HIPS는 듀얼 노즐 장비에서 서포트로 씁니다.`,
-                ])}`,
+                html: `${term('필라멘트')}는 보통 지름 1.75mm 규격이 가장 많이 쓰입니다. 대표 소재 8가지의 특징은 다음과 같습니다.`,
+                figure: {
+                    kind: 'iconGrid',
+                    caption: '같은 소재라도 제조사·색상에 따라 출력 특성이 조금씩 다르므로, 처음 쓰는 필라멘트는 작은 테스트 출력부터 해 보세요.',
+                    items: [
+                        { icon: 'fa-seedling', tone: 'emerald', title: 'PLA', desc: '옥수수 전분 등 식물성 원료의 바이오 플라스틱. 수축·뒤틀림이 적어 출력이 쉽지만 약 60℃ 전후에서 물러집니다.' },
+                        { icon: 'fa-shield-halved', tone: 'indigo', title: 'ABS', desc: '단단하고 충격·열에 강합니다. 수축이 커 밀폐형 챔버와 환기가 권장되며, 아세톤으로 표면을 매끈하게 다듬을 수 있습니다.' },
+                        { icon: 'fa-bottle-water', tone: 'sky', title: 'PETG', desc: `페트병 소재(PET)를 개량해 강도·내화학성이 좋고 투명 출력이 가능합니다. ${term('스트링')}이 생기기 쉽습니다.` },
+                        { icon: 'fa-hand-back-fist', tone: 'violet', title: 'TPU', desc: '고무처럼 휘어지는 유연 소재. 휴대폰 케이스, 패킹, 신발 밑창 시제품에 쓰며 천천히 출력해야 합니다.' },
+                        { icon: 'fa-sun', tone: 'amber', title: 'ASA', desc: 'ABS와 비슷하지만 자외선에 강해 실외용 부품에 적합합니다.' },
+                        { icon: 'fa-link', tone: 'rose', title: '나일론 (PA)', desc: '질기고 마모에 강하지만 습기를 잘 흡수해 출력 전 건조가 필요합니다.' },
+                        { icon: 'fa-dumbbell', tone: 'indigo', title: '복합 소재 (CF·GF)', desc: '탄소섬유·유리섬유를 섞어 강성을 높인 소재. 노즐을 빨리 마모시켜 경화강 노즐을 씁니다.' },
+                        { icon: 'fa-droplet', tone: 'sky', title: '서포트 전용 (PVA·HIPS)', desc: 'PVA는 물에, HIPS는 리모넨 용액에 녹아 듀얼 노즐 장비의 서포트로 씁니다.' },
+                    ],
+                },
+            },
+            {
+                id: 'compare',
+                h2: '필라멘트별 출력 온도와 특성은 어떻게 다른가요?',
+                html: `소재마다 녹는 온도가 달라 ${term('노즐')}과 ${term('히트베드')} 온도를 다르게 설정해야 합니다. 온도가 높은 소재일수록 대체로 열에 강하지만 출력은 까다로워집니다.`,
+                figure: [
+                    {
+                        kind: 'range',
+                        caption: '일반적인 참고 범위입니다. 실제 출력은 필라멘트 제조사 권장값을 우선하세요. PLA의 베드 0℃는 가열 없이도 출력할 수 있다는 뜻입니다.',
+                        min: 0,
+                        max: 300,
+                        step: 50,
+                        unit: '℃',
+                        series: [
+                            { label: '노즐 온도', color: '#f97316' },
+                            { label: '베드 온도', color: '#38bdf8' },
+                        ],
+                        rows: [
+                            { name: 'PLA', ranges: [[190, 220], [0, 60]] },
+                            { name: 'ABS', ranges: [[220, 250], [90, 110]] },
+                            { name: 'PETG', ranges: [[220, 250], [70, 85]] },
+                            { name: 'TPU', ranges: [[210, 230], [30, 60]] },
+                            { name: 'ASA', ranges: [[230, 260], [90, 110]] },
+                            { name: '나일론', ranges: [[240, 270], [70, 90]] },
+                        ],
+                    },
+                    {
+                        kind: 'ratings',
+                        caption: '일반적인 경향을 5단계로 단순화한 비교입니다. 막대가 길수록 해당 성질이 좋습니다(냄새 항목은 길수록 냄새가 적음).',
+                        metrics: ['출력 쉬움', '내열성', '충격 강도', '유연성', '냄새 적음'],
+                        rows: [
+                            { name: 'PLA', tone: 'emerald', scores: [5, 1, 2, 1, 5] },
+                            { name: 'ABS', tone: 'indigo', scores: [2, 4, 4, 1, 1] },
+                            { name: 'PETG', tone: 'sky', scores: [4, 3, 4, 2, 4] },
+                            { name: 'TPU', tone: 'violet', scores: [2, 2, 5, 5, 4] },
+                            { name: 'ASA', tone: 'amber', scores: [2, 4, 4, 1, 1] },
+                            { name: '나일론', tone: 'rose', scores: [1, 4, 5, 3, 3] },
+                        ],
+                    },
+                ],
             },
             {
                 id: 'resin',
                 h2: '광중합(SLA·DLP·LCD) 레진은 어떻게 고르나요?',
-                html: `레진은 빛에 반응해 굳는 액체 수지로, 용도별로 제품이 나뉩니다.${list([
-                    `${strong('스탠다드 레진')} — 정밀한 모형·피규어용. 단단하지만 깨지기 쉽습니다.`,
-                    `${strong('터프·ABS 라이크 레진')} — 충격에 강해 조립 시제품에 적합합니다.`,
-                    `${strong('플렉시블 레진')} — 고무처럼 휘어지는 부품용입니다.`,
-                    `${strong('캐스터블 레진')} — 깨끗하게 타서 없어지므로 주얼리 주조 원형에 씁니다.`,
-                    `${strong('덴탈·바이오 레진')} — 치과용으로 인증된 전용 제품을 사용해야 합니다.`,
-                    `${strong('수세 레진')} — IPA 대신 물로 세척할 수 있지만, 세척수도 레진 폐기물로 처리해야 합니다.`,
-                ])}<p class="mt-3">${strong('안전 수칙')}: 미경화 레진은 피부 자극과 알레르기를 일으킬 수 있으므로 니트릴 장갑·보안경을 착용하고 환기합니다. 남은 레진과 세척액은 햇빛이나 UV로 완전히 굳힌 뒤 폐기합니다.</p>`,
+                html: `${term('레진')}은 빛에 반응해 굳는 액체 수지로, 용도별로 제품이 나뉩니다.`,
+                figure: [
+                    {
+                        kind: 'iconGrid',
+                        caption: '치과·의료용처럼 인체에 닿는 용도는 반드시 해당 용도로 인증된 전용 레진을 사용해야 합니다.',
+                        items: [
+                            { icon: 'fa-chess-knight', tone: 'indigo', title: '스탠다드 레진', desc: '정밀한 모형·피규어용. 단단하지만 깨지기 쉽습니다.' },
+                            { icon: 'fa-hammer', tone: 'sky', title: '터프·ABS 라이크', desc: '충격에 강해 조립 시제품에 적합합니다.' },
+                            { icon: 'fa-wave-square', tone: 'violet', title: '플렉시블 레진', desc: '고무처럼 휘어지는 부품용입니다.' },
+                            { icon: 'fa-ring', tone: 'amber', title: '캐스터블 레진', desc: '깨끗하게 타서 없어지므로 주얼리 주조 원형에 씁니다.' },
+                            { icon: 'fa-tooth', tone: 'emerald', title: '덴탈·바이오 레진', desc: '치과용으로 인증된 전용 제품을 사용해야 합니다.' },
+                            { icon: 'fa-faucet-drip', tone: 'rose', title: '수세 레진', desc: `${term('IPA')} 대신 물로 세척하지만, 세척수도 레진 폐기물로 처리해야 합니다.` },
+                        ],
+                    },
+                    {
+                        kind: 'flow',
+                        caption: '미경화 레진은 피부 자극과 알레르기를 일으킬 수 있습니다. 작업 전후 4단계 안전 수칙을 꼭 지키세요.',
+                        steps: [
+                            { icon: 'fa-mitten', title: '보호구 착용', desc: '니트릴 장갑과 보안경을 착용합니다', chips: ['장갑', '보안경'] },
+                            { icon: 'fa-wind', title: '환기', desc: '냄새와 증기가 빠지도록 환기되는 곳에서 작업합니다', chips: ['환기'] },
+                            { icon: 'fa-pump-soap', title: '세척·2차 경화', desc: `출력물을 ${term('IPA')}로 씻고 UV로 ${term('2차 경화')}합니다`, chips: ['IPA', 'UV'] },
+                            { icon: 'fa-recycle', title: '굳혀서 폐기', desc: '남은 레진·세척액은 햇빛·UV로 완전히 굳힌 뒤 버립니다', chips: ['배수구 금지'] },
+                        ],
+                    },
+                ],
             },
             {
                 id: 'powder-metal',
                 h2: '분말·금속 소재에는 무엇이 있나요?',
-                html: `${list([
-                    `${strong('나일론 분말(PA12, PA11)')} — SLS·MJF의 대표 소재. 강도와 내구성이 좋아 기능 부품 생산에 쓰입니다.`,
-                    `${strong('TPU 분말')} — 유연한 격자 구조, 쿠션 부품에 쓰입니다.`,
-                    `${strong('금속 분말')} — 스테인리스강(316L), 티타늄 합금(Ti-6Al-4V), 알루미늄 합금(AlSi10Mg), 니켈 합금(인코넬), 공구강 등. 항공·의료·금형 분야에 쓰입니다.`,
-                    `${strong('기타')} — 세라믹, 건설용 콘크리트, 초콜릿 같은 식품, 세포를 담은 바이오잉크도 연구·활용되고 있습니다.`,
-                ])}`,
+                html: '분말 소재는 SLS·MJF·금속 프린터에서 쓰이며, 주로 산업용 기능 부품 생산에 활용됩니다.',
+                figure: {
+                    kind: 'iconGrid',
+                    caption: '금속 분말은 비산·화재 위험이 있어 전용 설비와 보호 장비를 갖춘 환경에서만 다룹니다.',
+                    items: [
+                        { icon: 'fa-braille', tone: 'indigo', title: '나일론 분말 (PA12 · PA11)', desc: 'SLS·MJF의 대표 소재. 강도와 내구성이 좋아 기능 부품 생산에 쓰입니다.' },
+                        { icon: 'fa-couch', tone: 'violet', title: 'TPU 분말', desc: '유연한 격자 구조, 쿠션 부품에 쓰입니다.' },
+                        { icon: 'fa-plane-up', tone: 'sky', title: '금속 분말', desc: '스테인리스강(316L), 티타늄 합금(Ti-6Al-4V), 알루미늄 합금(AlSi10Mg), 인코넬 등. 항공·의료·금형 분야에 쓰입니다.' },
+                        { icon: 'fa-flask-vial', tone: 'emerald', title: '기타 소재', desc: '세라믹, 건설용 콘크리트, 초콜릿 같은 식품, 세포를 담은 바이오잉크도 연구·활용되고 있습니다.' },
+                    ],
+                },
             },
             {
                 id: 'storage',
                 h2: '필라멘트는 어떻게 보관해야 하나요?',
-                html: `대부분의 필라멘트는 공기 중 습기를 흡수합니다. 습기를 먹은 필라멘트는 출력 중 기포가 터지는 소리가 나고, 표면이 거칠어지며 강도가 떨어집니다.${list([
-                    '사용하지 않을 때는 실리카겔 같은 건조제와 함께 밀봉 용기나 지퍼백에 보관합니다.',
-                    '나일론·PETG·TPU처럼 흡습성이 큰 소재는 출력 전 필라멘트 건조기로 말립니다.',
-                    '필라멘트 끝을 스풀 구멍에 끼워 두면 엉킴을 막을 수 있습니다.',
-                ])}`,
+                html: `대부분의 필라멘트는 공기 중 습기를 빨아들이는 ${term('흡습성')}이 있습니다. 보관 습관만 바꿔도 출력 실패가 크게 줄어듭니다.`,
+                figure: {
+                    kind: 'balance',
+                    labels: { good: '이렇게 보관하세요', bad: '습기를 먹으면', goodIcon: 'fa-box-archive', badIcon: 'fa-droplet' },
+                    caption: '나일론·PETG·TPU는 흡습성이 특히 커서, 개봉 후 며칠만 지나도 출력 품질이 떨어질 수 있습니다.',
+                    pros: [
+                        { icon: 'fa-box', title: '밀봉 + 건조제', desc: '실리카겔과 함께 밀봉 용기나 지퍼백에 보관합니다.' },
+                        { icon: 'fa-temperature-arrow-up', title: '출력 전 건조', desc: '흡습성이 큰 소재는 필라멘트 건조기로 말린 뒤 출력합니다.' },
+                        { icon: 'fa-thumbtack', title: '끝 고정', desc: '필라멘트 끝을 스풀 구멍에 끼워 엉킴을 막습니다.' },
+                    ],
+                    cons: [
+                        { icon: 'fa-volume-high', title: '탁탁 소리', desc: '출력 중 수분이 끓으며 기포가 터지는 소리가 납니다.' },
+                        { icon: 'fa-hand-sparkles', title: '거친 표면', desc: '표면이 거칠어지고 실 늘어짐(스트링)이 늘어납니다.' },
+                        { icon: 'fa-heart-crack', title: '강도 저하', desc: '층 사이 결합이 약해져 쉽게 부러집니다.' },
+                    ],
+                },
             },
             {
                 id: 'choose',
                 h2: '용도별로 어떤 소재를 고르면 되나요?',
-                html: `${list([
-                    `${strong('입문·교육·외형 확인용 모형')} → PLA`,
-                    `${strong('열이 나는 곳, 자동차 실내 부품')} → ABS 또는 ASA`,
-                    `${strong('실외에 두는 부품')} → ASA`,
-                    `${strong('기계 부품, 물·약품에 닿는 용기')} → PETG 또는 나일론`,
-                    `${strong('휘어지는 부품')} → TPU`,
-                    `${strong('정밀한 소형 모형')} → 광중합 레진`,
-                ])}<p class="mt-3">식품에 닿는 용도(쿠키틀 등)는 소재 자체뿐 아니라 노즐·착색제·적층 틈새의 위생까지 고려해야 하므로, 식품용 인증 소재와 사용 방법을 확인하세요. 매장용 쿠키틀·몰드 제작은 ${link('/guides/small-business', '소상공인 활용 교육')}에서 실습합니다.</p>`,
+                html: '출력물이 놓일 환경(온도·햇빛·물)과 필요한 성질(단단함·유연함)을 먼저 정하면 소재를 쉽게 고를 수 있습니다.',
+                figure: {
+                    kind: 'decision',
+                    caption: '처음에는 PLA로 출력 감각을 익힌 뒤, 용도에 맞춰 PETG·ABS·TPU로 넓혀 가는 것을 권합니다.',
+                    options: [
+                        { icon: 'fa-graduation-cap', tone: 'emerald', when: '입문·교육, 외형 확인용 모형', pick: 'PLA', why: '출력이 쉽고 냄새가 적습니다.' },
+                        { icon: 'fa-car', tone: 'indigo', when: '열이 나는 곳, 자동차 실내 부품', pick: 'ABS 또는 ASA', why: '열과 충격에 강합니다.' },
+                        { icon: 'fa-cloud-sun', tone: 'amber', when: '실외에 두는 부품', pick: 'ASA', why: '자외선에 강해 색이 바래거나 약해지지 않습니다.' },
+                        { icon: 'fa-gears', tone: 'sky', when: '기계 부품, 물·약품에 닿는 용기', pick: 'PETG 또는 나일론', why: '강도와 내화학성이 좋습니다.' },
+                        { icon: 'fa-hand-back-fist', tone: 'violet', when: '휘어지는 부품', pick: 'TPU', why: '고무처럼 탄성이 있습니다.' },
+                        { icon: 'fa-gem', tone: 'rose', when: '정밀한 소형 모형', pick: '광중합 레진', why: '매끈하고 디테일한 표면을 얻을 수 있습니다.' },
+                    ],
+                },
+                outro: `식품에 닿는 용도(쿠키틀 등)는 소재 자체뿐 아니라 노즐·착색제·적층 틈새의 위생까지 고려해야 하므로, 식품용 인증 소재와 사용 방법을 확인하세요. 매장용 쿠키틀·몰드 제작은 ${link('/guides/small-business', '소상공인 활용 교육')}에서 실습합니다.`,
             },
         ],
         table: {
@@ -444,7 +630,7 @@ const PAGES: LearnPage[] = [
             ],
             note: '온도는 일반적인 참고 범위입니다. 실제 출력은 필라멘트 제조사 권장값을 우선하세요.',
         },
-        tableAfter: 0,
+        tableAfter: 1,
         faqs: [
             {
                 q: '처음 3D프린팅을 할 때 어떤 소재가 좋나요?',
@@ -582,7 +768,7 @@ function sectionsHtml(page: LearnPage): string {
                     <span class="pt-0.5">${s.h2}</span>
                 </h2>
                 <div class="text-[15px] leading-7 text-slate-600">${s.html}</div>
-                ${s.figure ? renderInfographic(s.figure) : ''}
+                ${s.figure ? (Array.isArray(s.figure) ? s.figure : [s.figure]).map(renderInfographic).join('') : ''}
                 ${s.outro ? `<p class="mt-5 text-[15px] leading-7 text-slate-600">${s.outro}</p>` : ''}
             </section>`;
             return page.table && page.tableAfter === i ? card + tableHtml(page.table) : card;

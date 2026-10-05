@@ -21,6 +21,15 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     필라멘트: { id: 'filament', def: 'FDM 프린터에 쓰는 실 형태의 플라스틱 재료. 지름 1.75mm 규격이 가장 일반적입니다.' },
     레진: { id: 'resin', def: '빛을 받으면 굳는 액체 광경화성 수지. SLA·DLP·LCD 프린터의 재료입니다.' },
     노즐: { id: 'nozzle', def: 'FDM 프린터에서 녹인 필라멘트를 짜내는 끝부분. 지름 0.4mm가 가장 일반적입니다.' },
+    히트베드: { id: 'heated-bed', def: '출력물이 놓이는 바닥판을 데워, 첫 층이 잘 붙고 식으며 들뜨는 것을 막는 장치입니다.' },
+    '빌드 플레이트': { id: 'build-plate', def: '출력물이 붙어 만들어지는 판. 광중합 프린터에서는 거꾸로 매달린 채 한 층씩 위로 올라갑니다.' },
+    광중합: { id: 'vat-photopolymerization', def: '액체 레진에 빛(레이저·프로젝터·LCD)을 비춰 원하는 부분만 굳히는 방식입니다.' },
+    소결: { id: 'sintering', def: '분말을 완전히 녹이지 않고 열로 입자끼리 붙이는 것. SLS가 대표적인 방식입니다.' },
+    리코터: { id: 'recoater', def: '분말 방식 프린터에서 한 층을 만들 때마다 새 분말을 얇고 평평하게 깔아 주는 롤러·블레이드입니다.' },
+    '2차 경화': { id: 'post-curing', def: '레진 출력물을 세척한 뒤 UV 빛을 추가로 쬐어 끝까지 단단하게 굳히는 작업입니다.' },
+    IPA: { id: 'ipa', def: '이소프로필 알코올. 레진 출력물 표면에 남은 미경화 레진을 씻어 내는 세척액입니다.' },
+    스트링: { id: 'stringing', def: '노즐이 이동할 때 녹은 필라멘트가 거미줄처럼 늘어져 남는 현상입니다.' },
+    흡습성: { id: 'hygroscopic', def: '공기 중의 습기를 빨아들이는 성질. 나일론·PETG·TPU 필라멘트에서 특히 큽니다.' },
 };
 
 /** 본문 속 용어에 툴팁을 붙인다. 정의 문장은 data 속성에만 두고, 본문 텍스트에는 섞지 않는다. */
@@ -78,13 +87,13 @@ export function glossaryJsonLd(url: string, keys: string[]): Record<string, unkn
 
 type Tone = 'indigo' | 'sky' | 'emerald' | 'amber' | 'rose' | 'violet';
 
-const TONES: Record<Tone, { chip: string; icon: string }> = {
-    indigo: { chip: 'bg-indigo-50 border-indigo-100', icon: 'bg-indigo-600 text-white' },
-    sky: { chip: 'bg-sky-50 border-sky-100', icon: 'bg-sky-500 text-white' },
-    emerald: { chip: 'bg-emerald-50 border-emerald-100', icon: 'bg-emerald-500 text-white' },
-    amber: { chip: 'bg-amber-50 border-amber-100', icon: 'bg-amber-500 text-white' },
-    rose: { chip: 'bg-rose-50 border-rose-100', icon: 'bg-rose-500 text-white' },
-    violet: { chip: 'bg-violet-50 border-violet-100', icon: 'bg-violet-500 text-white' },
+const TONES: Record<Tone, { chip: string; icon: string; bar: string; text: string }> = {
+    indigo: { chip: 'bg-indigo-50 border-indigo-100', icon: 'bg-indigo-600 text-white', bar: 'bg-indigo-500', text: 'text-indigo-700' },
+    sky: { chip: 'bg-sky-50 border-sky-100', icon: 'bg-sky-500 text-white', bar: 'bg-sky-500', text: 'text-sky-700' },
+    emerald: { chip: 'bg-emerald-50 border-emerald-100', icon: 'bg-emerald-500 text-white', bar: 'bg-emerald-500', text: 'text-emerald-700' },
+    amber: { chip: 'bg-amber-50 border-amber-100', icon: 'bg-amber-500 text-white', bar: 'bg-amber-500', text: 'text-amber-700' },
+    rose: { chip: 'bg-rose-50 border-rose-100', icon: 'bg-rose-500 text-white', bar: 'bg-rose-500', text: 'text-rose-700' },
+    violet: { chip: 'bg-violet-50 border-violet-100', icon: 'bg-violet-500 text-white', bar: 'bg-violet-500', text: 'text-violet-700' },
 };
 
 export type MethodCard = {
@@ -99,11 +108,29 @@ export type FlowStep = { icon: string; title: string; desc: string; chips?: stri
 export type BalanceItem = { icon: string; title: string; desc: string };
 export type IconItem = { icon: string; tone: Tone; title: string; desc: string; href?: string; linkLabel?: string };
 
+export type SchematicLabel = { title: string; desc: string };
+export type ProcessGroup = { form: string; icon: string; items: Array<{ name: string; tech: string; how: string; highlight?: boolean }> };
+export type RatingRow = { name: string; sub?: string; tone: Tone; scores: number[] };
+export type DecisionOption = { when: string; pick: string; why: string; icon: string; tone: Tone };
+export type RangeRow = { name: string; ranges: Array<[number, number]> };
+
 export type Infographic =
     | { kind: 'methods'; caption: string; items: MethodCard[] }
     | { kind: 'flow'; caption: string; steps: FlowStep[] }
-    | { kind: 'balance'; caption: string; pros: BalanceItem[]; cons: BalanceItem[] }
-    | { kind: 'iconGrid'; caption: string; items: IconItem[] };
+    | {
+          kind: 'balance';
+          caption: string;
+          pros: BalanceItem[];
+          cons: BalanceItem[];
+          labels?: { good: string; bad: string; goodIcon?: string; badIcon?: string };
+      }
+    | { kind: 'iconGrid'; caption: string; items: IconItem[] }
+    | { kind: 'schematic'; caption: string; visual: 'fdm' | 'vat' | 'powder'; labels: SchematicLabel[] }
+    | { kind: 'fdmSettings'; caption: string }
+    | { kind: 'processMap'; caption: string; groups: ProcessGroup[] }
+    | { kind: 'ratings'; caption: string; metrics: string[]; rows: RatingRow[] }
+    | { kind: 'decision'; caption: string; options: DecisionOption[] }
+    | { kind: 'range'; caption: string; min: number; max: number; step: number; unit: string; series: Array<{ label: string; color: string }>; rows: RangeRow[] };
 
 function figure(caption: string, inner: string): string {
     return `
@@ -172,7 +199,11 @@ function flowHtml(steps: FlowStep[]): string {
         .join('')}</ol>`;
 }
 
-function balanceHtml(pros: BalanceItem[], cons: BalanceItem[]): string {
+function balanceHtml(
+    pros: BalanceItem[],
+    cons: BalanceItem[],
+    labels: { good: string; bad: string; goodIcon?: string; badIcon?: string } = { good: '장점', bad: '한계' }
+): string {
     const col = (title: string, icon: string, items: BalanceItem[], good: boolean) => `
         <div class="rounded-[1.75rem] border p-5 ${good ? 'border-emerald-100 bg-emerald-50/60' : 'border-amber-100 bg-amber-50/60'}" data-reveal style="--d:${good ? 0 : 150}ms">
             <p class="mb-4 flex items-center gap-2 text-sm font-black ${good ? 'text-emerald-700' : 'text-amber-700'}">
@@ -189,8 +220,8 @@ function balanceHtml(pros: BalanceItem[], cons: BalanceItem[]): string {
         </div>`;
     return `
         <div class="relative grid gap-4 md:grid-cols-2">
-            ${col('장점', 'fa-thumbs-up', pros, true)}
-            ${col('한계', 'fa-triangle-exclamation', cons, false)}
+            ${col(labels.good, labels.goodIcon || 'fa-thumbs-up', pros, true)}
+            ${col(labels.bad, labels.badIcon || 'fa-triangle-exclamation', cons, false)}
             <span class="balance-badge absolute left-1/2 top-1/2 hidden h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-slate-900 text-white shadow-lg md:flex" aria-hidden="true"><i class="fas fa-scale-balanced"></i></span>
         </div>`;
 }
@@ -212,6 +243,253 @@ function iconGridHtml(items: IconItem[]): string {
         .join('')}</div>`;
 }
 
+const badge = (x: number, y: number, n: number) =>
+    `<g transform="translate(${x},${y})"><circle r="10" fill="#0f172a"/><text y="4" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${n}</text></g>`;
+
+const SCHEMATIC_SVG: Record<'fdm' | 'vat' | 'powder', { label: string; svg: string }> = {
+    fdm: {
+        label: '필라멘트가 핫엔드에서 녹아 노즐로 나오고, 히트베드가 앞뒤로 움직이며 한 층씩 쌓이는 FDM 프린터 구조',
+        svg: `
+            <rect x="4" y="4" width="292" height="212" rx="24" fill="#f8fafc"/>
+            <g class="sc-spin" style="transform-origin:54px 52px">
+                <circle cx="54" cy="52" r="28" fill="#e0e7ff" stroke="#818cf8" stroke-width="3"/>
+                <circle cx="54" cy="52" r="9" fill="#fff" stroke="#818cf8" stroke-width="2"/>
+                <line x1="54" y1="24" x2="54" y2="80" stroke="#a5b4fc" stroke-width="2"/>
+                <line x1="26" y1="52" x2="82" y2="52" stroke="#a5b4fc" stroke-width="2"/>
+            </g>
+            <path d="M74 30 C110 6 152 14 160 62" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>
+            <rect x="142" y="62" width="36" height="28" rx="6" fill="#334155"/>
+            <rect x="148" y="70" width="24" height="5" rx="2" fill="#f43f5e" class="sc-heat"/>
+            <path d="M151 90 H169 L163 108 H157 Z" fill="#f59e0b"/>
+            <g class="sc-bed">
+                <rect x="124" y="141" width="72" height="9" rx="2" fill="#6366f1"/>
+                <rect x="128" y="132" width="64" height="9" rx="2" fill="#818cf8"/>
+                <rect x="132" y="123" width="56" height="9" rx="2" fill="#6366f1"/>
+                <rect x="136" y="114" width="48" height="9" rx="2" fill="#a5b4fc"/>
+                <rect x="84" y="150" width="152" height="10" rx="3" fill="#94a3b8"/>
+                <path class="sc-heat" d="M100 170 q6 -6 12 0 t12 0 M140 170 q6 -6 12 0 t12 0 M180 170 q6 -6 12 0 t12 0" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            ${badge(24, 22, 1)}${badge(196, 70, 2)}${badge(184, 106, 3)}${badge(262, 156, 4)}`,
+    },
+    vat: {
+        label: '레진 수조 아래의 광원이 빛을 비춰 한 층을 굳히면, 빌드 플레이트가 출력물을 매단 채 위로 올라가는 광중합 프린터 구조',
+        svg: `
+            <rect x="4" y="4" width="292" height="212" rx="24" fill="#f8fafc"/>
+            <rect x="256" y="16" width="8" height="160" rx="3" fill="#cbd5e1"/>
+            <g class="sc-lift">
+                <rect x="150" y="40" width="112" height="8" rx="3" fill="#94a3b8"/>
+                <rect x="108" y="48" width="104" height="9" rx="3" fill="#64748b"/>
+                <rect x="126" y="57" width="68" height="20" rx="3" fill="#6366f1"/>
+                <rect x="132" y="77" width="56" height="20" rx="3" fill="#818cf8"/>
+                <rect x="138" y="97" width="44" height="20" rx="3" fill="#6366f1"/>
+                <rect x="144" y="117" width="32" height="20" rx="3" fill="#818cf8"/>
+                <rect x="150" y="137" width="20" height="24" rx="3" fill="#a5b4fc"/>
+            </g>
+            <rect x="82" y="112" width="156" height="56" fill="#93c5fd" opacity=".4"/>
+            <path d="M80 104 V170 H240 V104" fill="none" stroke="#64748b" stroke-width="3"/>
+            <rect x="140" y="194" width="40" height="14" rx="4" fill="#334155"/>
+            <g class="sc-scan" style="transform-origin:160px 194px">
+                <line x1="160" y1="194" x2="160" y2="171" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="160" cy="171" r="4" fill="#c084fc" opacity=".8"/>
+            </g>
+            ${badge(94, 50, 1)}${badge(62, 138, 2)}${badge(198, 202, 3)}${badge(214, 128, 4)}`,
+    },
+    powder: {
+        label: '레이저가 분말 베드 위에 단면을 그려 녹이고, 리코터 롤러가 새 분말을 펴 바르기를 반복하는 분말 융접 프린터 구조',
+        svg: `
+            <defs><pattern id="scPowder" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#f1f5f9"/><circle cx="3" cy="3" r="1.3" fill="#cbd5e1"/></pattern></defs>
+            <rect x="4" y="4" width="292" height="212" rx="24" fill="#f8fafc"/>
+            <rect x="30" y="118" width="80" height="78" fill="url(#scPowder)"/>
+            <rect x="130" y="114" width="140" height="82" fill="url(#scPowder)"/>
+            <path d="M28 104 V198 H112 V104 M128 104 V198 H272 V104" fill="none" stroke="#64748b" stroke-width="3"/>
+            <rect x="30" y="190" width="80" height="8" fill="#94a3b8"/>
+            <rect x="130" y="190" width="140" height="8" fill="#94a3b8"/>
+            <rect x="168" y="146" width="66" height="14" rx="3" fill="#818cf8"/>
+            <rect x="178" y="132" width="46" height="14" rx="3" fill="#6366f1"/>
+            <rect x="174" y="160" width="54" height="14" rx="3" fill="#6366f1"/>
+            <rect x="160" y="114" width="80" height="3" fill="#f59e0b" opacity=".9" class="sc-heat"/>
+            <rect x="186" y="16" width="28" height="16" rx="4" fill="#334155"/>
+            <g class="sc-scan" style="transform-origin:200px 32px">
+                <line x1="200" y1="32" x2="200" y2="114" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="200" cy="114" r="4" fill="#f87171"/>
+            </g>
+            <g class="sc-roll"><circle cx="46" cy="106" r="9" fill="#475569"/><circle cx="46" cy="106" r="3" fill="#cbd5e1"/></g>
+            ${badge(236, 24, 1)}${badge(30, 86, 2)}${badge(282, 132, 3)}${badge(250, 168, 4)}`,
+    },
+};
+
+function schematicHtml(visual: 'fdm' | 'vat' | 'powder', labels: SchematicLabel[]): string {
+    const s = SCHEMATIC_SVG[visual];
+    return `
+        <div class="grid items-center gap-5 md:grid-cols-2">
+            <div class="rounded-[1.75rem] border border-slate-200/60 bg-white p-3 shadow-sm">
+                <svg viewBox="0 0 300 220" class="h-auto w-full" role="img" aria-label="${s.label}">${s.svg}</svg>
+            </div>
+            <ol class="space-y-2.5">${labels
+                .map((l, i) => `
+                <li class="flex gap-3 rounded-2xl border border-slate-200/60 bg-slate-50/70 p-3" data-reveal style="--d:${i * 90}ms">
+                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-black text-white">${i + 1}</span>
+                    <span><span class="block text-sm font-black text-slate-900">${l.title}</span><span class="mt-0.5 block text-xs leading-5 text-slate-600">${l.desc}</span></span>
+                </li>`)
+                .join('')}</ol>
+        </div>`;
+}
+
+function fdmSettingsHtml(): string {
+    const R = 54;
+    const dome = (n: number) => {
+        const h = R / n;
+        const steps = Array.from({ length: n }, (_, i) => {
+            const half = Math.sqrt(R * R - ((i + 0.5) * h) ** 2);
+            return `<rect x="${(62 - half).toFixed(1)}" y="${(62 - (i + 1) * h).toFixed(1)}" width="${(half * 2).toFixed(1)}" height="${h.toFixed(1)}" fill="${i % 2 ? '#818cf8' : '#6366f1'}"/>`;
+        }).join('');
+        return `<svg viewBox="0 0 124 68" class="h-auto w-full" aria-hidden="true">${steps}<path d="M${62 - R} 62 A${R} ${R} 0 0 1 ${62 + R} 62" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 3"/><line x1="2" y1="62.5" x2="122" y2="62.5" stroke="#94a3b8"/></svg>`;
+    };
+    const infill = (gap: number) => {
+        const lines: string[] = [];
+        for (let p = 9 + gap; p < 61; p += gap) {
+            lines.push(`<line x1="${p.toFixed(1)}" y1="9" x2="${p.toFixed(1)}" y2="61"/><line x1="9" y1="${p.toFixed(1)}" x2="61" y2="${p.toFixed(1)}"/>`);
+        }
+        return `<svg viewBox="0 0 70 70" class="mx-auto h-auto w-full max-w-[5.5rem]" aria-hidden="true"><rect x="6" y="6" width="58" height="58" rx="4" fill="#eef2ff" stroke="#6366f1" stroke-width="4"/><g stroke="#818cf8" stroke-width="1.6">${lines.join('')}</g></svg>`;
+    };
+    const cell = (visual: string, value: string, desc: string, i: number) => `
+        <div class="rounded-2xl bg-slate-50 p-2.5 text-center" data-reveal style="--d:${i * 90}ms">
+            ${visual}
+            <p class="mt-1.5 text-sm font-black text-slate-900">${value}</p>
+            <p class="text-[11px] leading-4 text-slate-500">${desc}</p>
+        </div>`;
+    return `
+        <div class="grid gap-4 md:grid-cols-2">
+            <div class="rounded-[1.75rem] border border-slate-200/60 bg-white p-4 shadow-sm">
+                <p class="mb-3 text-sm font-black text-slate-900"><i class="fas fa-bars-staggered mr-1.5 text-indigo-500" aria-hidden="true"></i>${term('레이어', '레이어 높이')} — 곡면이 얼마나 매끈할까?</p>
+                <div class="grid grid-cols-3 gap-2">
+                    ${cell(dome(14), '0.1mm', '매끈함 · 느림', 0)}
+                    ${cell(dome(7), '0.2mm', '표준 설정', 1)}
+                    ${cell(dome(4), '0.3mm', '거침 · 빠름', 2)}
+                </div>
+                <p class="mt-2 text-[11px] text-slate-400">주황 점선 = 원래 설계한 곡면</p>
+            </div>
+            <div class="rounded-[1.75rem] border border-slate-200/60 bg-white p-4 shadow-sm">
+                <p class="mb-3 text-sm font-black text-slate-900"><i class="fas fa-border-all mr-1.5 text-indigo-500" aria-hidden="true"></i>${term('인필', '인필 밀도')} — 속을 얼마나 채울까?</p>
+                <div class="grid grid-cols-3 gap-2">
+                    ${cell(infill(17), '10%', '가벼움 · 모형용', 0)}
+                    ${cell(infill(10), '20%', '일반 용도', 1)}
+                    ${cell(infill(4.5), '50%', '튼튼함 · 무거움', 2)}
+                </div>
+                <p class="mt-2 text-[11px] text-slate-400">굵은 테두리 = 외벽, 안쪽 격자 = 인필</p>
+            </div>
+        </div>`;
+}
+
+function processMapHtml(groups: ProcessGroup[]): string {
+    let n = 0;
+    return `<div class="space-y-3">${groups
+        .map((g, gi) => `
+            <div class="grid gap-3 rounded-[1.75rem] border border-slate-200/60 bg-slate-50/60 p-3 sm:grid-cols-[8.5rem_1fr] sm:items-stretch" data-reveal style="--d:${gi * 90}ms">
+                <div class="flex items-center gap-2.5 rounded-2xl bg-white px-3 py-2.5 sm:flex-col sm:justify-center sm:text-center">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white"><i class="fas ${g.icon}" aria-hidden="true"></i></span>
+                    <span class="text-xs font-black leading-4 text-slate-700">${g.form}</span>
+                </div>
+                <div class="grid gap-2 ${g.items.length > 1 ? 'sm:grid-cols-2' : ''}">${g.items
+                    .map((it) => {
+                        n += 1;
+                        return `
+                    <div class="relative rounded-2xl border p-3.5 ${it.highlight ? 'border-indigo-200 bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'border-slate-200/60 bg-white'}">
+                        <span class="absolute right-3 top-3 text-[10px] font-black ${it.highlight ? 'text-indigo-200' : 'text-slate-300'}">${String(n).padStart(2, '0')}</span>
+                        <p class="text-sm font-black ${it.highlight ? 'text-white' : 'text-slate-900'}">${it.name}</p>
+                        <p class="mt-0.5 font-mono text-[11px] font-bold ${it.highlight ? 'text-indigo-100' : 'text-indigo-600'}">${it.tech}</p>
+                        <p class="mt-1.5 text-xs leading-5 ${it.highlight ? 'text-indigo-50' : 'text-slate-600'}">${it.how}</p>
+                    </div>`;
+                    })
+                    .join('')}</div>
+            </div>`)
+        .join('')}</div>`;
+}
+
+function ratingsHtml(metrics: string[], rows: RatingRow[]): string {
+    return `<div class="grid grid-cols-2 gap-2.5 sm:gap-3 ${rows.length > 4 ? 'xl:grid-cols-3' : ''}">${rows
+        .map((r, ri) => {
+            const t = TONES[r.tone];
+            return `
+            <div class="rounded-[1.5rem] border border-slate-200/60 bg-white p-3 shadow-sm sm:p-4" data-reveal style="--d:${ri * 80}ms">
+                <p class="text-sm font-black text-slate-900 sm:text-base">${r.name}${r.sub ? ` <span class="block text-[11px] font-bold text-slate-400 sm:inline sm:text-xs">${r.sub}</span>` : ''}</p>
+                <dl class="mt-2.5 space-y-1.5 sm:mt-3 sm:space-y-2">${metrics
+                    .map((m, mi) => {
+                        const v = Math.max(0, Math.min(5, r.scores[mi] ?? 0));
+                        return `
+                    <div class="grid gap-1 sm:grid-cols-[5.5rem_1fr] sm:items-center sm:gap-2">
+                        <dt class="text-[11px] font-bold text-slate-500">${m}</dt>
+                        <dd class="flex gap-1" aria-label="${m} 5단계 중 ${v}">${Array.from({ length: 5 }, (_, k) =>
+                            `<span class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">${k < v ? `<span class="rt-on block h-full ${t.bar}" style="--d:${ri * 80 + k * 60}ms"></span>` : ''}</span>`
+                        ).join('')}</dd>
+                    </div>`;
+                    })
+                    .join('')}</dl>
+            </div>`;
+        })
+        .join('')}</div>`;
+}
+
+function decisionHtml(options: DecisionOption[]): string {
+    return `<ul class="space-y-2.5">${options
+        .map((o, i) => {
+            const t = TONES[o.tone];
+            return `
+            <li class="grid items-center gap-2 rounded-[1.5rem] border border-slate-200/60 bg-white p-3 shadow-sm sm:grid-cols-[1fr_auto_minmax(0,1.1fr)] sm:gap-3" data-reveal style="--d:${i * 90}ms">
+                <span class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.icon}"><i class="fas ${o.icon}" aria-hidden="true"></i></span>
+                    <span class="text-sm font-bold text-slate-700">${o.when}</span>
+                </span>
+                <span class="hidden text-slate-300 sm:block" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                <span class="rounded-2xl border px-3.5 py-2 ${t.chip}">
+                    <span class="block text-sm font-black ${t.text}">${o.pick}</span>
+                    <span class="block text-xs leading-5 text-slate-600">${o.why}</span>
+                </span>
+            </li>`;
+        })
+        .join('')}</ul>`;
+}
+
+function rangeHtml(b: Extract<Infographic, { kind: 'range' }>): string {
+    const pct = (v: number) => (((v - b.min) / (b.max - b.min)) * 100).toFixed(2);
+    const ticks: number[] = [];
+    for (let v = b.min; v <= b.max; v += b.step) ticks.push(v);
+    const legend = b.series
+        .map((s) => `<span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-5 rounded-full" style="background:${s.color}"></span>${s.label}</span>`)
+        .join('');
+    const rows = b.rows
+        .map(
+            (r, ri) => `
+        <div class="grid grid-cols-[4rem_1fr] items-center gap-3 sm:grid-cols-[5rem_1fr]" data-reveal style="--d:${ri * 70}ms">
+            <span class="text-sm font-black text-slate-900">${r.name}</span>
+            <div class="relative space-y-1.5 py-1">${r.ranges
+                .map(([lo, hi], si) => {
+                    const l = Number(pct(lo));
+                    const h = Number(pct(hi));
+                    const labelPos = h > 72 ? `right:calc(${(100 - l).toFixed(2)}% + 6px)` : `left:calc(${h.toFixed(2)}% + 6px)`;
+                    return `
+                <div class="relative h-4 rounded-full bg-slate-100">
+                    <span class="rg-bar absolute inset-y-0 rounded-full shadow-sm" style="left:${l}%;width:${(h - l).toFixed(2)}%;background:${b.series[si]?.color};--d:${ri * 70 + si * 120}ms"></span>
+                    <span class="absolute inset-y-0 flex items-center whitespace-nowrap text-[10px] font-black text-slate-600" style="${labelPos}">${lo}~${hi}${b.unit}</span>
+                </div>`;
+                })
+                .join('')}</div>
+        </div>`
+        )
+        .join('');
+    return `
+        <div class="rounded-[1.75rem] border border-slate-200/60 bg-white p-4 shadow-sm sm:p-5">
+            <div class="mb-3 flex flex-wrap gap-4 text-xs font-bold text-slate-500">${legend}</div>
+            <div class="space-y-2.5">${rows}</div>
+            <div class="mt-2 grid grid-cols-[4rem_1fr] gap-3 sm:grid-cols-[5rem_1fr]">
+                <span></span>
+                <div class="relative h-4 border-t border-slate-200">${ticks
+                    .map((v) => `<span class="absolute top-1 -translate-x-1/2 text-[10px] font-bold text-slate-400" style="left:${pct(v)}%">${v}</span>`)
+                    .join('')}</div>
+            </div>
+        </div>`;
+}
+
 export function renderInfographic(block: Infographic): string {
     switch (block.kind) {
         case 'methods':
@@ -219,9 +497,21 @@ export function renderInfographic(block: Infographic): string {
         case 'flow':
             return figure(block.caption, flowHtml(block.steps));
         case 'balance':
-            return figure(block.caption, balanceHtml(block.pros, block.cons));
+            return figure(block.caption, balanceHtml(block.pros, block.cons, block.labels));
         case 'iconGrid':
             return figure(block.caption, iconGridHtml(block.items));
+        case 'schematic':
+            return figure(block.caption, schematicHtml(block.visual, block.labels));
+        case 'fdmSettings':
+            return figure(block.caption, fdmSettingsHtml());
+        case 'processMap':
+            return figure(block.caption, processMapHtml(block.groups));
+        case 'ratings':
+            return figure(block.caption, ratingsHtml(block.metrics, block.rows));
+        case 'decision':
+            return figure(block.caption, decisionHtml(block.options));
+        case 'range':
+            return figure(block.caption, rangeHtml(block));
     }
 }
 
@@ -319,6 +609,20 @@ export function learnHeadAssets(): string {
         .flow-step:hover .flow-icon,.group:hover .icon-pop{transform:translateY(-3px) rotate(-6deg)}
         .flow-icon,.icon-pop{transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
 
+        .sc-spin{animation:scSpin 6s linear infinite}
+        @keyframes scSpin{to{transform:rotate(360deg)}}
+        .sc-heat{animation:lgHeat 1.4s ease-in-out infinite}
+        .sc-bed{animation:scBed 2.6s ease-in-out infinite alternate}
+        @keyframes scBed{from{transform:translateX(-26px)}to{transform:translateX(26px)}}
+        .sc-lift{animation:scLift 3.4s ease-in-out infinite}
+        @keyframes scLift{0%,55%{transform:translateY(0)}72%{transform:translateY(-10px)}100%{transform:translateY(0)}}
+        .sc-scan{animation:scScan 1.8s ease-in-out infinite alternate}
+        @keyframes scScan{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+        .sc-roll{animation:scRoll 4s ease-in-out infinite}
+        @keyframes scRoll{0%,8%{transform:translateX(0)}48%,58%{transform:translateX(196px)}100%{transform:translateX(0)}}
+        .rt-on,.rg-bar{transform-origin:left;transition:transform .6s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
+        .reveal-ready [data-reveal]:not(.is-visible) .rt-on,.reveal-ready [data-reveal]:not(.is-visible) .rg-bar{transform:scaleX(0)}
+
         .reveal-ready [data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .75s cubic-bezier(.2,.7,.2,1) var(--d,0ms),transform .75s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
         .reveal-ready [data-reveal].is-visible{opacity:1;transform:none}
 
@@ -331,7 +635,7 @@ export function learnHeadAssets(): string {
         .gl-entry:target{border-color:#818cf8;box-shadow:0 0 0 4px rgb(129 140 248/.2)}
 
         @media (prefers-reduced-motion:reduce){
-            .lg-anim *,.mv-tool,.mv-chip,.mv-fill,.mv-pour,.mv-grow,.mv-noz,.flow-conn,.lg-heat{animation:none!important}
+            .lg-anim *,.mv-tool,.mv-chip,.mv-fill,.mv-pour,.mv-grow,.mv-noz,.flow-conn,.lg-heat,.sc-spin,.sc-heat,.sc-bed,.sc-lift,.sc-scan,.sc-roll{animation:none!important}
             .mv-chip{opacity:0}
         }
     </style>`;
