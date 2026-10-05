@@ -1,10 +1,14 @@
 import { layoutHtml } from './components/layout';
 import { buildHowTo, CAMPUSES, getSeoHead, getSeoOptionsForPath, SITE_NAME, SITE_ORIGIN } from '../utils/seo';
+import { learnHeadAssets, learnScript, renderInfographic, type Infographic } from './components/learn_infographics';
 
 type GuideSection = {
     id: string;
     h2: string;
+    /** FAQ 구조화 데이터의 답변으로도 쓰이므로 질문에 대한 완결된 문장으로 작성 */
     body: string;
+    figure?: Infographic | Infographic[];
+    outro?: string;
 };
 
 type GuideStep = {
@@ -28,6 +32,27 @@ type GuidePage = {
     sections: GuideSection[];
     steps?: GuideStep[];
     links: { href: string; label: string; primary?: boolean }[];
+    /** cards: 아코디언 대신 인포그래픽 카드로 펼쳐 보여줌 (절차 타임라인은 섹션 인포그래픽으로 대체) */
+    layout?: 'cards';
+    hero?: 'card';
+};
+
+const CAMPUS_TONES = ['indigo', 'sky', 'emerald'] as const;
+
+const campusIconGrid: Infographic = {
+    kind: 'iconGrid',
+    caption: '국비 과정 운영 센터',
+    items: (Object.keys(CAMPUSES) as Array<keyof typeof CAMPUSES>).map((key, i) => {
+        const c = CAMPUSES[key];
+        return {
+            icon: 'fa-map-marker-alt',
+            tone: CAMPUS_TONES[i % CAMPUS_TONES.length],
+            title: c.name.replace('와우쓰리디 ', ''),
+            desc: `${c.region} ${c.locality} ${c.street}`,
+            href: `/locations/${c.slug}`,
+            linkLabel: '오시는길',
+        };
+    }),
 };
 
 const GUIDE_NAV: Array<{ slug: string; label: string; icon: string }> = [
@@ -44,59 +69,210 @@ const PAGES: Record<string, GuidePage> = {
         kicker: '국비·비용 가이드',
         icon: 'fa-landmark',
         h1: '3D프린팅 국비지원·내일배움카드, 어떻게 신청하나요?',
-        lead: '「3D프린터 무료교육」 검색은 대개 국민내일배움카드(국비지원)를 뜻합니다. 와우쓰리디에서 과정 선택부터 등록까지의 흐름을 정리했습니다. 카드 발급 절차·자격 요건은 별도 발급 안내 페이지에서 확인하세요.',
-        scopeNote: '국비 과정 개요·수강 등록 안내 (카드 발급 상세는 내일배움카드 페이지)',
-        banner: '<i class="fas fa-info-circle mr-2"></i>카드 <strong>발급 절차·자격 FAQ</strong>는 <a href="/tomorrow-learning-card" class="font-bold underline hover:no-underline">내일배움카드 발급 안내</a>에서 확인하세요. 이 페이지는 <strong>수강·등록</strong> 중심입니다.',
-        showCampusStrip: true,
+        lead: '「3D프린터 무료교육」 검색은 대개 국민내일배움카드(국비지원)를 뜻합니다. 카드 한도·자기부담금·신청 자격부터 와우쓰리디 과정 등록까지 인포그래픽으로 한눈에 정리했습니다.',
+        scopeNote: '내일배움카드 핵심 요약·국비 과정 수강 등록 안내',
+        banner: '<i class="fas fa-info-circle mr-2"></i>금액·자격 기준은 <strong>2026년 고용노동부 기준 요약</strong>입니다. 실제 적용은 <a href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer" class="font-bold underline hover:no-underline">고용24</a> 공지와 개인 심사 결과가 우선하며, 발급 FAQ는 <a href="/tomorrow-learning-card" class="font-bold underline hover:no-underline">내일배움카드 발급 안내</a>에서 볼 수 있습니다.',
+        layout: 'cards',
+        hero: 'card',
         factRows: [
-            ['지원 제도', '국민내일배움카드(국비지원)'],
+            ['지원 제도', '국민내일배움카드(고용노동부)'],
+            ['훈련비 한도', '5년간 300만원 (특정 대상 최대 500만원)'],
+            ['자기부담', '일반 훈련 0~55% · 특화 훈련 10% 이하'],
+            ['신청 창구', '고용24 온라인 또는 관할 고용센터'],
             ['캠퍼스', '홍대·구미·전주'],
             ['대표 과정', 'Fusion 3D모델링·기능사·스마트제품개발·교강사'],
-            ['이 가이드 범위', '국비 과정 개요·수강 등록 안내'],
         ],
-        factNote: '카드 자격·한도·심사는 연도별 고시와 개인 심사 결과가 우선입니다. 발급 상세는 내일배움카드 페이지를 참고하세요.',
+        factNote: '한도·자부담률·제외 대상은 연도별 고시와 개인 심사 결과가 우선합니다. 최신 기준은 <a href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer" class="font-bold text-indigo-600 hover:underline">고용24</a> 공지를 확인하세요.',
         sections: [
+            {
+                id: 'at-a-glance',
+                h2: '내일배움카드, 숫자로 한눈에 보면?',
+                body: '국민내일배움카드는 발급일부터 <strong class="text-slate-800">5년</strong> 동안 <strong class="text-slate-800">300만원</strong> 한도 안에서 직업훈련비를 지원받는 계좌입니다. 저소득층 등 정부가 정한 대상자는 200만원이 추가되어 최대 500만원까지 쓸 수 있고, 일반 훈련은 훈련비의 0~55%를 본인이 부담합니다.',
+                figure: [
+                    {
+                        kind: 'stats',
+                        caption: '2026년 기준 핵심 숫자',
+                        items: [
+                            { icon: 'fa-wallet', tone: 'indigo', value: 300, unit: '만원', label: '기본 훈련비 한도', desc: '5년 동안 여러 과정에 나눠 사용' },
+                            { icon: 'fa-plus-circle', tone: 'violet', prefix: '+', value: 200, unit: '만원', label: '추가 지원', desc: '저소득층 등 특정 대상, 최대 500만원' },
+                            { icon: 'fa-hourglass-half', tone: 'sky', value: 5, unit: '년', label: '유효기간', desc: '발급일부터 5년, 만료 후 재발급 신청' },
+                            { icon: 'fa-percent', tone: 'amber', prefix: '0~', value: 55, unit: '%', label: '일반 훈련 자부담', desc: '직종 취업률 등에 따라 차등' },
+                        ],
+                    },
+                    {
+                        kind: 'stackBar',
+                        caption: '훈련비 계좌 한도 구조',
+                        unit: '만원',
+                        max: 500,
+                        segments: [
+                            { label: '기본 한도', value: 300, tone: 'indigo', note: '발급자 공통 · 5년간 여러 과정에 나눠 사용' },
+                            { label: '추가 지원', value: 200, tone: 'violet', optional: true, note: '저소득층 등 정부가 정한 대상자에 한해 추가' },
+                        ],
+                    },
+                ],
+            },
             {
                 id: 'what-is',
                 h2: '3D프린팅 국비지원이란?',
-                body: '고용노동부 <strong class="text-slate-800">국민내일배움카드</strong>로 직업훈련비를 지원받는 제도입니다. 와우쓰리디는 NCS 기반 3D프린팅·3D모델링 직업훈련을 <strong class="text-slate-800">홍대·구미·전주</strong>센터에서 운영하며, 회차별로 모집 일정·장소·자기부담금이 다릅니다.',
+                body: '고용노동부 <strong class="text-slate-800">국민내일배움카드</strong>로 직업훈련비를 지원받아 3D프린팅·3D모델링을 배우는 제도입니다. 정부는 카드 발급과 훈련비를 지원하고, 수강생은 카드로 과정을 신청하며, 와우쓰리디는 NCS 기반 훈련을 <strong class="text-slate-800">홍대·구미·전주</strong>센터에서 운영합니다. 회차별로 모집 일정·장소·자기부담금이 다릅니다.',
+                figure: {
+                    kind: 'iconGrid',
+                    caption: '국비지원에 참여하는 세 주체',
+                    items: [
+                        { icon: 'fa-landmark', tone: 'sky', title: '고용노동부 · 고용센터', desc: '카드 발급 심사, 훈련비 지원, 훈련 과정 인정' },
+                        { icon: 'fa-user', tone: 'indigo', title: '수강생 (나)', desc: '카드 발급 신청, 과정 선택·수강 신청, 출석 관리' },
+                        { icon: 'fa-school', tone: 'emerald', title: '와우쓰리디', desc: '국비 과정 운영, 수강 상담, 실습·출결 관리' },
+                    ],
+                },
             },
             {
                 id: 'free-edu',
                 h2: '「무료교육」 검색, 실제로는 무엇을 뜻하나요?',
-                body: '검색·광고에서 말하는 무료교육은 대부분 <strong class="text-slate-800">국비지원(내일배움카드) 수강</strong>을 가리킵니다. 완전 0원 여부는 회차·개인 자격·자기부담금에 따라 달라지므로, 희망 회차 기준으로 상담 시 확정 안내합니다.',
-            },
-            {
-                id: 'courses',
-                h2: '와우쓰리디에서 수강할 수 있는 국비 과정',
-                body: '대표 과정은 아래와 같습니다. 세부 일정·모집 여부는 <a href="/course-sessions" class="font-bold text-indigo-600 hover:underline">교육과정 목록</a>에서 확인하세요.<ul class="mt-3 space-y-2 pl-1"><li class="flex gap-2"><i class="fas fa-cube mt-1 text-indigo-500 text-xs"></i><span><strong class="text-slate-800">Fusion 3D모델링</strong> — CAD·어셈블리 실무</span></li><li class="flex gap-2"><i class="fas fa-certificate mt-1 text-indigo-500 text-xs"></i><span><strong class="text-slate-800">3D프린터운용기능사</strong> — 국가자격 실기 대비 (<a href="/guides/craftsman-license" class="font-bold text-indigo-600 hover:underline">기능사 가이드</a>)</span></li><li class="flex gap-2"><i class="fas fa-microchip mt-1 text-indigo-500 text-xs"></i><span><strong class="text-slate-800">스마트 제품개발</strong> — 3D프린팅·아두이노·설계</span></li><li class="flex gap-2"><i class="fas fa-chalkboard-teacher mt-1 text-indigo-500 text-xs"></i><span><strong class="text-slate-800">3D프린팅 교강사</strong> — 교육·실습 지도 역량</span></li></ul>',
+                body: '검색·광고에서 말하는 무료교육은 대부분 <strong class="text-slate-800">국비지원(내일배움카드) 수강</strong>을 가리킵니다. 실제로는 훈련비의 일부를 본인이 부담하는 경우가 많고, 완전 0원 여부는 회차·훈련 유형·개인 자격에 따라 달라지므로 희망 회차 기준으로 상담 시 확정 안내합니다.',
             },
             {
                 id: 'card-needed',
                 h2: '내일배움카드가 꼭 필요한가요?',
-                body: '국비지원 회차 수강에는 일반적으로 카드가 필요합니다. 아직 없다면 <a href="/tomorrow-learning-card" class="font-bold text-indigo-600 hover:underline">내일배움카드 발급 안내</a>에서 고용24 절차·FAQ를 확인하세요. <strong class="text-slate-800">발급 자격·한도·심사</strong>는 연도별 고시와 개인 심사 결과가 우선이며, 이 가이드는 수강 준비 관점의 요약입니다.',
+                body: '국비지원 회차 수강에는 일반적으로 카드가 필요합니다. 아직 없다면 아래 자격과 5단계 절차를 확인한 뒤 고용24에서 신청하세요. 자주 묻는 발급 질문은 <a href="/tomorrow-learning-card" class="font-bold text-indigo-600 hover:underline">내일배움카드 발급 안내</a>에 정리되어 있습니다.',
+            },
+            {
+                id: 'eligibility',
+                h2: '누가 카드를 발급받을 수 있나요?',
+                body: '실업자·재직자·자영업자·특수형태근로종사자 등 <strong class="text-slate-800">국민 누구나 신청할 수 있는 것이 원칙</strong>입니다. 다만 공무원·사립학교 교직원, 만 75세 이상, 일정 소득·매출 이상인 재직자·자영업자, 졸업까지 2년 넘게 남은 대학 재학생 등은 지원에서 제외됩니다. 세부 예외는 고용24 공지와 개인 심사 결과가 우선합니다.',
+                figure: {
+                    kind: 'balance',
+                    caption: '신청 가능 대상과 제외 대상',
+                    labels: { good: '신청할 수 있어요', bad: '지원 제외 대상', goodIcon: 'fa-check', badIcon: 'fa-ban', hideCount: true },
+                    pros: [
+                        { icon: 'fa-user-clock', title: '실업자·구직자', desc: '고용24 구직신청 후 카드 신청' },
+                        { icon: 'fa-briefcase', title: '재직자·비정규직', desc: '재직 중에도 신청 가능 (일부 고소득 대기업 재직자 제외)' },
+                        { icon: 'fa-store', title: '자영업자·특수형태근로종사자', desc: '매출·소득 기준 이하라면 신청 가능' },
+                        { icon: 'fa-user-graduate', title: '졸업 예정 학생', desc: '졸업까지 2년 이내 대학생, 고등학교 3학년 등' },
+                    ],
+                    cons: [
+                        { icon: 'fa-landmark', title: '공무원·사립학교 교직원', desc: '별도 교육 제도 적용 대상' },
+                        { icon: 'fa-user', title: '만 75세 이상', desc: '연령 기준으로 지원 제외' },
+                        { icon: 'fa-coins', title: '고소득 재직·자영업자', desc: '대기업 45세 미만 월 300만원 이상, 특고 월 500만원 이상, 연 매출 4억원 이상 자영업자 등' },
+                        { icon: 'fa-school', title: '재학생 일부', desc: '졸업까지 2년 넘게 남은 대학생, 고등학교 1~2학년' },
+                        { icon: 'fa-hand-holding-heart', title: '생계급여 수급자', desc: '조건부 수급자는 신청 가능' },
+                    ],
+                },
+            },
+            {
+                id: 'process',
+                h2: '카드 발급부터 수강 시작까지 어떤 순서인가요?',
+                body: '실업자는 고용24에서 <strong class="text-slate-800">구직신청</strong>을 먼저 하고(재직자·자영업자는 대개 생략), 고용24 온라인 또는 관할 고용센터에서 카드를 신청합니다. 심사를 거쳐 카드를 받으면 와우쓰리디 회차를 골라 상담한 뒤, 고용24에서 수강신청을 하고 훈련을 시작합니다.',
+                figure: {
+                    kind: 'flow',
+                    caption: '내일배움카드 국비 수강 5단계',
+                    steps: [
+                        { icon: 'fa-search', title: '구직 신청', desc: '실업자는 고용24 구직신청 먼저', chips: ['실업자'] },
+                        { icon: 'fa-id-card', title: '카드 발급 신청', desc: '고용24 온라인 또는 고용센터 방문', chips: ['고용24'] },
+                        { icon: 'fa-clipboard-check', title: '심사·카드 수령', desc: '자격 심사 후 발급, 거절 시 이의신청 가능' },
+                        { icon: 'fa-comments', title: '과정 선택·상담', desc: '와우쓰리디 회차 확인, 자부담 안내', chips: ['02-3144-3137'] },
+                        { icon: 'fa-play-circle', title: '수강 신청·시작', desc: '고용24에서 수강신청 후 훈련 시작' },
+                    ],
+                },
+            },
+            {
+                id: 'which-case',
+                h2: '내 상황에서는 무엇부터 하면 되나요?',
+                body: '실업 중이라면 고용24 구직신청부터, 재직자라면 바로 카드 신청부터 시작합니다. 자영업자는 매출·소득 기준을, 대학생은 졸업 예정 시기를 먼저 확인하세요. 이미 카드가 있다면 고용24에서 잔액·유효기간을 확인한 뒤 희망 회차를 상담하면 됩니다.',
+                figure: {
+                    kind: 'decision',
+                    caption: '상황별 시작점',
+                    options: [
+                        { when: '실업·구직 중이에요', pick: '고용24 구직신청 → 카드 신청', why: '구직신청이 되어 있어야 카드 신청이 진행됩니다.', icon: 'fa-user-clock', tone: 'sky' },
+                        { when: '회사에 다니고 있어요', pick: '바로 카드 신청', why: '재직자도 신청할 수 있어요. 평일 저녁·주말 회차를 상담해 보세요.', icon: 'fa-briefcase', tone: 'indigo' },
+                        { when: '자영업·프리랜서예요', pick: '매출·소득 기준 확인 후 신청', why: '기준 이하라면 재직자와 같은 방법으로 신청합니다.', icon: 'fa-store', tone: 'amber' },
+                        { when: '대학생이에요', pick: '졸업 예정 시기 확인', why: '졸업까지 2년 이내라면 신청할 수 있습니다.', icon: 'fa-user-graduate', tone: 'violet' },
+                        { when: '이미 카드가 있어요', pick: '잔액·유효기간 확인 후 상담', why: '고용24에서 잔액을 확인하고 희망 회차를 상담하세요.', icon: 'fa-credit-card', tone: 'emerald' },
+                    ],
+                },
             },
             {
                 id: 'cost',
                 h2: '비용·자기부담금은 어떻게 되나요?',
-                body: '훈련비 대부분은 카드 한도 내에서 지원되며, 회차·자격에 따라 <strong class="text-slate-800">자기부담금</strong>이 발생할 수 있습니다. 정확한 금액은 모집 회차와 개인 심사 결과에 따라 달라지므로, 과정 선택 후 상담 시 해당 회차 기준으로 안내합니다.',
+                body: '정부가 인정한 훈련비 중 일부를 본인이 부담합니다. <strong class="text-slate-800">일반 훈련은 0~55%</strong>로 직종 평균 취업률·국민취업지원제도 참여·근로장려금 수급 여부에 따라 달라지고, 국가기간·전략산업직종 등 <strong class="text-slate-800">특화 훈련은 90% 이상</strong>(자부담 상한 60만원) 지원됩니다. 와우쓰리디는 회차마다 훈련 유형이 다르므로 상담 시 해당 회차 기준 금액을 안내합니다.',
+                figure: [
+                    {
+                        kind: 'range',
+                        caption: '훈련 유형별 훈련비 부담 비율',
+                        min: 0,
+                        max: 100,
+                        step: 25,
+                        unit: '%',
+                        series: [
+                            { label: '본인 부담', color: '#f59e0b' },
+                            { label: '정부 지원', color: '#6366f1' },
+                        ],
+                        rows: [
+                            { name: '일반 훈련', ranges: [[0, 55], [45, 100]] },
+                            { name: '특화 훈련', ranges: [[0, 10], [90, 100]] },
+                        ],
+                    },
+                    {
+                        kind: 'iconGrid',
+                        caption: '자기부담률을 바꾸는 요인',
+                        items: [
+                            { icon: 'fa-chart-line', tone: 'indigo', title: '직종 평균 취업률', desc: '훈련 직종의 취업률에 따라 자부담 비율이 차등 적용' },
+                            { icon: 'fa-hands-helping', tone: 'emerald', title: '국민취업지원제도 참여', desc: '참여 유형에 따라 자부담 감면' },
+                            { icon: 'fa-receipt', tone: 'amber', title: '근로장려금 수급', desc: '수급 가구는 자부담 감면 대상' },
+                            { icon: 'fa-star', tone: 'violet', title: '특화 훈련 과정', desc: '유효기간 중 1회, 훈련비 90% 이상 지원 (계좌에서 200만원 차감)' },
+                        ],
+                    },
+                ],
+                outro: '140시간 이상 과정에서 출석률 80% 이상 등 요건을 채우면 <strong class="text-slate-800">훈련장려금</strong>을 받을 수 있습니다(실업급여 수급 중 제외). 지급액은 고용24 공지를 확인하세요.',
+            },
+            {
+                id: 'courses',
+                h2: '와우쓰리디에서 수강할 수 있는 국비 과정은?',
+                body: '대표 과정은 <strong class="text-slate-800">Fusion 3D모델링, 3D프린터운용기능사, 스마트 제품개발, 3D프린팅 교강사</strong>입니다. 세부 일정·모집 여부는 <a href="/course-sessions" class="font-bold text-indigo-600 hover:underline">교육과정 목록</a>에서 확인하세요.',
+                figure: {
+                    kind: 'iconGrid',
+                    caption: '대표 국비 과정',
+                    items: [
+                        { icon: 'fa-cube', tone: 'indigo', title: 'Fusion 3D모델링', desc: 'CAD 모델링·어셈블리 실무', href: '/course-sessions', linkLabel: '과정 보기' },
+                        { icon: 'fa-certificate', tone: 'amber', title: '3D프린터운용기능사', desc: '국가자격 실기 대비 (모델링·출력·후가공)', href: '/guides/craftsman-license', linkLabel: '기능사 가이드' },
+                        { icon: 'fa-microchip', tone: 'sky', title: '스마트 제품개발', desc: '3D프린팅·아두이노·설계 융합', href: '/course-sessions', linkLabel: '과정 보기' },
+                        { icon: 'fa-chalkboard-teacher', tone: 'emerald', title: '3D프린팅 교강사', desc: '교육·실습 지도 역량', href: '/course-sessions', linkLabel: '과정 보기' },
+                    ],
+                },
+            },
+            {
+                id: 'checklist',
+                h2: '수강 전에 무엇을 준비하면 되나요?',
+                body: '카드 발급 여부와 고용24의 잔액·유효기간을 확인하고, 희망 과정·센터·일정을 정해 자기부담금을 상담받은 뒤 고용24에서 수강신청을 마치면 됩니다. 수강 중에는 출석률 80% 이상을 유지해야 수료와 훈련장려금 요건을 채울 수 있습니다.',
+                figure: {
+                    kind: 'checklist',
+                    caption: '국비 수강 준비 체크리스트',
+                    columns: [
+                        { title: '카드 준비', icon: 'fa-id-card', tone: 'indigo', items: ['내일배움카드 발급 완료', '고용24에서 잔액·유효기간 확인', '본인 명의 카드인지 확인'] },
+                        { title: '과정 준비', icon: 'fa-list-check', tone: 'sky', items: ['희망 과정·센터·일정 선택', '자기부담금·훈련 유형 상담', '고용24 수강신청 완료'] },
+                        { title: '수강 중', icon: 'fa-calendar-check', tone: 'emerald', items: ['출석률 80% 이상 유지', '결석·지각 시 증빙 서류 준비', '수료 후 취업·자격 연계 상담'] },
+                    ],
+                },
             },
             {
                 id: 'campus',
                 h2: '어느 센터에서 수강할 수 있나요?',
                 body: '홍대·구미·전주센터에서 국비 과정을 운영합니다. 회차마다 교육 장소가 다르므로 과정 상세의 교육장소를 확인하세요. 센터별 주소·연락처는 <a href="/locations" class="font-bold text-indigo-600 hover:underline">오시는길</a>에서 볼 수 있습니다.',
+                figure: campusIconGrid,
             },
         ],
         steps: [
-            { title: '내일배움카드 확인', text: '카드가 없으면 고용24에서 발급·한도를 확인합니다.', href: '/tomorrow-learning-card', linkLabel: '발급 안내 보기' },
-            { title: '모집 회차 선택', text: '교육과정 목록에서 희망 과정·일정·센터를 확인합니다.', href: '/course-sessions', linkLabel: '과정 목록' },
-            { title: '상담·등록', text: '온라인 상담 또는 전화(02-3144-3137)로 자기부담금·등록 절차를 안내받습니다.', href: '/online-consulting', linkLabel: '상담 신청' },
+            { title: '구직 신청 (실업자)', text: '실업자는 고용24에서 구직신청을 먼저 합니다. 재직자·자영업자는 대개 생략합니다.' },
+            { title: '카드 발급 신청', text: '고용24 온라인 또는 관할 고용센터에서 내일배움카드를 신청합니다.', href: '/tomorrow-learning-card', linkLabel: '발급 안내 보기' },
+            { title: '심사·카드 수령', text: '자격 심사를 거쳐 카드를 받습니다. 거절되면 이의신청할 수 있습니다.' },
+            { title: '과정 선택·상담', text: '교육과정 목록에서 회차를 고르고 온라인 상담 또는 전화(02-3144-3137)로 자기부담금을 안내받습니다.', href: '/course-sessions', linkLabel: '과정 목록' },
+            { title: '수강 신청·훈련 시작', text: '고용24에서 수강신청을 마치고 훈련을 시작합니다.', href: '/online-consulting', linkLabel: '상담 신청' },
         ],
         links: [
             { href: '/course-sessions', label: '모집 과정 보기', primary: true },
             { href: '/online-consulting', label: '온라인 상담', primary: true },
             { href: '/tomorrow-learning-card', label: '내일배움카드 발급 상세' },
             { href: '/guides/craftsman-license', label: '기능사·국가자격' },
+            { href: '/guides/3d-printing', label: '3D프린팅 기초' },
             { href: '/faq', label: 'FAQ' },
         ],
     },
@@ -378,6 +554,39 @@ function sectionsAccordionHtml(sections: GuideSection[]): string {
         .join('');
 }
 
+function sectionsCardsHtml(sections: GuideSection[]): string {
+    return sections
+        .map(
+            (s, i) => `
+            <section id="${sectionAnchorId(s)}" class="bento-card scroll-mt-28 rounded-[2.5rem] border border-slate-200/60 bg-white p-6 shadow-sm sm:p-8" data-reveal>
+                <h2 class="mb-4 flex items-start gap-3 text-lg font-black tracking-tight text-slate-900 sm:text-xl">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xs font-black text-indigo-600">${String(i + 1).padStart(2, '0')}</span>
+                    <span class="break-keep pt-0.5">${s.h2}</span>
+                </h2>
+                <div class="break-keep text-[15px] leading-7 text-slate-600">${s.body}</div>
+                ${s.figure ? (Array.isArray(s.figure) ? s.figure : [s.figure]).map(renderInfographic).join('') : ''}
+                ${s.outro ? `<p class="mt-5 break-keep text-[15px] leading-7 text-slate-600">${s.outro}</p>` : ''}
+            </section>`
+        )
+        .join('');
+}
+
+function cardHeroHtml(): string {
+    return `
+        <div class="relative hidden w-full max-w-[17rem] justify-self-end md:block" aria-hidden="true">
+            <div class="nb-card relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-indigo-600 via-violet-600 to-sky-500 p-5 text-white shadow-xl shadow-indigo-500/30" style="aspect-ratio:1.586">
+                <span class="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10"></span>
+                <span class="absolute -bottom-12 -left-6 h-32 w-32 rounded-full bg-white/10"></span>
+                <span class="relative flex items-center justify-between text-[11px] font-black tracking-wider text-white/85">국민내일배움카드<i class="fas fa-landmark"></i></span>
+                <span class="relative mt-3 block h-7 w-10 rounded-md bg-gradient-to-br from-amber-100 to-amber-400 shadow-inner"></span>
+                <span class="relative mt-3 block text-3xl font-black leading-none">300<span class="ml-0.5 text-sm">만원</span></span>
+                <span class="relative mt-1 block text-[11px] font-bold text-white/80">5년 훈련비 한도</span>
+            </div>
+            <span class="nb-chip absolute -bottom-3 -left-4 rounded-2xl border border-violet-100 bg-white px-3 py-1.5 text-xs font-black text-violet-700 shadow-md">+200만원 추가 가능</span>
+            <span class="nb-chip absolute -right-3 -top-3 rounded-2xl border border-amber-100 bg-white px-3 py-1.5 text-xs font-black text-amber-700 shadow-md" style="animation-delay:-2s">자부담 0~55%</span>
+        </div>`;
+}
+
 function factBlockHtml(page: GuidePage): string {
     const baseRows: Array<[string, string]> = [
         ['기관', SITE_NAME],
@@ -467,6 +676,7 @@ export function seoGuideHtml(slug: string): string | null {
     const page = PAGES[slug];
     if (!page) return null;
 
+    const cards = page.layout === 'cards';
     const primaryLinks = page.links.filter((l) => l.primary);
     const primary = primaryLinks[0] || page.links[0];
     const headerCtas = primaryLinks
@@ -490,6 +700,11 @@ export function seoGuideHtml(slug: string): string | null {
             .bento-card { transition: transform .35s cubic-bezier(.4,0,.2,1), box-shadow .35s; }
             .bento-card:hover { transform: translateY(-2px); box-shadow: 0 16px 24px -8px rgb(15 23 42 / .08); }
             details > summary::-webkit-details-marker { display: none; }
+            .nb-card { animation: nb-float 6s ease-in-out infinite; transform: rotate(-4deg); }
+            .nb-chip { animation: nb-bob 4s ease-in-out infinite; }
+            @keyframes nb-float { 0%,100% { transform: rotate(-4deg) translateY(0); } 50% { transform: rotate(-2deg) translateY(-8px); } }
+            @keyframes nb-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+            @media (prefers-reduced-motion: reduce) { .nb-card, .nb-chip { animation: none; } }
         </style>
         <div class="custom-scrollbar min-h-screen bg-slate-50 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] pb-28 pt-8 sm:pb-16 sm:pt-10">
             <div class="mx-auto max-w-6xl px-4 sm:px-6">
@@ -499,20 +714,27 @@ export function seoGuideHtml(slug: string): string | null {
                     ${guideSidebarHtml(page.slug, page.sections)}
 
                     <div class="lg:col-span-9">
-                        <header class="bento-card mb-6 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10">
-                            <p class="mb-3 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
-                                <i class="fas ${page.icon}"></i> ${page.kicker}
-                            </p>
-                            <h1 class="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">${page.h1}</h1>
-                            <p class="mt-4 max-w-2xl text-[15px] leading-7 text-slate-600 sm:text-base">${page.lead}</p>
-                            <div class="mt-6 flex flex-wrap gap-3">${headerCtas}</div>
+                        <header class="bento-card mb-6 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10 ${page.hero ? 'md:grid md:grid-cols-[1fr_15rem] md:items-center md:gap-8 lg:grid-cols-[1fr_17rem]' : ''}">
+                            <div>
+                                <p class="mb-3 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
+                                    <i class="fas ${page.icon}"></i> ${page.kicker}
+                                </p>
+                                <h1 class="break-keep text-2xl font-black tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">${page.h1}</h1>
+                                <p class="mt-4 max-w-2xl break-keep text-[15px] leading-7 text-slate-600 sm:text-base">${page.lead}</p>
+                                <div class="mt-6 flex flex-wrap gap-3">${headerCtas}</div>
+                            </div>
+                            ${page.hero === 'card' ? cardHeroHtml() : ''}
                         </header>
 
                         ${bannerHtml}
                         ${factBlockHtml(page)}
-                        ${page.steps?.length ? stepsTimelineHtml(page.steps) : ''}
+                        ${page.steps?.length && !cards ? stepsTimelineHtml(page.steps) : ''}
 
-                        <section class="space-y-3" aria-label="자주 묻는 질문">${sectionsAccordionHtml(page.sections)}</section>
+                        ${
+                            cards
+                                ? `<div class="space-y-4">${sectionsCardsHtml(page.sections)}</div>`
+                                : `<section class="space-y-3" aria-label="자주 묻는 질문">${sectionsAccordionHtml(page.sections)}</section>`
+                        }
 
                         ${relatedLinksHtml(page)}
                         ${page.showCampusStrip ? campusStripHtml() : ''}
@@ -526,6 +748,7 @@ export function seoGuideHtml(slug: string): string | null {
                 <a href="${primary.href}" class="flex min-h-[44px] flex-[1.4] items-center justify-center rounded-2xl bg-indigo-600 text-sm font-black text-white">${primary.label}</a>
             </div>
         </div>
+        ${cards ? learnScript() : ''}
         `,
         'guides',
         getSeoHead(
@@ -538,6 +761,6 @@ export function seoGuideHtml(slug: string): string | null {
                 }),
                 extraJsonLd: [faqGraphNode(page), howToForGuide(page)].filter(Boolean),
             }
-        )
+        ) + (cards ? learnHeadAssets() : '')
     );
 }

@@ -124,6 +124,8 @@ export type RangeRow = { name: string; ranges: Array<[number, number]> };
 export type ChecklistColumn = { title: string; icon: string; tone: Tone; items: string[] };
 /** 0 불필요 · 1 권장 · 2 필수 */
 export type MatrixRow = { name: string; note?: string; cells: Array<0 | 1 | 2> };
+export type StatItem = { icon: string; tone: Tone; value: number; prefix?: string; unit?: string; label: string; desc: string };
+export type StackSegment = { label: string; value: number; tone: Tone; note: string; optional?: boolean };
 export type SchematicVisual = 'fdm' | 'vat' | 'powder' | 'hazard';
 export type TimelineEvent = { year: string; title: string; desc?: string; turning?: boolean };
 export type TimelineEra = { period: string; title: string; icon: string; tone: Tone; summary: string; events: TimelineEvent[] };
@@ -141,6 +143,8 @@ export type Infographic =
     | { kind: 'iconGrid'; caption: string; items: IconItem[] }
     | { kind: 'schematic'; caption: string; visual: SchematicVisual; labels: SchematicLabel[] }
     | { kind: 'checklist'; caption: string; columns: ChecklistColumn[] }
+    | { kind: 'stats'; caption: string; items: StatItem[] }
+    | { kind: 'stackBar'; caption: string; unit: string; max: number; segments: StackSegment[] }
     | { kind: 'matrix'; caption: string; columns: Array<{ label: string; icon: string }>; rows: MatrixRow[] }
     | { kind: 'fdmSettings'; caption: string }
     | { kind: 'processMap'; caption: string; groups: ProcessGroup[] }
@@ -151,7 +155,7 @@ export type Infographic =
 
 function figure(caption: string, inner: string): string {
     return `
-        <figure class="mt-6" data-reveal>
+        <figure class="mt-6 break-keep" data-reveal>
             ${inner}
             <figcaption class="mt-3 flex items-start gap-1.5 text-xs leading-5 text-slate-400"><i class="fas fa-circle-info mt-0.5" aria-hidden="true"></i><span>${caption}</span></figcaption>
         </figure>`;
@@ -558,9 +562,64 @@ export function renderInfographic(block: Infographic): string {
             return figure(block.caption, timelineHtml(block.eras));
         case 'checklist':
             return figure(block.caption, checklistHtml(block.columns));
+        case 'stats':
+            return figure(block.caption, statsHtml(block.items));
+        case 'stackBar':
+            return figure(block.caption, stackBarHtml(block));
         case 'matrix':
             return figure(block.caption, matrixHtml(block.columns, block.rows));
     }
+}
+
+function statsHtml(items: StatItem[]): string {
+    return `<div class="grid grid-cols-2 gap-3 ${items.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}">${items
+        .map((s, i) => {
+            const t = TONES[s.tone];
+            return `
+            <div class="flex flex-col rounded-[1.5rem] border p-4 ${t.chip}" data-reveal style="--d:${i * 90}ms">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl shadow-sm ${t.icon}"><i class="fas ${s.icon}" aria-hidden="true"></i></span>
+                <p class="mt-3 text-[11px] font-black text-slate-500">${s.label}</p>
+                <p class="mt-0.5 flex items-baseline gap-0.5 font-black tracking-tight ${t.text}">
+                    ${s.prefix ? `<span class="text-base">${s.prefix}</span>` : ''}<span class="text-3xl sm:text-4xl" data-count="${s.value}">${s.value}</span>${s.unit ? `<span class="text-sm sm:text-base">${s.unit}</span>` : ''}
+                </p>
+                <p class="mt-1.5 text-xs leading-5 text-slate-600">${s.desc}</p>
+            </div>`;
+        })
+        .join('')}</div>`;
+}
+
+function stackBarHtml(b: Extract<Infographic, { kind: 'stackBar' }>): string {
+    let acc = 0;
+    const ticks: number[] = [0];
+    const bars = b.segments
+        .map((s, i) => {
+            const t = TONES[s.tone];
+            acc += s.value;
+            ticks.push(acc);
+            const stripe = s.optional ? ' style="background-image:repeating-linear-gradient(45deg,rgb(255 255 255/.35) 0 6px,transparent 6px 12px);--d:' + (300 + i * 250) + 'ms"' : ` style="--d:${i * 250}ms"`;
+            return `<span class="rg-bar flex h-full items-center justify-center text-xs font-black text-white sm:text-sm ${t.bar}"${stripe} title="${s.label}"><span class="truncate px-2">${s.optional ? '+' : ''}${s.value}${b.unit}</span></span>`;
+        })
+        .join('');
+    const tickHtml = ticks
+        .map((v) => `<span class="absolute whitespace-nowrap text-[11px] font-bold text-slate-400 ${v === 0 ? '' : v >= b.max ? '-translate-x-full' : '-translate-x-1/2'}" style="left:${(v / b.max) * 100}%">${v}${v === 0 ? '' : b.unit}</span>`)
+        .join('');
+    const legend = b.segments
+        .map((s) => {
+            const t = TONES[s.tone];
+            return `
+            <div class="flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-white p-3.5 shadow-sm">
+                <span class="mt-1 h-3 w-3 shrink-0 rounded ${t.bar}"${s.optional ? ' style="background-image:repeating-linear-gradient(45deg,rgb(255 255 255/.45) 0 3px,transparent 3px 6px)"' : ''}></span>
+                <span><span class="block text-sm font-black text-slate-900">${s.label} <span class="${t.text}">${s.optional ? '+' : ''}${s.value}${b.unit}</span></span><span class="mt-0.5 block text-xs leading-5 text-slate-600">${s.note}</span></span>
+            </div>`;
+        })
+        .join('');
+    const widths = b.segments.map((s) => `${(s.value / b.max) * 100}%`);
+    return `
+        <div class="rounded-[1.5rem] border border-slate-200/60 bg-slate-50/70 p-4 sm:p-5" data-reveal>
+            <div class="grid h-11 overflow-hidden rounded-2xl bg-slate-200/70" style="grid-template-columns:${widths.join(' ')} 1fr">${bars}</div>
+            <div class="relative mx-0 mt-2 h-4">${tickHtml}</div>
+        </div>
+        <div class="mt-3 grid gap-2.5 sm:grid-cols-2">${legend}</div>`;
 }
 
 function checklistHtml(columns: ChecklistColumn[]): string {
@@ -821,6 +880,16 @@ export function learnScript(): string {
                 entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('is-visible'); io.unobserve(e.target); } });
             },{rootMargin:'0px 0px -6% 0px',threshold:0.06});
             document.querySelectorAll('[data-reveal]').forEach(function(el){ io.observe(el); });
+            var cio=new IntersectionObserver(function(entries){
+                entries.forEach(function(e){
+                    if(!e.isIntersecting) return;
+                    cio.unobserve(e.target);
+                    var el=e.target, to=Number(el.getAttribute('data-count'))||0, t0=null;
+                    function step(ts){ if(t0===null) t0=ts; var p=Math.min(1,(ts-t0)/1100); el.textContent=String(Math.round(to*(1-Math.pow(1-p,3)))); if(p<1) requestAnimationFrame(step); }
+                    el.textContent='0'; requestAnimationFrame(step);
+                });
+            },{threshold:0.6});
+            document.querySelectorAll('[data-count]').forEach(function(el){ cio.observe(el); });
         }
         var touch=window.matchMedia('(hover: none)');
         document.addEventListener('click',function(ev){

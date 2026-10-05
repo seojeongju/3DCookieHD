@@ -635,7 +635,7 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
     },
     '/guides/national-support': {
         title: '3D프린팅 국비지원·내일배움카드 신청 안내',
-        description: '3D프린터 무료교육 검색은 대개 국비지원을 의미합니다. 와우쓰리디 국비 과정 종류·신청 절차·센터 안내. 카드 발급 상세는 내일배움카드 페이지.',
+        description: '내일배움카드 5년 300만원 한도, 자기부담 0~55%, 신청 자격·제외 대상, 발급부터 수강까지 5단계를 인포그래픽으로 정리했습니다. 와우쓰리디 3D프린팅 국비 과정·센터 안내.',
         keywords: '3D프린팅 국비지원, 내일배움카드 3D프린팅, 3D프린터 무료교육, 국비지원 신청',
         image: '/static/hero2.jpg',
     },
