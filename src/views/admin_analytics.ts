@@ -1,6 +1,10 @@
 /**
- * 사이트 접속정보 페이지 (관리자 전용)
- * /api/analytics/access-stats 기반 페이지뷰·순 방문자, 일별 추이, 역할/시간대/요일별, 인기 페이지, 유입 경로
+ * 사이트 접속통계 페이지 (관리자 전용)
+ * - /api/analytics/access-stats (접속 요약, 트렌드, 유입 경로, 기기/OS/브라우저, 키워드, 랜딩페이지)
+ * - /api/analytics/referrers (외부 유입 도메인 목록 + 페이지네이션)
+ * - /api/analytics/pages (페이지별 접속 현황 + 페이지네이션 & 필터)
+ * - /api/analytics/visitors (접속 사용자 목록 + 페이지네이션 & 필터)
+ * - /api/analytics/logs (상세 실시간 접속 로그 + 페이지네이션 & 필터)
  */
 import { hrdSidebar } from './components/hrd_sidebar';
 
@@ -10,192 +14,578 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사이트 접속정보 - 교육행정 시스템</title>
+    <title>사이트 접속 통계 고도화 - 3D쿠키 관리자</title>
     <link rel="stylesheet" href="/static/tailwind-app.css">
-<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    </head>
-<body class="bg-gray-50 font-sans">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .tab-active { border-bottom: 3px solid #4f46e5; color: #4f46e5; font-weight: 800; }
+        .tab-inactive { color: #64748b; font-weight: 600; border-bottom: 3px solid transparent; }
+        .tab-inactive:hover { color: #334155; border-bottom-color: #e2e8f0; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased">
     <div class="flex h-screen overflow-hidden">
         ${sidebar}
-        <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <div class="bg-white border-b border-gray-200 flex-shrink-0">
-                <div class="px-8 py-6">
-                    <div class="flex justify-between items-center">
+        <div class="flex-1 flex flex-col overflow-hidden bg-slate-50">
+            <!-- Header -->
+            <div class="bg-white border-b border-slate-200 flex-shrink-0 shadow-sm z-10">
+                <div class="px-8 py-5">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
                         <div>
-                            <h1 class="text-2xl font-bold text-gray-800 tracking-tight">사이트 접속정보</h1>
-                            <p class="text-gray-500 mt-1 text-sm">사용자·페이지 접속 현황 및 통계를 확인합니다.</p>
+                            <div class="flex items-center gap-3">
+                                <h1 class="text-2xl font-black text-slate-900 tracking-tight">사이트 접속 통계</h1>
+                                <span id="scopeBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                    <i class="fas fa-user-check mr-1"></i>일반 방문자
+                                </span>
+                            </div>
+                            <p class="text-slate-500 mt-1 text-sm font-medium">실시간 웹사이트 PV·UV, 유입 경로, 사용자 반응 및 접속 로그 분석</p>
                         </div>
-                        <button onclick="loadAccessStats()" class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
+                        <div class="flex items-center gap-3">
+                            <!-- 스코프 선택 (Public / Bots / All) -->
+                            <div class="bg-slate-100 p-1 rounded-xl border border-slate-200 flex text-xs font-bold">
+                                <button type="button" onclick="setScope('public')" id="scopeBtn-public" class="px-3 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm">사람 방문</button>
+                                <button type="button" onclick="setScope('bots')" id="scopeBtn-bots" class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">봇·크롤러</button>
+                                <button type="button" onclick="setScope('all')" id="scopeBtn-all" class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">전체 요청</button>
+                            </div>
+
+                            <button onclick="refreshCurrentTab()" class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 hover:text-indigo-600 transition-all shadow-sm flex items-center gap-2 text-sm">
+                                <i class="fas fa-sync-alt text-slate-400"></i>
+                                <span>새로고침</span>
+                            </button>
+                        </div>
                     </div>
+                </div>
+
+                <!-- 탭 네비게이션 -->
+                <div class="px-8 flex space-x-8 border-t border-slate-100 text-sm">
+                    <button onclick="switchTab('overview')" id="tabBtn-overview" class="py-3.5 px-1 tab-active transition-all flex items-center gap-2">
+                        <i class="fas fa-chart-line text-indigo-500"></i> 접속 개요
+                    </button>
+                    <button onclick="switchTab('traffic')" id="tabBtn-traffic" class="py-3.5 px-1 tab-inactive transition-all flex items-center gap-2">
+                        <i class="fas fa-compass text-teal-500"></i> 유입 경로 분석
+                    </button>
+                    <button onclick="switchTab('pages')" id="tabBtn-pages" class="py-3.5 px-1 tab-inactive transition-all flex items-center gap-2">
+                        <i class="fas fa-file-alt text-sky-500"></i> 페이지별 접속
+                    </button>
+                    <button onclick="switchTab('visitors')" id="tabBtn-visitors" class="py-3.5 px-1 tab-inactive transition-all flex items-center gap-2">
+                        <i class="fas fa-users text-amber-500"></i> 접속 사용자
+                    </button>
+                    <button onclick="switchTab('logs')" id="tabBtn-logs" class="py-3.5 px-1 tab-inactive transition-all flex items-center gap-2">
+                        <i class="fas fa-list-ul text-rose-500"></i> 상세 접속 로그
+                    </button>
                 </div>
             </div>
 
+            <!-- Main Content Area -->
             <main class="flex-1 overflow-y-auto p-6 custom-scrollbar">
                 <div class="max-w-7xl mx-auto space-y-6">
-                    <!-- 기간 필터 -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-wrap items-center gap-4">
-                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">기간</span>
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" onclick="setPeriod('today')" class="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-indigo-300 hover:text-indigo-600 transition">오늘</button>
-                            <button type="button" onclick="setPeriod('week')" class="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-indigo-300 hover:text-indigo-600 transition">최근 7일</button>
-                            <button type="button" onclick="setPeriod('month')" class="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-indigo-300 hover:text-indigo-600 transition">이번 달</button>
-                            <button type="button" onclick="setPeriod('clear')" class="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200 text-gray-500 hover:bg-gray-50 transition">기간 해제</button>
+
+                    <!-- 기간 필터 공통 바 -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span class="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                <i class="far fa-calendar-alt"></i> 조회 기간
+                            </span>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button type="button" onclick="setPeriod('today')" id="periodBtn-today" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition">오늘</button>
+                                <button type="button" onclick="setPeriod('week')" id="periodBtn-week" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-indigo-200 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 transition">최근 7일</button>
+                                <button type="button" onclick="setPeriod('month30')" id="periodBtn-month30" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition">최근 30일</button>
+                                <button type="button" onclick="setPeriod('monthThis')" id="periodBtn-monthThis" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition">이번 달</button>
+                                <button type="button" onclick="setPeriod('clear')" id="periodBtn-clear" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-400 hover:bg-slate-50 transition">기간 해제</button>
+                            </div>
                         </div>
+
                         <div class="flex flex-wrap items-center gap-2">
-                            <input type="date" id="filterFrom" class="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">
-                            <span class="text-gray-400">~</span>
-                            <input type="date" id="filterTo" class="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700">
-                            <button type="button" onclick="loadAccessStats()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition">조회</button>
-                        </div>
-                        <span id="rangeLabel" class="text-xs text-gray-400 hidden"></span>
-                    </div>
-
-                    <!-- 요약 카드: 기본(오늘/주간/월간) -->
-                    <div id="defaultCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">오늘 페이지뷰</div>
-                            <div class="text-2xl font-black text-gray-800" id="stat-today-pv">-</div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">오늘 순 방문자</div>
-                            <div class="text-2xl font-black text-indigo-600" id="stat-today-uv">-</div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">최근 7일 페이지뷰</div>
-                            <div class="text-2xl font-black text-gray-800" id="stat-week-pv">-</div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">최근 7일 순 방문자</div>
-                            <div class="text-2xl font-black text-indigo-600" id="stat-week-uv">-</div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">이번 달 페이지뷰</div>
-                            <div class="text-2xl font-black text-gray-800" id="stat-month-pv">-</div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">이번 달 순 방문자</div>
-                            <div class="text-2xl font-black text-indigo-600" id="stat-month-uv">-</div>
-                        </div>
-                    </div>
-                    <!-- 요약 카드: 선택 기간 (기간 필터 사용 시) -->
-                    <div id="rangeCards" class="hidden grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100">
-                            <div class="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">선택 기간 페이지뷰</div>
-                            <div class="text-2xl font-black text-gray-800" id="stat-range-pv">-</div>
-                        </div>
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100">
-                            <div class="text-xs text-indigo-600 font-bold uppercase tracking-wider mb-1">선택 기간 순 방문자</div>
-                            <div class="text-2xl font-black text-indigo-600" id="stat-range-uv">-</div>
+                            <input type="date" id="filterFrom" class="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <span class="text-slate-400 text-xs font-bold">~</span>
+                            <input type="date" id="filterTo" class="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button type="button" onclick="applyDateFilter()" class="px-4 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition shadow-sm">
+                                <i class="fas fa-search mr-1"></i>조회
+                            </button>
                         </div>
                     </div>
 
-                    <!-- 일별 추이 -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-lg font-black text-gray-800 mb-4 tracking-tight" id="dailyTrendTitle">일별 접속 추이 (최근 7일)</h3>
-                        <div class="h-72">
-                            <canvas id="dailyTrendChart"></canvas>
+                    <!-- 요약 KPI 카드 (6 Grid) -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+                            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">총 페이지뷰(PV)</div>
+                            <div class="text-2xl font-black text-slate-900" id="kpi-pv">-</div>
+                            <div class="text-[11px] text-slate-400 mt-1" id="kpi-pv-sub">조회 기간 전체</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+                            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">순 방문자(UV)</div>
+                            <div class="text-2xl font-black text-indigo-600" id="kpi-uv">-</div>
+                            <div class="text-[11px] text-slate-400 mt-1" id="kpi-uv-sub">고유 IP 기준</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+                            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">외부 유입</div>
+                            <div class="text-2xl font-black text-teal-600" id="kpi-external">-</div>
+                            <div class="text-[11px] text-slate-400 mt-1" id="kpi-external-sub">검색·외부 링크</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+                            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">방문 회원 수</div>
+                            <div class="text-2xl font-black text-sky-600" id="kpi-members">-</div>
+                            <div class="text-[11px] text-slate-400 mt-1">로그인 사용자</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+                            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">열람 페이지 종</div>
+                            <div class="text-2xl font-black text-slate-800" id="kpi-pages">-</div>
+                            <div class="text-[11px] text-slate-400 mt-1">고유 URL 수</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+                            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">봇·크롤러 감지</div>
+                            <div class="text-2xl font-black text-rose-500" id="kpi-bots">-</div>
+                            <div class="text-[11px] text-slate-400 mt-1">자동화 수집</div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                            <h3 class="text-lg font-black text-gray-800 mb-4 tracking-tight" id="byHourTitle">시간대별 접속 (0~23시)</h3>
-                            <div class="h-64">
-                                <canvas id="byHourChart"></canvas>
+                    <!-- TAB 1: 접속 개요 (Overview) -->
+                    <div id="tabSection-overview" class="space-y-6">
+                        <!-- 일별 추이 차트 -->
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="text-base font-black text-slate-900 tracking-tight">일별 접속 추이 (PV / UV)</h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">선택한 날짜 범위 동안 일자별 페이지뷰와 순 방문자 트렌드를 시각화합니다.</p>
+                                </div>
+                                <span id="trendRangeLabel" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-600"></span>
+                            </div>
+                            <div class="h-72">
+                                <canvas id="dailyTrendChart"></canvas>
                             </div>
                         </div>
-                        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                            <h3 class="text-lg font-black text-gray-800 mb-4 tracking-tight" id="byDayOfWeekTitle">요일별 접속 (일~토)</h3>
-                            <div class="h-64">
-                                <canvas id="byDayOfWeekChart"></canvas>
+
+                        <!-- 시간대별 & 요일별 접속 차트 -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h3 class="text-base font-black text-slate-900 mb-1 tracking-tight">시간대별 접속 분포 (00시~23시)</h3>
+                                <p class="text-xs text-slate-500 mb-4">주요 접속이 몰리는 피크 시간대를 파악할 수 있습니다.</p>
+                                <div class="h-60">
+                                    <canvas id="byHourChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h3 class="text-base font-black text-slate-900 mb-1 tracking-tight">요일별 접속 분포 (일요일~토요일)</h3>
+                                <p class="text-xs text-slate-500 mb-4">주중 및 주말의 방문 패턴을 비교합니다.</p>
+                                <div class="h-60">
+                                    <canvas id="byDayOfWeekChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 사용자 환경 및 역할 분포 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <!-- 접속 기기 -->
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h4 class="text-sm font-black text-slate-900 mb-3 flex items-center justify-between">
+                                    <span><i class="fas fa-mobile-alt text-indigo-500 mr-2"></i>접속 기기</span>
+                                </h4>
+                                <div id="deviceList" class="space-y-3 text-xs">
+                                    <div class="text-slate-400">로딩 중...</div>
+                                </div>
+                            </div>
+                            <!-- 브라우저 -->
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h4 class="text-sm font-black text-slate-900 mb-3 flex items-center justify-between">
+                                    <span><i class="fab fa-chrome text-teal-500 mr-2"></i>웹 브라우저</span>
+                                </h4>
+                                <div id="browserList" class="space-y-3 text-xs">
+                                    <div class="text-slate-400">로딩 중...</div>
+                                </div>
+                            </div>
+                            <!-- 운영체제 OS -->
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h4 class="text-sm font-black text-slate-900 mb-3 flex items-center justify-between">
+                                    <span><i class="fas fa-desktop text-sky-500 mr-2"></i>운영체제 (OS)</span>
+                                </h4>
+                                <div id="osList" class="space-y-3 text-xs">
+                                    <div class="text-slate-400">로딩 중...</div>
+                                </div>
+                            </div>
+                            <!-- 사용자 역할 -->
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h4 class="text-sm font-black text-slate-900 mb-3 flex items-center justify-between">
+                                    <span><i class="fas fa-user-shield text-amber-500 mr-2"></i>역할별 접속</span>
+                                </h4>
+                                <div id="roleList" class="space-y-3 text-xs">
+                                    <div class="text-slate-400">로딩 중...</div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-lg font-black text-gray-800 mb-4 tracking-tight" id="byRoleTitle">역할별 접속</h3>
-                        <div id="byRoleList" class="flex flex-wrap gap-3">
-                            <span class="text-gray-400">로딩 중...</span>
+                    <!-- TAB 2: 유입 경로 분석 (Traffic Sources) -->
+                    <div id="tabSection-traffic" class="space-y-6 hidden">
+                        <!-- 유입 채널 카테고리 카드 -->
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                            <h3 class="text-base font-black text-slate-900 mb-1 tracking-tight">유입 채널 그룹 (Traffic Channels)</h3>
+                            <p class="text-xs text-slate-500 mb-4">방문자가 홈페이지에 도달한 주요 통로 구분 (직접, 네이버/구글 검색, AI 검색, SNS, 공공 포털 등)</p>
+                            <div id="channelGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                <div class="text-slate-400 text-xs col-span-full">데이터를 불러오고 있습니다...</div>
+                            </div>
+                        </div>
+
+                        <!-- 상세 소스 & 검색어 & 랜딩 페이지 Grid -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- 상세 유입 출처 TOP -->
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h3 class="text-sm font-black text-slate-900 mb-3 flex items-center justify-between">
+                                    <span><i class="fas fa-sitemap text-indigo-500 mr-2"></i>상세 유입 출처 (Sources)</span>
+                                </h3>
+                                <div id="sourceList" class="space-y-2.5 text-xs">
+                                    <div class="text-slate-400">로딩 중...</div>
+                                </div>
+                            </div>
+
+                            <!-- 유입 검색어 TOP -->
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h3 class="text-sm font-black text-slate-900 mb-3 flex items-center justify-between">
+                                    <span><i class="fas fa-search text-emerald-500 mr-2"></i>유입 검색어 (Keywords TOP)</span>
+                                </h3>
+                                <div id="keywordList" class="space-y-2 text-xs">
+                                    <div class="text-slate-400">로딩 중...</div>
+                                </div>
+                            </div>
+
+                            <!-- 첫 유입 랜딩 페이지 TOP -->
+                            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
+                                <h3 class="text-sm font-black text-slate-900 mb-3 flex items-center justify-between">
+                                    <span><i class="fas fa-door-open text-amber-500 mr-2"></i>주요 랜딩 페이지 TOP</span>
+                                </h3>
+                                <div id="landingList" class="space-y-2 text-xs">
+                                    <div class="text-slate-400">로딩 중...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 외부 유입 도메인(Referrers) 목록 (페이지네이션) -->
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                            <div class="px-8 py-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+                                <div>
+                                    <h3 class="text-base font-black text-slate-900 tracking-tight">외부 유입 도메인 / 리퍼러 목록 (Referrer Hosts)</h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">외부 사이트 및 검색엔진에서 연결된 호스트별 상세 접속 건수 목록입니다.</p>
+                                </div>
+                                <div class="flex items-center gap-3 text-xs">
+                                    <span class="text-slate-500 font-medium">보기:</span>
+                                    <select id="refSizeSelect" onchange="changeRefPageSize()" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                                        <option value="10">10개씩</option>
+                                        <option value="20" selected>20개씩</option>
+                                        <option value="50">50개씩</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50/80 text-slate-400 font-black border-b border-slate-100 uppercase tracking-wider">
+                                            <th class="px-6 py-3.5">유입 도메인 (Host)</th>
+                                            <th class="px-6 py-3.5">유입 채널</th>
+                                            <th class="px-6 py-3.5">대표 리퍼러 URL 샘플</th>
+                                            <th class="px-6 py-3.5 text-center">페이지뷰 (PV)</th>
+                                            <th class="px-6 py-3.5 text-center">순 방문자 (UV)</th>
+                                            <th class="px-6 py-3.5">최근 유입 일시</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="referrersTableBody" class="divide-y divide-slate-100">
+                                        <tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">데이터를 불러오고 있습니다...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Referrers Pagination Container -->
+                            <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs" id="refPagination"></div>
                         </div>
                     </div>
 
-                    <!-- 인기 페이지 TOP 20 -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-8 py-6 border-b border-gray-50">
-                            <h3 class="text-lg font-black text-gray-800 tracking-tight">인기 페이지 TOP 20</h3>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-50/50">
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">순위</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">경로</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">페이지뷰</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">순 방문자</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="topPagesBody" class="divide-y divide-gray-50">
-                                    <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">데이터를 불러오고 있습니다...</td></tr>
-                                </tbody>
-                            </table>
+                    <!-- TAB 3: 페이지별 접속 (Page Analytics) -->
+                    <div id="tabSection-pages" class="space-y-6 hidden">
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                            <div class="px-8 py-6 border-b border-slate-100 space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                    <div>
+                                        <h3 class="text-base font-black text-slate-900 tracking-tight">페이지별 접속 현황</h3>
+                                        <p class="text-xs text-slate-500 mt-0.5">사이트 내 각 URL 경로(Path)별 방문 조회수, 방문자 수 및 외부 유입 수입니다.</p>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-xs">
+                                        <span class="text-slate-500 font-medium">보기:</span>
+                                        <select id="pagesSizeSelect" onchange="changePagesPageSize()" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                                            <option value="10">10개씩</option>
+                                            <option value="20" selected>20개씩</option>
+                                            <option value="50">50개씩</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Filter Controls -->
+                                <div class="flex flex-wrap items-center gap-3 pt-2">
+                                    <div class="relative flex-1 min-w-[240px]">
+                                        <i class="fas fa-search absolute left-3.5 top-2.5 text-slate-400 text-xs"></i>
+                                        <input type="text" id="pagesSearchInput" onkeyup="if(event.key==='Enter') searchPages()" placeholder="URL 경로 검색 (예: /courses, /admin)..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <select id="pagesSortSelect" onchange="searchPages()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <option value="pv">페이지뷰(PV) 높은 순</option>
+                                        <option value="uv">순 방문자(UV) 높은 순</option>
+                                        <option value="entries">외부 랜딩 유입 순</option>
+                                        <option value="recent">최근 방문 순</option>
+                                    </select>
+                                    <button onclick="searchPages()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition">
+                                        검색
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50/80 text-slate-400 font-black border-b border-slate-100 uppercase tracking-wider">
+                                            <th class="px-6 py-3.5">URL 경로 (Path)</th>
+                                            <th class="px-6 py-3.5 text-center">페이지뷰 (PV)</th>
+                                            <th class="px-6 py-3.5 text-center">순 방문자 (UV)</th>
+                                            <th class="px-6 py-3.5 text-center">외부 유입 (Entries)</th>
+                                            <th class="px-6 py-3.5">최근 방문 일시</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pagesTableBody" class="divide-y divide-slate-100">
+                                        <tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">데이터를 불러오고 있습니다...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pages Pagination Container -->
+                            <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs" id="pagesPagination"></div>
                         </div>
                     </div>
 
-                    <!-- 유입 경로 상위 10 -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-lg font-black text-gray-800 mb-4 tracking-tight">유입 경로 상위 10</h3>
-                        <ul id="topReferrersList" class="space-y-2 text-sm text-gray-600">
-                            <li class="text-gray-400">로딩 중...</li>
-                        </ul>
+                    <!-- TAB 4: 접속 사용자 (Visitors) -->
+                    <div id="tabSection-visitors" class="space-y-6 hidden">
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                            <div class="px-8 py-6 border-b border-slate-100 space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                    <div>
+                                        <h3 class="text-base font-black text-slate-900 tracking-tight">접속 사용자 목록 (Visitors)</h3>
+                                        <p class="text-xs text-slate-500 mt-0.5">로그인 회원(회원 ID, 이메일) 및 비로그인 방문자(IP 주소) 단위의 접속 집계입니다.</p>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-xs">
+                                        <span class="text-slate-500 font-medium">보기:</span>
+                                        <select id="visitorsSizeSelect" onchange="changeVisitorsPageSize()" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                                            <option value="10">10개씩</option>
+                                            <option value="20" selected>20개씩</option>
+                                            <option value="50">50개씩</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Filter Controls -->
+                                <div class="flex flex-wrap items-center gap-3 pt-2">
+                                    <select id="visitorsKindSelect" onchange="searchVisitors()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700">
+                                        <option value="all">전체 (회원 + IP)</option>
+                                        <option value="member">회원만 (로그인)</option>
+                                        <option value="guest">비로그인만 (IP)</option>
+                                    </select>
+
+                                    <div class="relative flex-1 min-w-[240px]">
+                                        <i class="fas fa-search absolute left-3.5 top-2.5 text-slate-400 text-xs"></i>
+                                        <input type="text" id="visitorsSearchInput" onkeyup="if(event.key==='Enter') searchVisitors()" placeholder="이메일, 이름, IP 주소 검색..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+
+                                    <select id="visitorsSortSelect" onchange="searchVisitors()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700">
+                                        <option value="pv">페이지뷰 높은 순</option>
+                                        <option value="recent">최근 접속 순</option>
+                                    </select>
+
+                                    <button onclick="searchVisitors()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition">
+                                        검색
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50/80 text-slate-400 font-black border-b border-slate-100 uppercase tracking-wider">
+                                            <th class="px-6 py-3.5">구분</th>
+                                            <th class="px-6 py-3.5">식별자 (이메일 / IP)</th>
+                                            <th class="px-6 py-3.5 text-center">역할</th>
+                                            <th class="px-6 py-3.5">기기 / 브라우저 / OS</th>
+                                            <th class="px-6 py-3.5 text-center">페이지뷰 (PV)</th>
+                                            <th class="px-6 py-3.5 text-center">본 페이지 수</th>
+                                            <th class="px-6 py-3.5">마지막 접속 시각</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="visitorsTableBody" class="divide-y divide-slate-100">
+                                        <tr><td colspan="7" class="px-6 py-8 text-center text-slate-400">데이터를 불러오고 있습니다...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Visitors Pagination Container -->
+                            <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs" id="visitorsPagination"></div>
+                        </div>
                     </div>
 
-                    <!-- 접속 사용자 (사용자 ID·IP 구분) -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="px-8 py-6 border-b border-gray-50">
-                            <h3 class="text-lg font-black text-gray-800 tracking-tight">접속 사용자</h3>
-                            <p class="text-sm text-gray-500 mt-1">사용자 ID(로그인) 또는 IP 주소(비로그인)별 접속 현황. 기간 필터와 동일하게 적용됩니다.</p>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-50/50">
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">구분</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">사용자 / IP 주소</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">역할</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">페이지뷰</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">마지막 접속</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="visitorsBody" class="divide-y divide-gray-50">
-                                    <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">데이터를 불러오고 있습니다...</td></tr>
-                                </tbody>
-                            </table>
+                    <!-- TAB 5: 상세 접속 로그 (Access Logs) -->
+                    <div id="tabSection-logs" class="space-y-6 hidden">
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+                            <div class="px-8 py-6 border-b border-slate-100 space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                    <div>
+                                        <h3 class="text-base font-black text-slate-900 tracking-tight">상세 실시간 접속 로그 (Raw Access Logs)</h3>
+                                        <p class="text-xs text-slate-500 mt-0.5">웹 요청 개별 건 단위의 시각, HTTP 메서드, 응답 상태, URL, 리퍼러 및 사용자 정보입니다.</p>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-xs">
+                                        <span class="text-slate-500 font-medium">보기:</span>
+                                        <select id="logsSizeSelect" onchange="changeLogsPageSize()" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                                            <option value="10">10개씩</option>
+                                            <option value="20" selected>20개씩</option>
+                                            <option value="50">50개씩</option>
+                                            <option value="100">100개씩</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Logs Filter Bar -->
+                                <div class="flex flex-wrap items-center gap-3 pt-2">
+                                    <select id="logsKindSelect" onchange="searchLogs()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700">
+                                        <option value="all">전체 사용자</option>
+                                        <option value="member">로그인 회원만</option>
+                                        <option value="guest">비로그인만</option>
+                                    </select>
+
+                                    <select id="logsDeviceSelect" onchange="searchLogs()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700">
+                                        <option value="">전체 기기</option>
+                                        <option value="PC">PC</option>
+                                        <option value="모바일">모바일</option>
+                                        <option value="태블릿">태블릿</option>
+                                        <option value="봇">봇</option>
+                                    </select>
+
+                                    <div class="relative flex-1 min-w-[200px]">
+                                        <i class="fas fa-search absolute left-3.5 top-2.5 text-slate-400 text-xs"></i>
+                                        <input type="text" id="logsSearchInput" onkeyup="if(event.key==='Enter') searchLogs()" placeholder="방문 경로(URL) 검색..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+
+                                    <button onclick="searchLogs()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition">
+                                        필터 적용
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50/80 text-slate-400 font-black border-b border-slate-100 uppercase tracking-wider">
+                                            <th class="px-4 py-3.5">접속 시각 (KST)</th>
+                                            <th class="px-4 py-3.5 text-center">상태</th>
+                                            <th class="px-4 py-3.5">방문 URL 경로</th>
+                                            <th class="px-4 py-3.5">유입 채널 / 출처</th>
+                                            <th class="px-4 py-3.5">유입 리퍼러 (Referrer)</th>
+                                            <th class="px-4 py-3.5">사용자 / IP</th>
+                                            <th class="px-4 py-3.5">기기/브라우저</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="logsTableBody" class="divide-y divide-slate-100 font-mono text-[11px]">
+                                        <tr><td colspan="7" class="px-6 py-8 text-center text-slate-400 font-sans">데이터를 불러오고 있습니다...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Logs Pagination Container -->
+                            <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs" id="logsPagination"></div>
                         </div>
                     </div>
+
                 </div>
             </main>
         </div>
     </div>
 
+    <!-- Frontend Script Logic -->
     <script>
         const token = localStorage.getItem('token');
+
+        // Global State
+        const state = {
+            scope: 'public',
+            from: '',
+            to: '',
+            activeTab: 'overview',
+            pages: { page: 1, size: 20, q: '', sort: 'pv' },
+            referrers: { page: 1, size: 20 },
+            visitors: { page: 1, size: 20, kind: 'all', q: '', sort: 'pv' },
+            logs: { page: 1, size: 20, device: '', source: '', kind: 'all', q: '' }
+        };
+
+        // Charts Instances
         let dailyTrendChartInst = null;
         let byHourChartInst = null;
         let byDayOfWeekChartInst = null;
 
+        // Utilities
         function ymd(d) {
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             return y + '-' + m + '-' + day;
         }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Scope Switcher
+        function setScope(scope) {
+            state.scope = scope;
+            ['public', 'bots', 'all'].forEach(function(s) {
+                const btn = document.getElementById('scopeBtn-' + s);
+                if (s === scope) {
+                    btn.className = 'px-3 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm font-extrabold';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900';
+                }
+            });
+
+            const badge = document.getElementById('scopeBadge');
+            if (scope === 'public') {
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200';
+                badge.innerHTML = '<i class="fas fa-user-check mr-1"></i>일반 방문자';
+            } else if (scope === 'bots') {
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200';
+                badge.innerHTML = '<i class="fas fa-robot mr-1"></i>봇·크롤러';
+            } else {
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300';
+                badge.innerHTML = '<i class="fas fa-globe mr-1"></i>전체 요청';
+            }
+
+            refreshCurrentTab();
+        }
+
+        // Quick Period Buttons
         function setPeriod(p) {
             const today = new Date();
             const fromEl = document.getElementById('filterFrom');
             const toEl = document.getElementById('filterTo');
+
+            ['today', 'week', 'month30', 'monthThis', 'clear'].forEach(function(key) {
+                const btn = document.getElementById('periodBtn-' + key);
+                if (!btn) return;
+                if (key === p) {
+                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold border border-indigo-200 text-indigo-600 bg-indigo-50/80 transition';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition';
+                }
+            });
+
             if (p === 'today') {
                 fromEl.value = toEl.value = ymd(today);
             } else if (p === 'week') {
@@ -203,205 +593,585 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                 from.setDate(from.getDate() - 6);
                 fromEl.value = ymd(from);
                 toEl.value = ymd(today);
-            } else if (p === 'month') {
+            } else if (p === 'month30') {
+                const from = new Date(today);
+                from.setDate(from.getDate() - 29);
+                fromEl.value = ymd(from);
+                toEl.value = ymd(today);
+            } else if (p === 'monthThis') {
                 const from = new Date(today.getFullYear(), today.getMonth(), 1);
                 fromEl.value = ymd(from);
                 toEl.value = ymd(today);
             } else {
                 fromEl.value = toEl.value = '';
             }
-            loadAccessStats();
+
+            state.from = fromEl.value;
+            state.to = toEl.value;
+            refreshCurrentTab();
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAccessStats();
+        function applyDateFilter() {
+            state.from = document.getElementById('filterFrom').value;
+            state.to = document.getElementById('filterTo').value;
+            refreshCurrentTab();
+        }
+
+        // Tab Switching
+        function switchTab(tabId) {
+            state.activeTab = tabId;
+            ['overview', 'traffic', 'pages', 'visitors', 'logs'].forEach(function(t) {
+                const btn = document.getElementById('tabBtn-' + t);
+                const section = document.getElementById('tabSection-' + t);
+                if (t === tabId) {
+                    btn.className = 'py-3.5 px-1 tab-active transition-all flex items-center gap-2';
+                    section.classList.remove('hidden');
+                } else {
+                    btn.className = 'py-3.5 px-1 tab-inactive transition-all flex items-center gap-2';
+                    section.classList.add('hidden');
+                }
+            });
+
+            refreshCurrentTab();
+        }
+
+        function refreshCurrentTab() {
+            loadAccessStatsSummary(); // KPI 요약 카드는 항상 최신 상태 업데이트
+            if (state.activeTab === 'overview') loadOverviewData();
+            else if (state.activeTab === 'traffic') loadTrafficData();
+            else if (state.activeTab === 'pages') loadPagesData();
+            else if (state.activeTab === 'visitors') loadVisitorsData();
+            else if (state.activeTab === 'logs') loadLogsData();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setPeriod('week');
         });
 
-        async function loadAccessStats() {
+        // -------------------------------------------------------------------
+        // API 1: KPI 요약 & 개요 (access-stats)
+        // -------------------------------------------------------------------
+        async function loadAccessStatsSummary() {
             try {
-                const fromEl = document.getElementById('filterFrom');
-                const toEl = document.getElementById('filterTo');
-                let url = '/api/analytics/access-stats';
-                if (fromEl && toEl && fromEl.value && toEl.value) {
-                    url += '?from=' + encodeURIComponent(fromEl.value) + '&to=' + encodeURIComponent(toEl.value);
+                let url = '/api/analytics/access-stats?scope=' + state.scope;
+                if (state.from && state.to) {
+                    url += '&from=' + encodeURIComponent(state.from) + '&to=' + encodeURIComponent(state.to);
                 }
-                const res = await fetch(url, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
                 if (res.status === 401) {
                     location.replace('/login?redirect=' + encodeURIComponent(location.pathname));
                     return;
                 }
                 const result = await res.json();
-                if (!result.success) {
-                    document.getElementById('stat-today-pv').textContent = '오류';
-                    return;
-                }
+                if (!result.success) return;
                 const d = result.data;
-                const isRange = d.rangeFrom && d.rangeTo;
 
-                const defaultCards = document.getElementById('defaultCards');
-                const rangeCards = document.getElementById('rangeCards');
-                const rangeLabel = document.getElementById('rangeLabel');
-                if (isRange) {
-                    if (defaultCards) defaultCards.classList.add('hidden');
-                    if (rangeCards) {
-                        rangeCards.classList.remove('hidden');
-                        rangeCards.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2');
-                    }
-                    if (rangeLabel) {
-                        rangeLabel.textContent = d.rangeFrom + ' ~ ' + d.rangeTo;
-                        rangeLabel.classList.remove('hidden');
-                    }
-                    document.getElementById('stat-range-pv').textContent = (d.rangePv ?? 0).toLocaleString();
-                    document.getElementById('stat-range-uv').textContent = (d.rangeUv ?? 0).toLocaleString();
-                    document.getElementById('dailyTrendTitle').textContent = '일별 접속 추이 (' + d.rangeFrom + ' ~ ' + d.rangeTo + ')';
-                    document.getElementById('byHourTitle').textContent = '시간대별 접속 (선택 기간, 0~23시)';
-                    document.getElementById('byDayOfWeekTitle').textContent = '요일별 접속 (선택 기간, 일~토)';
-                    document.getElementById('byRoleTitle').textContent = '역할별 접속 (선택 기간)';
-                } else {
-                    if (defaultCards) defaultCards.classList.remove('hidden');
-                    if (rangeCards) {
-                        rangeCards.classList.add('hidden');
-                        rangeCards.classList.remove('grid', 'grid-cols-1', 'md:grid-cols-2');
-                    }
-                    if (rangeLabel) rangeLabel.classList.add('hidden');
-                    document.getElementById('stat-today-pv').textContent = (d.todayPV ?? 0).toLocaleString();
-                    document.getElementById('stat-today-uv').textContent = (d.todayUV ?? 0).toLocaleString();
-                    document.getElementById('stat-week-pv').textContent = (d.weekPV ?? 0).toLocaleString();
-                    document.getElementById('stat-week-uv').textContent = (d.weekUV ?? 0).toLocaleString();
-                    document.getElementById('stat-month-pv').textContent = (d.monthPV ?? 0).toLocaleString();
-                    document.getElementById('stat-month-uv').textContent = (d.monthUV ?? 0).toLocaleString();
-                    document.getElementById('dailyTrendTitle').textContent = '일별 접속 추이 (최근 7일)';
-                    document.getElementById('byHourTitle').textContent = '오늘 시간대별 접속 (0~23시)';
-                    document.getElementById('byDayOfWeekTitle').textContent = '요일별 접속 (최근 7일, 일~토)';
-                    document.getElementById('byRoleTitle').textContent = '역할별 접속 (오늘)';
-                }
+                // KPI 바인딩
+                document.getElementById('kpi-pv').textContent = (d.totals && d.totals.pv != null ? d.totals.pv : 0).toLocaleString();
+                document.getElementById('kpi-uv').textContent = (d.totals && d.totals.uv != null ? d.totals.uv : 0).toLocaleString();
+                document.getElementById('kpi-external').textContent = (d.totals && d.totals.externalIn != null ? d.totals.externalIn : 0).toLocaleString();
+                document.getElementById('kpi-members').textContent = (d.totals && d.totals.members != null ? d.totals.members : 0).toLocaleString();
+                document.getElementById('kpi-pages').textContent = (d.totals && d.totals.pages != null ? d.totals.pages : 0).toLocaleString();
+                document.getElementById('kpi-bots').textContent = (d.totals && d.totals.bots != null ? d.totals.bots : 0).toLocaleString();
 
-                const dailyTrend = d.dailyTrend || [];
-                const labels = dailyTrend.map(t => (t.date || '').substring(5));
-                if (dailyTrendChartInst) dailyTrendChartInst.destroy();
-                dailyTrendChartInst = new Chart(document.getElementById('dailyTrendChart').getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels,
-                        datasets: [
-                            { label: '페이지뷰', data: dailyTrend.map(t => t.pv ?? 0), backgroundColor: 'rgba(99, 102, 241, 0.6)', borderRadius: 4 },
-                            { label: '순 방문자', data: dailyTrend.map(t => t.uv ?? 0), backgroundColor: 'rgba(16, 185, 129, 0.6)', borderRadius: 4 }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'top' } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
+                const extPct = (d.totals && d.totals.pv) ? Math.round(((d.totals.externalIn || 0) / d.totals.pv) * 100) : 0;
+                document.getElementById('kpi-external-sub').textContent = '전체 PV의 ' + extPct + '%';
 
-                const byHour = d.byHour || [];
-                const hourLabels = Array.from({ length: 24 }, (_, i) => i + '시');
-                const hourData = Array.from({ length: 24 }, (_, i) => (byHour.find(h => h.hour === i) || {}).count ?? 0);
-                if (byHourChartInst) byHourChartInst.destroy();
-                byHourChartInst = new Chart(document.getElementById('byHourChart').getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: hourLabels,
-                        datasets: [{ label: '접속 수', data: hourData, backgroundColor: 'rgba(99, 102, 241, 0.5)', borderRadius: 4 }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true }, x: { max: 24 } }
-                    }
-                });
-
-                const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
-                const byDow = d.byDayOfWeek || [];
-                const dowLabels = dowNames;
-                const dowData = dowNames.map((_, i) => (byDow.find(x => x.dow === i) || {}).count ?? 0);
-                if (byDayOfWeekChartInst) byDayOfWeekChartInst.destroy();
-                byDayOfWeekChartInst = new Chart(document.getElementById('byDayOfWeekChart').getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: dowLabels,
-                        datasets: [{ label: '접속 수', data: dowData, backgroundColor: 'rgba(16, 185, 129, 0.5)', borderRadius: 4 }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
-
-                const byRole = d.byRole || [];
-                document.getElementById('byRoleList').innerHTML = byRole.length
-                    ? byRole.map(r => '<span class="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold">' + (r.role === 'guest' ? '비로그인' : r.role) + ': ' + (r.count || 0).toLocaleString() + '</span>').join('')
-                    : '<span class="text-gray-400">데이터 없음</span>';
-
-                const topPages = d.topPages || [];
-                const tbody = document.getElementById('topPagesBody');
-                if (topPages.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">집계된 데이터가 없습니다.</td></tr>';
-                } else {
-                    tbody.innerHTML = topPages.map((p, i) => '<tr class="hover:bg-gray-50"><td class="px-6 py-4 font-bold text-gray-500">' + (i + 1) + '</td><td class="px-6 py-4 text-gray-800 font-medium truncate max-w-md">' + (p.path || '-').replace(/</g, '&lt;') + '</td><td class="px-6 py-4 text-center font-black text-indigo-600">' + (p.pv ?? 0).toLocaleString() + '</td><td class="px-6 py-4 text-center font-bold text-gray-700">' + (p.uv ?? 0).toLocaleString() + '</td></tr>').join('');
-                }
-
-                const refs = d.topReferrers || [];
-                const refEl = document.getElementById('topReferrersList');
-                if (refs.length === 0) {
-                    refEl.innerHTML = '<li class="text-gray-400">유입 경로 데이터가 없습니다.</li>';
-                } else {
-                    refEl.innerHTML = refs.map((r, i) => '<li class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-bold">' + (i + 1) + '</span><span class="truncate flex-1" title="' + (r.referrer || '').replace(/"/g, '&quot;') + '">' + (r.referrer || '-').replace(/</g, '&lt;').substring(0, 80) + (r.referrer && r.referrer.length > 80 ? '…' : '') + '</span><span class="font-bold text-indigo-600">' + (r.count || 0).toLocaleString() + '</span></li>').join('');
-                }
-
-                loadVisitors();
+                window._lastAccessStats = d;
             } catch (e) {
-                console.error('loadAccessStats error:', e);
-                document.getElementById('stat-today-pv').textContent = '오류';
-                document.getElementById('topPagesBody').innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">데이터 로드 실패</td></tr>';
-                document.getElementById('visitorsBody').innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">데이터 로드 실패</td></tr>';
+                console.error('loadAccessStatsSummary error:', e);
             }
         }
 
-        async function loadVisitors() {
-            const tbody = document.getElementById('visitorsBody');
-            try {
-                const fromEl = document.getElementById('filterFrom');
-                const toEl = document.getElementById('filterTo');
-                let url = '/api/analytics/visitors';
-                if (fromEl && toEl && fromEl.value && toEl.value) {
-                    url += '?from=' + encodeURIComponent(fromEl.value) + '&to=' + encodeURIComponent(toEl.value);
+        async function loadOverviewData() {
+            if (!window._lastAccessStats) await loadAccessStatsSummary();
+            const d = window._lastAccessStats;
+            if (!d) return;
+
+            document.getElementById('trendRangeLabel').textContent = d.range ? (d.range.from + ' ~ ' + d.range.to) : '';
+
+            // 일별 추이 차트
+            const dailyTrend = d.dailyTrend || [];
+            const labels = dailyTrend.map(function(t) { return (t.date || '').substring(5); });
+            if (dailyTrendChartInst) dailyTrendChartInst.destroy();
+            dailyTrendChartInst = new Chart(document.getElementById('dailyTrendChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: '페이지뷰 (PV)', data: dailyTrend.map(function(t) { return t.pv || 0; }), borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.1)', fill: true, tension: 0.3, borderWidth: 2 },
+                        { label: '순 방문자 (UV)', data: dailyTrend.map(function(t) { return t.uv || 0; }), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3, borderWidth: 2 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true } }
                 }
-                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-                if (res.status === 401) return;
-                const result = await res.json();
-                if (!result.success) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">접속 사용자 데이터를 불러올 수 없습니다.</td></tr>';
+            });
+
+            // 시간대별 차트
+            const byHour = d.byHour || [];
+            const hourLabels = Array.from({ length: 24 }, function(_, i) { return i + '시'; });
+            const hourData = hourLabels.map(function(_, i) { return byHour[i] || 0; });
+            if (byHourChartInst) byHourChartInst.destroy();
+            byHourChartInst = new Chart(document.getElementById('byHourChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: hourLabels,
+                    datasets: [{ label: '접속 수', data: hourData, backgroundColor: 'rgba(99, 102, 241, 0.7)', borderRadius: 4 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // 요일별 차트
+            const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
+            const byDow = d.byDayOfWeek || [];
+            const dowData = dowNames.map(function(_, i) { return byDow[i] || 0; });
+            if (byDayOfWeekChartInst) byDayOfWeekChartInst.destroy();
+            byDayOfWeekChartInst = new Chart(document.getElementById('byDayOfWeekChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: dowNames,
+                    datasets: [{ label: '접속 수', data: dowData, backgroundColor: 'rgba(20, 184, 166, 0.7)', borderRadius: 4 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // List Render Helper
+            function renderProgressList(containerId, items, colorClass) {
+                if (!colorClass) colorClass = 'bg-indigo-500';
+                const el = document.getElementById(containerId);
+                if (!items || !items.length) {
+                    el.innerHTML = '<div class="text-slate-400">데이터가 없습니다.</div>';
                     return;
                 }
-                const visitors = result.data.visitors || [];
-                function esc(s) { return (s ?? '').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
-                function fmtDate(iso) {
-                    if (!iso) return '-';
-                    const d = new Date(iso);
-                    return isNaN(d.getTime()) ? iso : d.toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' });
-                }
-                if (visitors.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">해당 기간 접속 사용자가 없습니다.</td></tr>';
+                const max = Math.max.apply(Math, items.map(function(i) { return i.pv || i.count || 0; })) || 1;
+                el.innerHTML = items.map(function(item) {
+                    const label = item.label || item.role || '기타';
+                    const val = item.pv || item.count || 0;
+                    const pct = Math.round((val / max) * 100);
+                    return '<div>' +
+                        '<div class="flex justify-between font-medium text-slate-700 mb-1">' +
+                            '<span>' + escapeHtml(label === 'guest' ? '비로그인' : label) + '</span>' +
+                            '<span class="font-bold text-slate-900">' + val.toLocaleString() + '건</span>' +
+                        '</div>' +
+                        '<div class="w-full bg-slate-100 rounded-full h-1.5">' +
+                            '<div class="' + colorClass + ' h-1.5 rounded-full" style="width: ' + pct + '%"></div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            }
+
+            renderProgressList('deviceList', d.devices, 'bg-indigo-600');
+            renderProgressList('browserList', d.browsers, 'bg-teal-500');
+            renderProgressList('osList', d.os, 'bg-sky-500');
+            renderProgressList('roleList', d.byRole, 'bg-amber-500');
+        }
+
+        // -------------------------------------------------------------------
+        // API 2: 유입 경로 분석 (Traffic Sources & Referrers)
+        // -------------------------------------------------------------------
+        async function loadTrafficData() {
+            if (!window._lastAccessStats) await loadAccessStatsSummary();
+            const d = window._lastAccessStats;
+            if (d) {
+                // 채널 카테고리 그리드
+                const channels = d.channels || [];
+                const channelGrid = document.getElementById('channelGrid');
+                if (channels.length === 0) {
+                    channelGrid.innerHTML = '<div class="text-slate-400 text-xs">집계된 채널 데이터가 없습니다.</div>';
                 } else {
-                    tbody.innerHTML = visitors.map(function(v) {
-                        var kind = v.userId != null ? '로그인' : '비로그인(IP)';
-                        var who = v.userId != null ? (v.email || ('사용자#' + v.userId)) : (v.ipAddress || '-');
-                        var role = (v.role || '-');
-                        return '<tr class="hover:bg-gray-50"><td class="px-6 py-4"><span class="px-2.5 py-1 rounded-lg text-xs font-bold ' + (v.userId != null ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600') + '">' + esc(kind) + '</span></td><td class="px-6 py-4 text-gray-800 font-medium">' + esc(who) + '</td><td class="px-6 py-4 text-center text-gray-600">' + esc(role) + '</td><td class="px-6 py-4 text-center font-black text-indigo-600">' + (v.pv ?? 0).toLocaleString() + '</td><td class="px-6 py-4 text-sm text-gray-500">' + esc(fmtDate(v.lastVisit)) + '</td></tr>';
+                    const totalPv = (d.totals && d.totals.pv) || 1;
+                    channelGrid.innerHTML = channels.map(function(c) {
+                        const pct = Math.round((c.pv / totalPv) * 100);
+                        return '<div class="bg-slate-50 border border-slate-200/60 p-3.5 rounded-2xl">' +
+                            '<div class="text-xs font-bold text-slate-500 mb-1">' + escapeHtml(c.label) + '</div>' +
+                            '<div class="text-xl font-black text-slate-900">' + c.pv.toLocaleString() + '<span class="text-xs text-slate-400 font-normal ml-1">PV</span></div>' +
+                            '<div class="text-[11px] text-indigo-600 font-bold mt-1">' + pct + '% 비중 (' + c.uv.toLocaleString() + ' UV)</div>' +
+                        '</div>';
                     }).join('');
                 }
-            } catch (e) {
-                console.error('loadVisitors error:', e);
-                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">접속 사용자 데이터 로드 실패</td></tr>';
+
+                // 상세 유입 소스
+                const sources = (d.sources || []).slice(0, 10);
+                const sourceList = document.getElementById('sourceList');
+                if (sources.length === 0) {
+                    sourceList.innerHTML = '<div class="text-slate-400">데이터 없음</div>';
+                } else {
+                    sourceList.innerHTML = sources.map(function(s, i) {
+                        return '<div class="flex items-center justify-between py-1 border-b border-slate-100 last:border-0">' +
+                            '<span class="truncate pr-2"><span class="font-bold text-slate-400 mr-2">' + (i+1) + '.</span>' + escapeHtml(s.label) + '</span>' +
+                            '<span class="font-extrabold text-indigo-600">' + s.pv.toLocaleString() + '</span>' +
+                        '</div>';
+                    }).join('');
+                }
+
+                // 유입 검색어 TOP
+                const keywords = (d.keywords || []).slice(0, 10);
+                const keywordList = document.getElementById('keywordList');
+                if (keywords.length === 0) {
+                    keywordList.innerHTML = '<div class="text-slate-400">검색어 유입 데이터 없음</div>';
+                } else {
+                    keywordList.innerHTML = keywords.map(function(k, i) {
+                        return '<div class="flex items-center justify-between py-1 border-b border-slate-100 last:border-0">' +
+                            '<span class="truncate pr-2"><span class="font-bold text-slate-400 mr-2">' + (i+1) + '.</span>"' + escapeHtml(k.keyword) + '"</span>' +
+                            '<span class="font-extrabold text-emerald-600">' + k.count.toLocaleString() + '회</span>' +
+                        '</div>';
+                    }).join('');
+                }
+
+                // 랜딩 페이지 TOP
+                const landing = (d.landingPages || []).slice(0, 10);
+                const landingList = document.getElementById('landingList');
+                if (landing.length === 0) {
+                    landingList.innerHTML = '<div class="text-slate-400">데이터 없음</div>';
+                } else {
+                    landingList.innerHTML = landing.map(function(l, i) {
+                        return '<div class="flex items-center justify-between py-1 border-b border-slate-100 last:border-0">' +
+                            '<span class="truncate pr-2 font-mono text-[11px]" title="' + escapeHtml(l.path) + '"><span class="font-bold text-slate-400 font-sans mr-2">' + (i+1) + '.</span>' + escapeHtml(l.path) + '</span>' +
+                            '<span class="font-extrabold text-amber-600">' + l.pv.toLocaleString() + '</span>' +
+                        '</div>';
+                    }).join('');
+                }
             }
+
+            fetchReferrersList();
+        }
+
+        async function fetchReferrersList() {
+            const tbody = document.getElementById('referrersTableBody');
+            try {
+                let url = '/api/analytics/referrers?scope=' + state.scope + '&page=' + state.referrers.page + '&size=' + state.referrers.size;
+                if (state.from && state.to) {
+                    url += '&from=' + encodeURIComponent(state.from) + '&to=' + encodeURIComponent(state.to);
+                }
+
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                const result = await res.json();
+                if (!result.success) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">데이터를 불러오지 못했습니다.</td></tr>';
+                    return;
+                }
+
+                const data = result.data;
+                const rows = data.rows || [];
+
+                if (rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">외부 유입 도메인 데이터가 없습니다.</td></tr>';
+                } else {
+                    tbody.innerHTML = rows.map(function(r) {
+                        return '<tr class="hover:bg-slate-50 transition">' +
+                            '<td class="px-6 py-3.5 font-bold text-slate-900">' + escapeHtml(r.host) + '</td>' +
+                            '<td class="px-6 py-3.5"><span class="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 font-bold text-[11px] border border-teal-200">' + escapeHtml(r.channel) + '</span></td>' +
+                            '<td class="px-6 py-3.5 text-slate-500 font-mono text-[11px] truncate max-w-xs" title="' + escapeHtml(r.sample) + '">' + escapeHtml(r.sample || '-') + '</td>' +
+                            '<td class="px-6 py-3.5 text-center font-black text-indigo-600">' + r.pv.toLocaleString() + '</td>' +
+                            '<td class="px-6 py-3.5 text-center font-bold text-slate-700">' + r.uv.toLocaleString() + '</td>' +
+                            '<td class="px-6 py-3.5 text-slate-400 font-mono text-[11px]">' + escapeHtml(r.lastVisit || '-') + '</td>' +
+                        '</tr>';
+                    }).join('');
+                }
+
+                renderPagination('refPagination', data, function(newPage) {
+                    state.referrers.page = newPage;
+                    fetchReferrersList();
+                });
+            } catch (e) {
+                console.error('fetchReferrersList error:', e);
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-rose-500">데이터 로드 실패</td></tr>';
+            }
+        }
+
+        function changeRefPageSize() {
+            state.referrers.size = parseInt(document.getElementById('refSizeSelect').value, 10) || 20;
+            state.referrers.page = 1;
+            fetchReferrersList();
+        }
+
+        // -------------------------------------------------------------------
+        // API 3: 페이지별 접속 (Pages Analytics)
+        // -------------------------------------------------------------------
+        async function loadPagesData() {
+            const tbody = document.getElementById('pagesTableBody');
+            try {
+                let url = '/api/analytics/pages?scope=' + state.scope + '&page=' + state.pages.page + '&size=' + state.pages.size + '&sort=' + state.pages.sort;
+                if (state.pages.q) url += '&q=' + encodeURIComponent(state.pages.q);
+                if (state.from && state.to) {
+                    url += '&from=' + encodeURIComponent(state.from) + '&to=' + encodeURIComponent(state.to);
+                }
+
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                const result = await res.json();
+                if (!result.success) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">데이터를 불러오지 못했습니다.</td></tr>';
+                    return;
+                }
+
+                const data = result.data;
+                const rows = data.rows || [];
+
+                if (rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">검색 조건에 해당되는 페이지가 없습니다.</td></tr>';
+                } else {
+                    tbody.innerHTML = rows.map(function(r) {
+                        return '<tr class="hover:bg-slate-50 transition">' +
+                            '<td class="px-6 py-3.5 font-mono font-medium text-slate-800 truncate max-w-md" title="' + escapeHtml(r.path) + '">' +
+                                '<a href="' + escapeHtml(r.path) + '" target="_blank" class="hover:text-indigo-600 hover:underline flex items-center gap-1.5">' +
+                                    '<span>' + escapeHtml(r.path) + '</span>' +
+                                    '<i class="fas fa-external-link-alt text-[10px] text-slate-400"></i>' +
+                                '</a>' +
+                            '</td>' +
+                            '<td class="px-6 py-3.5 text-center font-black text-indigo-600">' + r.pv.toLocaleString() + '</td>' +
+                            '<td class="px-6 py-3.5 text-center font-bold text-slate-700">' + r.uv.toLocaleString() + '</td>' +
+                            '<td class="px-6 py-3.5 text-center font-bold text-teal-600">' + (r.entries || 0).toLocaleString() + '</td>' +
+                            '<td class="px-6 py-3.5 text-slate-400 font-mono text-[11px]">' + escapeHtml(r.lastVisit || '-') + '</td>' +
+                        '</tr>';
+                    }).join('');
+                }
+
+                renderPagination('pagesPagination', data, function(newPage) {
+                    state.pages.page = newPage;
+                    loadPagesData();
+                });
+            } catch (e) {
+                console.error('loadPagesData error:', e);
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-rose-500">데이터 로드 실패</td></tr>';
+            }
+        }
+
+        function searchPages() {
+            state.pages.q = document.getElementById('pagesSearchInput').value.trim();
+            state.pages.sort = document.getElementById('pagesSortSelect').value;
+            state.pages.page = 1;
+            loadPagesData();
+        }
+
+        function changePagesPageSize() {
+            state.pages.size = parseInt(document.getElementById('pagesSizeSelect').value, 10) || 20;
+            state.pages.page = 1;
+            loadPagesData();
+        }
+
+        // -------------------------------------------------------------------
+        // API 4: 접속 사용자 (Visitors)
+        // -------------------------------------------------------------------
+        async function loadVisitorsData() {
+            const tbody = document.getElementById('visitorsTableBody');
+            try {
+                let url = '/api/analytics/visitors?scope=' + state.scope + '&page=' + state.visitors.page + '&size=' + state.visitors.size + '&kind=' + state.visitors.kind + '&sort=' + state.visitors.sort;
+                if (state.visitors.q) url += '&q=' + encodeURIComponent(state.visitors.q);
+                if (state.from && state.to) {
+                    url += '&from=' + encodeURIComponent(state.from) + '&to=' + encodeURIComponent(state.to);
+                }
+
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                const result = await res.json();
+                if (!result.success) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-400">데이터를 불러오지 못했습니다.</td></tr>';
+                    return;
+                }
+
+                const data = result.data;
+                const rows = data.rows || [];
+
+                if (rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-400">접속 사용자 데이터가 없습니다.</td></tr>';
+                } else {
+                    tbody.innerHTML = rows.map(function(v) {
+                        const isMember = v.userId != null;
+                        const kindBadge = isMember
+                            ? '<span class="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-[11px]">로그인</span>'
+                            : '<span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 font-bold text-[11px]">비로그인</span>';
+                        
+                        const who = isMember
+                            ? (v.name ? (escapeHtml(v.name) + ' (' + escapeHtml(v.email) + ')') : escapeHtml(v.email || ('회원#' + v.userId)))
+                            : escapeHtml(v.ip || '-');
+
+                        const envStr = [v.device, v.browser, v.os].filter(Boolean).join(' / ') || '-';
+
+                        return '<tr class="hover:bg-slate-50 transition">' +
+                            '<td class="px-6 py-3.5">' + kindBadge + '</td>' +
+                            '<td class="px-6 py-3.5 font-bold text-slate-900">' + who + '</td>' +
+                            '<td class="px-6 py-3.5 text-center text-slate-600 font-medium">' + escapeHtml(v.role === 'guest' ? '비로그인' : (v.role || '-')) + '</td>' +
+                            '<td class="px-6 py-3.5 text-slate-500 font-medium text-[11px]">' + escapeHtml(envStr) + '</td>' +
+                            '<td class="px-6 py-3.5 text-center font-black text-indigo-600">' + v.pv.toLocaleString() + '</td>' +
+                            '<td class="px-6 py-3.5 text-center font-bold text-slate-700">' + (v.pages || 0).toLocaleString() + '개</td>' +
+                            '<td class="px-6 py-3.5 text-slate-400 font-mono text-[11px]">' + escapeHtml(v.lastVisit || '-') + '</td>' +
+                        '</tr>';
+                    }).join('');
+                }
+
+                renderPagination('visitorsPagination', data, function(newPage) {
+                    state.visitors.page = newPage;
+                    loadVisitorsData();
+                });
+            } catch (e) {
+                console.error('loadVisitorsData error:', e);
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-rose-500">데이터 로드 실패</td></tr>';
+            }
+        }
+
+        function searchVisitors() {
+            state.visitors.kind = document.getElementById('visitorsKindSelect').value;
+            state.visitors.q = document.getElementById('visitorsSearchInput').value.trim();
+            state.visitors.sort = document.getElementById('visitorsSortSelect').value;
+            state.visitors.page = 1;
+            loadVisitorsData();
+        }
+
+        function changeVisitorsPageSize() {
+            state.visitors.size = parseInt(document.getElementById('visitorsSizeSelect').value, 10) || 20;
+            state.visitors.page = 1;
+            loadVisitorsData();
+        }
+
+        // -------------------------------------------------------------------
+        // API 5: 상세 실시간 접속 로그 (Access Logs)
+        // -------------------------------------------------------------------
+        async function loadLogsData() {
+            const tbody = document.getElementById('logsTableBody');
+            try {
+                let url = '/api/analytics/logs?scope=' + state.scope + '&page=' + state.logs.page + '&size=' + state.logs.size + '&kind=' + state.logs.kind;
+                if (state.logs.device) url += '&device=' + encodeURIComponent(state.logs.device);
+                if (state.logs.q) url += '&q=' + encodeURIComponent(state.logs.q);
+                if (state.from && state.to) {
+                    url += '&from=' + encodeURIComponent(state.from) + '&to=' + encodeURIComponent(state.to);
+                }
+
+                const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                const result = await res.json();
+                if (!result.success) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-400 font-sans">데이터를 불러오지 못했습니다.</td></tr>';
+                    return;
+                }
+
+                const data = result.data;
+                const rows = data.rows || [];
+
+                if (rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-400 font-sans">조건에 해당되는 실시간 접속 로그가 없습니다.</td></tr>';
+                } else {
+                    tbody.innerHTML = rows.map(function(r) {
+                        const statusClass = (r.status || 200) < 400 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
+                        const who = r.userId != null ? (r.name ? escapeHtml(r.name) : escapeHtml(r.email)) : escapeHtml(r.ip || '-');
+                        const envStr = [r.device, r.browser].filter(Boolean).join('/');
+
+                        return '<tr class="hover:bg-slate-50 transition">' +
+                            '<td class="px-4 py-3 text-slate-500">' + escapeHtml(r.ts) + '</td>' +
+                            '<td class="px-4 py-3 text-center ' + statusClass + '">' + (r.status || 200) + '</td>' +
+                            '<td class="px-4 py-3 font-medium text-slate-900 truncate max-w-xs" title="' + escapeHtml(r.path) + '">' + escapeHtml(r.path) + '</td>' +
+                            '<td class="px-4 py-3 text-teal-700 font-sans font-bold text-[11px]">' + escapeHtml(r.channel || '직접') + '</td>' +
+                            '<td class="px-4 py-3 text-slate-400 truncate max-w-xs" title="' + escapeHtml(r.referrer) + '">' + escapeHtml(r.referrer || '-') + '</td>' +
+                            '<td class="px-4 py-3 font-sans text-slate-800 font-medium">' + who + '</td>' +
+                            '<td class="px-4 py-3 text-slate-500 font-sans text-[11px]">' + escapeHtml(envStr) + '</td>' +
+                        '</tr>';
+                    }).join('');
+                }
+
+                renderPagination('logsPagination', data, function(newPage) {
+                    state.logs.page = newPage;
+                    loadLogsData();
+                });
+            } catch (e) {
+                console.error('loadLogsData error:', e);
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-rose-500 font-sans">데이터 로드 실패</td></tr>';
+            }
+        }
+
+        function searchLogs() {
+            state.logs.kind = document.getElementById('logsKindSelect').value;
+            state.logs.device = document.getElementById('logsDeviceSelect').value;
+            state.logs.q = document.getElementById('logsSearchInput').value.trim();
+            state.logs.page = 1;
+            loadLogsData();
+        }
+
+        function changeLogsPageSize() {
+            state.logs.size = parseInt(document.getElementById('logsSizeSelect').value, 10) || 20;
+            state.logs.page = 1;
+            loadLogsData();
+        }
+
+        // -------------------------------------------------------------------
+        // Pagination Component Helper
+        // -------------------------------------------------------------------
+        function renderPagination(containerId, pagedData, onPageChangeCallback) {
+            const container = document.getElementById(containerId);
+            if (!container || !pagedData) return;
+
+            const page = pagedData.page || 1;
+            const totalPages = pagedData.totalPages || 1;
+            const total = pagedData.total || 0;
+            const size = pagedData.size || 20;
+
+            if (total === 0) {
+                container.innerHTML = '<div>총 0건</div>';
+                return;
+            }
+
+            const startIdx = (page - 1) * size + 1;
+            const endIdx = Math.min(page * size, total);
+
+            let startPage = Math.max(1, page - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+
+            let btnHtml = '';
+
+            // Previous button
+            if (page > 1) {
+                btnHtml += '<button type="button" data-page="' + (page - 1) + '" class="page-nav-btn px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold"><i class="fas fa-chevron-left"></i></button>';
+            } else {
+                btnHtml += '<button disabled class="px-2.5 py-1 rounded-lg border border-slate-100 text-slate-300 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>';
+            }
+
+            // Page numbers
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === page) {
+                    btnHtml += '<button type="button" class="px-3 py-1 rounded-lg bg-indigo-600 text-white font-black shadow-sm">' + i + '</button>';
+                } else {
+                    btnHtml += '<button type="button" data-page="' + i + '" class="page-nav-btn px-3 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold">' + i + '</button>';
+                }
+            }
+
+            // Next button
+            if (page < totalPages) {
+                btnHtml += '<button type="button" data-page="' + (page + 1) + '" class="page-nav-btn px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold"><i class="fas fa-chevron-right"></i></button>';
+            } else {
+                btnHtml += '<button disabled class="px-2.5 py-1 rounded-lg border border-slate-100 text-slate-300 cursor-not-allowed"><i class="fas fa-chevron-right"></i></button>';
+            }
+
+            container.innerHTML = '<div class="text-slate-500 font-medium">' +
+                '총 <span class="font-bold text-slate-900">' + total.toLocaleString() + '</span>건 중 ' +
+                '<span class="font-bold text-slate-700">' + startIdx.toLocaleString() + ' - ' + endIdx.toLocaleString() + '</span>건 표시' +
+            '</div>' +
+            '<div class="flex items-center gap-1.5">' +
+                btnHtml +
+            '</div>';
+
+            // Attach event listener for pagination buttons
+            const btns = container.querySelectorAll('.page-nav-btn');
+            btns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const p = parseInt(btn.getAttribute('data-page'), 10);
+                    if (p && onPageChangeCallback) {
+                        onPageChangeCallback(p);
+                    }
+                });
+            });
         }
     </script>
 </body>

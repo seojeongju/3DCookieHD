@@ -248,7 +248,7 @@ export const adminDashboardHtml = `
                         </div>
                     </div>
                     <div class="bg-white rounded-[2.5rem] shadow-sm p-6 border border-slate-200/60">
-                        <h3 class="text-lg font-black text-slate-800 mb-4 tracking-tight">가장 많이 찾은 페이지 TOP 5</h3>
+                        <h3 class="text-lg font-black text-slate-800 mb-4 tracking-tight">가장 많이 찾은 페이지 TOP 5 <span class="text-xs font-bold text-slate-400 ml-1">최근 30일</span></h3>
                         <div class="overflow-hidden mt-4">
                             <ul id="top-pages-list" class="space-y-4">
                                 <!-- JS 주입 -->

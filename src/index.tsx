@@ -40,7 +40,7 @@ import upload from './api/upload';
 import partnerUniversities from './api/partner_universities';
 import educationPerformance from './api/education_performance';
 import { setupApi } from './api/setup';
-import analytics from './api/analytics';
+import analytics, { addDays, kstStartUtc, kstToday, PUBLIC_VISIT_SQL } from './api/analytics';
 import homeApi from './api/home';
 import homePopupsApi from './api/home_popups';
 import { adminDashboardHtml } from './views/admin';
@@ -570,44 +570,36 @@ app.route('/api/dashboard', dashboard);
 app.get('/api/dashboard/website-stats', authMiddleware, requireAdmin, async (c) => {
     try {
         const { DB } = c.env;
+        // 접속정보 페이지와 같은 기준: KST 날짜, 사람이 본 공개 페이지만 집계
+        const today = kstToday();
+        const todayStart = kstStartUtc(today);
+        const weekStart = kstStartUtc(addDays(today, -6));
+        const monthAgo = kstStartUtc(addDays(today, -29));
 
-        // 1. Total PV Today
-        const todayPV = await DB.prepare(`
-            SELECT count(*) as count FROM website_visits 
-            WHERE date(timestamp) = date('now')
-        `).first<{ count: number }>();
-
-        // 2. Unique UV Today
-        const todayUV = await DB.prepare(`
-            SELECT count(DISTINCT ip_address) as count FROM website_visits 
-            WHERE date(timestamp) = date('now')
-        `).first<{ count: number }>();
-
-        // 3. Weekly PV Trend (Last 7 days)
-        const weeklyTrend = await DB.prepare(`
-            SELECT date(timestamp) as date, count(*) as count 
-            FROM website_visits 
-            WHERE timestamp >= date('now', '-6 days')
-            GROUP BY date
-            ORDER BY date ASC
-        `).all<{ date: string, count: number }>();
-
-        // 4. Most Visited Pages
-        const topPages = await DB.prepare(`
-            SELECT page_visited, count(*) as count 
-            FROM website_visits 
-            GROUP BY page_visited 
-            ORDER BY count DESC 
-            LIMIT 5
-        `).all<{ page_visited: string, count: number }>();
+        const [todayRes, trendRes, pagesRes] = await DB.batch([
+            DB.prepare(`SELECT count(*) AS pv, count(DISTINCT w.ip_address) AS uv
+                FROM website_visits w WHERE w.timestamp >= ?1 AND ${PUBLIC_VISIT_SQL}`).bind(todayStart),
+            DB.prepare(`SELECT date(w.timestamp, '+9 hours') AS date, count(*) AS count
+                FROM website_visits w WHERE w.timestamp >= ?1 AND ${PUBLIC_VISIT_SQL}
+                GROUP BY date ORDER BY date ASC`).bind(weekStart),
+            DB.prepare(`SELECT w.page_visited AS page_visited, count(*) AS count
+                FROM website_visits w WHERE w.timestamp >= ?1 AND ${PUBLIC_VISIT_SQL}
+                GROUP BY w.page_visited ORDER BY count DESC LIMIT 5`).bind(monthAgo),
+        ]);
+        const todayRow = todayRes.results?.[0] as { pv?: number; uv?: number } | undefined;
+        const trendMap = new Map(((trendRes.results ?? []) as { date: string; count: number }[]).map((r) => [r.date, r.count]));
+        const weeklyTrend = Array.from({ length: 7 }, (_, i) => {
+            const date = addDays(today, i - 6);
+            return { date, count: trendMap.get(date) ?? 0 };
+        });
 
         return c.json({
             success: true,
             data: {
-                todayPV: todayPV?.count || 0,
-                todayUV: todayUV?.count || 0,
-                weeklyTrend: weeklyTrend.results || [],
-                topPages: topPages.results || []
+                todayPV: todayRow?.pv || 0,
+                todayUV: todayRow?.uv || 0,
+                weeklyTrend,
+                topPages: pagesRes.results || []
             }
         });
     } catch (e) {
