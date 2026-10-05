@@ -658,24 +658,28 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         description: '3D프린팅(적층 제조)의 원리와 절삭 가공과의 차이, 모델링→슬라이싱→출력→후가공 작업 과정, 장점과 한계, 활용 분야를 입문자 눈높이로 정리했습니다.',
         keywords: '3D프린팅이란, 3D프린터 원리, 적층 제조, Additive Manufacturing, 3D프린팅 기초, 3D프린팅 활용 분야',
         ogType: 'article',
+        image: '/static/og/learn-3d-printing.jpg',
     },
     '/guides/3d-printing/history': {
         title: '3D프린팅의 역사: 발명부터 대중화까지',
         description: '1980년대 찰스 헐의 광조형(SLA) 특허부터 SLS·FDM의 등장, RepRap과 특허 만료로 인한 대중화, 국내 삼차원프린팅산업 진흥법까지 3D프린팅의 역사를 연표로 정리했습니다.',
         keywords: '3D프린팅 역사, 3D프린터 발명, 찰스 헐, 광조형 SLA, FDM 특허, RepRap',
         ogType: 'article',
+        image: '/static/og/learn-history.jpg',
     },
     '/guides/3d-printing/process': {
         title: '3D프린팅 출력 방식 7가지 비교 (FDM·SLA·SLS)',
         description: 'ISO/ASTM 52900 기준 3D프린팅 7가지 출력 방식의 원리와 장단점을 비교합니다. FDM, SLA·DLP·LCD, SLS·MJF, 금속 3D프린팅 차이와 용도별 선택법을 확인하세요.',
         keywords: '3D프린팅 방식, FDM SLA 차이, SLS, DLP, MJF, 금속 3D프린팅, 3D프린터 종류',
         ogType: 'article',
+        image: '/static/og/learn-process.jpg',
     },
     '/guides/3d-printing/materials': {
         title: '3D프린팅 소재 종류와 특징 (PLA·ABS·PETG·레진)',
         description: 'PLA, ABS, PETG, TPU, ASA, 나일론 필라멘트와 레진, 금속 분말까지 3D프린팅 소재별 특징·출력 온도·용도·보관법과 안전 수칙을 비교해 정리했습니다.',
         keywords: '3D프린팅 소재, 필라멘트 종류, PLA ABS 차이, PETG, TPU, 3D프린터 레진, 필라멘트 보관',
         ogType: 'article',
+        image: '/static/og/learn-materials.jpg',
     },
     '/prototype-gallery': {
         title: '시제품 제작 사례',

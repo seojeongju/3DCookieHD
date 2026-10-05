@@ -1,7 +1,18 @@
 import { layoutHtml } from './components/layout';
 import { breadcrumbsForPath, getSeoHead, getSeoOptionsForPath, SITE_NAME, SITE_ORIGIN } from '../utils/seo';
+import {
+    collectGlossaryKeys,
+    glossaryJsonLd,
+    glossarySectionHtml,
+    layerHeroSvg,
+    learnHeadAssets,
+    learnScript,
+    renderInfographic,
+    term,
+    type Infographic,
+} from './components/learn_infographics';
 
-type LearnSection = { id: string; h2: string; html: string };
+type LearnSection = { id: string; h2: string; html: string; figure?: Infographic; outro?: string };
 type LearnFaq = { q: string; a: string };
 type LearnTable = { caption: string; head: string[]; rows: string[][]; note?: string };
 
@@ -11,6 +22,7 @@ type LearnPage = {
     icon: string;
     kicker: string;
     h1: string;
+    hero?: 'layers';
     /** 첫 화면 요약 — 검색·AI 답변에 그대로 인용될 수 있도록 2~3문장으로 정의부터 */
     summary: string;
     keyFacts: Array<[string, string]>;
@@ -40,6 +52,7 @@ const PAGES: LearnPage[] = [
         icon: 'fa-cube',
         kicker: '3D프린팅 기초',
         h1: '3D프린팅이란? 원리·작업 과정·활용 분야 한눈에 보기',
+        hero: 'layers',
         summary:
             '3D프린팅은 컴퓨터로 만든 3D 모델 데이터를 바탕으로 재료를 한 층씩 쌓아 올려 입체 형상을 만드는 제조 기술입니다. 국제 표준(ISO/ASTM 52900)에서는 공식 용어로 <strong>적층 제조(Additive Manufacturing, AM)</strong>라고 부르며, 재료를 깎아 내는 절삭 가공과 반대되는 방식입니다.',
         keyFacts: [
@@ -53,48 +66,90 @@ const PAGES: LearnPage[] = [
             {
                 id: 'definition',
                 h2: '3D프린팅은 어떤 원리로 만드나요?',
-                html: `3D프린터는 입체 모델을 아주 얇은 수평 단면(레이어)으로 잘라, 바닥부터 한 층씩 재료를 굳히거나 붙여 형상을 완성합니다. 한 층의 두께는 방식에 따라 보통 0.025~0.3mm 정도이며, 층이 얇을수록 표면이 매끈해지지만 출력 시간은 길어집니다.<br><br>제조 방식은 크게 세 가지로 나뉩니다.${list([
-                    `${strong('절삭 가공(Subtractive)')} — CNC처럼 덩어리 재료를 깎아 내는 방식`,
-                    `${strong('성형 가공(Formative)')} — 사출·주조처럼 금형에 재료를 채워 굳히는 방식`,
-                    `${strong('적층 제조(Additive)')} — 필요한 곳에만 재료를 쌓아 올리는 방식 (3D프린팅)`,
-                ])}`,
+                html: `3D프린터는 입체 모델을 아주 얇은 수평 단면(${term('레이어')})으로 잘라, 바닥부터 한 층씩 재료를 굳히거나 붙여 형상을 완성합니다. 한 층의 두께는 방식에 따라 보통 0.025~0.3mm 정도이며, 층이 얇을수록 표면이 매끈해지지만 출력 시간은 길어집니다. 물건을 만드는 방식은 크게 세 가지로 나뉘고, 3D프린팅은 그중 ${term('적층 제조')}에 해당합니다.`,
+                figure: {
+                    kind: 'methods',
+                    caption: '같은 부품이라도 깎을지, 틀에 부을지, 쌓을지에 따라 비용·속도·형상 자유도가 달라집니다.',
+                    items: [
+                        {
+                            visual: 'subtractive',
+                            name: '절삭 가공',
+                            en: 'Subtractive',
+                            summary: 'CNC처럼 덩어리 재료를 공구로 깎아 내 형상을 만듭니다.',
+                            facts: [['재료', '덩어리에서 덜어 냄'], ['대표 장비', 'CNC·선반'], ['강점', '높은 정밀도']],
+                        },
+                        {
+                            visual: 'formative',
+                            name: '성형 가공',
+                            en: 'Formative',
+                            summary: '사출·주조처럼 금형에 녹인 재료를 채워 굳힙니다.',
+                            facts: [['재료', '금형에 채움'], ['대표 장비', '사출기·주조'], ['강점', '대량 생산 단가']],
+                        },
+                        {
+                            visual: 'additive',
+                            name: '적층 제조',
+                            en: 'Additive',
+                            summary: '필요한 곳에만 재료를 한 층씩 쌓아 올립니다.',
+                            facts: [['재료', '필요한 만큼 쌓음'], ['대표 장비', '3D프린터'], ['강점', '복잡한 형상·소량']],
+                            highlight: true,
+                        },
+                    ],
+                },
             },
             {
                 id: 'workflow',
                 h2: '3D프린팅 작업은 어떤 순서로 진행되나요?',
-                html: `실무와 교육 현장에서는 아래 4단계를 반복합니다.${list([
-                    `${strong('① 3D 모델링')} — Fusion 360, 인벤터, 솔리드웍스, 블렌더 등으로 형상을 설계하거나 3D 스캐너로 실물을 데이터화합니다.`,
-                    `${strong('② 파일 변환')} — 출력용 파일 형식(STL, 3MF, OBJ)으로 내보냅니다. STL은 표면을 삼각형 면(메시)으로 표현하는 가장 널리 쓰이는 형식입니다.`,
-                    `${strong('③ 슬라이싱')} — 슬라이서 프로그램(Cura, PrusaSlicer, Bambu Studio 등)에서 레이어 높이·채우기(인필)·서포트·온도를 정하고, 프린터가 읽는 명령 파일(G-code 등)을 만듭니다.`,
-                    `${strong('④ 출력·후가공')} — 출력 후 서포트를 제거하고, 방식에 따라 세척·2차 경화·샌딩·도색 등으로 마감합니다.`,
-                ])}<p class="mt-3">이 흐름은 ${link('/guides/craftsman-license', '3D프린터운용기능사')} 실기 시험의 과제 구성(모델링 → 슬라이싱 → 출력 → 후처리)과도 같습니다.</p>`,
+                html: `실무와 교육 현장에서는 아이디어를 실물로 만들 때 아래 5단계를 거칩니다. 출력 결과가 마음에 들지 않으면 모델링이나 ${term('슬라이싱')} 단계로 돌아가 설정을 고치고 다시 출력합니다.`,
+                figure: {
+                    kind: 'flow',
+                    caption: '대부분의 출력 실패는 ③ 슬라이싱 설정(온도·서포트·인필)에서 원인을 찾을 수 있습니다.',
+                    steps: [
+                        { icon: 'fa-pen-ruler', title: '3D 모델링', desc: `Fusion 360·인벤터·블렌더로 설계하거나 3D 스캐너로 실물을 데이터화`, chips: ['CAD', '스캔'] },
+                        { icon: 'fa-file-export', title: '파일 변환', desc: `표면을 삼각형 ${term('메시')}로 바꾼 출력용 파일로 내보내기`, chips: ['STL', '3MF', 'OBJ'] },
+                        { icon: 'fa-layer-group', title: '슬라이싱', desc: `${term('슬라이서')}에서 레이어 높이·${term('인필')}·${term('서포트')}·온도 설정`, chips: ['G-code'] },
+                        { icon: 'fa-print', title: '출력', desc: '프린터가 명령 파일대로 한 층씩 쌓아 형상 완성', chips: ['FDM', 'SLA'] },
+                        { icon: 'fa-wand-magic-sparkles', title: '후가공', desc: '서포트 제거, 세척·2차 경화, 샌딩·도색으로 마감', chips: ['마감'] },
+                    ],
+                },
+                outro: `이 흐름은 ${link('/guides/craftsman-license', '3D프린터운용기능사')} 실기 시험의 과제 구성(모델링 → 슬라이싱 → 출력 → ${term('후가공')})과도 같습니다. 파일 형식은 가장 널리 쓰이는 ${term('STL')}과, 색상·출력 설정까지 담는 ${term('3MF')}를 먼저 익혀 두면 좋습니다. 슬라이서가 만든 ${term('G-code')}를 열어 보면 노즐이 움직일 좌표가 한 줄씩 적혀 있습니다.`,
             },
             {
                 id: 'pros-cons',
                 h2: '3D프린팅의 장점과 한계는 무엇인가요?',
-                html: `${strong('장점')}${list([
-                    '금형 없이 바로 제작할 수 있어 시제품·소량 생산 비용과 기간이 줄어듭니다.',
-                    '내부 격자 구조, 일체형 부품처럼 기존 가공으로 어려운 복잡한 형상을 만들 수 있습니다.',
-                    '사람마다 다른 맞춤 제품(치과 교정장치, 보조기 등)을 만들기 쉽습니다.',
-                    '필요한 만큼만 재료를 쓰므로 버려지는 재료가 적습니다.',
-                ])}<p class="mt-4">${strong('한계')}</p>${list([
-                    '같은 제품을 대량으로 만들 때는 사출 성형보다 개당 단가와 시간이 불리합니다.',
-                    '층이 쌓인 결(적층 줄무늬)이 표면에 남아 후가공이 필요한 경우가 많습니다.',
-                    '층과 층 사이 결합이 약해, 쌓는 방향(Z축)으로 힘을 받으면 더 쉽게 갈라집니다(이방성).',
-                    '장비의 출력 가능 크기(빌드 볼륨)에 따라 한 번에 만들 수 있는 크기가 제한됩니다.',
-                ])}`,
+                html: '3D프린팅은 "적게, 다르게, 빠르게" 만들 때 강하고, "많이, 똑같이" 만들 때는 기존 가공 방식이 유리합니다. 용도에 따라 장점과 한계를 함께 따져 보세요.',
+                figure: {
+                    kind: 'balance',
+                    caption: '시제품·맞춤 제품은 3D프린팅, 같은 제품 수천 개 이상은 사출 성형이 일반적으로 유리합니다.',
+                    pros: [
+                        { icon: 'fa-bolt', title: '금형 없이 바로 제작', desc: '시제품·소량 생산의 비용과 기간이 크게 줄어듭니다.' },
+                        { icon: 'fa-shapes', title: '복잡한 형상', desc: '내부 격자, 일체형 부품처럼 깎거나 붓기 어려운 형상도 만듭니다.' },
+                        { icon: 'fa-user-gear', title: '맞춤 제작', desc: '치과 교정장치, 보조기처럼 사람마다 다른 제품을 만들기 쉽습니다.' },
+                        { icon: 'fa-leaf', title: '재료 절약', desc: '필요한 곳에만 재료를 써서 버려지는 양이 적습니다.' },
+                    ],
+                    cons: [
+                        { icon: 'fa-boxes-stacked', title: '대량 생산 단가', desc: '같은 제품을 많이 만들면 사출 성형보다 개당 비용·시간이 불리합니다.' },
+                        { icon: 'fa-grip-lines', title: '적층 줄무늬', desc: '층이 쌓인 결이 표면에 남아 후가공이 필요한 경우가 많습니다.' },
+                        { icon: 'fa-arrows-up-down', title: `Z축 강도 (${term('이방성')})`, desc: '층 사이 결합이 약해 쌓는 방향으로 힘을 받으면 쉽게 갈라집니다.' },
+                        { icon: 'fa-maximize', title: `출력 크기 (${term('빌드 볼륨')})`, desc: '장비가 출력할 수 있는 최대 크기 안에서만 한 번에 만들 수 있습니다.' },
+                    ],
+                },
             },
             {
                 id: 'applications',
                 h2: '3D프린팅은 어디에 쓰이나요?',
-                html: `${list([
-                    `${strong('제품 개발·시제품')} — 디자인 검증, 조립 확인, 기능 테스트용 시제품 (${link('/guides/prototype', '시제품 제작 교육')})`,
-                    `${strong('의료·치과')} — 투명 교정장치 모형, 수술 가이드, 환자 맞춤 보조기`,
-                    `${strong('항공·자동차')} — 경량 부품, 지그·고정구, 금속 적층 부품`,
-                    `${strong('교육·메이커')} — 학교·직업훈련 실습, 개인 창작`,
-                    `${strong('소상공인·생활')} — 쿠키틀, 스텐실, 실리콘 몰드 원형, 매장 소품 (${link('/guides/small-business', '소상공인 활용 교육')})`,
-                    `${strong('건축·디자인')} — 건축 모형, 조명·가구 디자인, 주얼리 주조용 원형`,
-                ])}`,
+                html: '시제품 제작에서 시작한 3D프린팅은 이제 의료, 항공, 생활 소품까지 쓰임이 넓어졌습니다. 대표적인 6개 분야는 다음과 같습니다.',
+                figure: {
+                    kind: 'iconGrid',
+                    caption: '관심 분야를 먼저 정하면 배워야 할 출력 방식과 소재의 우선순위가 분명해집니다.',
+                    items: [
+                        { icon: 'fa-lightbulb', tone: 'indigo', title: '제품 개발·시제품', desc: '디자인 검증, 조립 확인, 기능 테스트용 시제품', href: '/guides/prototype', linkLabel: '시제품 제작 교육' },
+                        { icon: 'fa-tooth', tone: 'sky', title: '의료·치과', desc: '투명 교정장치 모형, 수술 가이드, 환자 맞춤 보조기' },
+                        { icon: 'fa-plane', tone: 'violet', title: '항공·자동차', desc: '경량 부품, 지그·고정구, 금속 적층 부품' },
+                        { icon: 'fa-graduation-cap', tone: 'emerald', title: '교육·메이커', desc: '학교·직업훈련 실습, 개인 창작 활동' },
+                        { icon: 'fa-cookie-bite', tone: 'amber', title: '소상공인·생활', desc: '쿠키틀, 스텐실, 실리콘 몰드 원형, 매장 소품', href: '/guides/small-business', linkLabel: '소상공인 활용 교육' },
+                        { icon: 'fa-building', tone: 'rose', title: '건축·디자인', desc: '건축 모형, 조명·가구 디자인, 주얼리 주조용 원형' },
+                    ],
+                },
             },
             {
                 id: 'next',
@@ -521,12 +576,14 @@ function sectionsHtml(page: LearnPage): string {
     return page.sections
         .map((s, i) => {
             const card = `
-            <section id="${s.id}" class="bento-card mb-4 scroll-mt-28 rounded-[2rem] border border-slate-200/60 bg-white p-6 shadow-sm sm:p-8">
+            <section id="${s.id}" class="bento-card mb-4 scroll-mt-28 rounded-[2rem] border border-slate-200/60 bg-white p-6 shadow-sm sm:p-8" data-reveal>
                 <h2 class="mb-4 flex items-start gap-3 text-lg font-black tracking-tight text-slate-900 sm:text-xl">
                     <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xs font-black text-indigo-600">${String(i + 1).padStart(2, '0')}</span>
                     <span class="pt-0.5">${s.h2}</span>
                 </h2>
                 <div class="text-[15px] leading-7 text-slate-600">${s.html}</div>
+                ${s.figure ? renderInfographic(s.figure) : ''}
+                ${s.outro ? `<p class="mt-5 text-[15px] leading-7 text-slate-600">${s.outro}</p>` : ''}
             </section>`;
             return page.table && page.tableAfter === i ? card + tableHtml(page.table) : card;
         })
@@ -579,7 +636,7 @@ function ctaHtml(): string {
         </section>`;
 }
 
-function jsonLd(page: LearnPage, path: string, title: string, description: string): unknown[] {
+function jsonLd(page: LearnPage, path: string, title: string, description: string, glossaryKeys: string[]): unknown[] {
     const url = `${SITE_ORIGIN}${path}`;
     const article = {
         '@type': 'Article',
@@ -604,7 +661,29 @@ function jsonLd(page: LearnPage, path: string, title: string, description: strin
             acceptedAnswer: { '@type': 'Answer', text: f.a },
         })),
     };
-    return [article, faq];
+    const glossary = glossaryJsonLd(url, glossaryKeys);
+    return glossary ? [article, faq, glossary] : [article, faq];
+}
+
+function headerHtml(page: LearnPage, path: string): string {
+    const text = `
+        ${breadcrumbHtml(path)}
+        <p class="mb-3 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
+            <i class="fas ${page.icon}" aria-hidden="true"></i> ${page.kicker}
+        </p>
+        <h1 class="break-keep text-2xl font-black tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">${page.h1}</h1>
+        <p class="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 text-[15px] leading-7 text-slate-700 sm:text-base">${page.summary}</p>
+        <p class="mt-4 text-xs font-bold text-slate-400">${SITE_NAME} 교육팀 · 최종 수정 <time datetime="${MODIFIED}">${MODIFIED.replace(/-/g, '.')}</time></p>`;
+    if (page.hero !== 'layers') {
+        return `<header class="bento-card mb-6 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10">${text}</header>`;
+    }
+    return `
+        <header class="mb-6 overflow-hidden rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10">
+            <div class="grid items-center gap-6 xl:grid-cols-[1fr_minmax(0,20rem)]">
+                <div>${text}</div>
+                <div class="mx-auto w-full max-w-sm xl:max-w-none">${layerHeroSvg()}</div>
+            </div>
+        </header>`;
 }
 
 export function learn3dPrintingHtml(topic: string = ''): string | null {
@@ -612,6 +691,8 @@ export function learn3dPrintingHtml(topic: string = ''): string | null {
     if (!page) return null;
     const path = pathOf(page);
     const seo = getSeoOptionsForPath(path) || { title: page.h1, description: plain(page.summary).slice(0, 160), path };
+    const body = sectionsHtml(page);
+    const glossaryKeys = collectGlossaryKeys(body);
 
     return layoutHtml(
         page.h1,
@@ -627,18 +708,11 @@ export function learn3dPrintingHtml(topic: string = ''): string | null {
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
                     ${sidebarHtml(page)}
                     <article class="lg:col-span-9">
-                        <header class="bento-card mb-6 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10">
-                            ${breadcrumbHtml(path)}
-                            <p class="mb-3 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
-                                <i class="fas ${page.icon}" aria-hidden="true"></i> ${page.kicker}
-                            </p>
-                            <h1 class="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">${page.h1}</h1>
-                            <p class="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 text-[15px] leading-7 text-slate-700 sm:text-base">${page.summary}</p>
-                            <p class="mt-4 text-xs font-bold text-slate-400">${SITE_NAME} 교육팀 · 최종 수정 <time datetime="${MODIFIED}">${MODIFIED.replace(/-/g, '.')}</time></p>
-                        </header>
+                        ${headerHtml(page, path)}
                         ${keyFactsHtml(page)}
-                        ${sectionsHtml(page)}
+                        ${body}
                         ${faqHtml(page)}
+                        ${glossarySectionHtml(glossaryKeys)}
                         ${prevNextHtml(page)}
                         ${ctaHtml()}
                         <div class="mt-6 lg:hidden">${studyLinkCardHtml()}</div>
@@ -646,12 +720,13 @@ export function learn3dPrintingHtml(topic: string = ''): string | null {
                 </div>
             </div>
         </div>
+        ${learnScript()}
         `,
         'learn',
         getSeoHead(SITE_ORIGIN, {
             ...seo,
             ogType: 'article',
-            extraJsonLd: jsonLd(page, path, seo.title, seo.description || plain(page.summary)),
-        })
+            extraJsonLd: jsonLd(page, path, seo.title, seo.description || plain(page.summary), glossaryKeys),
+        }) + learnHeadAssets()
     );
 }
