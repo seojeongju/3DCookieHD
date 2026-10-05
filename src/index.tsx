@@ -1629,7 +1629,8 @@ app.get('/sitemap', (c) => {
                                                                                     학습 가이드
                                                                                 </h2>
                                                                                 <ul class="space-y-2">
-                                                                                    <li><a href="/guides/3d-printing" class="text-gray-600 hover:text-blue-600 transition">3D프린팅 기초(개요·역사·출력 방식·소재)</a></li>
+                                                                                    <li><a href="/guides/3d-printing" class="text-gray-600 hover:text-blue-600 transition">3D프린팅 기초(개요·역사·출력 방식·소재·안전)</a></li>
+                                                                                    <li><a href="/guides/3d-printing/safety" class="text-gray-600 hover:text-blue-600 transition">3D프린팅 안전교육·안전 수칙</a></li>
                                                                                     <li><a href="/guides/national-support" class="text-gray-600 hover:text-blue-600 transition">국비지원·내일배움카드</a></li>
                                                                                     <li><a href="/guides/craftsman-license" class="text-gray-600 hover:text-blue-600 transition">기능사·국가자격</a></li>
                                                                                     <li><a href="/guides/small-business" class="text-gray-600 hover:text-blue-600 transition">소상공인</a></li>

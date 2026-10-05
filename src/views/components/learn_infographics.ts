@@ -33,6 +33,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     '래피드 프로토타이핑': { id: 'rapid-prototyping', def: '제품을 양산하기 전에 시제품을 빠르게 만들어 형태와 기능을 확인하는 일. 초기 3D프린팅의 주된 용도였습니다.' },
     '오픈소스 하드웨어': { id: 'open-source-hardware', def: '설계도·부품 목록·소프트웨어를 공개해 누구나 만들고 고칠 수 있게 한 하드웨어. RepRap이 대표적입니다.' },
     FFF: { id: 'fff', def: 'Fused Filament Fabrication. 필라멘트를 녹여 쌓는 방식을 상표(FDM) 없이 부르는 이름으로, 원리는 FDM과 같습니다.' },
+    초미세입자: { id: 'ufp', def: '지름 0.1㎛(100nm) 이하의 아주 작은 입자(UFP). FDM 출력 중 필라멘트가 녹으며 나오고, 호흡기 깊숙이 들어갈 수 있습니다.' },
+    VOC: { id: 'voc', def: '휘발성 유기화합물. 상온에서 쉽게 기체가 되는 물질로, ABS 출력 때 나오는 스타이렌 등이 해당합니다.' },
+    인클로저: { id: 'enclosure', def: '프린터 전체를 감싸는 덮개·챔버. 배출물 확산과 화상·끼임 사고를 줄이고 출력 온도를 안정시킵니다.' },
+    국소배기: { id: 'local-exhaust', def: '오염물질이 생기는 곳 바로 옆에서 빨아들여 바깥으로 내보내는 환기 방식입니다.' },
 };
 
 /** 본문 속 용어에 툴팁을 붙인다. 정의 문장은 data 속성에만 두고, 본문 텍스트에는 섞지 않는다. */
@@ -117,6 +121,10 @@ export type ProcessGroup = { form: string; icon: string; items: Array<{ name: st
 export type RatingRow = { name: string; sub?: string; tone: Tone; scores: number[] };
 export type DecisionOption = { when: string; pick: string; why: string; icon: string; tone: Tone };
 export type RangeRow = { name: string; ranges: Array<[number, number]> };
+export type ChecklistColumn = { title: string; icon: string; tone: Tone; items: string[] };
+/** 0 불필요 · 1 권장 · 2 필수 */
+export type MatrixRow = { name: string; note?: string; cells: Array<0 | 1 | 2> };
+export type SchematicVisual = 'fdm' | 'vat' | 'powder' | 'hazard';
 export type TimelineEvent = { year: string; title: string; desc?: string; turning?: boolean };
 export type TimelineEra = { period: string; title: string; icon: string; tone: Tone; summary: string; events: TimelineEvent[] };
 
@@ -131,7 +139,9 @@ export type Infographic =
           labels?: BalanceLabels;
       }
     | { kind: 'iconGrid'; caption: string; items: IconItem[] }
-    | { kind: 'schematic'; caption: string; visual: 'fdm' | 'vat' | 'powder'; labels: SchematicLabel[] }
+    | { kind: 'schematic'; caption: string; visual: SchematicVisual; labels: SchematicLabel[] }
+    | { kind: 'checklist'; caption: string; columns: ChecklistColumn[] }
+    | { kind: 'matrix'; caption: string; columns: Array<{ label: string; icon: string }>; rows: MatrixRow[] }
     | { kind: 'fdmSettings'; caption: string }
     | { kind: 'processMap'; caption: string; groups: ProcessGroup[] }
     | { kind: 'ratings'; caption: string; metrics: string[]; rows: RatingRow[] }
@@ -253,7 +263,32 @@ function iconGridHtml(items: IconItem[]): string {
 const badge = (x: number, y: number, n: number) =>
     `<g transform="translate(${x},${y})"><circle r="10" fill="#0f172a"/><text y="4" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${n}</text></g>`;
 
-const SCHEMATIC_SVG: Record<'fdm' | 'vat' | 'powder', { label: string; svg: string }> = {
+const SCHEMATIC_SVG: Record<SchematicVisual, { label: string; svg: string }> = {
+    hazard: {
+        label: 'FDM 프린터에서 뜨거운 노즐, 뜨거운 히트베드, 움직이는 벨트와 축, 전원부의 위치를 표시한 안전 도식',
+        svg: `
+            <rect x="4" y="4" width="292" height="212" rx="24" fill="#f8fafc"/>
+            <rect x="34" y="26" width="8" height="166" rx="3" fill="#cbd5e1"/>
+            <rect x="258" y="26" width="8" height="166" rx="3" fill="#cbd5e1"/>
+            <rect x="34" y="24" width="232" height="8" rx="3" fill="#cbd5e1"/>
+            <rect x="24" y="190" width="252" height="12" rx="4" fill="#94a3b8"/>
+            <rect x="42" y="64" width="216" height="6" rx="2" fill="#94a3b8"/>
+            <line class="hz-belt" x1="48" y1="58" x2="252" y2="58" stroke="#475569" stroke-width="3" stroke-dasharray="7 5" stroke-linecap="round"/>
+            <rect x="72" y="150" width="156" height="10" rx="3" fill="#fb7185"/>
+            <path class="sc-heat" d="M84 172 q6 -6 12 0 t12 0 M124 172 q6 -6 12 0 t12 0 M164 172 q6 -6 12 0 t12 0" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round"/>
+            <rect x="130" y="140" width="40" height="10" rx="2" fill="#6366f1"/>
+            <rect x="133" y="130" width="34" height="10" rx="2" fill="#818cf8"/>
+            <rect x="136" y="120" width="28" height="10" rx="2" fill="#6366f1"/>
+            <g class="hz-move">
+                <circle class="hz-glow" cx="150" cy="112" r="15" fill="#f43f5e" opacity=".25"/>
+                <rect x="132" y="70" width="36" height="26" rx="6" fill="#334155"/>
+                <rect x="138" y="77" width="24" height="5" rx="2" fill="#f43f5e" class="sc-heat"/>
+                <path d="M141 96 H159 L153 112 H147 Z" fill="#f59e0b"/>
+            </g>
+            <rect x="200" y="172" width="46" height="16" rx="3" fill="#334155"/>
+            <path d="M225 174 l-6 7 h5 l-3 6 l8 -8 h-5 l3 -5 z" fill="#fbbf24"/>
+            ${badge(196, 100, 1)}${badge(244, 140, 2)}${badge(64, 46, 3)}${badge(280, 180, 4)}`,
+    },
     fdm: {
         label: '필라멘트가 핫엔드에서 녹아 노즐로 나오고, 히트베드가 앞뒤로 움직이며 한 층씩 쌓이는 FDM 프린터 구조',
         svg: `
@@ -325,7 +360,7 @@ const SCHEMATIC_SVG: Record<'fdm' | 'vat' | 'powder', { label: string; svg: stri
     },
 };
 
-function schematicHtml(visual: 'fdm' | 'vat' | 'powder', labels: SchematicLabel[]): string {
+function schematicHtml(visual: SchematicVisual, labels: SchematicLabel[]): string {
     const s = SCHEMATIC_SVG[visual];
     return `
         <div class="grid items-center gap-5 md:grid-cols-2">
@@ -521,7 +556,72 @@ export function renderInfographic(block: Infographic): string {
             return figure(block.caption, rangeHtml(block));
         case 'timeline':
             return figure(block.caption, timelineHtml(block.eras));
+        case 'checklist':
+            return figure(block.caption, checklistHtml(block.columns));
+        case 'matrix':
+            return figure(block.caption, matrixHtml(block.columns, block.rows));
     }
+}
+
+function checklistHtml(columns: ChecklistColumn[]): string {
+    return `<div class="grid gap-3 md:grid-cols-3">${columns
+        .map((c, ci) => {
+            const t = TONES[c.tone];
+            return `
+            <div class="rounded-[1.5rem] border p-4 ${t.chip}" data-ck data-reveal style="--d:${ci * 110}ms">
+                <p class="flex items-center gap-2.5">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm ${t.icon}"><i class="fas ${c.icon}" aria-hidden="true"></i></span>
+                    <span class="text-base font-black text-slate-900">${c.title}</span>
+                    <span class="ml-auto rounded-full bg-white px-2 py-0.5 text-[11px] font-black ${t.text}" aria-live="polite"><span data-ck-done>0</span>/${c.items.length}</span>
+                </p>
+                <span class="mt-3 block h-1.5 overflow-hidden rounded-full bg-white"><span class="ck-bar block h-full w-0 rounded-full ${t.bar}" data-ck-bar></span></span>
+                <ul class="mt-3 space-y-1">${c.items
+                    .map(
+                        (it) => `
+                    <li><label class="ck-item flex cursor-pointer items-start gap-2.5 rounded-xl p-2 transition hover:bg-white/80">
+                        <input type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-indigo-600">
+                        <span class="text-[13px] leading-5 text-slate-700">${it}</span>
+                    </label></li>`
+                    )
+                    .join('')}</ul>
+            </div>`;
+        })
+        .join('')}</div>`;
+}
+
+function matrixHtml(columns: Array<{ label: string; icon: string }>, rows: MatrixRow[]): string {
+    const cell = (v: 0 | 1 | 2) =>
+        v === 2
+            ? '<span class="mx-auto flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-[10px] text-white shadow-sm sm:h-7 sm:w-7 sm:text-[11px]"><i class="fas fa-check" aria-hidden="true"></i></span><span class="sr-only">필수</span>'
+            : v === 1
+              ? '<span class="mx-auto flex h-6 w-6 items-center justify-center rounded-full border-2 border-amber-400 bg-amber-50 text-[9px] text-amber-500 sm:h-7 sm:w-7 sm:text-[10px]"><i class="fas fa-check" aria-hidden="true"></i></span><span class="sr-only">권장</span>'
+              : '<span class="block text-center text-slate-300" aria-hidden="true">—</span><span class="sr-only">해당 없음</span>';
+    const head = columns
+        .map(
+            (c) => `<th scope="col" class="px-0.5 py-3 text-center align-bottom sm:px-1.5"><span class="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-50 text-[13px] text-indigo-600 sm:h-8 sm:w-8 sm:text-base"><i class="fas ${c.icon}" aria-hidden="true"></i></span><span class="block break-keep text-[10px] font-black leading-tight text-slate-600 sm:text-[11px]">${c.label}</span></th>`
+        )
+        .join('');
+    const body = rows
+        .map(
+            (r, i) => `
+            <tr class="border-t border-slate-100" data-reveal style="--d:${i * 70}ms">
+                <th scope="row" class="py-3 pl-3 pr-1 text-left align-middle sm:px-3"><span class="block break-keep text-[12px] font-black leading-snug text-slate-900 sm:text-[13px]">${r.name}</span>${r.note ? `<span class="block text-[10px] font-medium leading-4 text-slate-400 sm:text-[11px]">${r.note}</span>` : ''}</th>
+                ${r.cells.map((v) => `<td class="px-0.5 py-3 align-middle sm:px-1.5">${cell(v)}</td>`).join('')}
+            </tr>`
+        )
+        .join('');
+    return `
+        <div class="mb-3 flex flex-wrap items-center gap-4 text-xs font-bold text-slate-500">
+            <span class="flex items-center gap-1.5"><span class="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[9px] text-white"><i class="fas fa-check" aria-hidden="true"></i></span>필수</span>
+            <span class="flex items-center gap-1.5"><span class="flex h-5 w-5 items-center justify-center rounded-full border-2 border-amber-400 bg-amber-50 text-[8px] text-amber-500"><i class="fas fa-check" aria-hidden="true"></i></span>권장</span>
+            <span class="flex items-center gap-1.5"><span class="text-slate-300">—</span>해당 없음</span>
+        </div>
+        <div class="custom-scrollbar overflow-x-auto rounded-[1.5rem] border border-slate-200/60 bg-white shadow-sm">
+            <table class="w-full min-w-[18rem] border-collapse">
+                <thead class="bg-slate-50/80"><tr><th scope="col" class="py-3 pl-3 pr-1 text-left text-[11px] font-black text-slate-400 sm:px-3">작업</th>${head}</tr></thead>
+                <tbody>${body}</tbody>
+            </table>
+        </div>`;
 }
 
 function timelineHtml(eras: TimelineEra[]): string {
@@ -677,6 +777,14 @@ export function learnHeadAssets(): string {
         @keyframes scScan{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
         .sc-roll{animation:scRoll 4s ease-in-out infinite}
         @keyframes scRoll{0%,8%{transform:translateX(0)}48%,58%{transform:translateX(196px)}100%{transform:translateX(0)}}
+        .hz-move{animation:hzMove 2.8s ease-in-out infinite alternate}
+        @keyframes hzMove{from{transform:translateX(-16px)}to{transform:translateX(16px)}}
+        .hz-belt{animation:hzBelt .9s linear infinite}
+        @keyframes hzBelt{to{stroke-dashoffset:-24}}
+        .hz-glow{transform-box:fill-box;transform-origin:center;animation:hzGlow 1.4s ease-in-out infinite}
+        @keyframes hzGlow{50%{transform:scale(1.35);opacity:.1}}
+        .ck-bar{transition:width .4s cubic-bezier(.2,.7,.2,1)}
+        .ck-item:has(input:checked) span{color:#94a3b8;text-decoration:line-through}
         .rt-on,.rg-bar{transform-origin:left;transition:transform .6s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
         .reveal-ready [data-reveal]:not(.is-visible) .rt-on,.reveal-ready [data-reveal]:not(.is-visible) .rg-bar{transform:scaleX(0)}
         .tl-list::before{content:'';position:absolute;left:.6rem;top:.6rem;bottom:.6rem;width:3px;border-radius:3px;background:linear-gradient(180deg,var(--tl-c),color-mix(in srgb,var(--tl-c) 25%,transparent));transform-origin:top;transition:transform 1.2s cubic-bezier(.2,.7,.2,1) .15s}
@@ -698,7 +806,7 @@ export function learnHeadAssets(): string {
         .gl-entry:target{border-color:#818cf8;box-shadow:0 0 0 4px rgb(129 140 248/.2)}
 
         @media (prefers-reduced-motion:reduce){
-            .lg-anim *,.mv-tool,.mv-chip,.mv-fill,.mv-pour,.mv-grow,.mv-noz,.flow-conn,.lg-heat,.sc-spin,.sc-heat,.sc-bed,.sc-lift,.sc-scan,.sc-roll{animation:none!important}
+            .lg-anim *,.mv-tool,.mv-chip,.mv-fill,.mv-pour,.mv-grow,.mv-noz,.flow-conn,.lg-heat,.sc-spin,.sc-heat,.sc-bed,.sc-lift,.sc-scan,.sc-roll,.hz-move,.hz-belt,.hz-glow{animation:none!important}
             .mv-chip{opacity:0}
         }
     </style>`;
@@ -719,6 +827,13 @@ export function learnScript(): string {
             var t=ev.target&&ev.target.closest?ev.target.closest('.gl-term'):null;
             document.querySelectorAll('.gl-term.is-open').forEach(function(el){ if(el!==t) el.classList.remove('is-open'); });
             if(t&&touch.matches&&!t.classList.contains('is-open')){ ev.preventDefault(); t.classList.add('is-open'); }
+        });
+        document.addEventListener('change',function(ev){
+            var box=ev.target&&ev.target.closest?ev.target.closest('[data-ck]'):null;
+            if(!box) return;
+            var all=box.querySelectorAll('input[type=checkbox]'), done=box.querySelectorAll('input[type=checkbox]:checked').length;
+            box.querySelector('[data-ck-done]').textContent=done;
+            box.querySelector('[data-ck-bar]').style.width=(all.length?done/all.length*100:0)+'%';
         });
     })();
     </script>`;

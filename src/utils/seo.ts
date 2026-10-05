@@ -196,6 +196,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
     history: '3D프린팅의 역사',
     process: '출력 방식',
     materials: '출력 소재',
+    safety: '안전 수칙',
     'prototype-gallery': '시제품 사례',
     'education-performance': '교육 실적',
     achievements: '주요 성과',
@@ -513,6 +514,7 @@ export function llmsTxt(origin: string): string {
         `- 3D프린팅의 역사: ${origin}/guides/3d-printing/history`,
         `- 3D프린팅 출력 방식 7가지(FDM·SLA·SLS 등): ${origin}/guides/3d-printing/process`,
         `- 3D프린팅 소재(PLA·ABS·PETG·레진 등): ${origin}/guides/3d-printing/materials`,
+        `- 3D프린팅 안전교육·안전 수칙(환기·보호구·법정 안전교육): ${origin}/guides/3d-printing/safety`,
         `- 오시는 길(홍대·구미·전주): ${origin}/locations`,
         `- 홍대센터: ${origin}/locations/hongdae`,
         `- 구미센터: ${origin}/locations/gumi`,
@@ -681,6 +683,13 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         ogType: 'article',
         image: '/static/og/learn-materials.jpg',
     },
+    '/guides/3d-printing/safety': {
+        title: '3D프린팅 안전교육: 출력 전·중·후 안전 수칙',
+        description: '3D프린터의 화상·유해 배출물·화재·레진 위험과 환기 방법, 출력 전·중·후 체크리스트, 작업별 보호구, 사고 대처법, 삼차원프린팅산업 진흥법의 법정 안전교육 기준을 정리했습니다.',
+        keywords: '3D프린팅 안전교육, 3D프린터 안전 수칙, 3D프린터 유해물질, 3D프린터 환기, 레진 안전, 삼차원프린팅 안전교육',
+        ogType: 'article',
+        image: '/static/og/learn-safety.jpg',
+    },
     '/prototype-gallery': {
         title: '시제품 제작 사례',
         description: '3D프린팅 기술로 제작한 다양한 시제품과 제작 사례를 확인하세요.',
@@ -775,4 +784,5 @@ export const PUBLIC_PATHS: string[] = [
     '/guides/3d-printing/history',
     '/guides/3d-printing/process',
     '/guides/3d-printing/materials',
+    '/guides/3d-printing/safety',
 ];
