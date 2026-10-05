@@ -640,9 +640,9 @@ const PAGE_SEO: Record<string, Pick<SeoOptions, 'title' | 'description' | 'keywo
         image: '/static/hero2.jpg',
     },
     '/guides/craftsman-license': {
-        title: '3D프린터 국가자격증·3D프린팅 기능사 학원',
-        description: '3D프린터운용기능사(국가자격) 실기 대비 과정을 와우쓰리디에서 운영합니다. 3D프린팅 기능사 준비, 주말반·평일저녁반 일정과 상담 방법을 확인하세요.',
-        keywords: '3D프린터 국가자격증, 3D프린팅 기능사, 3D프린터운용기능사, 3D프린터운용기능사 학원',
+        title: '3D프린터운용기능사·3D프린터개발산업기사 시험 안내',
+        description: '3D프린터 국가자격 2종목(운용기능사·개발산업기사)의 필기·실기 구성, 응시 자격, 실기 흐름, 성장 로드맵을 인포그래픽으로 비교했습니다. 와우쓰리디 기능사 실기 대비 과정 안내.',
+        keywords: '3D프린터 국가자격증, 3D프린팅 기능사, 3D프린터운용기능사, 3D프린터개발산업기사, 3D프린터 산업기사, 3D프린터운용기능사 학원',
         image: '/static/hero5.jpg',
     },
     '/guides/small-business': {

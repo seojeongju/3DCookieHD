@@ -125,6 +125,8 @@ export type ChecklistColumn = { title: string; icon: string; tone: Tone; items: 
 /** 0 불필요 · 1 권장 · 2 필수 */
 export type MatrixRow = { name: string; note?: string; cells: Array<0 | 1 | 2> };
 export type StatItem = { icon: string; tone: Tone; value: number; prefix?: string; unit?: string; label: string; desc: string };
+export type SpecColumn = { title: string; sub: string; icon: string; tone: Tone };
+export type SpecRow = { label: string; icon: string; values: string[] };
 export type StackSegment = { label: string; value: number; tone: Tone; note: string; optional?: boolean };
 export type SchematicVisual = 'fdm' | 'vat' | 'powder' | 'hazard';
 export type TimelineEvent = { year: string; title: string; desc?: string; turning?: boolean };
@@ -144,6 +146,7 @@ export type Infographic =
     | { kind: 'schematic'; caption: string; visual: SchematicVisual; labels: SchematicLabel[] }
     | { kind: 'checklist'; caption: string; columns: ChecklistColumn[] }
     | { kind: 'stats'; caption: string; items: StatItem[] }
+    | { kind: 'specCompare'; caption: string; columns: SpecColumn[]; rows: SpecRow[] }
     | { kind: 'stackBar'; caption: string; unit: string; max: number; segments: StackSegment[] }
     | { kind: 'matrix'; caption: string; columns: Array<{ label: string; icon: string }>; rows: MatrixRow[] }
     | { kind: 'fdmSettings'; caption: string }
@@ -564,6 +567,8 @@ export function renderInfographic(block: Infographic): string {
             return figure(block.caption, checklistHtml(block.columns));
         case 'stats':
             return figure(block.caption, statsHtml(block.items));
+        case 'specCompare':
+            return figure(block.caption, specCompareHtml(block.columns, block.rows));
         case 'stackBar':
             return figure(block.caption, stackBarHtml(block));
         case 'matrix':
@@ -586,6 +591,34 @@ function statsHtml(items: StatItem[]): string {
             </div>`;
         })
         .join('')}</div>`;
+}
+
+function specCompareHtml(columns: SpecColumn[], rows: SpecRow[]): string {
+    const gridAttr = `class="grid [--sc-label:4.75rem] sm:[--sc-label:8rem]" style="grid-template-columns:var(--sc-label) repeat(${columns.length},minmax(0,1fr))"`;
+    const head = columns
+        .map((c) => {
+            const t = TONES[c.tone];
+            return `
+            <div class="flex flex-col items-start gap-2 border-l border-slate-200/60 p-3 sm:flex-row sm:items-center sm:p-4 ${t.chip}">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm ${t.icon}"><i class="fas ${c.icon}" aria-hidden="true"></i></span>
+                <span><span class="block break-all text-[13px] font-black leading-5 sm:break-keep sm:text-sm ${t.text}">${c.title}</span><span class="block text-[11px] font-bold text-slate-500">${c.sub}</span></span>
+            </div>`;
+        })
+        .join('');
+    const body = rows
+        .map(
+            (r, ri) => `
+            <div class="border-t border-slate-200/60" data-reveal style="--d:${ri * 60}ms"><div ${gridAttr}>
+                <div class="flex items-center gap-2 bg-slate-50 p-3 text-[11px] font-black text-slate-500 sm:p-4 sm:text-xs"><span class="hidden text-slate-400 sm:inline" aria-hidden="true"><i class="fas ${r.icon}"></i></span><span>${r.label}</span></div>
+                ${r.values.map((v) => `<div class="border-l border-slate-200/60 p-3 text-xs leading-5 text-slate-700 sm:p-4 sm:text-sm sm:leading-6">${v}</div>`).join('')}
+            </div></div>`
+        )
+        .join('');
+    return `
+        <div class="overflow-hidden rounded-[1.5rem] border border-slate-200/60 bg-white shadow-sm">
+            <div ${gridAttr}><div class="bg-slate-50"></div>${head}</div>
+            ${body}
+        </div>`;
 }
 
 function stackBarHtml(b: Extract<Infographic, { kind: 'stackBar' }>): string {

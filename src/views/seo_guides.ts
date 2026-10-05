@@ -34,7 +34,7 @@ type GuidePage = {
     links: { href: string; label: string; primary?: boolean }[];
     /** cards: 아코디언 대신 인포그래픽 카드로 펼쳐 보여줌 (절차 타임라인은 섹션 인포그래픽으로 대체) */
     layout?: 'cards';
-    hero?: 'card';
+    hero?: 'card' | 'license';
 };
 
 const CAMPUS_TONES = ['indigo', 'sky', 'emerald'] as const;
@@ -280,52 +280,217 @@ const PAGES: Record<string, GuidePage> = {
         slug: 'craftsman-license',
         kicker: '자격증 가이드',
         icon: 'fa-id-badge',
-        h1: '3D프린터운용기능사(국가자격), 어디서 준비하나요?',
-        lead: '검색의 「3D프린팅 기능사」「3D프린터 자격증」은 공식 명칭 3D프린터운용기능사(국가기술자격)를 가리킵니다. 와우쓰리디는 실기 대비 중심 과정을 홍대·구미·전주에서 운영합니다. 필기·원서 접수는 큐넷 공식 안내를 확인하세요.',
-        scopeNote: '3D프린터운용기능사 실기 대비·과정 선택 안내',
-        banner: '<i class="fas fa-info-circle mr-2"></i>이 페이지는 <strong>실기 대비·수강 과정</strong> 안내입니다. 필기 일정·응시 자격·원서 접수는 <a href="https://www.q-net.or.kr" target="_blank" rel="noopener noreferrer" class="font-bold underline hover:no-underline">Q-Net(큐넷)</a> 공식 공지가 우선입니다.',
-        showCampusStrip: true,
+        h1: '3D프린터운용기능사·개발산업기사, 어떻게 준비하나요?',
+        lead: '3D프린터 국가기술자격은 출력·운용 실무를 검증하는 3D프린터운용기능사와 장비 설계·제어를 검증하는 3D프린터개발산업기사 두 종목입니다. 시험 구성·응시 자격·실기 흐름·성장 로드맵을 인포그래픽으로 정리했습니다.',
+        scopeNote: '3D프린터운용기능사·3D프린터개발산업기사 시험 구성과 준비 안내',
+        banner: '<i class="fas fa-info-circle mr-2"></i>시험 구성은 <strong>한국산업인력공단 출제기준(2024~) 요약</strong>입니다. 일정·응시 자격·원서 접수·공개문제는 <a href="https://www.q-net.or.kr" target="_blank" rel="noopener noreferrer" class="font-bold underline hover:no-underline">Q-Net(큐넷)</a> 공식 공지가 우선합니다.',
+        layout: 'cards',
+        hero: 'license',
         factRows: [
-            ['국가자격 공식명', '3D프린터운용기능사'],
+            ['국가자격 종목', '3D프린터운용기능사 · 3D프린터개발산업기사'],
+            ['시행기관', '한국산업인력공단 (큐넷)'],
+            ['기능사 시험', '필기 60문항·60분 / 실기 작업형 약 4시간'],
+            ['산업기사 시험', '필기 4과목 80문항·2시간 / 실기 필답형 1시간+작업형 약 4시간'],
             ['와우쓰리디 강점', '실기 모델링·출력·후가공 반복 연습'],
-            ['대표 과정 형태', '주말반·평일저녁반·집중문제풀이'],
             ['캠퍼스', '홍대·구미·전주'],
         ],
-        factNote: '시험 일정·합격 기준은 한국산업인력공단(Q-Net) 공지가 우선입니다.',
+        factNote: '시험 일정·합격 기준·응시 자격은 한국산업인력공단 <a href="https://www.q-net.or.kr" target="_blank" rel="noopener noreferrer" class="font-bold text-indigo-600 hover:underline">Q-Net</a> 공지가 우선합니다.',
         sections: [
             {
                 id: 'official-name',
-                h2: '3D프린터 국가자격증의 공식 명칭은?',
-                body: '공식 명칭은 <strong class="text-slate-800">3D프린터운용기능사</strong>(국가기술자격)입니다. 「3D프린팅 기능사」「3D프린터 자격증」 등으로 검색해도 같은 자격을 가리키는 경우가 많습니다. CAD 모델링, 슬라이싱, 3D프린터 출력, 후가공까지 실무 역량을 검증합니다.',
+                h2: '3D프린터 국가자격증의 공식 명칭과 종류는?',
+                body: '3D프린터 국가기술자격은 <strong class="text-slate-800">3D프린터운용기능사</strong>와 <strong class="text-slate-800">3D프린터개발산업기사</strong> 두 종목이며, 모두 한국산업인력공단이 시행합니다. 「3D프린팅 기능사」「3D프린터 자격증」 검색은 대개 운용기능사를 가리킵니다. 운용기능사는 모델링·슬라이싱·출력·후가공 등 <strong class="text-slate-800">장비를 다루는 실무</strong>를, 개발산업기사는 기구·회로·제어 프로그램 등 <strong class="text-slate-800">장비를 만드는 능력</strong>을 검증합니다.',
+                figure: {
+                    kind: 'specCompare',
+                    caption: '두 자격 한눈에 비교 (출제기준 2024년~ 요약)',
+                    columns: [
+                        { title: '3D프린터운용기능사', sub: 'Craftsman · 운용', icon: 'fa-print', tone: 'indigo' },
+                        { title: '3D프린터개발산업기사', sub: 'Industrial Engineer · 개발', icon: 'fa-microchip', tone: 'violet' },
+                    ],
+                    rows: [
+                        { label: '핵심 직무', icon: 'fa-briefcase', values: ['데이터 생성, 3D프린터 설정, 제품 출력, 안전관리', '기구·제어회로·구동장치·제어 프로그램 설계, 테스트'] },
+                        { label: '응시 자격', icon: 'fa-user-check', values: ['제한 없음 (누구나)', '기능사+실무 1년, 관련학과 졸업(예정), 실무 2년 등'] },
+                        { label: '필기', icon: 'fa-pen', values: ['객관식 60문항 · 60분', '4과목 80문항 · 2시간'] },
+                        { label: '실기', icon: 'fa-tools', values: ['작업형 약 4시간 (모델링·출력·후가공)', '필답형 1시간 + 작업형 약 4시간 (조립·회로·프로그램)'] },
+                        { label: '합격 기준', icon: 'fa-flag-checkered', values: ['필기·실기 각 60점 이상', '필기 과목당 40점·평균 60점, 실기 60점 이상'] },
+                        { label: '추천 대상', icon: 'fa-user', values: ['입문자·비전공자, 출력 실무·교육 희망자', '전자·기계·SW 전공자, 장비 개발·유지보수 희망자'] },
+                    ],
+                },
+            },
+            {
+                id: 'roadmap',
+                h2: '기능사에서 산업기사까지 어떤 순서로 준비하나요?',
+                body: '처음이라면 3D모델링·슬라이싱 기초를 익혀 <strong class="text-slate-800">운용기능사</strong>부터 취득하는 것이 일반적입니다. 이후 동일·유사 직무분야에서 1년 이상 실무 경력을 쌓으면 <strong class="text-slate-800">개발산업기사</strong> 응시 자격이 생기고, 관련학과 졸업(예정)자는 바로 산업기사에 응시할 수 있습니다.',
+                figure: {
+                    kind: 'flow',
+                    caption: '3D프린터 국가자격 성장 로드맵',
+                    steps: [
+                        { icon: 'fa-cube', title: '기초 학습', desc: '3D모델링·슬라이서·출력 원리', chips: ['입문'] },
+                        { icon: 'fa-print', title: '운용기능사 취득', desc: '필기 60문항 → 작업형 실기', chips: ['기능사'] },
+                        { icon: 'fa-briefcase', title: '실무 경력 1년+', desc: '동일·유사 직무분야 경력 (관련학과는 생략 가능)' },
+                        { icon: 'fa-microchip', title: '개발산업기사 취득', desc: '회로·제어 필답형 + 조립·프로그램 작업형', chips: ['산업기사'] },
+                    ],
+                },
             },
             {
                 id: 'exam-structure',
-                h2: '시험은 어떻게 구성되나요?',
-                body: '필기와 실기로 나뉩니다. 필기는 CBT 방식이며, 실기는 <strong class="text-slate-800">모델링·슬라이싱·출력·후가공</strong> 등 과제 수행형으로 진행됩니다. 와우쓰리디 과정은 실기 대비·실습 반복에 초점을 두며, 필기 대비 범위는 개인 학습과 공식 기출 자료를 병행하는 것이 일반적입니다.',
+                h2: '3D프린터운용기능사 시험은 어떻게 구성되나요?',
+                body: '필기는 데이터 생성, 3D프린터 설정, 제품 출력 및 안전관리 범위에서 <strong class="text-slate-800">객관식 60문항을 60분</strong> 동안 CBT로 풉니다. 실기는 <strong class="text-slate-800">작업형(약 4시간)</strong>으로 큐넷에 공개된 도면 중 하나를 모델링·출력·후가공해 제출하며, 필기·실기 모두 100점 만점에 60점 이상이면 합격입니다.',
+                figure: {
+                    kind: 'stats',
+                    caption: '3D프린터운용기능사 핵심 숫자',
+                    items: [
+                        { icon: 'fa-pen', tone: 'indigo', value: 60, unit: '문항', label: '필기 문항 수', desc: '객관식 4지 택일 · 60분 CBT' },
+                        { icon: 'fa-stopwatch', tone: 'sky', prefix: '약 ', value: 4, unit: '시간', label: '실기 작업형', desc: '모델링·출력·후가공 (출제기준)' },
+                        { icon: 'fa-drafting-compass', tone: 'violet', value: 27, unit: '형', label: '공개 도면', desc: '큐넷 공개문제 중 출제 (2026년 2회~)' },
+                        { icon: 'fa-flag-checkered', tone: 'emerald', value: 60, unit: '점', label: '합격 기준', desc: '필기·실기 각 100점 만점' },
+                    ],
+                },
+            },
+            {
+                id: 'craftsman-practical',
+                h2: '운용기능사 실기는 어떤 순서로 진행되나요?',
+                body: '공개 도면을 확인해 부품을 <strong class="text-slate-800">3D 모델링·조립</strong>하고, 슬라이서에서 지지대와 출력 조건을 설정해 G코드를 만든 뒤 출력합니다. 출력 중 오류에 대응하고, 출력물을 안전하게 회수해 지지대 제거 등 <strong class="text-slate-800">후가공</strong>까지 마쳐 제출합니다.',
+                figure: {
+                    kind: 'flow',
+                    caption: '운용기능사 실기 작업 흐름',
+                    steps: [
+                        { icon: 'fa-file-image', title: '도면 확인', desc: '공개 도면 중 출제 형별 확인' },
+                        { icon: 'fa-cubes', title: '모델링·조립', desc: '부품 3D 모델링 후 어셈블리', chips: ['CAD'] },
+                        { icon: 'fa-layer-group', title: '슬라이싱', desc: '지지대·출력 조건 설정, G코드 생성', chips: ['G-code'] },
+                        { icon: 'fa-print', title: '출력·오류 대응', desc: '장비 설정 후 출력, 오류 시 조치' },
+                        { icon: 'fa-hand-sparkles', title: '회수·후가공', desc: '지지대 제거·정리 후 제출' },
+                    ],
+                },
+                outro: '실격·감점 기준과 지참물은 회차별 <a href="https://www.q-net.or.kr" target="_blank" rel="noopener noreferrer" class="font-bold text-indigo-600 hover:underline">큐넷 공개문제</a>의 수험자 유의사항을 꼭 확인하세요.',
+            },
+            {
+                id: 'engineer-exam',
+                h2: '3D프린터개발산업기사 시험은 어떻게 구성되나요?',
+                body: '필기는 <strong class="text-slate-800">4과목(회로 및 기구, 장치, 프로그램, 품질보증 및 안전관리)</strong>에서 과목당 20문항씩 총 80문항을 2시간 동안 풀며, 과목당 40점 이상·전과목 평균 60점 이상이면 합격합니다. 실기 「3D프린터 개발실무」는 <strong class="text-slate-800">필답형 1시간(45점)과 작업형 약 4시간(55점)</strong>을 합산해 60점 이상이면 합격입니다.',
+                figure: [
+                    {
+                        kind: 'stats',
+                        caption: '3D프린터개발산업기사 핵심 숫자',
+                        items: [
+                            { icon: 'fa-pen', tone: 'violet', value: 80, unit: '문항', label: '필기 문항 수', desc: '4과목 × 20문항 · 2시간' },
+                            { icon: 'fa-balance-scale', tone: 'amber', value: 40, unit: '점', label: '과목별 과락', desc: '과목당 40점 이상, 평균 60점 이상' },
+                            { icon: 'fa-stopwatch', tone: 'sky', prefix: '약 ', value: 5, unit: '시간', label: '실기 시간', desc: '필답형 1시간 + 작업형 약 4시간' },
+                            { icon: 'fa-flag-checkered', tone: 'emerald', value: 60, unit: '점', label: '실기 합격', desc: '필답형·작업형 합산 100점 만점' },
+                        ],
+                    },
+                    {
+                        kind: 'iconGrid',
+                        caption: '필기 4과목',
+                        items: [
+                            { icon: 'fa-project-diagram', tone: 'indigo', title: '3D프린터 회로 및 기구', desc: '제어 회로, 기구부 구조와 설계' },
+                            { icon: 'fa-cogs', tone: 'sky', title: '3D프린터 장치', desc: '구동장치·센서·모터·압출부' },
+                            { icon: 'fa-code', tone: 'violet', title: '3D프린터 프로그램', desc: '제어 프로그램·펌웨어·G코드' },
+                            { icon: 'fa-shield-alt', tone: 'emerald', title: '품질보증 및 안전관리', desc: '테스트·품질 점검·안전 기준' },
+                        ],
+                    },
+                    {
+                        kind: 'stackBar',
+                        caption: '실기 배점 구조 (100점 만점, 60점 이상 합격)',
+                        unit: '점',
+                        max: 100,
+                        segments: [
+                            { label: '필답형', value: 45, tone: 'violet', note: '1시간 · 회로·장치·제어 이론 주관식' },
+                            { label: '작업형', value: 55, tone: 'indigo', note: '약 4시간 · 조립·회로 결선·제어 프로그램' },
+                        ],
+                    },
+                ],
+            },
+            {
+                id: 'engineer-practical',
+                h2: '개발산업기사 실기 작업형에서는 무엇을 하나요?',
+                body: '큐넷 공개문제 기준으로 <strong class="text-slate-800">아두이노 기반 제어 과제</strong>가 출제됩니다. 주어진 부품으로 회로를 결선하고 모터·센서·LCD 등을 제어하는 프로그램을 작성·업로드한 뒤 요구 동작을 검증합니다. 전자 회로와 C/C++ 기초가 있으면 준비가 수월합니다.',
+                figure: {
+                    kind: 'flow',
+                    caption: '개발산업기사 실기 작업형 흐름 (공개문제 기준)',
+                    steps: [
+                        { icon: 'fa-book-open', title: '과제·데이터시트 확인', desc: '요구 동작과 부품 사양 파악' },
+                        { icon: 'fa-plug', title: '회로 결선', desc: '모터·센서·LCD를 보드에 연결', chips: ['Arduino'] },
+                        { icon: 'fa-code', title: '제어 프로그램 작성', desc: '라이브러리 활용, 입출력·모터 제어', chips: ['C/C++'] },
+                        { icon: 'fa-upload', title: '업로드·디버깅', desc: '보드에 업로드 후 오류 수정' },
+                        { icon: 'fa-check-double', title: '동작 검증', desc: '요구사항대로 작동하는지 확인' },
+                    ],
+                },
+            },
+            {
+                id: 'eligibility',
+                h2: '응시 자격은 어떻게 되나요?',
+                body: '3D프린터운용기능사는 <strong class="text-slate-800">응시 자격 제한이 없어</strong> 누구나 응시할 수 있습니다. 3D프린터개발산업기사는 기능사 취득 후 동일·유사 직무분야 실무 1년 이상, 관련학과 전문대·대학 졸업(예정), 동일·유사 직무분야 실무 2년 이상 등 요건 중 하나를 갖춰야 합니다. 개인별 응시 가능 여부는 큐넷 응시자격 자가진단으로 최종 확인하세요.',
+                figure: {
+                    kind: 'iconGrid',
+                    caption: '응시 자격 요약 (개인별 확인은 큐넷 자가진단)',
+                    items: [
+                        { icon: 'fa-door-open', tone: 'indigo', title: '운용기능사: 누구나', desc: '학력·경력 제한 없이 응시 가능' },
+                        { icon: 'fa-id-badge', tone: 'violet', title: '산업기사: 기능사 + 실무 1년', desc: '기능사 취득 후 동일·유사 직무분야 1년 이상' },
+                        { icon: 'fa-user-graduate', tone: 'sky', title: '산업기사: 관련학과 졸업(예정)', desc: '전문대·대학 관련학과 졸업자 또는 졸업 예정자' },
+                        { icon: 'fa-briefcase', tone: 'amber', title: '산업기사: 실무 2년', desc: '동일·유사 직무분야 2년 이상 경력' },
+                        { icon: 'fa-chalkboard-teacher', tone: 'emerald', title: '산업기사: 훈련과정 이수', desc: '산업기사 수준 기술훈련과정 이수(예정)자' },
+                        { icon: 'fa-route', tone: 'rose', title: '과정평가형 (두 종목 모두)', desc: '지정 교육·훈련과정 이수 후 평가로 취득', href: 'https://c.q-net.or.kr', linkLabel: '과정평가형 안내' },
+                    ],
+                },
+            },
+            {
+                id: 'which-one',
+                h2: '나에게 맞는 자격은 무엇인가요?',
+                body: '3D프린터로 모델링·출력·후가공을 하고 싶거나 비전공 입문자라면 <strong class="text-slate-800">운용기능사</strong>가 적합합니다. 장비를 직접 설계·제어·유지보수하고 싶은 전자·기계·SW 전공자라면 <strong class="text-slate-800">개발산업기사</strong>를 목표로 하되, 운용기능사로 장비 이해를 먼저 쌓는 것도 좋은 방법입니다.',
+                figure: {
+                    kind: 'decision',
+                    caption: '목표별 추천 자격',
+                    options: [
+                        { when: '3D프린팅을 처음 배워요', pick: '운용기능사부터', why: '응시 제한이 없고 모델링·출력 기본기를 체계적으로 익힙니다.', icon: 'fa-seedling', tone: 'emerald' },
+                        { when: '출력·시제품 제작 일을 하고 싶어요', pick: '운용기능사', why: '모델링·슬라이싱·후가공 실무를 그대로 검증합니다.', icon: 'fa-print', tone: 'indigo' },
+                        { when: '3D프린팅 강사·교육이 목표예요', pick: '운용기능사 + 교강사 과정', why: '자격과 함께 실습 지도 역량을 갖추면 유리합니다.', icon: 'fa-chalkboard-teacher', tone: 'sky' },
+                        { when: '장비 개발·제어·유지보수에 관심 있어요', pick: '개발산업기사', why: '기구·회로·아두이노 제어 등 장비 개발 역량을 검증합니다.', icon: 'fa-microchip', tone: 'violet' },
+                    ],
+                },
             },
             {
                 id: 'curriculum',
-                h2: '실기 대비 과정은 어떻게 구성되어 있나요?',
-                body: '출제 유형에 맞춘 <strong class="text-slate-800">모델링 → 슬라이서 설정 → 출력 → 품질 점검 → 후가공</strong> 흐름을 반복합니다. 강사 피드백으로 출력물 품질·치수·마감을 교정하는 연습을 중시합니다. 장비 사용 대기 시간을 줄이고 실습량을 확보할 수 있도록 회차별로 운영합니다.',
+                h2: '와우쓰리디 실기 대비 과정은 어떻게 구성되어 있나요?',
+                body: '운용기능사 출제 유형에 맞춰 <strong class="text-slate-800">모델링 → 슬라이서 설정 → 출력 → 품질 점검 → 후가공</strong> 흐름을 반복하고, 강사 피드백으로 치수·품질·마감을 교정합니다. 실기대비 정규반(주말·평일저녁), 집중문제풀이, 재수강·보완 등 회차별로 운영하며, 산업기사 대비 과정 개설 여부는 교육과정 목록과 상담으로 확인하세요.',
+                figure: {
+                    kind: 'iconGrid',
+                    caption: '대표 과정 형태 (회차별 상이)',
+                    items: [
+                        { icon: 'fa-calendar-week', tone: 'indigo', title: '실기대비 정규반', desc: '주말반·평일저녁반 등 반복 실습', href: '/course-sessions', linkLabel: '과정 목록' },
+                        { icon: 'fa-bolt', tone: 'amber', title: '집중문제풀이', desc: '시험 형식 반복·실기 시간 확대', href: '/course-sessions', linkLabel: '과정 목록' },
+                        { icon: 'fa-redo', tone: 'emerald', title: '재수강·보완', desc: '이전 수강 후 부족한 부분 추가 연습', href: '/online-consulting', linkLabel: '상담 신청' },
+                    ],
+                },
             },
             {
-                id: 'course-types',
-                h2: '어떤 과정 형태가 있나요?',
-                body: '회차마다 형태가 다르며 대표적으로 아래가 있습니다. 세부 일정은 <a href="/course-sessions" class="font-bold text-indigo-600 hover:underline">교육과정 목록</a>에서 확인하세요.<ul class="mt-3 space-y-2 pl-1"><li class="flex gap-2"><i class="fas fa-calendar-week mt-1 text-indigo-500 text-xs"></i><span><strong class="text-slate-800">실기대비 정규반</strong> — 주말반·평일저녁반 등</span></li><li class="flex gap-2"><i class="fas fa-bolt mt-1 text-indigo-500 text-xs"></i><span><strong class="text-slate-800">집중문제풀이</strong> — 시험 형식 반복·실기 시간 확대</span></li><li class="flex gap-2"><i class="fas fa-redo mt-1 text-indigo-500 text-xs"></i><span><strong class="text-slate-800">재수강·보완</strong> — 이전 수강 후 추가 연습 (회차별 상이)</span></li></ul>',
+                id: 'checklist',
+                h2: '시험 준비는 무엇부터 점검하면 되나요?',
+                body: '큐넷에서 원서 접수 일정을 확인하고 필기 기출을 반복한 뒤, 실기는 공개 도면 모델링과 슬라이서 설정·후가공을 충분히 연습합니다. 산업기사를 준비한다면 응시자격 자가진단과 회로·아두이노 기초 학습을 먼저 점검하세요.',
+                figure: {
+                    kind: 'checklist',
+                    caption: '자격시험 준비 체크리스트',
+                    columns: [
+                        { title: '접수·필기', icon: 'fa-pen', tone: 'indigo', items: ['큐넷 원서 접수 일정 확인', '필기 기출 반복 (CBT 대비)', '신분증·수험표 준비'] },
+                        { title: '기능사 실기', icon: 'fa-print', tone: 'sky', items: ['공개 도면 모델링 반복', '지지대·G코드 설정 연습', '출력 오류 대응·후가공 연습'] },
+                        { title: '산업기사', icon: 'fa-microchip', tone: 'violet', items: ['응시자격 자가진단', '회로·아두이노 기초 학습', '공개문제 과제 실습'] },
+                    ],
+                },
             },
             {
                 id: 'national-support',
                 h2: '기능사 과정도 국비(내일배움카드)가 되나요?',
-                body: '개설 회차에 따라 <strong class="text-slate-800">국민내일배움카드(국비지원)</strong> 적용 여부가 다릅니다. 자기부담금·모집 요건도 회차별로 상이하므로, 희망 회차를 고른 뒤 상담 시 확정 안내합니다. 신청 절차 개요는 <a href="/guides/national-support" class="font-bold text-indigo-600 hover:underline">국비지원 가이드</a>를 참고하세요.',
+                body: '개설 회차에 따라 <strong class="text-slate-800">국민내일배움카드(국비지원)</strong> 적용 여부가 다릅니다. 자기부담금·모집 요건도 회차별로 상이하므로, 희망 회차를 고른 뒤 상담 시 확정 안내합니다. 카드 한도·자부담·신청 절차는 <a href="/guides/national-support" class="font-bold text-indigo-600 hover:underline">국비지원 가이드</a>에서 인포그래픽으로 확인할 수 있습니다.',
             },
             {
                 id: 'campus',
                 h2: '어느 센터에서 수강할 수 있나요?',
-                body: '홍대·구미·전주센터에서 기능사 대비 과정을 운영합니다. 회차마다 교육 장소·개강 일정이 다르므로 과정 상세의 교육장소를 확인하세요. 센터별 위치는 <a href="/locations" class="font-bold text-indigo-600 hover:underline">오시는길</a>, 수강생 후기는 <a href="/reviews" class="font-bold text-indigo-600 hover:underline">수강후기</a>에서 볼 수 있습니다.',
+                body: '홍대·구미·전주센터에서 기능사 대비 과정을 운영합니다. 회차마다 교육 장소·개강 일정이 다르므로 과정 상세의 교육장소를 확인하세요. 수강생 후기는 <a href="/reviews" class="font-bold text-indigo-600 hover:underline">수강후기</a>에서 볼 수 있습니다.',
+                figure: campusIconGrid,
             },
         ],
         steps: [
-            { title: '자격·시험 정보 확인', text: '공식 명칭 3D프린터운용기능사와 필기·실기 구성을 Q-Net에서 확인합니다.', href: 'https://www.q-net.or.kr', linkLabel: 'Q-Net 바로가기' },
+            { title: '자격·시험 정보 확인', text: '운용기능사·개발산업기사의 시험 구성과 응시 자격을 Q-Net에서 확인합니다.', href: 'https://www.q-net.or.kr', linkLabel: 'Q-Net 바로가기' },
             { title: '대비 과정 선택', text: '주말반·평일저녁반·집중문제풀이 등 모집 회차를 과정 목록에서 고릅니다.', href: '/course-sessions', linkLabel: '기능사 과정 목록' },
             { title: '상담·등록', text: '국비 적용 여부·일정·자기부담금을 상담 후 등록합니다.', href: '/online-consulting', linkLabel: '상담 신청' },
         ],
@@ -333,6 +498,7 @@ const PAGES: Record<string, GuidePage> = {
             { href: '/course-sessions', label: '기능사 과정 목록', primary: true },
             { href: '/online-consulting', label: '수강 상담', primary: true },
             { href: '/guides/national-support', label: '국비지원 신청' },
+            { href: '/guides/3d-printing', label: '3D프린팅 기초' },
             { href: '/reviews', label: '수강후기' },
             { href: '/faq', label: 'FAQ' },
         ],
@@ -587,6 +753,24 @@ function cardHeroHtml(): string {
         </div>`;
 }
 
+function licenseHeroHtml(): string {
+    const badge = (tone: string, icon: string, level: string, name: string, meta: string, extra: string) => `
+        <div class="nb-chip relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br ${tone} p-4 text-white shadow-xl"${extra}>
+            <span class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10"></span>
+            <span class="relative flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/80"><i class="fas ${icon}"></i>${level}</span>
+            <span class="relative mt-2 block text-[15px] font-black leading-5">${name}</span>
+            <span class="relative mt-1 block text-[11px] font-bold text-white/80">${meta}</span>
+        </div>`;
+    return `
+        <div class="relative hidden w-full max-w-[17rem] justify-self-end md:block" aria-hidden="true">
+            <div class="flex flex-col gap-3">
+                ${badge('from-violet-600 to-fuchsia-500 shadow-violet-500/30 ml-8', 'fa-microchip', '산업기사 · 개발', '3D프린터개발산업기사', '회로·기구·제어 프로그램', ' style="animation-delay:-2s"')}
+                <span class="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs text-indigo-500 shadow-md"><i class="fas fa-arrow-up"></i></span>
+                ${badge('from-indigo-600 to-sky-500 shadow-indigo-500/30 mr-8', 'fa-print', '기능사 · 운용', '3D프린터운용기능사', '모델링·출력·후가공', '')}
+            </div>
+        </div>`;
+}
+
 function factBlockHtml(page: GuidePage): string {
     const baseRows: Array<[string, string]> = [
         ['기관', SITE_NAME],
@@ -723,7 +907,7 @@ export function seoGuideHtml(slug: string): string | null {
                                 <p class="mt-4 max-w-2xl break-keep text-[15px] leading-7 text-slate-600 sm:text-base">${page.lead}</p>
                                 <div class="mt-6 flex flex-wrap gap-3">${headerCtas}</div>
                             </div>
-                            ${page.hero === 'card' ? cardHeroHtml() : ''}
+                            ${page.hero === 'card' ? cardHeroHtml() : page.hero === 'license' ? licenseHeroHtml() : ''}
                         </header>
 
                         ${bannerHtml}
