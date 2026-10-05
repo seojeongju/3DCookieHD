@@ -30,6 +30,9 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     IPA: { id: 'ipa', def: '이소프로필 알코올. 레진 출력물 표면에 남은 미경화 레진을 씻어 내는 세척액입니다.' },
     스트링: { id: 'stringing', def: '노즐이 이동할 때 녹은 필라멘트가 거미줄처럼 늘어져 남는 현상입니다.' },
     흡습성: { id: 'hygroscopic', def: '공기 중의 습기를 빨아들이는 성질. 나일론·PETG·TPU 필라멘트에서 특히 큽니다.' },
+    '래피드 프로토타이핑': { id: 'rapid-prototyping', def: '제품을 양산하기 전에 시제품을 빠르게 만들어 형태와 기능을 확인하는 일. 초기 3D프린팅의 주된 용도였습니다.' },
+    '오픈소스 하드웨어': { id: 'open-source-hardware', def: '설계도·부품 목록·소프트웨어를 공개해 누구나 만들고 고칠 수 있게 한 하드웨어. RepRap이 대표적입니다.' },
+    FFF: { id: 'fff', def: 'Fused Filament Fabrication. 필라멘트를 녹여 쌓는 방식을 상표(FDM) 없이 부르는 이름으로, 원리는 FDM과 같습니다.' },
 };
 
 /** 본문 속 용어에 툴팁을 붙인다. 정의 문장은 data 속성에만 두고, 본문 텍스트에는 섞지 않는다. */
@@ -87,13 +90,13 @@ export function glossaryJsonLd(url: string, keys: string[]): Record<string, unkn
 
 type Tone = 'indigo' | 'sky' | 'emerald' | 'amber' | 'rose' | 'violet';
 
-const TONES: Record<Tone, { chip: string; icon: string; bar: string; text: string }> = {
-    indigo: { chip: 'bg-indigo-50 border-indigo-100', icon: 'bg-indigo-600 text-white', bar: 'bg-indigo-500', text: 'text-indigo-700' },
-    sky: { chip: 'bg-sky-50 border-sky-100', icon: 'bg-sky-500 text-white', bar: 'bg-sky-500', text: 'text-sky-700' },
-    emerald: { chip: 'bg-emerald-50 border-emerald-100', icon: 'bg-emerald-500 text-white', bar: 'bg-emerald-500', text: 'text-emerald-700' },
-    amber: { chip: 'bg-amber-50 border-amber-100', icon: 'bg-amber-500 text-white', bar: 'bg-amber-500', text: 'text-amber-700' },
-    rose: { chip: 'bg-rose-50 border-rose-100', icon: 'bg-rose-500 text-white', bar: 'bg-rose-500', text: 'text-rose-700' },
-    violet: { chip: 'bg-violet-50 border-violet-100', icon: 'bg-violet-500 text-white', bar: 'bg-violet-500', text: 'text-violet-700' },
+const TONES: Record<Tone, { chip: string; icon: string; bar: string; text: string; hex: string }> = {
+    indigo: { chip: 'bg-indigo-50 border-indigo-100', icon: 'bg-indigo-600 text-white', bar: 'bg-indigo-500', text: 'text-indigo-700', hex: '#6366f1' },
+    sky: { chip: 'bg-sky-50 border-sky-100', icon: 'bg-sky-500 text-white', bar: 'bg-sky-500', text: 'text-sky-700', hex: '#0ea5e9' },
+    emerald: { chip: 'bg-emerald-50 border-emerald-100', icon: 'bg-emerald-500 text-white', bar: 'bg-emerald-500', text: 'text-emerald-700', hex: '#10b981' },
+    amber: { chip: 'bg-amber-50 border-amber-100', icon: 'bg-amber-500 text-white', bar: 'bg-amber-500', text: 'text-amber-700', hex: '#f59e0b' },
+    rose: { chip: 'bg-rose-50 border-rose-100', icon: 'bg-rose-500 text-white', bar: 'bg-rose-500', text: 'text-rose-700', hex: '#f43f5e' },
+    violet: { chip: 'bg-violet-50 border-violet-100', icon: 'bg-violet-500 text-white', bar: 'bg-violet-500', text: 'text-violet-700', hex: '#8b5cf6' },
 };
 
 export type MethodCard = {
@@ -106,6 +109,7 @@ export type MethodCard = {
 };
 export type FlowStep = { icon: string; title: string; desc: string; chips?: string[] };
 export type BalanceItem = { icon: string; title: string; desc: string };
+export type BalanceLabels = { good: string; bad: string; goodIcon?: string; badIcon?: string; hideCount?: boolean };
 export type IconItem = { icon: string; tone: Tone; title: string; desc: string; href?: string; linkLabel?: string };
 
 export type SchematicLabel = { title: string; desc: string };
@@ -113,6 +117,8 @@ export type ProcessGroup = { form: string; icon: string; items: Array<{ name: st
 export type RatingRow = { name: string; sub?: string; tone: Tone; scores: number[] };
 export type DecisionOption = { when: string; pick: string; why: string; icon: string; tone: Tone };
 export type RangeRow = { name: string; ranges: Array<[number, number]> };
+export type TimelineEvent = { year: string; title: string; desc?: string; turning?: boolean };
+export type TimelineEra = { period: string; title: string; icon: string; tone: Tone; summary: string; events: TimelineEvent[] };
 
 export type Infographic =
     | { kind: 'methods'; caption: string; items: MethodCard[] }
@@ -122,7 +128,7 @@ export type Infographic =
           caption: string;
           pros: BalanceItem[];
           cons: BalanceItem[];
-          labels?: { good: string; bad: string; goodIcon?: string; badIcon?: string };
+          labels?: BalanceLabels;
       }
     | { kind: 'iconGrid'; caption: string; items: IconItem[] }
     | { kind: 'schematic'; caption: string; visual: 'fdm' | 'vat' | 'powder'; labels: SchematicLabel[] }
@@ -130,7 +136,8 @@ export type Infographic =
     | { kind: 'processMap'; caption: string; groups: ProcessGroup[] }
     | { kind: 'ratings'; caption: string; metrics: string[]; rows: RatingRow[] }
     | { kind: 'decision'; caption: string; options: DecisionOption[] }
-    | { kind: 'range'; caption: string; min: number; max: number; step: number; unit: string; series: Array<{ label: string; color: string }>; rows: RangeRow[] };
+    | { kind: 'range'; caption: string; min: number; max: number; step: number; unit: string; series: Array<{ label: string; color: string }>; rows: RangeRow[] }
+    | { kind: 'timeline'; caption: string; eras: TimelineEra[] };
 
 function figure(caption: string, inner: string): string {
     return `
@@ -202,13 +209,13 @@ function flowHtml(steps: FlowStep[]): string {
 function balanceHtml(
     pros: BalanceItem[],
     cons: BalanceItem[],
-    labels: { good: string; bad: string; goodIcon?: string; badIcon?: string } = { good: '장점', bad: '한계' }
+    labels: BalanceLabels = { good: '장점', bad: '한계' }
 ): string {
     const col = (title: string, icon: string, items: BalanceItem[], good: boolean) => `
         <div class="rounded-[1.75rem] border p-5 ${good ? 'border-emerald-100 bg-emerald-50/60' : 'border-amber-100 bg-amber-50/60'}" data-reveal style="--d:${good ? 0 : 150}ms">
             <p class="mb-4 flex items-center gap-2 text-sm font-black ${good ? 'text-emerald-700' : 'text-amber-700'}">
                 <span class="flex h-8 w-8 items-center justify-center rounded-xl ${good ? 'bg-emerald-500' : 'bg-amber-500'} text-white"><i class="fas ${icon}" aria-hidden="true"></i></span>${title}
-                <span class="ml-auto rounded-full bg-white px-2 py-0.5 text-[11px] ${good ? 'text-emerald-600' : 'text-amber-600'}">${items.length}가지</span>
+                ${labels.hideCount ? '' : `<span class="ml-auto rounded-full bg-white px-2 py-0.5 text-[11px] ${good ? 'text-emerald-600' : 'text-amber-600'}">${items.length}가지</span>`}
             </p>
             <ul class="space-y-3">${items
                 .map((it) => `
@@ -227,7 +234,7 @@ function balanceHtml(
 }
 
 function iconGridHtml(items: IconItem[]): string {
-    return `<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${items
+    return `<div class="grid gap-3 sm:grid-cols-2 ${items.length === 4 ? '' : 'lg:grid-cols-3'}">${items
         .map((it, i) => {
             const t = TONES[it.tone];
             const inner = `
@@ -512,7 +519,57 @@ export function renderInfographic(block: Infographic): string {
             return figure(block.caption, decisionHtml(block.options));
         case 'range':
             return figure(block.caption, rangeHtml(block));
+        case 'timeline':
+            return figure(block.caption, timelineHtml(block.eras));
     }
+}
+
+function timelineHtml(eras: TimelineEra[]): string {
+    const ribbon = `
+        <ol class="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="시대 구분">${eras
+            .map((e, i) => {
+                const t = TONES[e.tone];
+                return `
+            <li data-reveal style="--d:${i * 90}ms">
+                <a href="#tl-era-${i + 1}" class="tl-chip flex h-full items-center gap-2.5 rounded-2xl px-3 py-2.5 shadow-sm ${t.icon}">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/20"><i class="fas ${e.icon}" aria-hidden="true"></i></span>
+                    <span class="min-w-0"><span class="block text-[10px] font-bold opacity-80">${e.period}</span><span class="block text-[13px] font-black leading-tight">${e.title}</span></span>
+                </a>
+            </li>`;
+            })
+            .join('')}</ol>`;
+
+    const blocks = eras
+        .map((e, i) => {
+            const t = TONES[e.tone];
+            const events = e.events
+                .map((ev, k) => `
+                <li class="relative" data-reveal style="--d:${k * 90}ms">
+                    <span class="tl-dot absolute -left-[1.85rem] top-4 h-4 w-4 rounded-full border-[3px] border-white shadow ${t.bar}" aria-hidden="true"></span>
+                    <div class="rounded-2xl border p-3.5 ${ev.turning ? t.chip : 'border-slate-200/60 bg-white shadow-sm'}">
+                        <p class="flex flex-wrap items-center gap-2">
+                            <time class="text-xs font-black tracking-tight ${t.text}">${ev.year}</time>
+                            ${ev.turning ? `<span class="rounded-full bg-white px-2 py-0.5 text-[10px] font-black ${t.text}"><i class="fas fa-bolt mr-1" aria-hidden="true"></i>전환점</span>` : ''}
+                        </p>
+                        <p class="mt-1 text-sm font-black text-slate-900">${ev.title}</p>
+                        ${ev.desc ? `<p class="mt-0.5 text-xs leading-5 text-slate-600">${ev.desc}</p>` : ''}
+                    </div>
+                </li>`)
+                .join('');
+            return `
+            <div id="tl-era-${i + 1}" class="grid scroll-mt-28 gap-3 lg:grid-cols-[14rem_1fr] lg:gap-6" data-reveal>
+                <div class="self-start rounded-[1.5rem] border p-4 lg:sticky lg:top-28 ${t.chip}">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl shadow-sm ${t.icon}"><i class="fas ${e.icon}" aria-hidden="true"></i></span>
+                    <p class="mt-3 text-[11px] font-black ${t.text}">${e.period}</p>
+                    <p class="text-base font-black tracking-tight text-slate-900">${e.title}</p>
+                    <p class="mt-1 text-xs leading-5 text-slate-600">${e.summary}</p>
+                </div>
+                <ol class="tl-list relative space-y-3 pl-8" style="--tl-c:${t.hex}">${events}</ol>
+            </div>`;
+        })
+        .join('');
+
+    return `${ribbon}<div class="mt-6 space-y-8">${blocks}</div>`;
 }
 
 /* ───────────────────────── 히어로: 적층 애니메이션 ───────────────────────── */
@@ -622,6 +679,12 @@ export function learnHeadAssets(): string {
         @keyframes scRoll{0%,8%{transform:translateX(0)}48%,58%{transform:translateX(196px)}100%{transform:translateX(0)}}
         .rt-on,.rg-bar{transform-origin:left;transition:transform .6s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
         .reveal-ready [data-reveal]:not(.is-visible) .rt-on,.reveal-ready [data-reveal]:not(.is-visible) .rg-bar{transform:scaleX(0)}
+        .tl-list::before{content:'';position:absolute;left:.6rem;top:.6rem;bottom:.6rem;width:3px;border-radius:3px;background:linear-gradient(180deg,var(--tl-c),color-mix(in srgb,var(--tl-c) 25%,transparent));transform-origin:top;transition:transform 1.2s cubic-bezier(.2,.7,.2,1) .15s}
+        .reveal-ready [data-reveal]:not(.is-visible) .tl-list::before{transform:scaleY(0)}
+        .tl-dot{transition:transform .45s cubic-bezier(.34,1.56,.64,1) calc(var(--d,0ms) + 200ms)}
+        .reveal-ready [data-reveal]:not(.is-visible) > .tl-dot{transform:scale(0)}
+        .tl-chip{transition:transform .25s,box-shadow .25s}
+        .tl-chip:hover{transform:translateY(-2px);box-shadow:0 10px 20px -10px rgb(15 23 42/.35)}
 
         .reveal-ready [data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .75s cubic-bezier(.2,.7,.2,1) var(--d,0ms),transform .75s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
         .reveal-ready [data-reveal].is-visible{opacity:1;transform:none}
