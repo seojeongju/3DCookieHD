@@ -143,6 +143,7 @@ import { portfolioDetailHtml } from './views/portfolio_detail';
 import { postsListHtml } from './views/posts';
 import { faqPageHtml, type PublicFaq } from './views/faq';
 import { seoGuideHtml } from './views/seo_guides';
+import { learn3dPrintingHtml } from './views/learn_3d_printing';
 import { prototypeGalleryHtml } from './views/prototype_gallery';
 import { adminPrototypeGalleryHtml } from './views/admin_prototype_gallery';
 import { educationGalleryHtml } from './views/education_gallery';
@@ -1117,6 +1118,12 @@ app.get('/locations/:campus', async (c) => {
     }
     return c.html(locationsHtml({ kakaoMapAppKey: appKey, initialTab: campus as 'hongdae' | 'gumi' | 'jeonju' }));
 });
+app.get('/guides/3d-printing', (c) => c.html(learn3dPrintingHtml('') as string));
+app.get('/guides/3d-printing/:topic', (c) => {
+    const html = learn3dPrintingHtml(c.req.param('topic'));
+    if (!html) return c.redirect('/guides/3d-printing');
+    return c.html(html);
+});
 app.get('/guides/:slug', (c) => {
     const slug = c.req.param('slug');
     // 통합·정리된 구 URL → 대표 URL
@@ -1622,6 +1629,7 @@ app.get('/sitemap', (c) => {
                                                                                     학습 가이드
                                                                                 </h2>
                                                                                 <ul class="space-y-2">
+                                                                                    <li><a href="/guides/3d-printing" class="text-gray-600 hover:text-blue-600 transition">3D프린팅 기초(개요·역사·출력 방식·소재)</a></li>
                                                                                     <li><a href="/guides/national-support" class="text-gray-600 hover:text-blue-600 transition">국비지원·내일배움카드</a></li>
                                                                                     <li><a href="/guides/craftsman-license" class="text-gray-600 hover:text-blue-600 transition">기능사·국가자격</a></li>
                                                                                     <li><a href="/guides/small-business" class="text-gray-600 hover:text-blue-600 transition">소상공인</a></li>

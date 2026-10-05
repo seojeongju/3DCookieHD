@@ -22,7 +22,7 @@ export const navigationHtml = (activeMenu = '') => `
                 <div class="hidden lg:flex space-x-1 items-center">
                     <!-- 과정안내 -->
                     <div class="relative group shrink-0">
-                        <a href="/course-sessions" class="px-3 py-2 ${['courses', 'course-sessions', 'guides'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
+                        <a href="/course-sessions" class="px-3 py-2 ${['courses', 'course-sessions', 'guides', 'learn'].includes(activeMenu) ? 'text-primary-600 font-bold' : 'text-gray-600 font-medium'} hover:text-primary-600 text-sm flex items-center transition-colors">
                             <i class="fas fa-book-open mr-1.5 text-xs" aria-hidden="true"></i>
                             과정안내
                             <i class="fas fa-chevron-down ml-1 text-[10px] text-gray-400"></i>
@@ -39,6 +39,7 @@ export const navigationHtml = (activeMenu = '') => `
                                 </div>
                                 <div class="w-52 shrink-0 py-2 border-l border-gray-100 bg-slate-50/60">
                                     <p class="px-4 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap"><i class="fas fa-compass mr-1.5" aria-hidden="true"></i>학습 가이드</p>
+                                    <a href="/guides/3d-printing" class="block px-4 py-2 text-sm ${activeMenu === 'learn' ? 'bg-white text-primary-600 font-bold' : 'text-gray-700 hover:bg-white hover:text-primary-600'} whitespace-nowrap"><i class="fas fa-lightbulb w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>3D프린팅 기초</a>
                                     <a href="/guides/national-support" class="block px-4 py-2 text-sm ${activeMenu === 'guides' ? 'bg-white text-primary-600 font-bold' : 'text-gray-700 hover:bg-white hover:text-primary-600'} whitespace-nowrap"><i class="fas fa-id-card w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>국비지원·내일배움카드</a>
                                     <a href="/guides/craftsman-license" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap"><i class="fas fa-certificate w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>기능사·국가자격</a>
                                     <a href="/guides/small-business" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white hover:text-primary-600 whitespace-nowrap"><i class="fas fa-store w-4 text-center mr-2.5 text-[11px]" aria-hidden="true"></i>소상공인 활용</a>
@@ -146,6 +147,7 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/corporate-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-briefcase w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>기업단체교육</a>
                 <a href="/university-education" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-building-columns w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>대학맞춤교육</a>
                 <div class="px-2 py-1 mt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider"><i class="fas fa-compass mr-1.5" aria-hidden="true"></i>학습 가이드</div>
+                <a href="/guides/3d-printing" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-lightbulb w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>3D프린팅 기초</a>
                 <a href="/guides/national-support" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-id-card w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>국비지원·내일배움카드</a>
                 <a href="/guides/craftsman-license" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-certificate w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>기능사·국가자격</a>
                 <a href="/guides/small-business" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-store w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>소상공인 활용</a>

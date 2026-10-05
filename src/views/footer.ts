@@ -53,6 +53,7 @@ export const footerHtml = () => `
                 <p class="mt-2">&copy; 2025 3D Cookie Hongdae Center. All rights reserved.</p>
             </div>
             <div class="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 shrink-0">
+                <a href="/guides/3d-printing" class="hover:text-white transition">3D프린팅 기초</a>
                 <a href="/guides/national-support" class="hover:text-white transition">국비지원</a>
                 <a href="/guides/craftsman-license" class="hover:text-white transition">기능사</a>
                 <a href="/guides/small-business" class="hover:text-white transition">소상공인</a>

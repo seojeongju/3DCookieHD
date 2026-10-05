@@ -35,6 +35,7 @@ const GUIDE_NAV: Array<{ slug: string; label: string; icon: string }> = [
     { slug: 'craftsman-license', label: '기능사·국가자격', icon: 'fa-id-badge' },
     { slug: 'small-business', label: '소상공인 활용', icon: 'fa-store' },
     { slug: 'prototype', label: '시제품 제작', icon: 'fa-drafting-compass' },
+    { slug: '3d-printing', label: '3D프린팅 기초', icon: 'fa-lightbulb' },
 ];
 
 const PAGES: Record<string, GuidePage> = {
