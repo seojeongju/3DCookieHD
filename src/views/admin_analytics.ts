@@ -887,7 +887,7 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                     searchGrid.innerHTML = searchEngines.map(function(s) {
                         const meta = engineMeta[s.label] || { key: 'search_all', icon: '🔍', bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' };
                         const pct = Math.round((s.pv / totalSearchPv) * 100);
-                        return '<div onclick="filterBySearchEngineCard(\'' + meta.key + '\')" class="cursor-pointer group hover:border-indigo-500 hover:shadow-md transition-all ' + meta.bg + ' border ' + meta.border + ' p-3.5 rounded-2xl flex flex-col justify-between">' +
+                        return '<div data-engine="' + meta.key + '" onclick="handleEngineCardClick(this)" class="cursor-pointer group hover:border-indigo-500 hover:shadow-md transition-all ' + meta.bg + ' border ' + meta.border + ' p-3.5 rounded-2xl flex flex-col justify-between">' +
                             '<div>' +
                                 '<div class="flex items-center justify-between mb-2">' +
                                     '<span class="font-extrabold text-xs ' + meta.text + '">' + escapeHtml(s.label) + '</span>' +
@@ -1023,6 +1023,15 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
             });
 
             fetchReferrersList();
+        }
+
+        function handleEngineCardClick(el) {
+            const key = el ? (el.getAttribute('data-engine') || '') : '';
+            setReferrerEngine(key);
+            const anchor = document.getElementById('referrerSectionAnchor');
+            if (anchor) {
+                anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         function filterBySearchEngineCard(engineKey) {
