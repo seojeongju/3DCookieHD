@@ -989,7 +989,7 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
       } else throw err;
     }
 
-    const row = await DB.prepare(
+    const row: any = await DB.prepare(
       `SELECT s.id, s.approved_course_id, s.session_number, s.status,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
               s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
@@ -998,6 +998,19 @@ app.post('/', authMiddleware, requireAdmin, async (c) => {
        LEFT JOIN course_categories c ON c.id = a.category_id
        ORDER BY s.id DESC LIMIT 1`
     ).first();
+
+    // 신규 회차 개설 즉시 1:1 전용 LMS 과정(courses) 발급 및 lms_course_id 확정 연결
+    if (row && row.id) {
+      try {
+        const dedicatedId = await ensureDedicatedLmsCourseForSession(DB, Number(row.id));
+        if (dedicatedId) {
+          row.lms_course_id = dedicatedId;
+        }
+      } catch (lmsErr) {
+        console.error('Failed to auto-issue dedicated LMS course for session:', lmsErr);
+      }
+    }
+
     return c.json({ success: true, data: row }, 201);
   } catch (e) {
     const errMsg = e && typeof e === 'object' && 'message' in e ? String((e as Error).message) : String(e);
@@ -1211,7 +1224,7 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
       } else throw err;
     }
 
-    const row = await DB.prepare(
+    const row: any = await DB.prepare(
       `SELECT s.id, s.approved_course_id, s.session_number, s.status,
               s.training_start_date, s.training_end_date, s.url_ncs, s.url_plan, s.url_detail_plan,
               s.registered_at, s.created_at, a.name as course_name, a.instructor_name, c.name as category_name
@@ -1222,6 +1235,18 @@ app.put('/:id', authMiddleware, requireAdmin, async (c) => {
     )
       .bind(id)
       .first();
+
+    if (row && row.id) {
+      try {
+        const dedicatedId = await ensureDedicatedLmsCourseForSession(DB, Number(row.id));
+        if (dedicatedId) {
+          row.lms_course_id = dedicatedId;
+        }
+      } catch (lmsErr) {
+        console.error('Failed to sync dedicated LMS course on update:', lmsErr);
+      }
+    }
+
     return c.json({ success: true, data: row });
   } catch (e) {
     console.error('course-sessions update:', e);

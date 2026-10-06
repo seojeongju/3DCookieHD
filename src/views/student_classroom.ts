@@ -292,10 +292,10 @@ export const studentClassroomHtml = (sessionId: string) => `
                 }
                 overview = json.data;
                 if (overview.has_access_code === 1 && !sessionStorage.getItem('access_verified_' + sessionId)) {
-                    document.getElementById('loadingOverlay').classList.add('hidden');
-                    document.getElementById('pinModal').classList.remove('hidden');
-                    return;
-                }
+                        document.getElementById('loadingOverlay').classList.add('hidden');
+                        document.getElementById('pinModal').classList.remove('hidden');
+                        return;
+                    }
                 renderShell();
             } catch (e) {
                 console.error(e);

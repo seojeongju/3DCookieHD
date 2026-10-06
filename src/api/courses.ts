@@ -1065,11 +1065,27 @@ courses.get('/:id/attendance-info', async (c) => {
     if (type !== 'hrd') {
       return successResponse(c, { session_status: '', training_end_date: null, last_training_date: null });
     }
+    const idNum = parseInt(courseId, 10);
+    const sessionIdQ = c.req.query('session_id');
+    let resolvedSid = sessionIdQ ? parseInt(sessionIdQ, 10) : NaN;
+
+    if (!Number.isFinite(resolvedSid) || resolvedSid < 1) {
+      if (!isNaN(idNum)) {
+        const byId: any = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(idNum).first();
+        if (byId) resolvedSid = byId.id;
+        else {
+          const byLms: any = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE lms_course_id = ?').bind(idNum).first();
+          if (byLms) resolvedSid = byLms.id;
+        }
+      }
+    }
+    const lookupSid = Number.isFinite(resolvedSid) && resolvedSid >= 1 ? resolvedSid : courseId;
+
     const session = await getOne<any>(c.env.DB, `
       SELECT cs.training_start_date, cs.training_end_date, cs.status as session_status
       FROM course_sessions cs
       WHERE cs.id = ?
-    `, [courseId]);
+    `, [lookupSid]);
     if (!session) {
       return successResponse(c, { session_status: '', training_end_date: null, last_training_date: null });
     }
@@ -1078,7 +1094,7 @@ courses.get('/:id/attendance-info', async (c) => {
     let lastTrainingDate = trainingEndDate;
     const trainingDates = await getSessionTrainingDates(
       c.env.DB,
-      Number(courseId),
+      Number(lookupSid),
       trainingStartDate,
       trainingEndDate
     );
@@ -1098,7 +1114,7 @@ courses.get('/:id/attendance-info', async (c) => {
 
 /**
  * GET /api/courses/:id/attendance
- * 특정 날짜의 출결 현황 조회. :id가 회차 ID면 회차 기준, 아니면 과정 기준
+ * 특정 날짜의 출결 현황 조회. :id가 회차 ID 또는 LMS courses.id일 때 정확한 회차 기준 조회
  */
 courses.get('/:id/attendance', async (c) => {
   try {
@@ -1106,17 +1122,27 @@ courses.get('/:id/attendance', async (c) => {
     const date = c.req.query('date'); // YYYY-MM-DD
     const type = c.req.query('type');
     const idNum = parseInt(courseId, 10);
+    const sessionIdQ = c.req.query('session_id');
+
     let isHrd = type === 'hrd';
-    if (!isHrd && !isNaN(idNum)) {
-      const inCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(idNum).first();
-      const inSessions = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(idNum).first();
-      if (!inCourses && inSessions) isHrd = true;
-      else if (inCourses && inSessions) {
-        // courses.id와 course_sessions.id가 같은 숫자로 공존할 수 있음 → 회차에 수강생이 있으면 HRD(LMS 회차) 출석으로 처리
-        const hasSessionEnrollments = await c.env.DB.prepare(
-          'SELECT 1 FROM course_session_enrollments WHERE session_id = ? LIMIT 1'
-        ).bind(idNum).first();
-        if (hasSessionEnrollments) isHrd = true;
+    let realSessionId: number | null = sessionIdQ ? parseInt(sessionIdQ, 10) : null;
+    if (realSessionId != null && (isNaN(realSessionId) || realSessionId < 1)) realSessionId = null;
+
+    if (!isNaN(idNum)) {
+      if (!realSessionId) {
+        const inSessions: any = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(idNum).first();
+        if (inSessions) {
+          realSessionId = inSessions.id;
+          isHrd = true;
+        } else {
+          const byLms: any = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE lms_course_id = ?').bind(idNum).first();
+          if (byLms) {
+            realSessionId = byLms.id;
+            isHrd = true;
+          }
+        }
+      } else {
+        isHrd = true;
       }
     }
 
@@ -1130,24 +1156,23 @@ courses.get('/:id/attendance', async (c) => {
     let defaultEndTime = '18:00';
     let sessionDetails: any = null;
     let allSessionLogs: any[] = [];
-    // timetable 기반 훈련일 수 (isHrd 그룹 이후 학생 루프에서 사용되므로 바깜에 let 선언)
-    let timetableTotalDays = 0;           // 과정 전체 훈련일 수 (finalRate 분모)
-    let timetableProgressedDays = 0;      // 검색일까지 훈련일 수 (currentRate 분모)
-    let allTimetableDates: string[] = []; // is_training_day 판별용 재사용
+    let timetableTotalDays = 0;
+    let timetableProgressedDays = 0;
+    let allTimetableDates: string[] = [];
     const todayStr = new Date().toISOString().split('T')[0];
     const searchDateStr = (date || '').toString().substring(0, 10);
-    // 출석률 집계 상한: 미래 검색일은 오늘까지만 반영
     let progressCap = searchDateStr;
     if (searchDateStr > todayStr) progressCap = todayStr;
 
-    if (isHrd) {
+    if (isHrd && realSessionId) {
+      const targetSessionId = realSessionId;
       // 0. 회차 정보 조회 (기본 시간 설정 + 마감 여부 + 훈련 기간)
       const session = await getOne<any>(c.env.DB, `
         SELECT cs.training_time_start, cs.training_time_end, cs.training_start_date, cs.training_end_date, cs.days_of_week, cs.status as session_status, ac.total_days, ac.total_hours, ac.daily_hours
         FROM course_sessions cs
         JOIN approved_courses ac ON cs.approved_course_id = ac.id
         WHERE cs.id = ?
-      `, [courseId]);
+      `, [targetSessionId]);
       if (session) {
         if (session.training_time_start) defaultStartTime = session.training_time_start;
         if (session.training_time_end) defaultEndTime = session.training_time_end;
@@ -1160,7 +1185,7 @@ courses.get('/:id/attendance', async (c) => {
         FROM course_session_enrollments e
         JOIN users u ON e.user_id = u.id
         WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
-      `, [courseId]);
+      `, [targetSessionId]);
 
       // 2. 해당 날짜의 출결 기록 조회 (course_session_enrollments ID 사용)
       attendanceLogs = await getAll<any>(c.env.DB, `
@@ -1168,7 +1193,7 @@ courses.get('/:id/attendance', async (c) => {
         WHERE enrollment_id IN (
           SELECT id FROM course_session_enrollments WHERE session_id = ?
         ) AND date = ?
-      `, [courseId, date]);
+      `, [targetSessionId, date]);
 
       // 2-1. 전체 출석 기록 조회 (for rate calculation)
       allSessionLogs = await getAll<any>(c.env.DB, `
@@ -1177,11 +1202,11 @@ courses.get('/:id/attendance', async (c) => {
         WHERE enrollment_id IN (
           SELECT id FROM course_session_enrollments WHERE session_id = ?
         )
-      `, [courseId]);
+      `, [targetSessionId]);
 
       allTimetableDates = await getSessionTrainingDates(
         c.env.DB,
-        Number(courseId),
+        Number(targetSessionId),
         sessionDetails?.training_start_date,
         sessionDetails?.training_end_date,
         sessionDetails?.days_of_week

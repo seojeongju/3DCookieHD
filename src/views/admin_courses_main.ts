@@ -39,6 +39,9 @@ export function adminCoursesMainHtml(): string {
                     </nav>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.runNormalizeAllSessions()" class="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition shadow-sm" title="회차별 1:1 전용 LMS 코스 발급 및 요일 불일치 일지 복구">
+                        <i class="fas fa-magic text-indigo-600"></i> LMS 회차 매핑 정비
+                    </button>
                     <a href="/admin/courses/register" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 transition">
                         <i class="fas fa-plus"></i> 일반과정 등록
                     </a>
@@ -400,6 +403,30 @@ export function adminCoursesMainHtml(): string {
                     }
                 }
                 location.href = '/admin/courses/' + lmsId + '/lms?type=hrd&session_id=' + encodeURIComponent(String(sid));
+            };
+
+            window.runNormalizeAllSessions = async function() {
+                if (!confirm('모든 회차의 1:1 전용 LMS 과정 연결을 점검하고, 주말반/평일반에 잘못 들어간 훈련일지를 정상 위치로 복구합니다.\n진행하시겠습니까?')) return;
+                var btn = document.querySelector('button[onclick*="runNormalizeAllSessions"]');
+                var origText = btn ? btn.innerHTML : '';
+                try {
+                    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 정비 진행 중...'; }
+                    var res = await fetch('/api/hrd/sessions/normalize-all', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+                    });
+                    var json = await res.json();
+                    if (json.success) {
+                        alert(json.message || '정비가 완료되었습니다.');
+                        location.reload();
+                    } else {
+                        alert('정비 실패: ' + (json.error || '오류 발생'));
+                    }
+                } catch (e) {
+                    alert('정비 요청 중 오류가 발생했습니다.');
+                } finally {
+                    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+                }
             };
 
             loadApproved();

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { Bindings, JWTPayload, Variables } from '../types';
 import { successResponse, errorResponse, forbiddenResponse } from '../utils/response';
 import { authMiddleware, requireRole } from '../middleware/auth';
-import { ensureDedicatedLmsCourseForSession, resolveSessionToLmsCourseId, resolveTrainingLogSession } from '../utils/sessionCourseResolution';
+import { ensureDedicatedLmsCourseForSession, resolveSessionToLmsCourseId, resolveTrainingLogSession, isDateMatchingSessionDays, normalizeAllCourseSessions } from '../utils/sessionCourseResolution';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { datesToTrainingDayLabels, getSessionTrainingDates, getSessionTrainingDatesForLogs, normalizeTrainingDate } from '../utils/session_training_dates';
 
@@ -2928,7 +2928,7 @@ app.get('/training-logs', async (c) => {
             sessionPk = Number(session.id);
             const sessionDetail: any = await c.env.DB.prepare(`
                 SELECT s.id, s.session_number, s.session_name, s.lms_course_id,
-                       s.training_start_date, s.training_end_date,
+                       s.training_start_date, s.training_end_date, s.days_of_week,
                        a.name as course_name, a.daily_hours, a.total_hours, a.total_days
                 FROM course_sessions s
                 LEFT JOIN approved_courses a ON s.approved_course_id = a.id
@@ -3008,9 +3008,17 @@ app.get('/training-logs', async (c) => {
 
         const { results } = await c.env.DB.prepare(query).bind(...params).all();
 
+        let finalLogs = results || [];
+        if (session && (session.days_of_week || session.session_name)) {
+            finalLogs = finalLogs.filter((row: any) => {
+                const d = String(row.date || '').substring(0, 10);
+                return isDateMatchingSessionDays(d, session.days_of_week, session.session_name);
+            });
+        }
+
         const out: { success: boolean; data: any; pagination?: any; assignedDailyHours?: number; resolved_course_id?: number; session_id?: number } = {
             success: true,
-            data: results,
+            data: finalLogs,
             pagination: {
                 page,
                 limit,
@@ -3025,6 +3033,21 @@ app.get('/training-logs', async (c) => {
     } catch (e: any) {
         console.error('[Training Logs GET] Error:', e);
         return errorResponse(c, '훈련일지 조회 실패: ' + e.message, 500);
+    }
+});
+
+// 전체 회차 및 훈련일지 무결성 일괄 정비 (관리자용)
+app.post('/sessions/normalize-all', authMiddleware, requireRole('admin'), async (c) => {
+    try {
+        const result = await normalizeAllCourseSessions(c.env.DB);
+        return c.json({
+            success: true,
+            message: `전체 ${result.totalSessions}개 회차 중 ${result.fixedSessions}개 회차 LMS 매핑 보정, ${result.movedLogs}개 오염 일지 정상 복구 완료.`,
+            data: result
+        });
+    } catch (e: any) {
+        console.error('[normalize-all-sessions]', e);
+        return errorResponse(c, '전체 정비 실패: ' + (e?.message || String(e)), 500);
     }
 });
 
