@@ -406,7 +406,7 @@ export function adminCoursesMainHtml(): string {
             };
 
             window.runNormalizeAllSessions = async function() {
-                if (!confirm('모든 회차의 1:1 전용 LMS 과정 연결을 점검하고, 주말반/평일반에 잘못 들어간 훈련일지를 정상 위치로 복구합니다.\n진행하시겠습니까?')) return;
+                if (!confirm('모든 회차의 1:1 전용 LMS 과정 연결을 점검하고 주말반/평일반에 잘못 들어간 훈련일지를 정상 위치로 복구합니다. 진행하시겠습니까?')) return;
                 var btn = document.querySelector('button[onclick*="runNormalizeAllSessions"]');
                 var origText = btn ? btn.innerHTML : '';
                 try {
