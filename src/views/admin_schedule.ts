@@ -256,7 +256,7 @@ export const adminScheduleHtml = `
 
         async function loadFacilities() {
             try {
-                const res = await fetch('/api/hrd/facilities');
+                const res = await fetch('/api/hrd/facilities', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const json = await res.json();
                 if (json.success) {
                     const select = document.getElementById('facilitySelect');

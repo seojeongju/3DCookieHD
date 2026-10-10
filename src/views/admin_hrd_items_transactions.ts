@@ -227,6 +227,9 @@ export const adminHrdItemsTransactionsHtml = () => `
     </div>
 
     <script type="module">
+        function authHeaders(extra) {
+            return Object.assign({ 'Authorization': 'Bearer ' + localStorage.getItem('token') }, extra || {});
+        }
         let currentPage = 1;
         let limit = 20;
 
@@ -257,7 +260,7 @@ export const adminHrdItemsTransactionsHtml = () => `
                     category: category
                 });
 
-                const res = await fetch(\`/api/hrd/items/transactions/all?\${queryParams}\`);
+                const res = await fetch(\`/api/hrd/items/transactions/all?\${queryParams}\`, { headers: authHeaders() });
                 const result = await res.json();
 
                 if (!result.success) throw new Error(result.error);
@@ -396,7 +399,7 @@ export const adminHrdItemsTransactionsHtml = () => `
 
             try {
                 // 기존 items 조회 API 재사용
-                const res = await fetch(\`/api/hrd/items?search=\${encodeURIComponent(query)}&limit=10\`);
+                const res = await fetch(\`/api/hrd/items?search=\${encodeURIComponent(query)}&limit=10\`, { headers: authHeaders() });
                 const result = await res.json();
                 
                 if (result.success && result.data.length > 0) {
@@ -475,7 +478,7 @@ export const adminHrdItemsTransactionsHtml = () => `
             try {
                 const res = await fetch(\`/api/hrd/items/\${itemId}/transaction\`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify(data)
                 });
                 const result = await res.json();

@@ -288,7 +288,7 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
         // ===== 4. NCS 진도율 (요약 카드) =====
         async function loadNcsProgress() {
             try {
-                var res = await fetch('/api/hrd/courses/' + courseId + '/ncs-summary');
+                var res = await fetch('/api/hrd/courses/' + courseId + '/ncs-summary', { headers: { 'Authorization': 'Bearer ' + token } });
                 var result = await res.json();
                 if (result.success && result.data.length > 0) {
                     var totalTarget = result.data.reduce(function(sum, item) { return sum + item.target_hours; }, 0);
@@ -537,7 +537,7 @@ export const adminLmsDashboardHtml = (sidebar: string = hrdSidebar('courses')) =
         // ===== 8. NCS 능력단위별 이수 현황 =====
         async function loadNcsSummary() {
             try {
-                var res = await fetch('/api/hrd/courses/' + courseId + '/ncs-summary');
+                var res = await fetch('/api/hrd/courses/' + courseId + '/ncs-summary', { headers: { 'Authorization': 'Bearer ' + token } });
                 var result = await res.json();
                 
                 if (result.success) {

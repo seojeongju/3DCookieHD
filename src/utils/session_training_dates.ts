@@ -1,3 +1,5 @@
+import { ensureTrainingLogSessionColumn, trainingLogScopeSql, type ScopeSession } from './training_log_scope';
+
 const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
 const DAY_NAME_TO_NUM: Record<string, number> = {
@@ -221,15 +223,13 @@ export async function getTrainingLogDatesForCourse(
 /** training_logs.course_id는 LMS courses.id 또는 HRD session.id 둘 다 사용됨 */
 export async function getTrainingLogDatesForSession(
   DB: D1Database,
-  sessionId: number,
-  lmsCourseId?: number | null
+  session: ScopeSession
 ): Promise<string[]> {
-  const ids: number[] = [sessionId];
-  if (lmsCourseId != null && lmsCourseId > 0 && lmsCourseId !== sessionId) ids.push(lmsCourseId);
-  const placeholders = ids.map(() => '?').join(',');
+  await ensureTrainingLogSessionColumn(DB);
+  const scope = await trainingLogScopeSql(DB, session);
   const { results } = await DB.prepare(
-    `SELECT DISTINCT date FROM training_logs WHERE course_id IN (${placeholders}) ORDER BY date ASC`
-  ).bind(...ids).all();
+    `SELECT DISTINCT t.date FROM training_logs t WHERE ${scope.where} ORDER BY t.date ASC`
+  ).bind(...scope.binds).all();
   return (results || [])
     .map((r: { date?: string }) => normalizeTrainingDate(r.date))
     .filter(Boolean);
@@ -271,7 +271,14 @@ export async function getSessionTrainingDatesForLogs(
   const timetableWeekdays = await getTimetableWeekdays(DB, sessionId);
   const effectiveDays = inferDaysOfWeekFromSessionMeta(daysOfWeek, sessionName, timetableWeekdays);
   const scheduledDates = generateScheduledTrainingDates(start, end, effectiveDays);
-  const logDates = await getTrainingLogDatesForSession(DB, sessionId, lmsCourseId);
+  const logDates = await getTrainingLogDatesForSession(DB, {
+    id: sessionId,
+    lms_course_id: lmsCourseId,
+    training_start_date: trainingStart,
+    training_end_date: trainingEnd,
+    days_of_week: daysOfWeek,
+    session_name: sessionName,
+  });
 
   // 훈련일지 작성: 운영기간 내 전체 훈련일 표시 (공강 excluded_dates는 드롭다운에서 제외하지 않음)
   // 주의: mergeTrainingDates는 가변 인자(...lists) — 배열로 한 번 감싸면 날짜가 1개만 남음

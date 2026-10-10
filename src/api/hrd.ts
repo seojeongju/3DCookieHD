@@ -7,11 +7,13 @@ import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { datesToTrainingDayLabels, getSessionTrainingDates, getSessionTrainingDatesForLogs, normalizeTrainingDate } from '../utils/session_training_dates';
 import { getEffectiveSessionStatus } from '../utils/course_session_status';
 import { syncStudentCompletionStatus } from '../utils/student_journey_status';
+import { assignTrainingLogToSession, ensureTrainingLogSessionColumn, reviewLegacyTrainingLogs, trainingLogScopeSql } from '../utils/training_log_scope';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
-// 상담 일지에는 연락처 등 개인정보가 포함되므로 교직원만 접근
-const requireCounselingStaff = requireRole('admin', 'teacher', 'instructor');
+// 상담 일지·인력·출결 등 개인정보가 포함되므로 교직원만 접근
+const requireStaff = requireRole('admin', 'teacher', 'instructor');
+const requireCounselingStaff = requireStaff;
 
 function timeToMinutesSinceMidnight(s: string | null | undefined): number | null {
     if (!s || typeof s !== 'string') return null;
@@ -57,7 +59,7 @@ async function resolveLmsCourseId(DB: any, id: any): Promise<number | null> {
 // ============================================
 
 // 교강사 목록 조회 (교강사 정보 + 유저명/사진 등)
-app.get('/personnel', async (c) => {
+app.get('/personnel', authMiddleware, requireStaff, async (c) => {
     try {
         const jsonFields = ['education', 'career', 'certifications', 'training_history', 'teaching_history'];
         const existingColumns: string[] = [];
@@ -147,7 +149,7 @@ app.get('/personnel', async (c) => {
 });
 
 // 교강사 등록
-app.post('/personnel', async (c) => {
+app.post('/personnel', authMiddleware, requireRole('admin'), async (c) => {
     try {
         const body = await c.req.json();
         const { email, name, phone, position, subject, type, joined_at, profile_image,
@@ -256,7 +258,7 @@ app.put('/personnel/:id', authMiddleware, async (c) => {
 });
 
 // 교강사 삭제 (퇴직 처리)
-app.delete('/personnel/:id', async (c) => {
+app.delete('/personnel/:id', authMiddleware, requireRole('admin'), async (c) => {
     try {
         const userId = c.req.param('id');
         // soft delete: hrd_instructors.status = 'retired'
@@ -269,7 +271,7 @@ app.delete('/personnel/:id', async (c) => {
 });
 
 // 교강사 승인 (가입 대기 -> 승인)
-app.put('/personnel/:id/approve', async (c) => {
+app.put('/personnel/:id/approve', authMiddleware, requireRole('admin'), async (c) => {
     try {
         const id = c.req.param('id');
 
@@ -293,7 +295,7 @@ app.put('/personnel/:id/approve', async (c) => {
 });
 
 // 교강사 승인 거절 (가입 대기 -> 이용 정지)
-app.put('/personnel/:id/reject', async (c) => {
+app.put('/personnel/:id/reject', authMiddleware, requireRole('admin'), async (c) => {
     try {
         const id = c.req.param('id');
         // 사용자 상태 suspended로 변경
@@ -310,7 +312,7 @@ app.put('/personnel/:id/reject', async (c) => {
 // ============================================
 
 // 물품 목록 조회
-app.get('/items', async (c) => {
+app.get('/items', authMiddleware, requireStaff, async (c) => {
     try {
         const category = c.req.query('category');
         const search = c.req.query('search');
@@ -348,7 +350,7 @@ app.get('/items', async (c) => {
 });
 
 // 전체 입/출고 이력 조회 (Items List보다 뒤, Item Detail보다 앞)
-app.get('/items/transactions/all', async (c) => {
+app.get('/items/transactions/all', authMiddleware, requireStaff, async (c) => {
     try {
         const page = parseInt(c.req.query('page') || '1');
         const limit = parseInt(c.req.query('limit') || '20');
@@ -415,7 +417,7 @@ app.get('/items/transactions/all', async (c) => {
 });
 
 // 물품 상세 조회
-app.get('/items/:id', async (c) => {
+app.get('/items/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const item = await c.env.DB.prepare('SELECT * FROM hrd_items WHERE id = ?').bind(id).first();
@@ -427,7 +429,7 @@ app.get('/items/:id', async (c) => {
 });
 
 // 물품 등록
-app.post('/items', async (c) => {
+app.post('/items', authMiddleware, requireStaff, async (c) => {
     try {
         const body = await c.req.json();
         const { category, name, model, quantity, location, status, memo, image_url } = body;
@@ -457,7 +459,7 @@ app.post('/items', async (c) => {
 });
 
 // 물품 수정
-app.put('/items/:id', async (c) => {
+app.put('/items/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
@@ -491,7 +493,7 @@ app.put('/items/:id', async (c) => {
 });
 
 // 대여 등록
-app.post('/items/:id/rent', async (c) => {
+app.post('/items/:id/rent', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
@@ -510,7 +512,7 @@ app.post('/items/:id/rent', async (c) => {
 });
 
 // 반납 처리
-app.put('/rentals/:id/return', async (c) => {
+app.put('/rentals/:id/return', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         await c.env.DB.prepare(`
@@ -524,7 +526,7 @@ app.put('/rentals/:id/return', async (c) => {
 });
 
 // 대여 이력 조회
-app.get('/items/:id/rentals', async (c) => {
+app.get('/items/:id/rentals', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const { results } = await c.env.DB.prepare(`
@@ -537,7 +539,7 @@ app.get('/items/:id/rentals', async (c) => {
 });
 
 // 특정 물품이 배정된 시설 목록
-app.get('/items/:id/facilities', async (c) => {
+app.get('/items/:id/facilities', authMiddleware, requireStaff, async (c) => {
     try {
         const itemId = c.req.param('id');
 
@@ -558,7 +560,7 @@ app.get('/items/:id/facilities', async (c) => {
 });
 
 // 물품 입/출고 처리 (재고 변동)
-app.post('/items/:id/transaction', async (c) => {
+app.post('/items/:id/transaction', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
@@ -641,7 +643,7 @@ app.post('/items/:id/transaction', async (c) => {
 });
 
 // 물품 입/출고 이력 조회
-app.get('/items/:id/transaction', async (c) => {
+app.get('/items/:id/transaction', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
 
@@ -664,7 +666,7 @@ app.get('/items/:id/transaction', async (c) => {
 });
 
 // 물품 삭제
-app.delete('/items/:id', async (c) => {
+app.delete('/items/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         await c.env.DB.prepare("DELETE FROM hrd_items WHERE id = ?").bind(id).run();
@@ -1058,7 +1060,7 @@ app.get('/students/:id', authMiddleware, requireCounselingStaff, async (c) => {
 });
 
 // DB 연결 테스트용 엔드포인트
-app.get('/db-check', async (c) => {
+app.get('/db-check', authMiddleware, requireRole('admin'), async (c) => {
     try {
         const { results } = await c.env.DB.prepare("SELECT 1 as val").all();
         return c.json({ success: true, message: "DB Connection OK", val: results[0].val });
@@ -1388,7 +1390,7 @@ app.get('/students/:id/enrollments', authMiddleware, async (c) => {
 // ============================================
 
 // 훈련시설 목록 조회
-app.get('/facilities', async (c) => {
+app.get('/facilities', authMiddleware, requireStaff, async (c) => {
     try {
         const search = c.req.query('search');
         let query = `
@@ -1415,7 +1417,7 @@ app.get('/facilities', async (c) => {
 });
 
 // 훈련시설 등록
-app.post('/facilities', async (c) => {
+app.post('/facilities', authMiddleware, requireStaff, async (c) => {
     try {
         const body = await c.req.json();
         const { name, area, managerMain, managerSub, description, image_url } = body;
@@ -1443,7 +1445,7 @@ app.post('/facilities', async (c) => {
 });
 
 // 훈련시설 수정
-app.put('/facilities', async (c) => {
+app.put('/facilities', authMiddleware, requireStaff, async (c) => {
     try {
         const body = await c.req.json();
         const { id, name, area, managerMain, managerSub, description, status, image_url } = body;
@@ -1469,7 +1471,7 @@ app.put('/facilities', async (c) => {
 });
 
 // 훈련시설 삭제
-app.delete('/facilities/:id', async (c) => {
+app.delete('/facilities/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
 
@@ -1490,7 +1492,7 @@ app.delete('/facilities/:id', async (c) => {
 });
 
 // 시설 관리 대장 조회
-app.get('/facilities/:id/maintenance', async (c) => {
+app.get('/facilities/:id/maintenance', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
 
@@ -1546,7 +1548,7 @@ app.get('/facilities/:id/maintenance', async (c) => {
 });
 
 // 시설 관리 대장 항목 수정 (점검/수리 내용 수정)
-app.put('/facilities/maintenance/:logId', async (c) => {
+app.put('/facilities/maintenance/:logId', authMiddleware, requireStaff, async (c) => {
     try {
         const logId = c.req.param('logId');
         const body = await c.req.json();
@@ -1590,7 +1592,7 @@ app.put('/facilities/maintenance/:logId', async (c) => {
 });
 
 // 시설 관리 대장 항목 삭제 (점검기록/수리요청 삭제)
-app.delete('/facilities/maintenance/:logId', async (c) => {
+app.delete('/facilities/maintenance/:logId', authMiddleware, requireStaff, async (c) => {
     try {
         const logId = c.req.param('logId');
         const id = parseInt(logId);
@@ -1604,7 +1606,7 @@ app.delete('/facilities/maintenance/:logId', async (c) => {
 });
 
 // 시설 관리 대장 등록
-app.post('/facilities/:id/maintenance', async (c) => {
+app.post('/facilities/:id/maintenance', authMiddleware, requireStaff, async (c) => {
     try {
         const facilityId = c.req.param('id');
         const body = await c.req.json();
@@ -1656,7 +1658,7 @@ app.post('/facilities/:id/maintenance', async (c) => {
 });
 
 // 시설 이미지 조회
-app.get('/facilities/:id/images', async (c) => {
+app.get('/facilities/:id/images', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const { results } = await c.env.DB.prepare(`
@@ -1670,7 +1672,7 @@ app.get('/facilities/:id/images', async (c) => {
 });
 
 // 시설 이미지 등록 (실제 파일 업로드는 별도 처리하거나 URL만 저장)
-app.post('/facilities/:id/images', async (c) => {
+app.post('/facilities/:id/images', authMiddleware, requireStaff, async (c) => {
     try {
         const facilityId = c.req.param('id');
         const body = await c.req.json();
@@ -1689,7 +1691,7 @@ app.post('/facilities/:id/images', async (c) => {
 });
 
 // 개별 이미지 삭제
-app.delete('/facilities/images/:id', async (c) => {
+app.delete('/facilities/images/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         await c.env.DB.prepare("DELETE FROM hrd_facility_images WHERE id = ?").bind(id).run();
@@ -1701,7 +1703,7 @@ app.delete('/facilities/images/:id', async (c) => {
 });
 
 // 시설 내 물품 목록 조회
-app.get('/facilities/:id/items', async (c) => {
+app.get('/facilities/:id/items', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         // 1. Get facility name
@@ -1723,7 +1725,7 @@ app.get('/facilities/:id/items', async (c) => {
 // ============================================
 
 // HRD 회차 단건 조회 — LMS 헤더 전용 (session.id로 정확히 한 회차만 반환)
-app.get('/sessions/:id', async (c) => {
+app.get('/sessions/:id', authMiddleware, async (c) => {
     try {
         const sid = parseInt(c.req.param('id'), 10);
         if (isNaN(sid) || sid < 1) return c.json({ success: false, error: '잘못된 회차 ID입니다.' }, 400);
@@ -2078,7 +2080,7 @@ app.delete('/attendance/unprocessed', authMiddleware, async (c) => {
 });
 
 // 훈련생 출결사항 출력용: 회차 정보 + 훈련일정 + 수강생 + 출결 데이터
-app.get('/attendance/print-form', async (c) => {
+app.get('/attendance/print-form', authMiddleware, requireStaff, async (c) => {
     try {
         const sessionId = c.req.query('sessionId');
         if (!sessionId) {
@@ -2257,7 +2259,7 @@ app.get('/attendance/print-form', async (c) => {
 });
 
 // 월간 출석부 조회 (출력용). courseId + type=hrd 이면 회차(session) 기준으로 조회
-app.get('/attendance/monthly', async (c) => {
+app.get('/attendance/monthly', authMiddleware, requireStaff, async (c) => {
     try {
         const courseId = c.req.query('courseId');
         const year = c.req.query('year');
@@ -2402,7 +2404,7 @@ app.post('/attendance', authMiddleware, async (c) => {
 });
 
 // 대시보드 통계 조회 (기존 코드 유지)
-app.get('/stats', async (c) => {
+app.get('/stats', authMiddleware, requireStaff, async (c) => {
     try {
         const studentCountResult = await c.env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'student'").first();
         const studentCount = studentCountResult ? (studentCountResult as any).count : 0;
@@ -2871,7 +2873,7 @@ app.get('/training-logs/summary', authMiddleware, async (c) => {
 });
 
 // 훈련 일지 목록 조회 (courseId는 courses.id 또는 course_sessions.id 가능)
-app.get('/training-logs', async (c) => {
+app.get('/training-logs', authMiddleware, requireStaff, async (c) => {
     try {
         const courseIdParam = c.req.query('courseId');
         const sessionIdParam = c.req.query('session_id');
@@ -2923,73 +2925,52 @@ app.get('/training-logs', async (c) => {
                 const te = sessionDetail.training_end_date ? String(sessionDetail.training_end_date).substring(0, 10) : '';
                 if (/^\d{4}-\d{2}-\d{2}$/.test(ts)) sessionStart = ts;
                 if (/^\d{4}-\d{2}-\d{2}$/.test(te)) sessionEnd = te;
-
-                // URL path courses.id를 회차에 덮어쓰지 않음 — 복사본이 원본 LMS를 가로채는 원인
-                // 회차 전용 LMS만 사용 (제목 불일치·공유 시 분리)
-                resolvedCourseId = await ensureDedicatedLmsCourseForSession(c.env.DB, sessionPk);
+                // 조회에서는 LMS 과정을 만들거나 연결을 바꾸지 않음 (저장 시에만 전용 LMS 보장)
+                const lms = Number(sessionDetail.lms_course_id);
+                if (Number.isFinite(lms) && lms > 0) resolvedCourseId = lms;
             }
         } else {
             const existsInCourses = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
             if (existsInCourses) resolvedCourseId = rawId;
         }
 
-        if (resolvedCourseId == null) {
+        if (sessionPk == null && resolvedCourseId == null) {
             return c.json({ success: true, data: [], assignedDailyHours: assignedDailyHours ?? undefined });
         }
 
-        // 레거시: course_id에 회차 PK로 저장된 일지만 함께 조회
-        // 회차 PK가 다른 회차의 LMS courses.id와 겹치면 원본 일지가 섞이므로 courses 행이 있으면 제외
-        const courseIds = [resolvedCourseId];
-        if (sessionPk != null && sessionPk !== resolvedCourseId) {
-            const sessionPkIsLmsCourse = await c.env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(sessionPk).first();
-            if (!sessionPkIsLmsCourse) courseIds.push(sessionPk);
-        }
-        const placeholders = courseIds.map(() => '?').join(',');
+        await ensureTrainingLogSessionColumn(c.env.DB);
+        const scope = sessionPk != null
+            ? await trainingLogScopeSql(c.env.DB, {
+                id: sessionPk,
+                lms_course_id: resolvedCourseId,
+                training_start_date: sessionStart,
+                training_end_date: sessionEnd,
+                days_of_week: session?.days_of_week,
+                session_name: session?.session_name,
+            })
+            : { where: 't.course_id = ?', binds: [resolvedCourseId] as unknown[] };
 
-        // 회차 운영기간 밖 일지(타 과정 혼입) 차단 — 클라이언트 기간과 교집합
-        let filterStart = startDate || null;
-        let filterEnd = endDate || null;
-        if (sessionStart && sessionEnd) {
-            if (!filterStart || filterStart < sessionStart) filterStart = sessionStart;
-            if (!filterEnd || filterEnd > sessionEnd) filterEnd = sessionEnd;
-        }
-
-        let countQuery = `SELECT COUNT(*) as total FROM training_logs t WHERE t.course_id IN (${placeholders})`;
-        const countParams: any[] = [...courseIds];
-        if (filterStart && filterEnd) {
-            countQuery += " AND t.date BETWEEN ? AND ?";
-            countParams.push(filterStart, filterEnd);
+        let filterSql = '';
+        const filterParams: unknown[] = [];
+        if (startDate && endDate) {
+            filterSql = ' AND substr(t.date, 1, 10) BETWEEN ? AND ?';
+            filterParams.push(startDate, endDate);
         }
 
-        const countRow: any = await c.env.DB.prepare(countQuery).bind(...countParams).first();
+        const countRow: any = await c.env.DB.prepare(
+            `SELECT COUNT(*) as total FROM training_logs t WHERE ${scope.where}${filterSql}`
+        ).bind(...scope.binds, ...filterParams).first();
         const total = countRow?.total || 0;
 
-        let query = `
+        const { results } = await c.env.DB.prepare(`
             SELECT t.*, u.name as ncs_unit_name, u.code as ncs_unit_code, usr.name as instructor_name
             FROM training_logs t
             LEFT JOIN ncs_units u ON t.ncs_unit_id = u.id
             LEFT JOIN users usr ON t.instructor_id = usr.id
-            WHERE t.course_id IN (${placeholders})
-        `;
-        const params: any[] = [...courseIds];
-
-        if (filterStart && filterEnd) {
-            query += " AND t.date BETWEEN ? AND ?";
-            params.push(filterStart, filterEnd);
-        }
-
-        query += " ORDER BY t.date DESC LIMIT ? OFFSET ?";
-        params.push(limit, offset);
-
-        const { results } = await c.env.DB.prepare(query).bind(...params).all();
-
-        let finalLogs = results || [];
-        if (session && (session.days_of_week || session.session_name)) {
-            finalLogs = finalLogs.filter((row: any) => {
-                const d = String(row.date || '').substring(0, 10);
-                return isDateMatchingSessionDays(d, session.days_of_week, session.session_name);
-            });
-        }
+            WHERE ${scope.where}${filterSql}
+            ORDER BY t.date DESC, t.id DESC LIMIT ? OFFSET ?
+        `).bind(...scope.binds, ...filterParams, limit, offset).all();
+        const finalLogs = results || [];
 
         const out: { success: boolean; data: any; pagination?: any; assignedDailyHours?: number; resolved_course_id?: number; session_id?: number } = {
             success: true,
@@ -3000,7 +2981,7 @@ app.get('/training-logs', async (c) => {
                 total,
                 totalPages: Math.ceil(total / limit)
             },
-            resolved_course_id: resolvedCourseId
+            resolved_course_id: resolvedCourseId ?? undefined
         };
         if (sessionPk != null) out.session_id = sessionPk;
         if (assignedDailyHours != null) out.assignedDailyHours = assignedDailyHours;
@@ -3015,14 +2996,47 @@ app.get('/training-logs', async (c) => {
 app.post('/sessions/normalize-all', authMiddleware, requireRole('admin'), async (c) => {
     try {
         const result = await normalizeAllCourseSessions(c.env.DB);
+        const review = await reviewLegacyTrainingLogs(c.env.DB, true);
         return c.json({
             success: true,
-            message: `전체 ${result.totalSessions}개 회차 중 ${result.fixedSessions}개 회차 LMS 매핑 보정, ${result.movedLogs}개 오염 일지 정상 복구 완료.`,
-            data: result
+            message: `전체 ${result.totalSessions}개 회차 중 ${result.fixedSessions}개 회차 LMS 매핑 보정. `
+                + `회차 미지정 일지 ${review.total}건 중 시간표로 확인된 ${review.assigned}건 회차 지정, `
+                + `${review.needsReview.length}건은 관리자 확인이 필요합니다 (일지 내용·과정은 변경하지 않음).`,
+            data: { ...result, legacyLogs: { total: review.total, assigned: review.assigned, needsReview: review.needsReview.length } }
         });
     } catch (e: any) {
         console.error('[normalize-all-sessions]', e);
         return errorResponse(c, '전체 정비 실패: ' + (e?.message || String(e)), 500);
+    }
+});
+
+// 회차 미지정(레거시) 훈련일지 점검 — apply=1이면 시간표로 확정되는 건만 회차 지정
+app.get('/training-logs/legacy-review', authMiddleware, requireRole('admin'), async (c) => {
+    try {
+        const apply = c.req.query('apply') === '1';
+        const review = await reviewLegacyTrainingLogs(c.env.DB, apply);
+        return c.json({ success: true, data: review });
+    } catch (e: any) {
+        console.error('[training-logs legacy-review]', e);
+        return errorResponse(c, '일지 점검 실패: ' + (e?.message || String(e)), 500);
+    }
+});
+
+// 관리자 확인 후 일지를 특정 회차로 지정
+app.post('/training-logs/:id/assign-session', authMiddleware, requireRole('admin'), async (c) => {
+    try {
+        const logId = Number(c.req.param('id'));
+        const body = await c.req.json().catch(() => ({}));
+        const sessionId = Number(body.session_id);
+        if (!Number.isFinite(logId) || !Number.isFinite(sessionId) || sessionId < 1) {
+            return errorResponse(c, '일지 ID와 회차 ID가 필요합니다.', 400);
+        }
+        const ok = await assignTrainingLogToSession(c.env.DB, logId, sessionId);
+        if (!ok) return errorResponse(c, '일지 또는 회차를 찾을 수 없습니다.', 404);
+        return c.json({ success: true, message: '일지의 회차가 지정되었습니다.' });
+    } catch (e: any) {
+        console.error('[training-logs assign-session]', e);
+        return errorResponse(c, '회차 지정 실패: ' + (e?.message || String(e)), 500);
     }
 });
 
@@ -3085,8 +3099,8 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
         const isClosed = ['completed', 'closed'].includes(String(session.status)) ||
             (session.training_end_date && String(session.training_end_date).substring(0, 10) < today);
 
-        // 목록과 동일하게 전용 LMS 보장 + 고아 일지 회수
-        const lmsCourseId = await ensureDedicatedLmsCourseForSession(c.env.DB, sessionId);
+        // 조회에서는 LMS 연결을 바꾸지 않음
+        const lmsCourseId = Number(session.lms_course_id) > 0 ? Number(session.lms_course_id) : null;
         let dates = await getSessionTrainingDatesForLogs(
             c.env.DB,
             sessionId,
@@ -3127,7 +3141,7 @@ app.get('/training-logs/training-dates', authMiddleware, async (c) => {
 });
 
 // 훈련 일지 상세 조회
-app.get('/training-logs/:id', async (c) => {
+app.get('/training-logs/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const result = await c.env.DB.prepare(`
@@ -3144,7 +3158,7 @@ app.get('/training-logs/:id', async (c) => {
 });
 
 // 훈련 일지 등록/수정
-app.post('/training-logs', async (c) => {
+app.post('/training-logs', authMiddleware, requireStaff, async (c) => {
     try {
         const body = await c.req.json();
         console.log('[Training Log Save] Request body:', JSON.stringify(body));
@@ -3164,7 +3178,17 @@ app.post('/training-logs', async (c) => {
         let { attendance_summary_json } = body;
         if (attendance_summary_json === undefined) attendance_summary_json = null;
 
+        await ensureTrainingLogSessionColumn(c.env.DB);
+
         if (id) {
+            const target = await c.env.DB.prepare('SELECT id, session_id FROM training_logs WHERE id = ?')
+                .bind(id).first<{ id: number; session_id: number | null }>();
+            if (!target) return errorResponse(c, '수정할 일지를 찾을 수 없습니다.', 404);
+            const reqSessionId = Number(body.session_id);
+            if (target.session_id != null && Number.isFinite(reqSessionId) && reqSessionId > 0 && Number(target.session_id) !== reqSessionId) {
+                return errorResponse(c, '다른 회차의 일지입니다. 해당 회차 화면에서 수정해 주세요.', 409);
+            }
+
             // 수정 (instructor_id 포함 — 배정 해제 시 null 가능)
             const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
 
@@ -3175,6 +3199,20 @@ app.post('/training-logs', async (c) => {
                 updates.push('instructor_id = ?');
                 const safeUpdateInstructorId = (body.instructor_id === '' || body.instructor_id === null || body.instructor_id === 0 || body.instructor_id === '0') ? null : body.instructor_id;
                 bindParams.push(safeUpdateInstructorId);
+            }
+            if (target.session_id == null && Number.isFinite(reqSessionId) && reqSessionId > 0) {
+                const sess: any = await c.env.DB.prepare(
+                    'SELECT id, lms_course_id, training_start_date, training_end_date, days_of_week, session_name FROM course_sessions WHERE id = ?'
+                ).bind(reqSessionId).first();
+                if (sess) {
+                    const scope = await trainingLogScopeSql(c.env.DB, sess);
+                    const inScope = await c.env.DB.prepare(`SELECT t.id FROM training_logs t WHERE t.id = ? AND ${scope.where}`)
+                        .bind(id, ...scope.binds).first();
+                    if (inScope) {
+                        updates.push('session_id = ?');
+                        bindParams.push(reqSessionId);
+                    }
+                }
             }
             bindParams.push(id); // Where clause param
 
@@ -3365,19 +3403,37 @@ app.post('/training-logs', async (c) => {
                 }
             }
 
-            const safeInstructorId = (instructor_id === '' || instructor_id === 0 || instructor_id === '0') ? null : instructor_id;
-            const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : ncs_unit_id;
+            const safeInstructorId = (instructor_id === '' || instructor_id === 0 || instructor_id === '0') ? null : (instructor_id ?? null);
+            const safeNcsUnitId = (ncs_unit_id === '' || ncs_unit_id === 0 || ncs_unit_id === '0') ? null : (ncs_unit_id ?? null);
 
-            // 중복 방지: 같은 과정·같은 날짜 일지가 이미 있으면 INSERT 대신 UPDATE
-            const existingByDate = await c.env.DB.prepare(
-                'SELECT id FROM training_logs WHERE course_id = ? AND date = ? LIMIT 1'
-            ).bind(resolvedCourseId, date).first();
-            const existingId = existingByDate && (existingByDate as { id?: number }).id ? (existingByDate as { id: number }).id : null;
+            // 중복 방지: 같은 회차·같은 날짜 일지가 이미 있으면 INSERT 대신 UPDATE
+            // 레거시(session_id 없음) 일지는 이 회차 목록에 보이는 범위(과정·기간·요일)일 때만 이어서 사용
+            const day = String(date).substring(0, 10);
+            let existingId: number | null = null;
+            if (sessionPkForLink != null) {
+                const sess: any = await c.env.DB.prepare(
+                    'SELECT id, lms_course_id, training_start_date, training_end_date, days_of_week, session_name FROM course_sessions WHERE id = ?'
+                ).bind(sessionPkForLink).first();
+                const scope = await trainingLogScopeSql(c.env.DB, { ...(sess || { id: sessionPkForLink }), lms_course_id: resolvedCourseId });
+                const hit = await c.env.DB.prepare(
+                    `SELECT t.id FROM training_logs t WHERE ${scope.where} AND substr(t.date, 1, 10) = ? ORDER BY (t.session_id IS NULL), t.id LIMIT 1`
+                ).bind(...scope.binds, day).first<{ id: number }>();
+                existingId = hit?.id ?? null;
+            } else {
+                const hit = await c.env.DB.prepare(
+                    'SELECT id FROM training_logs WHERE session_id IS NULL AND course_id = ? AND substr(date, 1, 10) = ? LIMIT 1'
+                ).bind(resolvedCourseId, day).first<{ id: number }>();
+                existingId = hit?.id ?? null;
+            }
 
             if (existingId) {
-                console.log('[Training Log Upsert] Existing log for same course+date, updating id:', existingId);
+                console.log('[Training Log Upsert] Existing log for same session+date, updating id:', existingId);
                 const updates: string[] = ['topic = ?', 'content = ?', 'teaching_method = ?', 'ncs_unit_id = ?', 'training_hours = ?', 'ncs_elements_json = ?', 'schedule_details_json = ?', 'attendance_summary_json = ?', 'updated_at = CURRENT_TIMESTAMP'];
                 const bindParams: any[] = [safeTopic, content || '', teaching_method || '주입식/실습', safeNcsUnitId, training_hours || 0, ncs_elements_json || null, schedule_details_json || null, attendance_summary_json];
+                if (sessionPkForLink != null) {
+                    updates.push('session_id = ?');
+                    bindParams.push(sessionPkForLink);
+                }
                 if (body.instructor_id !== undefined) {
                     updates.push('instructor_id = ?');
                     const safeUpdateInstructorId = (body.instructor_id === '' || body.instructor_id === null || body.instructor_id === 0 || body.instructor_id === '0') ? null : body.instructor_id;
@@ -3399,10 +3455,11 @@ app.post('/training-logs', async (c) => {
                 });
 
                 await c.env.DB.prepare(`
-                    INSERT INTO training_logs (course_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO training_logs (course_id, session_id, instructor_id, date, topic, content, teaching_method, ncs_unit_id, training_hours, ncs_elements_json, schedule_details_json, attendance_summary_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `).bind(
                     resolvedCourseId,
+                    sessionPkForLink,
                     safeInstructorId,
                     date,
                     safeTopic,
@@ -3427,7 +3484,7 @@ app.post('/training-logs', async (c) => {
 });
 
 // 훈련 일지 강사 배정 해제 (instructor_id 만 변경)
-app.patch('/training-logs/:id', async (c) => {
+app.patch('/training-logs/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const body = await c.req.json();
@@ -3445,7 +3502,7 @@ app.patch('/training-logs/:id', async (c) => {
 });
 
 // 훈련 일지 삭제
-app.delete('/training-logs/:id', async (c) => {
+app.delete('/training-logs/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         await c.env.DB.prepare('DELETE FROM training_logs WHERE id = ?').bind(id).run();
@@ -4064,7 +4121,7 @@ app.get('/surveys/summary', authMiddleware, async (c) => {
 });
 
 // NCS 이수 현황 요약 조회 (대시보드 차트용)
-app.get('/courses/:courseId/ncs-summary', async (c) => {
+app.get('/courses/:courseId/ncs-summary', authMiddleware, async (c) => {
     try {
         const courseIdParam = c.req.param('courseId');
         // session_id 명시 시 해당 회차의 lms_course_id 로 직접 해석 (PK 충돌 방지)
@@ -4248,7 +4305,7 @@ app.post('/my-employment', authMiddleware, async (c) => {
 // ============================================
 
 // 시설 목록 조회
-app.get('/facilities', async (c) => {
+app.get('/facilities', authMiddleware, requireStaff, async (c) => {
     try {
         const search = c.req.query('search');
         let query = 'SELECT * FROM hrd_facilities';
@@ -4270,7 +4327,7 @@ app.get('/facilities', async (c) => {
 });
 
 // 시설 상세 조회
-app.get('/facilities/:id', async (c) => {
+app.get('/facilities/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         const facility = await c.env.DB.prepare('SELECT * FROM hrd_facilities WHERE id = ?').bind(id).first();
@@ -4286,7 +4343,7 @@ app.get('/facilities/:id', async (c) => {
 });
 
 // 시설 등록
-app.post('/facilities', async (c) => {
+app.post('/facilities', authMiddleware, requireStaff, async (c) => {
     try {
         const body = await c.req.json();
         const { name, status, area, manager_main, manager_sub, description, image_url } = body;
@@ -4303,7 +4360,7 @@ app.post('/facilities', async (c) => {
 });
 
 // 시설 수정
-app.put('/facilities', async (c) => {
+app.put('/facilities', authMiddleware, requireStaff, async (c) => {
     try {
         const body = await c.req.json();
         const { id, name, status, area, manager_main, manager_sub, description, image_url } = body;
@@ -4321,7 +4378,7 @@ app.put('/facilities', async (c) => {
 });
 
 // 시설 삭제
-app.delete('/facilities/:id', async (c) => {
+app.delete('/facilities/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const id = c.req.param('id');
         await c.env.DB.prepare('DELETE FROM hrd_facilities WHERE id = ?').bind(id).run();
@@ -4332,7 +4389,7 @@ app.delete('/facilities/:id', async (c) => {
 });
 
 // 시설 보유 비품 목록 조회 (중요!)
-app.get('/facilities/:id/items', async (c) => {
+app.get('/facilities/:id/items', authMiddleware, requireStaff, async (c) => {
     try {
         const facilityId = c.req.param('id');
 
@@ -4353,7 +4410,7 @@ app.get('/facilities/:id/items', async (c) => {
 });
 
 // 시설에 물품 배정
-app.post('/facilities/:id/items', async (c) => {
+app.post('/facilities/:id/items', authMiddleware, requireStaff, async (c) => {
     try {
         const facilityId = c.req.param('id');
         const body = await c.req.json();
@@ -4371,7 +4428,7 @@ app.post('/facilities/:id/items', async (c) => {
 });
 
 // 시설에서 물품 제거
-app.delete('/facilities/:facilityId/items/:itemId', async (c) => {
+app.delete('/facilities/:facilityId/items/:itemId', authMiddleware, requireStaff, async (c) => {
     try {
         const facilityId = c.req.param('facilityId');
         const itemId = c.req.param('itemId');
@@ -4388,7 +4445,7 @@ app.delete('/facilities/:facilityId/items/:itemId', async (c) => {
 // 중복된 엔드포인트 제거됨 - 위의 1016번과 1111번 라인에 이미 정의되어 있음
 
 // 시설 이미지 목록
-app.get('/facilities/:id/images', async (c) => {
+app.get('/facilities/:id/images', authMiddleware, requireStaff, async (c) => {
     try {
         const facilityId = c.req.param('id');
         const { results } = await c.env.DB.prepare('SELECT * FROM hrd_facility_images WHERE facility_id = ? ORDER BY created_at DESC')
@@ -4401,7 +4458,7 @@ app.get('/facilities/:id/images', async (c) => {
 });
 
 // 시설 이미지 추가
-app.post('/facilities/:id/images', async (c) => {
+app.post('/facilities/:id/images', authMiddleware, requireStaff, async (c) => {
     try {
         const facilityId = c.req.param('id');
         const body = await c.req.json();

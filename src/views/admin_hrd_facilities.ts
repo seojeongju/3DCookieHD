@@ -259,6 +259,9 @@ export const adminHrdFacilitiesHtml = () => `
     <!-- Main Logic Script -->
     <!-- Script will be injected here -->
             <script>
+        function authHeaders(extra) {
+            return Object.assign({ 'Authorization': 'Bearer ' + localStorage.getItem('token') }, extra || {});
+        }
         let facilities = [];
         let currentDetailId = null;
         let currentTab = 'info';
@@ -283,7 +286,7 @@ export const adminHrdFacilitiesHtml = () => `
                 let url = '/api/hrd/facilities?';
                 if(search) url += 'search=' + encodeURIComponent(search) + '&';
                 
-                const res = await fetch(url);
+                const res = await fetch(url, { headers: authHeaders() });
                 const json = await res.json();
                 
                 if(json.success) {
@@ -380,13 +383,13 @@ export const adminHrdFacilitiesHtml = () => `
                 let facility = facilities.find(f => f.id === id);
                 
                 const [resItems, resLogs, resImages] = await Promise.all([
-                    fetch('/api/hrd/facilities/' + id + '/items').then(r => r.json()),
-                    fetch('/api/hrd/facilities/' + id + '/maintenance').then(r => r.json()),
-                    fetch('/api/hrd/facilities/' + id + '/images').then(r => r.json())
+                    fetch('/api/hrd/facilities/' + id + '/items', { headers: authHeaders() }).then(r => r.json()),
+                    fetch('/api/hrd/facilities/' + id + '/maintenance', { headers: authHeaders() }).then(r => r.json()),
+                    fetch('/api/hrd/facilities/' + id + '/images', { headers: authHeaders() }).then(r => r.json())
                 ]);
 
                 if (!facility) {
-                    const resFac = await fetch('/api/hrd/facilities/' + id).then(r => r.json());
+                    const resFac = await fetch('/api/hrd/facilities/' + id, { headers: authHeaders() }).then(r => r.json());
                     if (resFac.success && resFac.data) facility = resFac.data;
                 }
 
@@ -650,7 +653,7 @@ async function updateFacility(value, field) {
         current[field] = value;
         await fetch('/api/hrd/facilities', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(data)
         });
         loadFacilities();
@@ -704,7 +707,7 @@ async function updateRepairStatus(logId, status) {
     try {
         const res = await fetch('/api/hrd/facilities/maintenance/' + logId, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ progress: status })
         });
         const result = await res.json();
@@ -759,7 +762,7 @@ async function handleModalSave() {
     try {
         const res = await fetch('/api/hrd/facilities', {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(body)
         });
         const result = await res.json();
@@ -842,7 +845,7 @@ async function deleteFacility() {
     if (!confirm('정말 삭제하시겠습니까?\\n이 시설과 관련된 모든 점검/수리 기록도 함께 삭제되며, 복구할 수 없습니다.')) return;
     
     try {
-        const res = await fetch('/api/hrd/facilities/' + currentDetailId, { method: 'DELETE' });
+        const res = await fetch('/api/hrd/facilities/' + currentDetailId, { method: 'DELETE', headers: authHeaders() });
         const json = await res.json();
         
         if (json.success) {
@@ -927,7 +930,7 @@ async function submitCheckLog() {
         if (logId) {
             const response = await fetch('/api/hrd/facilities/maintenance/' + logId, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ title, manager, date, memo: title })
             });
             const result = await response.json();
@@ -938,7 +941,7 @@ async function submitCheckLog() {
         } else {
             const response = await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     status: 'check',
                     title: title,
@@ -1018,7 +1021,7 @@ function closeRepairModal() {
 async function deleteMaintenanceLog(logId) {
     if (!confirm('이 기록을 삭제하시겠습니까?')) return;
     try {
-        const res = await fetch('/api/hrd/facilities/maintenance/' + logId, { method: 'DELETE' });
+        const res = await fetch('/api/hrd/facilities/maintenance/' + logId, { method: 'DELETE', headers: authHeaders() });
         const result = await res.json();
         if (res.ok && result.success) {
             openDrawer(currentDetailId);
@@ -1046,7 +1049,7 @@ async function submitRepairLog() {
         if (logId) {
             const response = await fetch('/api/hrd/facilities/maintenance/' + logId, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     title, date, price: price || 0, vendor, manager, memo
                 })
@@ -1059,7 +1062,7 @@ async function submitRepairLog() {
         } else {
             const response = await fetch('/api/hrd/facilities/' + currentDetailId + '/maintenance', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     status: 'repair',
                     title: title,
@@ -1121,7 +1124,7 @@ async function uploadImage(input) {
             // Send to API
             fetch('/api/hrd/facilities/' + currentDetailId + '/images', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     name: file.name,
                     size: Math.round(dataUrl.length * 0.75),

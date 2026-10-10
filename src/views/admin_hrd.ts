@@ -197,7 +197,7 @@ export const adminHrdHtml = () => `
 
         async function loadStats() {
             try {
-                const response = await fetch('/api/hrd/stats');
+                const response = await fetch('/api/hrd/stats', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await response.json();
                 if (result.success) {
                     const { data } = result;

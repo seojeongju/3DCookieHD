@@ -635,7 +635,7 @@ export const adminHrdPersonnelHtml = () => `
 
         async function loadData() {
             try {
-                const response = await fetch('/api/hrd/personnel');
+                const response = await fetch('/api/hrd/personnel', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await response.json();
                 if (result.success) {
                     allPersonnel = result.data;
@@ -797,7 +797,7 @@ export const adminHrdPersonnelHtml = () => `
         async function approveTeacher(id) {
             if (!confirm('해당 강사를 승인하시겠습니까?')) return;
             try {
-                const response = await fetch(\`/api/hrd/personnel/\${id}/approve\`, { method: 'PUT' });
+                const response = await fetch(\`/api/hrd/personnel/\${id}/approve\`, { method: 'PUT', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await response.json();
                 if (result.success) {
                     alert('승인되었습니다.');
@@ -815,7 +815,7 @@ export const adminHrdPersonnelHtml = () => `
         async function rejectTeacher(id) {
             if (!confirm('승인을 거절하고 계정을 정지하시겠습니까?')) return;
             try {
-                const response = await fetch(\`/api/hrd/personnel/\${id}/reject\`, { method: 'PUT' });
+                const response = await fetch(\`/api/hrd/personnel/\${id}/reject\`, { method: 'PUT', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await response.json();
                 if (result.success) {
                     alert('승인이 거절되었습니다.');
@@ -833,7 +833,7 @@ export const adminHrdPersonnelHtml = () => `
         async function deletePersonnel(id) {
             if (!confirm('해당 교강사를 퇴직(삭제) 처리하시겠습니까?\\\\n(목록에서 사라지거나 퇴직 상태로 변경됩니다)')) return;
              try {
-                const response = await fetch(\`/api/hrd/personnel/\${id}\`, { method: 'DELETE' });
+                const response = await fetch(\`/api/hrd/personnel/\${id}\`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await response.json();
                 if (result.success) {
                     alert('처리되었습니다.');

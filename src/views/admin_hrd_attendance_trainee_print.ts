@@ -135,7 +135,7 @@ export const adminHrdAttendanceTraineePrintHtml = `
 
         async function loadData(sessionId) {
             try {
-                const res = await fetch('/api/hrd/attendance/print-form?sessionId=' + encodeURIComponent(sessionId));
+                const res = await fetch('/api/hrd/attendance/print-form?sessionId=' + encodeURIComponent(sessionId), { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const json = await res.json();
                 if (!json.success) {
                     alert(json.error || '데이터 로드 실패');

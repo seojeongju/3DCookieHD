@@ -68,6 +68,7 @@ export type TrainingLogSessionRow = {
     days_of_week?: string | null;
     excluded_dates?: string | null;
     session_name?: string | null;
+    lms_course_id?: number | null;
 };
 
 const TRAINING_LOG_SESSION_SELECT = `
@@ -279,6 +280,13 @@ export function isDateMatchingSessionDays(dateStr: string, daysOfWeek?: string |
     const dt = new Date(y, m - 1, d);
     const dow = dt.getDay(); // 0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토
 
+    const allowed = allowedDowsForSession(daysOfWeek, sessionName);
+    if (allowed.length === 0) return true;
+    return allowed.includes(dow);
+}
+
+/** 회차 요일 규정(days_of_week, 없으면 회차명의 주말/평일)을 0=일 ~ 6=토 목록으로. 규정이 없으면 빈 배열 */
+export function allowedDowsForSession(daysOfWeek?: string | null, sessionName?: string | null): number[] {
     const dayMap: Record<string, number> = {
         '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
         '일요일': 0, '월요일': 1, '화요일': 2, '수요일': 3, '목요일': 4, '금요일': 5, '토요일': 6,
@@ -302,24 +310,21 @@ export function isDateMatchingSessionDays(dateStr: string, daysOfWeek?: string |
         allowed.push(1, 2, 3, 4, 5);
     }
 
-    if (allowed.length === 0) return true;
-    return allowed.includes(dow);
+    return [...new Set(allowed)];
 }
 
 /**
  * 전체 회차 1:1 전용 LMS 과정 정합성 검사 및 정비
- * 1) lms_course_id가 누락되거나 중복된 회차에 1:1 전용 courses 발급
- * 2) 주말반에 잘못 들어간 평일 일지 등 요일 불일치 일지를 적절한 평일반 회차로 복구
+ * - lms_course_id가 누락되거나 중복된 회차에 1:1 전용 courses 발급
+ * - 일지 소속 판정은 시간표 근거로만 한다 (training_log_scope.reviewLegacyTrainingLogs)
  */
 export async function normalizeAllCourseSessions(DB: D1Database): Promise<{
     totalSessions: number;
     fixedSessions: number;
-    movedLogs: number;
     details: string[];
 }> {
     const details: string[] = [];
     let fixedSessions = 0;
-    let movedLogs = 0;
 
     const sessions = await DB.prepare(`
         SELECT s.id, s.approved_course_id, s.session_number, s.session_name,
@@ -344,69 +349,6 @@ export async function normalizeAllCourseSessions(DB: D1Database): Promise<{
         }
     }
 
-    // 2단계: 주말반/평일반 요일 불일치 일지 복구
-    // 주말반 회차 목록 추출
-    const weekendSessions = sessionList.filter(s => {
-        const sn = s.session_name || '';
-        const dow = s.days_of_week || '';
-        return /주말/.test(sn) || (/일/.test(dow) && /토/.test(dow) && !/[월화수목금]/.test(dow));
-    });
-
-    const weekdaySessions = sessionList.filter(s => {
-        const sn = s.session_name || '';
-        const dow = s.days_of_week || '';
-        return /평일/.test(sn) || /[월화수목금]/.test(dow);
-    });
-
-    for (const wSess of weekendSessions) {
-        const wLmsId = Number(wSess.lms_course_id);
-        if (!wLmsId) continue;
-
-        // 이 주말반에 등록된 일지 중 월~금(1~5) 요일에 작성된 일지 검색
-        const logs = await DB.prepare(`
-            SELECT id, date, instructor_id, topic, course_id
-            FROM training_logs
-            WHERE course_id = ?
-        `).bind(wLmsId).all();
-
-        for (const log of (logs.results || []) as any[]) {
-            const logDate = String(log.date || '').substring(0, 10);
-            if (!logDate) continue;
-
-            const isWeekend = isDateMatchingSessionDays(logDate, '일,토', '[주말반]');
-            if (!isWeekend) {
-                // 평일 일지 발견!
-                // 대응하는 평일반 찾기 (동일 승인과정 우선, 강사 우선, 기간 매칭)
-                let targetWeekdaySess = weekdaySessions.find(wd =>
-                    Number(wd.approved_course_id) === Number(wSess.approved_course_id) &&
-                    logDate >= String(wd.training_start_date || '').substring(0, 10) &&
-                    logDate <= String(wd.training_end_date || '').substring(0, 10)
-                );
-
-                if (!targetWeekdaySess) {
-                    targetWeekdaySess = weekdaySessions.find(wd =>
-                        Number(wd.approved_course_id) === Number(wSess.approved_course_id)
-                    );
-                }
-
-                if (!targetWeekdaySess && weekdaySessions.length > 0) {
-                    targetWeekdaySess = weekdaySessions.find(wd =>
-                        logDate >= String(wd.training_start_date || '').substring(0, 10) &&
-                        logDate <= String(wd.training_end_date || '').substring(0, 10)
-                    );
-                }
-
-                if (targetWeekdaySess && targetWeekdaySess.lms_course_id) {
-                    const targetLmsId = Number(targetWeekdaySess.lms_course_id);
-                    await DB.prepare('UPDATE training_logs SET course_id = ? WHERE id = ?')
-                        .bind(targetLmsId, log.id).run();
-                    movedLogs++;
-                    details.push(`[일지 #${log.id} (${logDate})] 주말반(LMS #${wLmsId}) → 평일반(LMS #${targetLmsId}, 회차 #${targetWeekdaySess.id})으로 정상 복구`);
-                }
-            }
-        }
-    }
-
-    return { totalSessions, fixedSessions, movedLogs, details };
+    return { totalSessions, fixedSessions, details };
 }
 

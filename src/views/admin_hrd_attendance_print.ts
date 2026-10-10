@@ -114,7 +114,7 @@ export const adminHrdAttendancePrintHtml = `
 
         async function loadData(courseId, year, month) {
             try {
-                const response = await fetch(\`/api/hrd/attendance/monthly?courseId=\${courseId}&year=\${year}&month=\${month}&type=hrd\`);
+                const response = await fetch(\`/api/hrd/attendance/monthly?courseId=\${courseId}&year=\${year}&month=\${month}&type=hrd\`, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await response.json();
 
                 if (result.success) {

@@ -343,6 +343,9 @@ export const adminHrdItemsHtml = () => `
     </div>
 
     <script>
+        function authHeaders(extra) {
+            return Object.assign({ 'Authorization': 'Bearer ' + localStorage.getItem('token') }, extra || {});
+        }
         let currentCategory = 'all';
         let currentPage = 1;
         window.itemsPerPageItems = 10;
@@ -361,7 +364,7 @@ export const adminHrdItemsHtml = () => `
         // 시설 목록 불러오기
         async function loadFacilities() {
             try {
-                const response = await fetch('/api/hrd/facilities');
+                const response = await fetch('/api/hrd/facilities', { headers: authHeaders() });
                 const result = await response.json();
                 if (result.success) {
                     facilitiesData = result.data || [];
@@ -435,7 +438,7 @@ export const adminHrdItemsHtml = () => `
             listWrapper.classList.remove('hidden');
             
             try {
-                const res = await fetch('/api/hrd/facilities/' + facilityId + '/items');
+                const res = await fetch('/api/hrd/facilities/' + facilityId + '/items', { headers: authHeaders() });
                 const result = await res.json();
                 
                 if (result.success && result.data.length > 0) {
@@ -484,7 +487,7 @@ async function loadItems(page = 1) {
         if (search) url += 'search=' + encodeURIComponent(search);
         url += '&page=' + page + '&limit=' + (window.itemsPerPageItems ?? 10);
 
-        const response = await fetch(url);
+        const response = await fetch(url, { headers: authHeaders() });
         const result = await response.json();
         const tbody = document.getElementById('itemsTableBody');
 
@@ -696,7 +699,7 @@ async function handleSaveItem(e) {
 
         const response = await fetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(data)
         });
 
@@ -717,7 +720,7 @@ async function handleSaveItem(e) {
 async function deleteItem(id) {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     try {
-        const response = await fetch('/api/hrd/items/' + id, { method: 'DELETE' });
+        const response = await fetch('/api/hrd/items/' + id, { method: 'DELETE', headers: authHeaders() });
         const result = await response.json();
         if (result.success) {
             alert('삭제되었습니다.');
@@ -744,7 +747,7 @@ function openRentalModal(item) {
 async function loadRentals(itemId) {
     const tbody = document.getElementById('rentalListBody');
     try {
-        const res = await fetch(\`/api/hrd/items/\${itemId}/rentals\`);
+        const res = await fetch(\`/api/hrd/items/\${itemId}/rentals\`, { headers: authHeaders() });
                 const result = await res.json();
                 
                 if(!result.success || result.data.length === 0) {
@@ -789,7 +792,7 @@ async function loadRentals(itemId) {
              try {
                  const res = await fetch(\`/api/hrd/items/\${itemId}/rent\`, {
                      method: 'POST',
-                     headers: { 'Content-Type': 'application/json' },
+                     headers: authHeaders({ 'Content-Type': 'application/json' }),
                      body: JSON.stringify(data)
                  });
                  const r = await res.json();
@@ -806,7 +809,7 @@ async function loadRentals(itemId) {
         async function returnItem(rentalId, itemId) {
             if(!confirm('반납 처리하시겠습니까?')) return;
             try {
-                 const res = await fetch(\`/api/hrd/rentals/\${rentalId}/return\`, { method: 'PUT' });
+                 const res = await fetch(\`/api/hrd/rentals/\${rentalId}/return\`, { method: 'PUT', headers: authHeaders() });
                  const r = await res.json();
                  if(r.success) {
                      alert('반납 완료되었습니다.');
@@ -865,7 +868,7 @@ async function loadRentals(itemId) {
                 try {
                     const res = await fetch(\`/api/hrd/items/\${itemId}/transaction\`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data)
                     });
                     const result = await res.json();
@@ -891,7 +894,7 @@ async function loadRentals(itemId) {
             const tbody = document.getElementById('stockHistoryBody');
             
             try {
-                const res = await fetch(\`/api/hrd/items/\${itemId}/transaction\`);
+                const res = await fetch(\`/api/hrd/items/\${itemId}/transaction\`, { headers: authHeaders() });
                 const result = await res.json();
                 
                 if (!result.success || !result.data || result.data.length === 0) {
@@ -977,7 +980,7 @@ async function loadRentals(itemId) {
                 try {
                     const res = await fetch(\`/api/hrd/items/\${itemId}/transaction\`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data)
                     });
                     const result = await res.json();
@@ -1003,7 +1006,7 @@ async function loadRentals(itemId) {
             const tbody = document.getElementById('stockHistoryBody');
             
             try {
-                const res = await fetch(\`/api/hrd/items/\${itemId}/transaction\`);
+                const res = await fetch(\`/api/hrd/items/\${itemId}/transaction\`, { headers: authHeaders() });
                 const result = await res.json();
                 
                 if (!result.success || !result.data || result.data.length === 0) {
