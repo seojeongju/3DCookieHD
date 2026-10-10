@@ -214,7 +214,7 @@ export const adminHrdHtml = () => `
         async function loadAttendance() {
             // 이번 단계에서는 학생 목록 상위 3명으로 대체하여 보여줌
             try {
-                const response = await fetch('/api/hrd/students?status=active');
+                const response = await fetch('/api/hrd/students?status=learning', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const result = await response.json();
                 const tbody = document.getElementById('attendanceTableBody');
                 

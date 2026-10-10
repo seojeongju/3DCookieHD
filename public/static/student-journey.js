@@ -26,7 +26,7 @@
     }
 
     function translateStatus(s) {
-        var m = { consulting: '상담중', registered: '등록완료', learning: '수강중', completed: '수료완료', dropout: '중도탈락' };
+        var m = { consulting: '상담중', registered: '등록완료', learning: '수강중', completed: '수료완료', employed: '취업완료', dropout: '중도탈락' };
         return m[s] || s;
     }
     function translateType(t) {

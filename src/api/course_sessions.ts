@@ -14,6 +14,7 @@ import {
 import { getCourseSessionTimetableHeaderByLmsCourseId } from '../lib/lmsCourseContext';
 import { ensureDedicatedLmsCourseForSession } from '../utils/sessionCourseResolution';
 import { sendClassroomPinEmail } from '../utils/email';
+import { syncStudentCompletionStatus } from '../utils/student_journey_status';
 
 const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
 
@@ -443,6 +444,7 @@ app.post('/sync-status', authMiddleware, requireAdmin, async (c) => {
         ELSE status
       END
     `).run();
+    await syncStudentCompletionStatus(DB);
     return c.json({
       success: true,
       message: '회차 상태가 개강일·종료일 기준으로 동기화되었습니다.',

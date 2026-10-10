@@ -174,7 +174,7 @@ export const adminLmsNcsStudentReportHtml = `
                 }
                 
                 // 학생 이름 보정 (my-results에 student_name이 없을 수 있으므로 API에서 이름 따로 가져옴)
-                const uRes = await fetch('/api/hrd/students/' + studentId);
+                const uRes = await fetch('/api/hrd/students/' + studentId, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 const uData = await uRes.json();
                 if (uData.success) {
                     document.getElementById('studentName').textContent = uData.data.name;

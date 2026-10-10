@@ -671,7 +671,11 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                 if (f.type) url += 'type=' + encodeURIComponent(f.type) + '&';
                 if (f.sort) url += 'sort=' + encodeURIComponent(f.sort) + '&';
 
-                const response = await fetch(url);
+                const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+                if (response.status === 401) {
+                    location.replace('/login?redirect=' + encodeURIComponent(location.pathname));
+                    return;
+                }
                 const result = await response.json();
 
                 if (result.success) {
@@ -756,7 +760,11 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
         function getStudentRowHtml(s) {
             const courses = s.current_courses || [];
             const hasMultiple = courses.length >= 2;
-            const sessionStatusMap = { recruiting: '모집중', in_progress: '진행중', completed: '종료', closed: '마감' };
+            const sessionStatusMap = { recruiting: '개강 전', recruitment_closed: '개강 전', in_progress: '진행중', always_open: '진행중', completed: '종료', closed: '폐강' };
+            const activeCount = courses.filter(c => c.session_status !== 'completed' && c.session_status !== 'closed').length;
+            const multiLabel = activeCount > 0
+                ? courses.length + '개 과정 · 진행 ' + activeCount
+                : courses.length + '개 과정 · 모두 종료';
             const courseTitle = hasMultiple
                 ? (courses[0].name + ' (' + (courses[0].session_name || courses[0].session_number + '회차') + ')').replace(/</g, '&lt;').replace(/"/g, '&quot;')
                 : (s.current_course_name || coursesData.find(c => c.id == s.course_id)?.title || (courses[0] ? (courses[0].name + ' (' + (courses[0].session_name || courses[0].session_number + '회차') + ')') : '과정 미지정')).replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -771,7 +779,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                 ? \`
                     <div class="flex items-center gap-2">
                         <button type="button" id="accordion-btn-\${s.id}" onclick="toggleCourseAccordion(\${s.id})" class="text-left text-sm font-bold text-gray-700 hover:text-blue-600 transition inline-flex items-center gap-2 rounded-lg px-2 py-1 -ml-2" aria-expanded="false" aria-controls="student-course-detail-\${s.id}">
-                            <span>\${courses.length}개 과정 수강 중</span>
+                            <span>\${multiLabel}</span>
                             <i class="fas fa-chevron-down text-[10px] accordion-chevron" id="chevron-\${s.id}" aria-hidden="true"></i>
                         </button>
                     </div>

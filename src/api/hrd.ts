@@ -5,6 +5,8 @@ import { authMiddleware, requireRole } from '../middleware/auth';
 import { ensureDedicatedLmsCourseForSession, resolveSessionToLmsCourseId, resolveTrainingLogSession, isDateMatchingSessionDays, normalizeAllCourseSessions } from '../utils/sessionCourseResolution';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { datesToTrainingDayLabels, getSessionTrainingDates, getSessionTrainingDatesForLogs, normalizeTrainingDate } from '../utils/session_training_dates';
+import { getEffectiveSessionStatus } from '../utils/course_session_status';
+import { syncStudentCompletionStatus } from '../utils/student_journey_status';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -678,8 +680,11 @@ app.delete('/items/:id', async (c) => {
 // ============================================
 
 // 훈련생 목록 조회 (페이지네이션 지원)
-app.get('/students', async (c) => {
+app.get('/students', authMiddleware, requireCounselingStaff, async (c) => {
     try {
+        // 목록·상태 필터가 최신 여정 상태를 보도록 조회 전에 수료 전환을 반영
+        await syncStudentCompletionStatus(c.env.DB);
+
         const search = (c.req.query('search') || '').trim();
         const status = c.req.query('status');
         const type = c.req.query('type');
@@ -739,12 +744,13 @@ app.get('/students', async (c) => {
 
         const rawList = results || [];
         const userIds = rawList.map((r: any) => r.id).filter(Boolean);
-        const currentCoursesByUser: Record<number, { name: string; session_number: number; session_name: string | null; session_status: string }[]> = {};
+        const currentCoursesByUser: Record<number, { name: string; session_number: number; session_name: string | null; session_status: string; training_end_date: string | null }[]> = {};
 
         if (userIds.length > 0) {
             const placeholders = userIds.map(() => '?').join(',');
             const coursesQuery = `
-                SELECT cse.user_id, ac.name as course_name, cs.session_number, cs.session_name, cs.status as session_status
+                SELECT cse.user_id, ac.name as course_name, cs.session_number, cs.session_name, cs.status,
+                       cs.training_start_date, cs.training_end_date, cs.recruitment_status
                 FROM course_session_enrollments cse
                 JOIN course_sessions cs ON cse.session_id = cs.id
                 JOIN approved_courses ac ON cs.approved_course_id = ac.id
@@ -759,7 +765,8 @@ app.get('/students', async (c) => {
                     name: row.course_name,
                     session_number: row.session_number,
                     session_name: row.session_name || null,
-                    session_status: row.session_status || null
+                    session_status: getEffectiveSessionStatus(row),
+                    training_end_date: row.training_end_date || null
                 });
             });
         }
@@ -792,9 +799,10 @@ app.get('/students', async (c) => {
 });
 
 // 훈련생 단건 조회 (여정관리 페이지용) — 배정 과정명·상담횟수·출석률 포함
-app.get('/students/:id', async (c) => {
+app.get('/students/:id', authMiddleware, requireCounselingStaff, async (c) => {
     try {
         const id = c.req.param('id');
+        await syncStudentCompletionStatus(c.env.DB, [id]);
         const query = `
             SELECT 
                 u.id, u.name, u.phone, u.email, u.created_at,
@@ -814,39 +822,7 @@ app.get('/students/:id', async (c) => {
         `;
         const row = await c.env.DB.prepare(query).bind(id).first() as any;
         if (!row) return c.json({ success: false, error: '훈련생을 찾을 수 없습니다.' }, 404);
-        let r = row;
-
-        const today = new Date().toISOString().split('T')[0];
-        const enrolledSessions = await c.env.DB.prepare(`
-            SELECT cs.training_end_date
-            FROM course_session_enrollments cse
-            JOIN course_sessions cs ON cse.session_id = cs.id
-            WHERE cse.user_id = ? AND cse.status IN ('enrolled', 'approved')
-            ORDER BY cs.training_end_date DESC
-        `).bind(id).all() as { results: { training_end_date: string | null }[] };
-        const latestActive = enrolledSessions?.results?.[0];
-        const endDate = latestActive?.training_end_date;
-
-        // 여정 자동화 1: 수료 완료 상태여도 신규 과정(enrolled/approved)이 아직 종료 전이면 집중훈련(learning)으로 표시
-        const hasOngoingEnrollment = endDate != null && endDate > today;
-        if (hasOngoingEnrollment) {
-            const journeyStatus = r.status || 'consulting';
-            if (journeyStatus === 'completed' || journeyStatus === 'learning') {
-                await c.env.DB.prepare(
-                    `UPDATE hrd_student_details SET status = 'learning' WHERE user_id = ?`
-                ).bind(id).run();
-                r = { ...r, status: 'learning' };
-            }
-        } else {
-            // 여정 자동화 2: 수강중(learning)인데 enrolled 회차가 모두 종료되었으면 수료완료로 전환
-            const journeyStatus = r.status || 'consulting';
-            if (journeyStatus === 'learning' && endDate != null && endDate <= today) {
-                await c.env.DB.prepare(
-                    `UPDATE hrd_student_details SET status = 'completed' WHERE user_id = ?`
-                ).bind(id).run();
-                r = { ...r, status: 'completed' };
-            }
-        }
+        const r = row;
 
         // 상담 횟수 (hrd_counseling_logs에서 student_id = user_id)
         const consultRow = await c.env.DB.prepare(
@@ -1092,8 +1068,7 @@ app.get('/db-check', async (c) => {
 });
 
 // 훈련생 등록
-// 훈련생 등록
-app.post('/students', async (c) => {
+app.post('/students', authMiddleware, requireCounselingStaff, async (c) => {
     try {
         const body = await c.req.json();
         const {
@@ -1183,7 +1158,7 @@ app.post('/students', async (c) => {
 });
 
 // 훈련생 수정
-app.put('/students', async (c) => {
+app.put('/students', authMiddleware, requireCounselingStaff, async (c) => {
     try {
         const body = await c.req.json();
         const {
