@@ -1577,10 +1577,11 @@ export const adminCoursesSessionEnrollmentsHtml = (sessionId?: string) =>
                 <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden">
                     <div class="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                         <h3 class="font-bold text-slate-700 flex items-center gap-2">
-                            <i class="fas fa-user-plus text-primary-500"></i> 훈련생 목록에서 등록
+                            <i class="fas fa-user-plus text-primary-500"></i> 수강생 회원에서 등록
+                            <span id="candidateCount" class="text-slate-400 text-xs font-normal"></span>
                         </h3>
                         <div class="flex gap-2">
-                            <input type="text" id="enrollStudentSearch" placeholder="이름·연락처 검색" class="px-2 py-1.5 border border-slate-200 rounded text-xs w-36 focus:ring-1 focus:ring-primary-500">
+                            <input type="text" id="enrollStudentSearch" placeholder="이름·연락처·이메일 검색" class="px-2 py-1.5 border border-slate-200 rounded text-xs w-44 focus:ring-1 focus:ring-primary-500">
                             <button type="button" id="enrollAddSelected" class="px-3 py-1.5 bg-primary-600 text-white rounded text-xs font-bold hover:bg-primary-700 transition">
                                 <i class="fas fa-plus mr-1"></i> 선택 등록
                             </button>
@@ -1593,10 +1594,11 @@ export const adminCoursesSessionEnrollmentsHtml = (sessionId?: string) =>
                                     <th class="p-2 w-8 text-center border-b border-slate-200"><input type="checkbox" id="enrollSelectAll" title="전체 선택"></th>
                                     <th class="p-2 text-left border-b border-slate-200">이름</th>
                                     <th class="p-2 text-left border-b border-slate-200">연락처</th>
+                                    <th class="p-2 text-left border-b border-slate-200">상태</th>
                                 </tr>
                             </thead>
                             <tbody id="candidateListBody" class="divide-y divide-slate-100">
-                                <tr><td colspan="3" class="p-4 text-center text-slate-400 text-xs">회차 선택 후 훈련생 목록이 표시됩니다.</td></tr>
+                                <tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">회차 선택 후 수강생 회원 목록이 표시됩니다.</td></tr>
                             </tbody>
                         </table>
                     </div>

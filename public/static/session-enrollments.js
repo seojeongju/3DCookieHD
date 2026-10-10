@@ -210,26 +210,34 @@
         });
     }
 
+    // 이 회차 수강 중·중도탈락자를 뺀 전체 수강생 회원 (중도탈락자는 [수강 복귀]로 되돌림)
     function loadCandidates() {
         if (!currentSessionId) return;
-        fetch('/api/hrd/students', { headers: headers() }) // This API exists mostly for HRD student list.
+        fetch('/api/course-sessions/' + currentSessionId + '/enrollment-candidates', { headers: headers() })
             .then(function (r) { return r.json(); })
             .then(function (json) {
-                if (!json.success || !json.data) {
-                    candidateList = [];
-                    renderCandidates();
-                    return;
-                }
-                var enrolledIds = {};
-                enrolledList.forEach(function (e) { enrolledIds[e.user_id] = true; });
-                // 중도탈락자는 아래 중도탈락 목록의 [수강 복귀]로 되돌림
-                droppedList.forEach(function (e) { enrolledIds[e.user_id] = true; });
-
-                // Filter out already enrolled students
-                candidateList = (json.data || []).filter(function (s) { return !enrolledIds[s.id]; });
+                candidateList = (json && json.success && json.data) ? json.data : [];
                 renderCandidates();
             })
             .catch(function (e) { console.error(e); candidateList = []; renderCandidates(); });
+    }
+
+    var JOURNEY_LABELS = {
+        consulting: ['상담', 'bg-slate-100 text-slate-500'],
+        registered: ['등록·발급', 'bg-sky-50 text-sky-600'],
+        learning: ['집중 훈련', 'bg-emerald-50 text-emerald-600'],
+        completed: ['수료', 'bg-indigo-50 text-indigo-600'],
+        employed: ['취업', 'bg-amber-50 text-amber-600'],
+        dropout: ['중도탈락', 'bg-rose-50 text-rose-600']
+    };
+
+    function candidateStatusHtml(s) {
+        var parts = [];
+        var j = JOURNEY_LABELS[s.journey_status];
+        if (j) parts.push('<span class="px-1.5 py-0.5 rounded-md text-[11px] font-bold ' + j[1] + '">' + j[0] + '</span>');
+        if (s.account_status === 'pending') parts.push('<span class="px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-orange-50 text-orange-600">승인 대기</span>');
+        if (s.current_course) parts.push('<span class="text-[11px] text-slate-400" title="현재 수강 중인 회차">' + esc(s.current_course) + '</span>');
+        return parts.join(' ') || '<span class="text-[11px] text-slate-300">-</span>';
     }
 
     function renderCandidates() {
@@ -238,24 +246,30 @@
         search = search.trim().toLowerCase();
         var filtered = candidateList;
         if (search) {
+            var digits = search.replace(/\D/g, '');
             filtered = candidateList.filter(function (s) {
                 return (s.name && s.name.toLowerCase().indexOf(search) >= 0) ||
-                    (s.phone && s.phone.indexOf(search) >= 0);
+                    (s.email && s.email.toLowerCase().indexOf(search) >= 0) ||
+                    (digits && s.phone && s.phone.replace(/\D/g, '').indexOf(digits) >= 0);
             });
         }
+        var countEl = document.getElementById('candidateCount');
+        if (countEl) countEl.textContent = search ? (filtered.length + ' / ' + candidateList.length + '명') : ('전체 ' + candidateList.length + '명');
+        var selectAll = document.getElementById('enrollSelectAll');
+        if (selectAll) selectAll.checked = false;
         if (!tbody) return;
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400 text-xs">' +
-                (candidateList.length === 0 ? '이미 모두 등록되었거나 훈련생이 없습니다.' : '검색 결과가 없습니다.') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">' +
+                (candidateList.length === 0 ? '등록할 수 있는 수강생 회원이 없습니다.' : '검색 결과가 없습니다.') + '</td></tr>';
             return;
         }
         tbody.innerHTML = filtered.map(function (s) {
-            var name = (s.name || '').replace(/</g, '&lt;');
-            var phone = (s.phone || '').replace(/</g, '&lt;');
-            return '<tr class="hover:bg-slate-50">' +
+            return '<tr class="hover:bg-slate-50 cursor-pointer" onclick="if(event.target.type!==\'checkbox\'){var cb=this.querySelector(\'.enroll-cb\');cb.checked=!cb.checked;}">' +
                 '<td class="p-2 text-center"><input type="checkbox" class="enroll-cb" value="' + s.id + '"></td>' +
-                '<td class="p-2 text-slate-700">' + name + '</td>' +
-                '<td class="p-2 text-slate-600">' + phone + '</td></tr>';
+                '<td class="p-2 text-slate-700 font-medium">' + esc(s.name) +
+                (s.email ? '<div class="text-[11px] text-slate-400 font-normal">' + esc(s.email) + '</div>' : '') + '</td>' +
+                '<td class="p-2 text-slate-600 whitespace-nowrap">' + esc(s.phone || '-') + '</td>' +
+                '<td class="p-2">' + candidateStatusHtml(s) + '</td></tr>';
         }).join('');
     }
 

@@ -1522,6 +1522,40 @@ app.get('/:id/enrollments', authMiddleware, requireRole('admin', 'teacher', 'ins
 });
 
 /**
+ * GET /api/course-sessions/:id/enrollment-candidates
+ * 회차에 등록할 수 있는 전체 수강생 회원 (이 회차 수강 중·중도탈락 및 정지 계정 제외)
+ */
+app.get('/:id/enrollment-candidates', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    if (isNaN(id)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
+    const { DB } = c.env;
+    const { results } = await DB.prepare(
+      `SELECT u.id, u.name, u.phone, u.email, u.status AS account_status, d.status AS journey_status,
+              (SELECT a.name || ' ' || cs.session_number || '회차'
+                 FROM course_session_enrollments cse
+                 JOIN course_sessions cs ON cs.id = cse.session_id
+                 JOIN approved_courses a ON a.id = cs.approved_course_id
+                WHERE cse.user_id = u.id AND cse.status IN ('enrolled', 'approved') AND cs.status <> 'closed'
+                ORDER BY cs.training_start_date DESC LIMIT 1) AS current_course
+       FROM users u
+       LEFT JOIN hrd_student_details d ON d.user_id = u.id
+       WHERE u.role = 'student'
+         AND COALESCE(u.status, '') <> 'suspended'
+         AND NOT EXISTS (
+           SELECT 1 FROM course_session_enrollments x
+           WHERE x.session_id = ? AND x.user_id = u.id AND x.status IN ('enrolled', 'approved', 'dropped')
+         )
+       ORDER BY u.name ASC, u.id ASC`
+    ).bind(id).all();
+    return c.json({ success: true, data: results || [] });
+  } catch (e) {
+    console.error('course-sessions enrollment candidates:', e);
+    return c.json({ success: false, error: '수강생 목록 조회 실패' }, 500);
+  }
+});
+
+/**
  * POST /api/course-sessions/:id/enrollments
  * 회차에 수강생 등록 (user_ids 배열)
  */
