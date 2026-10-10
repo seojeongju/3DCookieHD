@@ -19,6 +19,8 @@ export type Bindings = {
   NCS_CLASSIFICATION_API_BASE?: string;
   /** 카카오맵 JavaScript 키 (오시는길 페이지). 미설정 시 site_settings.kakao_map_appkey 사용 */
   KAKAO_MAP_APPKEY?: string;
+  /** 로그인 토큰 서명 키 (Pages secret). 미설정 시 토큰 발급·검증이 모두 실패한다 */
+  JWT_SECRET?: string;
 };
 
 export type Variables = {

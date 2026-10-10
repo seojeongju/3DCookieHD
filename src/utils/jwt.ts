@@ -4,8 +4,19 @@
 
 import type { JWTPayload } from '../types';
 
-// JWT Secret (실제 운영에서는 환경변수로 관리)
-const JWT_SECRET = 'your-super-secret-jwt-key-change-this-in-production';
+// 서명 키는 요청마다 env.JWT_SECRET 으로 주입된다 (configureJwtSecret). 소스에 키를 두지 않는다.
+let JWT_SECRET = '';
+
+const MIN_SECRET_LENGTH = 32;
+
+export function configureJwtSecret(secret: string | undefined): void {
+  JWT_SECRET = secret && secret.length >= MIN_SECRET_LENGTH ? secret : '';
+}
+
+function requireSecret(): string {
+  if (!JWT_SECRET) throw new Error('JWT_SECRET 환경 변수가 설정되지 않았거나 너무 짧습니다');
+  return JWT_SECRET;
+}
 
 /**
  * JWT 토큰 생성
@@ -29,7 +40,7 @@ export async function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): P
   const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
 
   // 서명 생성
-  const signature = await sign(`${encodedHeader}.${encodedPayload}`, JWT_SECRET);
+  const signature = await sign(`${encodedHeader}.${encodedPayload}`, requireSecret());
 
   return `${encodedHeader}.${encodedPayload}.${signature}`;
 }
@@ -47,7 +58,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
     const [encodedHeader, encodedPayload, signature] = parts;
 
     // 서명 검증
-    const expectedSignature = await sign(`${encodedHeader}.${encodedPayload}`, JWT_SECRET);
+    const expectedSignature = await sign(`${encodedHeader}.${encodedPayload}`, requireSecret());
     if (signature !== expectedSignature) {
       return null;
     }

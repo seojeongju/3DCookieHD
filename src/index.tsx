@@ -177,12 +177,16 @@ import {
 } from './utils/seo';
 import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
 import { publicNotFoundHtml } from './views/not_found';
+import { configureJwtSecret } from './utils/jwt';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
 // ============================================
 // 글로벌 미들웨어
 // ============================================
+app.use('*', async (c, next) => {
+    configureJwtSecret(c.env.JWT_SECRET);    await next();
+});
 app.use('*', logger());
 app.use('*', trackingMiddleware);
 
