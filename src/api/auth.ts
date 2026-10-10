@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import type { Bindings, LoginRequest, RegisterRequest, User, JWTPayload } from '../types';
 import { successResponse, errorResponse, createdResponse } from '../utils/response';
 import { getOne, execute } from '../utils/database';
-import { generateToken, hashPassword, verifyPassword } from '../utils/jwt';
+import { generateToken, hashPassword, passwordNeedsRehash, verifyPassword } from '../utils/jwt';
 import { authMiddleware } from '../middleware/auth';
 import {
   normalizePersonName,
@@ -174,6 +174,17 @@ auth.post('/login', async (c) => {
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
       return errorResponse(c, '이메일 또는 비밀번호가 잘못되었습니다', 401);
+    }
+
+    // 이전 SHA-256 해시는 로그인 성공 시 PBKDF2로 교체 (실패해도 로그인은 진행)
+    if (passwordNeedsRehash(user.password)) {
+      try {
+        await c.env.DB.prepare('UPDATE users SET password = ? WHERE id = ?')
+          .bind(await hashPassword(password), user.id)
+          .run();
+      } catch (e) {
+        console.error('Password rehash failed:', e);
+      }
     }
 
     // JWT 토큰 생성

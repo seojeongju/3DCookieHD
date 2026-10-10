@@ -86,6 +86,7 @@ import { adminLmsStudentsHtml } from './views/admin_lms_students';
 import { adminLmsAttendanceHtml } from './views/admin_lms_attendance';
 import { adminLmsTrainingLogsHtml } from './views/admin_lms_training_logs';
 import { adminHrdTrainingLogsHtml } from './views/admin_hrd_training_logs';
+import { adminHrdTrainingLogsReviewHtml } from './views/admin_hrd_training_logs_review';
 import { adminLmsNcsReportHtml } from './views/admin_lms_ncs_report';
 import { adminLmsNcsStudentReportHtml } from './views/admin_lms_ncs_student_report';
 import { adminLmsEmploymentHtml } from './views/admin_lms_employment';
@@ -178,6 +179,7 @@ import {
 import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
 import { publicNotFoundHtml } from './views/not_found';
 import { configureJwtSecret } from './utils/jwt';
+import { ensureAttendanceEnrollmentType } from './utils/attendance_enrollment';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -185,7 +187,13 @@ const app = new Hono<{ Bindings: Bindings }>();
 // 글로벌 미들웨어
 // ============================================
 app.use('*', async (c, next) => {
-    configureJwtSecret(c.env.JWT_SECRET);    await next();
+    configureJwtSecret(c.env.JWT_SECRET);
+    await next();
+});
+// 운영 D1에 마이그레이션을 직접 적용할 수 없어, 출결 조회 전에 컬럼을 보장 (isolate당 1회)
+app.use('/api/*', async (c, next) => {
+    await ensureAttendanceEnrollmentType(c.env.DB);
+    await next();
 });
 app.use('*', logger());
 app.use('*', trackingMiddleware);
@@ -652,6 +660,7 @@ app.get('/admin/attendance', (c) => c.html(adminHrdAttendanceHtml()));
 app.get('/admin/attendance/print', (c) => c.html(adminHrdAttendancePrintHtml));
 app.get('/admin/attendance/print/trainee', (c) => c.html(adminHrdAttendanceTraineePrintHtml));
 app.get('/admin/training-logs', (c) => c.html(adminHrdTrainingLogsHtml()));
+app.get('/admin/training-logs/review', (c) => c.html(adminHrdTrainingLogsReviewHtml()));
 app.get('/admin/assignments', (c) => c.html(adminHrdAssignmentsHtml()));
 app.get('/admin/counseling', (c) => c.html(adminHrdCounselingHtml()));
 app.get('/admin/ncs', (c) => c.html(adminNcsHtml));

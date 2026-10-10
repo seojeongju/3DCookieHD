@@ -1,63 +1,65 @@
 /**
- * 회차(session) ID → LMS 과정(courses.id) 해석 (과제/훈련일지/시험/상담 등 공통)
- * - 과정명 풀네임만 매칭, 회차별 1:1 LMS 과정 (다른 회차에 연결된 과정은 사용하지 않음)
+ * 회차 PK → 연결된 LMS 과정(courses.id)
+ * - 연결이 있으면 그대로 사용 (제목이 달라도 연결을 끊지 않음)
+ * - 연결이 없을 때만, 다른 회차가 쓰지 않는 같은 제목의 과정을 찾아 연결
  */
-export async function resolveSessionToLmsCourseId(DB: any, id: string | number): Promise<number | null> {
-    const rawId = parseInt(String(id), 10);
-    if (isNaN(rawId)) return null;
-
-    const existsInCourses = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
-    if (existsInCourses) return rawId;
+export async function lmsCourseIdForSession(DB: any, sessionId: string | number): Promise<number | null> {
+    const sid = parseInt(String(sessionId), 10);
+    if (isNaN(sid) || sid < 1) return null;
 
     const session: any = await DB.prepare(`
         SELECT s.id, s.session_number, s.session_name, s.lms_course_id, a.name as course_name
         FROM course_sessions s
         JOIN approved_courses a ON s.approved_course_id = a.id
         WHERE s.id = ?
-    `).bind(rawId).first();
-
+    `).bind(sid).first();
     if (!session) return null;
 
-    const expectedTitle = `${session.course_name || '과정'} (${session.session_number}회차${session.session_name ? ' - ' + session.session_name : ''})`.trim();
-
-    let resolved: number | null = null;
-
-    if (session.lms_course_id != null && session.lms_course_id > 0) {
-        const existingCourse: any = await DB.prepare('SELECT id, title FROM courses WHERE id = ?').bind(session.lms_course_id).first();
-        const titleMatches = existingCourse && isExpectedLmsTitle(
-            existingCourse.title,
-            session.course_name,
-            session.session_number,
-            session.session_name
-        );
-        const otherSession: any = await DB.prepare(
-            'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-        ).bind(session.lms_course_id, rawId).first();
-        if (titleMatches && !otherSession) {
-            resolved = Number(session.lms_course_id);
-        } else if (existingCourse || otherSession) {
-            try {
-                await DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(null, rawId).run();
-            } catch (_) {}
-        }
+    if (session.lms_course_id != null && Number(session.lms_course_id) > 0) {
+        const linked = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(session.lms_course_id).first();
+        if (linked) return Number(session.lms_course_id);
     }
 
-    if (resolved == null) {
-        const lmsCourse: any = await DB.prepare('SELECT id FROM courses WHERE title = ? LIMIT 1').bind(expectedTitle).first();
-        if (lmsCourse) {
-            const otherSession: any = await DB.prepare(
-                'SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1'
-            ).bind(lmsCourse.id, rawId).first();
-            if (!otherSession) {
-                resolved = lmsCourse.id;
-                try {
-                    await DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ?').bind(resolved, rawId).run();
-                } catch (_) {}
-            }
-        }
-    }
+    const { full } = expectedLmsTitlesForSession(session.course_name, session.session_number, session.session_name);
+    const byTitle: any = await DB.prepare(`
+        SELECT c.id FROM courses c
+        WHERE c.title = ? AND NOT EXISTS (SELECT 1 FROM course_sessions o WHERE o.lms_course_id = c.id AND o.id != ?)
+        LIMIT 1
+    `).bind(full, sid).first();
+    if (!byTitle) return null;
+    await DB.prepare('UPDATE course_sessions SET lms_course_id = ? WHERE id = ? AND lms_course_id IS NULL').bind(byTitle.id, sid).run();
+    return Number(byTitle.id);
+}
 
-    return resolved;
+/**
+ * 회차 → LMS 과정. 연결(또는 같은 제목의 미사용 과정)이 있으면 그대로 쓰고,
+ * 아무것도 없을 때만 전용 과정을 만든다. 다른 회차와 공유 중인 연결도 끊지 않는다.
+ */
+export async function lmsCourseIdForSessionOrCreate(DB: any, sessionId: string | number): Promise<number | null> {
+    return (await lmsCourseIdForSession(DB, sessionId)) ?? (await ensureDedicatedLmsCourseForSession(DB, Number(sessionId)));
+}
+
+/**
+ * 과정/회차 ID → LMS 과정(courses.id) 해석 (과제/시험/CBT/상담 등 공통)
+ * - explicitSessionId가 있으면 회차로만 해석 (회차 PK와 LMS 과정 번호가 겹쳐도 안전)
+ * - 없으면 id가 LMS 과정 번호인지 먼저 보고, 아니면 회차 PK로 본다
+ */
+export async function resolveSessionToLmsCourseId(
+    DB: any,
+    id: string | number | null | undefined,
+    explicitSessionId?: string | number | null
+): Promise<number | null> {
+    const explicit = explicitSessionId != null && String(explicitSessionId).trim() !== ''
+        ? parseInt(String(explicitSessionId), 10) : NaN;
+    if (Number.isFinite(explicit) && explicit >= 1) return lmsCourseIdForSession(DB, explicit);
+
+    const rawId = parseInt(String(id), 10);
+    if (isNaN(rawId)) return null;
+
+    const existsInCourses = await DB.prepare('SELECT id FROM courses WHERE id = ?').bind(rawId).first();
+    if (existsInCourses) return rawId;
+
+    return lmsCourseIdForSession(DB, rawId);
 }
 
 export type TrainingLogSessionRow = {

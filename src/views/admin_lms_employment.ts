@@ -138,7 +138,8 @@ export const adminLmsEmploymentHtml = (sidebar: string = hrdSidebar('courses')) 
     </div>
 
     <script>
-        const courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
+        const sessionIdQ = new URLSearchParams(window.location.search).get('session_id') || '';
+        const courseId = window.location.pathname.split('/')[3];
         let students = [];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -147,7 +148,7 @@ export const adminLmsEmploymentHtml = (sidebar: string = hrdSidebar('courses')) 
 
         async function loadEmploymentData() {
             try {
-                const res = await fetch(\`/api/hrd/courses/\${courseId}/employment\`, {
+                const res = await fetch(\`/api/hrd/courses/\${courseId}/employment\` + (sessionIdQ ? '?session_id=' + encodeURIComponent(sessionIdQ) : ''), {
                     headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
                 const result = await res.json();
@@ -232,6 +233,7 @@ export const adminLmsEmploymentHtml = (sidebar: string = hrdSidebar('courses')) 
             const data = {
                 student_id: parseInt(document.getElementById('editStudentId').value),
                 course_id: parseInt(courseId),
+                session_id: sessionIdQ ? parseInt(sessionIdQ) : null,
                 status: document.getElementById('editStatus').value,
                 company_name: document.getElementById('editCompany').value,
                 job_title: document.getElementById('editJob').value,

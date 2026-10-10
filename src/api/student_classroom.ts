@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings, JWTPayload } from '../types';
 import { authMiddleware } from '../middleware/auth';
+import { attendanceKindSql } from '../utils/attendance_enrollment';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 app.use('*', authMiddleware);
@@ -58,6 +59,12 @@ function attendanceLabel(status: string | null | undefined): string {
     return map[status] || status;
 }
 
+/** 회차 지정 없는 게시글은 LMS 과정 id로만 매칭 (approved_courses.id와 번호가 겹쳐 다른 과정 글이 섞이는 것 방지) */
+function sessionlessPostClause(enrolled: EnrollmentRow): { courseClause: string; ids: number[] } {
+    if (!enrolled.lms_course_id) return { courseClause: '', ids: [] };
+    return { courseClause: 'OR (p.session_id IS NULL AND p.course_id = ?)', ids: [enrolled.lms_course_id] };
+}
+
 function isAttendedStatus(status: string | null | undefined): boolean {
     return ['present', 'attended', 'late', 'early', 'early_leave', 'public', 'excused'].includes(String(status || ''));
 }
@@ -82,10 +89,7 @@ app.get('/:sessionId/notices', async (c) => {
     const sessionId = parseInt(c.req.param('sessionId'), 10);
     const enrolled = await requireEnrollment(c, sessionId);
     if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
-    const ids: number[] = [];
-    if (enrolled.lms_course_id) ids.push(enrolled.lms_course_id);
-    if (enrolled.approved_course_id) ids.push(enrolled.approved_course_id);
-    const courseClause = ids.length ? `OR (p.session_id IS NULL AND p.course_id IN (${ids.map(() => '?').join(',')}))` : '';
+    const { courseClause, ids } = sessionlessPostClause(enrolled);
     const { results } = await c.env.DB.prepare(
         `SELECT p.id, p.title, p.content, p.created_at, p.pinned, p.category, u.name as author_name,
                 p.session_id
@@ -135,10 +139,7 @@ app.get('/:sessionId/qna', async (c) => {
     const sessionId = parseInt(c.req.param('sessionId'), 10);
     const enrolled = await requireEnrollment(c, sessionId);
     if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
-    const ids: number[] = [];
-    if (enrolled.lms_course_id) ids.push(enrolled.lms_course_id);
-    if (enrolled.approved_course_id) ids.push(enrolled.approved_course_id);
-    const courseClause = ids.length ? `OR (p.session_id IS NULL AND p.course_id IN (${ids.map(() => '?').join(',')}))` : '';
+    const { courseClause, ids } = sessionlessPostClause(enrolled);
     const { results } = await c.env.DB.prepare(
         `SELECT p.id, p.title, p.content, p.created_at, p.sub_category, u.name as author_name,
                 p.session_id, p.author_id,
@@ -170,7 +171,7 @@ app.post('/:sessionId/qna', async (c) => {
     await c.env.DB.prepare(
         `INSERT INTO posts (author_id, title, content, category, sub_category, status, course_id, session_id, created_at, updated_at)
          VALUES (?, ?, ?, 'qna', 'public', 'published', ?, ?, datetime('now'), datetime('now'))`
-    ).bind(user.userId, title, content, enrolled.lms_course_id || enrolled.approved_course_id, sessionId).run();
+    ).bind(user.userId, title, content, enrolled.lms_course_id ?? null, sessionId).run();
     return c.json({ success: true });
 });
 
@@ -340,7 +341,7 @@ app.get('/:sessionId/attendance', async (c) => {
     const { results } = await c.env.DB.prepare(
         `SELECT date, status, check_in_time, check_out_time, note
          FROM attendance_logs
-         WHERE enrollment_id = ?
+         WHERE enrollment_id = ? AND ${attendanceKindSql('', 'session')}
          ORDER BY date DESC`
     ).bind(enrolled.enrollment_id).all();
     const logs = (results || []).map((row: Record<string, unknown>) => ({
@@ -395,7 +396,7 @@ app.get('/:sessionId', async (c) => {
     const timetable = await loadTimetable(c.env.DB, sessionId);
     const upcoming = timetable.filter((row: { training_date?: string }) => String(row.training_date || '') >= today).slice(0, 6);
     const { results: logs } = await c.env.DB.prepare(
-        `SELECT status FROM attendance_logs WHERE enrollment_id = ?`
+        `SELECT status FROM attendance_logs WHERE enrollment_id = ? AND ${attendanceKindSql('', 'session')}`
     ).bind(enrolled.enrollment_id).all();
     const logRows = logs || [];
     const attended = logRows.filter((l: { status?: string }) => isAttendedStatus(l.status)).length;
@@ -408,7 +409,7 @@ app.get('/:sessionId', async (c) => {
         classDates.push(d);
     });
     const { results: attDateRows } = await c.env.DB.prepare(
-        `SELECT date, status FROM attendance_logs WHERE enrollment_id = ?`
+        `SELECT date, status FROM attendance_logs WHERE enrollment_id = ? AND ${attendanceKindSql('', 'session')}`
     ).bind(enrolled.enrollment_id).all();
     const attendedDates: Record<string, boolean> = {};
     (attDateRows || []).forEach((row: { date?: string; status?: string }) => {

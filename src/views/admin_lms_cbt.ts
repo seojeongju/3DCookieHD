@@ -348,7 +348,9 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
     </div>
 
     <script>
-        const courseId = new URLSearchParams(window.location.search).get('session_id') || window.location.pathname.split('/')[3];
+        const sessionIdQ = new URLSearchParams(window.location.search).get('session_id') || '';
+        const courseId = sessionIdQ || window.location.pathname.split('/')[3];
+        const sessionQs = sessionIdQ ? '&session_id=' + encodeURIComponent(sessionIdQ) : '';
 
         document.addEventListener('DOMContentLoaded', () => {
             loadExams();
@@ -603,7 +605,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         async function loadExams() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/cbt/exams?course_id=\${courseId}\`, {
+                const response = await fetch(\`/api/cbt/exams?course_id=\${courseId}\${sessionQs}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
@@ -815,7 +817,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         async function loadQuestions() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(\`/api/cbt/questions?course_id=\${courseId}\`, {
+                const response = await fetch(\`/api/cbt/questions?course_id=\${courseId}\${sessionQs}\`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const result = await response.json();
@@ -853,7 +855,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">불러오는 중...</td></tr>';
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(\`/api/cbt/results?course_id=\${courseId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch(\`/api/cbt/results?course_id=\${courseId}\${sessionQs}\`, { headers: { 'Authorization': 'Bearer ' + token } });
                 const json = await res.json();
                 const exams = (json.success && json.data && json.data.exams) ? json.data.exams : [];
                 if (!exams.length) {
@@ -1024,6 +1026,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             const isEdit = examId && String(examId).trim() !== '';
 
             data.course_id = courseId;
+            if (sessionIdQ) data.session_id = sessionIdQ;
             data.is_active = 1;
 
             try {
@@ -1089,6 +1092,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     ncsName = (parts[1] || '').trim();
                 }
                 data.course_id = courseId;
+                if (sessionIdQ) data.session_id = sessionIdQ;
                 const examIdForNew = (document.getElementById('questionFormExamId') || {}).value;
                 if (examIdForNew && String(examIdForNew).trim()) data.exam_id = parseInt(String(examIdForNew), 10);
                 data.difficulty = formData.get('difficulty');

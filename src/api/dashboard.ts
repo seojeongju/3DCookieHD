@@ -4,7 +4,8 @@ import { Bindings } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { verifyToken } from '../utils/jwt';
 import { getEffectiveSessionStatus } from '../utils/course_session_status';
-import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { lmsCourseIdForSession } from '../utils/sessionCourseResolution';
+import { attendanceKindSql } from '../utils/attendance_enrollment';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -45,7 +46,7 @@ async function buildTeacherWeeklyPerformance(
                 FROM attendance_logs al
                 JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
                 JOIN session_timetable st ON cse.session_id = st.session_id AND st.instructor_id = ?
-                WHERE al.date = ?
+                WHERE al.date = ? AND ${attendanceKindSql('al', 'session')}
             `).bind(teacherId, date).first<{ total: number; ok: number }>();
             attTotal += hrdAtt?.total ?? 0;
             attOk += hrdAtt?.ok ?? 0;
@@ -58,7 +59,7 @@ async function buildTeacherWeeklyPerformance(
                 FROM attendance_logs al
                 JOIN enrollments e ON al.enrollment_id = e.id
                 JOIN courses c ON e.course_id = c.id AND c.teacher_id = ?
-                WHERE al.date = ?
+                WHERE al.date = ? AND ${attendanceKindSql('al', 'course')}
             `).bind(teacherId, date).first<{ total: number; ok: number }>();
             attTotal += legAtt?.total ?? 0;
             attOk += legAtt?.ok ?? 0;
@@ -383,7 +384,7 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                 let lmsCourseId =
                     r.lms_course_id != null && Number(r.lms_course_id) > 0 ? Number(r.lms_course_id) : null;
                 if (!lmsCourseId) {
-                    lmsCourseId = await resolveSessionToLmsCourseId(DB, sessionId);
+                    lmsCourseId = await lmsCourseIdForSession(DB, sessionId);
                 }
                 const sessionLabel = r.session_number != null ? ' (' + r.session_number + '회차)' : '';
                 const nameSuffix = r.session_name ? ' - ' + r.session_name : '';
@@ -429,7 +430,7 @@ app.get('/teacher-stats', authMiddleware, async (c) => {
                                sum(case when status = 'present' then 1 else 0 end) as present_cnt
                         FROM attendance_logs al
                         JOIN course_session_enrollments cse ON al.enrollment_id = cse.id
-                        WHERE cse.session_id = ?
+                        WHERE cse.session_id = ? AND ${attendanceKindSql('al', 'session')}
                     `).bind(hCourse.session_id).first<{ total_logs: number, present_cnt: number }>();
 
                     if (hrdAtt && hrdAtt.total_logs > 0) {
@@ -560,7 +561,7 @@ app.get('/today-attendance', async (c) => {
             JOIN enrollments e ON al.enrollment_id = e.id
             JOIN users u ON e.user_id = u.id
             JOIN courses c ON e.course_id = c.id
-            WHERE al.date = ?
+            WHERE al.date = ? AND ${attendanceKindSql('al', 'course')}
             ORDER BY al.check_in_time DESC
             LIMIT 5
         `).bind(today).all<{

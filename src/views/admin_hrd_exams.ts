@@ -883,7 +883,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
         async function loadMgmtExams() {
             if (!mgmtSessionId) return;
             try {
-                const res = await fetch('/api/cbt/exams?course_id=' + mgmtSessionId, {
+                const res = await fetch('/api/cbt/exams?course_id=' + mgmtSessionId + '&session_id=' + mgmtSessionId, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const json = await res.json();
@@ -1416,6 +1416,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                         body: JSON.stringify({ 
                             title: sessTitle + ' 사전평가', 
                             course_id: mgmtSessionId,
+                            session_id: mgmtSessionId,
                             type: 'practice',
                             description: '문제은행에서 자동 생성된 사전평가입니다.',
                             time_limit: 60
@@ -1536,6 +1537,7 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                     },
                     body: JSON.stringify({
                         course_id: mgmtSessionId,
+                        session_id: mgmtSessionId,
                         title: title.trim(),
                         type: type || 'practice',
                         time_limit_minutes,

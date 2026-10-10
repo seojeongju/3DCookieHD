@@ -1,5 +1,5 @@
 import { getLatestCourseSessionRowForLmsCourseId, isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
-import { ensureDedicatedLmsCourseForSession, resolveSessionToLmsCourseId } from './sessionCourseResolution';
+import { lmsCourseIdForSessionOrCreate } from './sessionCourseResolution';
 
 export type LmsEntryRole = 'admin' | 'teacher' | 'student';
 
@@ -80,21 +80,8 @@ export async function resolveLegacyHrdLmsRedirect(
       .first<{ id: number; lms_course_id: number | null }>();
     if (!session) return null;
 
-    let lmsId =
-      session.lms_course_id != null && Number(session.lms_course_id) > 0
-        ? Number(session.lms_course_id)
-        : null;
-    if (!lmsId) {
-      lmsId = await ensureDedicatedLmsCourseForSession(db, session.id);
-    } else {
-      const other = await db
-        .prepare('SELECT id FROM course_sessions WHERE lms_course_id = ? AND id != ? LIMIT 1')
-        .bind(lmsId, session.id)
-        .first();
-      if (other) {
-        lmsId = await ensureDedicatedLmsCourseForSession(db, session.id);
-      }
-    }
+    // 페이지 진입만으로 공유 LMS를 분리하지 않음 (분리는 관리자 '전체 정비'에서)
+    const lmsId = await lmsCourseIdForSessionOrCreate(db, session.id);
     if (lmsId && rawId !== lmsId) {
       params.set('type', 'hrd');
       params.set('session_id', String(session.id));
@@ -119,16 +106,7 @@ export async function resolveLegacyHrdLmsRedirect(
     .first<{ id: number; lms_course_id: number | null }>();
   if (!session) return null;
 
-  let lmsId =
-    session.lms_course_id != null && Number(session.lms_course_id) > 0
-      ? Number(session.lms_course_id)
-      : null;
-  if (!lmsId) {
-    lmsId = await ensureDedicatedLmsCourseForSession(db, session.id);
-  } else {
-    const resolved = await resolveSessionToLmsCourseId(db, session.id);
-    lmsId = resolved ?? (await ensureDedicatedLmsCourseForSession(db, session.id));
-  }
+  const lmsId = await lmsCourseIdForSessionOrCreate(db, session.id);
   if (!lmsId) return null;
 
   params.set('type', 'hrd');

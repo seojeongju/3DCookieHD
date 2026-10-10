@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Bindings } from '../types';
 import { successResponse, errorResponse } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
-import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { lmsCourseIdForSession, resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 
 const cbt = new Hono<{ Bindings: Bindings }>();
 
@@ -17,7 +17,7 @@ cbt.get('/exams', authMiddleware, async (c) => {
         if (!courseIdParam) {
             return errorResponse(c, 'course_id 파라미터가 필요합니다', 400);
         }
-        const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+        const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam, c.req.query('session_id'));
         if (courseId == null) {
             return successResponse(c, []);
         }
@@ -58,7 +58,7 @@ cbt.post('/exams', authMiddleware, async (c) => {
             return errorResponse(c, 'course_id와 title은 필수입니다', 400);
         }
 
-        const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id);
+        const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id);
         if (resolvedCourseId == null) {
             return errorResponse(c, '해당 회차에 연결된 LMS 과정이 없습니다. 과정 연결을 먼저 해주세요.', 400);
         }
@@ -146,7 +146,7 @@ cbt.delete('/exams/:id', authMiddleware, async (c) => {
 // ============================================================
 cbt.get('/course-ability-units', authMiddleware, async (c) => {
     try {
-        const courseIdParam = c.req.query('course_id');
+        const courseIdParam = c.req.query('session_id') || c.req.query('course_id');
         if (!courseIdParam) {
             return errorResponse(c, 'course_id 파라미터가 필요합니다', 400);
         }
@@ -251,7 +251,7 @@ cbt.get('/questions', authMiddleware, async (c) => {
                 params.push(examId);
             }
         } else if (courseIdParam) {
-            const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+            const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam, c.req.query('session_id'));
             if (courseId == null) {
                 return successResponse(c, []);
             }
@@ -391,7 +391,7 @@ cbt.get('/question-bank', authMiddleware, async (c) => {
         }
 
         if (courseIdParam) {
-            const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+            const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam, c.req.query('session_id'));
             if (resolvedCourseId != null) {
                 sql += ' AND e.course_id = ?';
                 params.push(resolvedCourseId);
@@ -656,7 +656,7 @@ cbt.post('/questions', authMiddleware, async (c) => {
         // exam_id 결정: 없으면 course_id(회차 ID 또는 과정 ID)로 가장 최근 시험에 연결
         let targetExamId = exam_id ? parseInt(exam_id) : null;
         if (!targetExamId && course_id) {
-            const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id);
+            const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id);
             if (resolvedCourseId == null) {
                 return errorResponse(c, '해당 회차에 연결된 LMS 과정이 없습니다.', 400);
             }
@@ -817,7 +817,7 @@ cbt.get('/ncs-available-for-student', authMiddleware, async (c) => {
         for (const row of enrollments || []) {
             const courseId = row.lms_course_id != null && row.lms_course_id > 0
                 ? row.lms_course_id
-                : await resolveSessionToLmsCourseId(c.env.DB, row.session_id);
+                : await lmsCourseIdForSession(c.env.DB, row.session_id);
             if (courseId == null) continue;
             const countRow: any = await c.env.DB.prepare(
                 'SELECT COUNT(*) as cnt FROM ncs_course_questions WHERE course_id = ?'
@@ -850,9 +850,10 @@ cbt.get('/ncs-available-for-student', authMiddleware, async (c) => {
 // GET /api/cbt/ncs-course-questions?course_id= 또는 ?session_id=  - 해당 과정의 NCS평가용 문제 목록
 cbt.get('/ncs-course-questions', authMiddleware, async (c) => {
     try {
-        const courseIdParam = c.req.query('course_id') ?? c.req.query('session_id');
-        if (!courseIdParam) return errorResponse(c, 'course_id 또는 session_id가 필요합니다', 400);
-        const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+        const courseIdParam = c.req.query('course_id');
+        const sessionIdParam = c.req.query('session_id');
+        if (!courseIdParam && !sessionIdParam) return errorResponse(c, 'course_id 또는 session_id가 필요합니다', 400);
+        const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam, sessionIdParam);
         if (courseId == null) return successResponse(c, []);
 
         const { results } = await c.env.DB.prepare(`
@@ -879,7 +880,7 @@ cbt.post('/ncs-submit', authMiddleware, async (c) => {
         const sessionId = body.session_id != null ? String(body.session_id) : null;
         const answers = body.answers && typeof body.answers === 'object' ? body.answers : {};
         if (!sessionId) return errorResponse(c, 'session_id가 필요합니다', 400);
-        const courseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
+        const courseId = await lmsCourseIdForSession(c.env.DB, sessionId);
         if (courseId == null) return errorResponse(c, '해당 회차를 찾을 수 없습니다', 404);
         const { results: rows } = await c.env.DB.prepare(`
             SELECT n.id, q.correct_answer, q.question_type
@@ -921,7 +922,7 @@ cbt.post('/ncs-course-questions', authMiddleware, async (c) => {
         const body = await c.req.json() as { session_id?: string | number; question_bank_ids?: number[] };
         const sessionId = body.session_id != null ? String(body.session_id) : null;
         if (!sessionId) return errorResponse(c, 'session_id가 필요합니다', 400);
-        const courseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
+        const courseId = await lmsCourseIdForSession(c.env.DB, sessionId);
         if (courseId == null) return errorResponse(c, '해당 회차를 찾을 수 없습니다', 404);
 
         const raw = body.question_bank_ids || [];
@@ -1113,7 +1114,7 @@ cbt.get('/results', authMiddleware, async (c) => {
     try {
         const courseIdParam = c.req.query('course_id');
         if (!courseIdParam) return errorResponse(c, 'course_id 파라미터가 필요합니다', 400);
-        const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
+        const courseId = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam, c.req.query('session_id'));
         if (courseId == null) return successResponse(c, { exams: [] });
 
         const { results: exams } = await c.env.DB.prepare(`

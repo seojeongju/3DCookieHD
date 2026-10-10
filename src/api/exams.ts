@@ -372,7 +372,7 @@ exams.post('/', authMiddleware, async (c) => {
         let { title, course_id, description, time_limit, questions, type } = body;
         
         // 만약 세션 ID가 전달되었다면 과정 ID로 해소
-        const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id);
+        const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id);
         if (resolvedCourseId != null) {
             course_id = resolvedCourseId;
         }

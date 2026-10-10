@@ -25,6 +25,9 @@ export const adminHrdTrainingLogsHtml = (sidebar = hrdSidebar('training-logs')) 
                             <p class="text-gray-500 mt-1 text-sm break-words">모든 교육 과정의 훈련일지 작성 및 NCS 이수 현황을 관리합니다.</p>
                         </div>
                         <div class="flex items-center gap-3 shrink-0">
+                            <a href="/admin/training-logs/review" class="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:text-rose-600 hover:border-rose-200 transition-all shadow-sm whitespace-nowrap">
+                                <i class="fas fa-clipboard-check mr-1.5"></i>회차 점검
+                            </a>
                             <button onclick="loadLogSummary()" class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm" title="새로고침">
                                 <i class="fas fa-sync-alt"></i>
                             </button>

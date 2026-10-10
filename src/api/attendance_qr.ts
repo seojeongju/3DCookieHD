@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { Bindings, Variables } from '../types';
+import { attendanceKindSql, type AttendanceEnrollmentKind } from '../utils/attendance_enrollment';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -229,11 +230,13 @@ async function syncAttendanceLog(
         ).bind(opts.qrCourseId, opts.studentId).first<{ id: number }>();
         enrollmentId = byLms?.id ?? null;
     }
+    let kind: AttendanceEnrollmentKind = 'session';
     if (!enrollmentId) {
         const legacy = await DB.prepare(
             `SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'approved'`
         ).bind(opts.studentId, opts.qrCourseId).first<{ id: number }>();
         enrollmentId = legacy?.id ?? null;
+        kind = 'course';
     }
     if (!enrollmentId) return;
 
@@ -241,19 +244,21 @@ async function syncAttendanceLog(
     const checkIn = kst.toISOString().substring(11, 19);
     const logStatus = opts.status === 'late' ? 'late' : 'present';
     const existing = await DB.prepare(
-        `SELECT id FROM attendance_logs WHERE enrollment_id = ? AND date = ?`
+        `SELECT id FROM attendance_logs WHERE enrollment_id = ? AND date = ? AND ${attendanceKindSql('', kind)}
+         ORDER BY (enrollment_type IS NULL) LIMIT 1`
     ).bind(enrollmentId, opts.date).first<{ id: number }>();
     if (existing) {
         await DB.prepare(
             `UPDATE attendance_logs
-             SET status = ?, check_in_time = COALESCE(check_in_time, ?), note = COALESCE(note, 'QR 출석'), updated_at = CURRENT_TIMESTAMP
+             SET status = ?, check_in_time = COALESCE(check_in_time, ?), note = COALESCE(note, 'QR 출석'),
+                 enrollment_type = ?, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`
-        ).bind(logStatus, checkIn, existing.id).run();
+        ).bind(logStatus, checkIn, kind, existing.id).run();
     } else {
         await DB.prepare(
-            `INSERT INTO attendance_logs (enrollment_id, date, status, check_in_time, note)
-             VALUES (?, ?, ?, ?, 'QR 출석')`
-        ).bind(enrollmentId, opts.date, logStatus, checkIn).run();
+            `INSERT INTO attendance_logs (enrollment_id, enrollment_type, date, status, check_in_time, note)
+             VALUES (?, ?, ?, ?, ?, 'QR 출석')`
+        ).bind(enrollmentId, kind, opts.date, logStatus, checkIn).run();
     }
 }
 

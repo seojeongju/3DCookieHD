@@ -75,17 +75,22 @@ export async function trainingLogScopeSql(DB: DB, session: ScopeSession): Promis
   return { where: `(t.session_id = ? OR (${legacy}))`, binds };
 }
 
+export type SessionRef = { session_id: number; title: string };
+
 export type LegacyLogReview = {
   id: number;
   date: string;
   course_id: number;
   topic: string | null;
+  content_preview: string | null;
   instructor_name: string | null;
   created_at: string | null;
-  /** 시간표상 그 날짜에 수업이 있는 회차들 */
-  timetable_sessions: { session_id: number; title: string }[];
-  /** 자동 확정된 회차 (시간표로 소속이 하나로 증명된 경우) */
-  assigned_session_id: number | null;
+  /** 지금 이 일지가 보이는 회차 (일지 course_id를 쓰는 회차) */
+  current_sessions: SessionRef[];
+  /** 시간표상 그 날짜에 수업이 있는 회차 */
+  timetable_sessions: SessionRef[];
+  /** 운영기간·요일이 그 날짜와 맞는 회차 (시간표 미등록 회차 포함) */
+  period_sessions: SessionRef[];
   reason: string;
 };
 
@@ -98,19 +103,26 @@ export async function reviewLegacyTrainingLogs(DB: DB, apply: boolean): Promise<
   total: number;
   assigned: number;
   needsReview: LegacyLogReview[];
+  sessions: SessionRef[];
 }> {
   await ensureTrainingLogSessionColumn(DB);
   const { results: logs } = await DB.prepare(`
-    SELECT t.id, substr(t.date, 1, 10) AS date, t.course_id, t.topic, t.created_at, u.name AS instructor_name
+    SELECT t.id, substr(t.date, 1, 10) AS date, t.course_id, t.topic, substr(t.content, 1, 120) AS content_preview,
+           t.created_at, u.name AS instructor_name
     FROM training_logs t LEFT JOIN users u ON u.id = t.instructor_id
     WHERE t.session_id IS NULL
     ORDER BY t.date DESC, t.id DESC
-  `).all<{ id: number; date: string; course_id: number; topic: string | null; created_at: string | null; instructor_name: string | null }>();
+  `).all<{ id: number; date: string; course_id: number; topic: string | null; content_preview: string | null; created_at: string | null; instructor_name: string | null }>();
 
   const { results: sessions } = await DB.prepare(`
-    SELECT s.id, s.lms_course_id, a.name AS course_name, s.session_number, s.session_name
+    SELECT s.id, s.lms_course_id, a.name AS course_name, s.session_number, s.session_name,
+           s.training_start_date, s.training_end_date, s.days_of_week
     FROM course_sessions s JOIN approved_courses a ON a.id = s.approved_course_id
-  `).all<{ id: number; lms_course_id: number | null; course_name: string; session_number: number; session_name: string | null }>();
+    ORDER BY s.id DESC
+  `).all<{
+    id: number; lms_course_id: number | null; course_name: string; session_number: number; session_name: string | null;
+    training_start_date: string | null; training_end_date: string | null; days_of_week: string | null;
+  }>();
   const courseIds = new Set(
     ((await DB.prepare('SELECT id FROM courses').all<{ id: number }>()).results ?? []).map((r) => Number(r.id)),
   );
@@ -123,6 +135,14 @@ export async function reviewLegacyTrainingLogs(DB: DB, apply: boolean): Promise<
     if (s.lms_course_id) add(Number(s.lms_course_id));
     if (!courseIds.has(Number(s.id))) add(Number(s.id));
   }
+  const ref = (sid: number): SessionRef => ({ session_id: sid, title: titleOf.get(sid) ?? `회차 #${sid}` });
+  const sessionsInPeriod = (date: string) => (sessions ?? []).filter((s) => {
+    const start = ymd(s.training_start_date);
+    const end = ymd(s.training_end_date);
+    if (!start || !end || date < start || date > end) return false;
+    const dows = allowedDowsForSession(s.days_of_week, s.session_name);
+    return dows.length === 0 || dows.includes(new Date(`${date}T00:00:00Z`).getUTCDay());
+  }).map((s) => s.id);
 
   const { results: timetable } = await DB.prepare(`
     SELECT DISTINCT session_id, substr(training_date, 1, 10) AS d
@@ -137,7 +157,6 @@ export async function reviewLegacyTrainingLogs(DB: DB, apply: boolean): Promise<
     const owners = sessionsByCourseId.get(Number(log.course_id)) ?? [];
     const onDate = sessionsOnDate.get(log.date) ?? [];
     const proven = owners.filter((sid) => onDate.includes(sid));
-    const timetable_sessions = onDate.map((sid) => ({ session_id: sid, title: titleOf.get(sid) ?? `회차 #${sid}` }));
 
     let reason = '';
     if (owners.length === 0) reason = '일지 과정 번호에 연결된 회차가 없음';
@@ -147,7 +166,13 @@ export async function reviewLegacyTrainingLogs(DB: DB, apply: boolean): Promise<
     if (!reason) {
       toAssign.push([log.id, proven[0]]);
     } else {
-      needsReview.push({ ...log, timetable_sessions, assigned_session_id: null, reason });
+      needsReview.push({
+        ...log,
+        current_sessions: owners.map(ref),
+        timetable_sessions: onDate.map(ref),
+        period_sessions: sessionsInPeriod(log.date).filter((sid) => !onDate.includes(sid)).map(ref),
+        reason,
+      });
     }
   }
 
@@ -158,7 +183,12 @@ export async function reviewLegacyTrainingLogs(DB: DB, apply: boolean): Promise<
     for (let i = 0; i < stmts.length; i += 50) await DB.batch(stmts.slice(i, i + 50));
   }
 
-  return { total: (logs ?? []).length, assigned: toAssign.length, needsReview };
+  return {
+    total: (logs ?? []).length,
+    assigned: toAssign.length,
+    needsReview,
+    sessions: (sessions ?? []).map((s) => ref(s.id)),
+  };
 }
 
 /** 관리자 확인 후 레거시 일지를 특정 회차로 지정 (회차 LMS course_id도 함께 맞춤) */

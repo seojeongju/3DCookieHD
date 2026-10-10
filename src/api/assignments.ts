@@ -22,18 +22,7 @@ app.get('/courses/:courseId', async (c) => {
             GROUP BY a.id
             ORDER BY a.due_date DESC
         `;
-        let { results } = await c.env.DB.prepare(query).bind(courseId).all();
-
-        // Fallback: If HRD and no results, check if courseId is actually an approved_course_id
-        if (isHrd && (!results || results.length === 0)) {
-            const latestSession = await c.env.DB.prepare(
-                'SELECT id FROM course_sessions WHERE approved_course_id = ? ORDER BY session_number DESC, id DESC LIMIT 1'
-            ).bind(courseId).first<{ id: number }>();
-
-            if (latestSession) {
-                results = (await c.env.DB.prepare(query).bind(latestSession.id).all()).results;
-            }
-        }
+        const { results } = await c.env.DB.prepare(query).bind(courseId).all();
 
         return c.json({ success: true, data: results });
     } catch (e) {
@@ -80,7 +69,7 @@ app.post('/', async (c) => {
             if (sessionId == null || isNaN(sessionId)) {
                 return c.json({ success: false, error: 'HRD 과제 등록 시 회차(session_id)가 필요합니다.' }, 400);
             }
-            courseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
+            courseId = await resolveSessionToLmsCourseId(c.env.DB, course_id, session_id);
             if (courseId == null) {
                 return c.json({ success: false, error: '해당 회차에 연결된 LMS 과정이 없습니다. 훈련일지 등에서 과정 연결을 먼저 해주세요.' }, 400);
             }

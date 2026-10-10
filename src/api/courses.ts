@@ -7,15 +7,29 @@ import type { Bindings, Course, CourseFilter } from '../types';
 import { successResponse, errorResponse, notFoundResponse, paginatedResponse } from '../utils/response';
 import { verifyToken } from '../utils/jwt';
 import { getOne, getAll, execute, calculatePagination } from '../utils/database';
-import { authMiddleware, requireAdmin, requireTeacher } from '../middleware/auth';
+import { authMiddleware, requireAdmin, requireTeacher, requireRole } from '../middleware/auth';
 import { verifyCourseOwnership } from '../middleware/ownership';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
 import { getSessionTrainingDates, normalizeTrainingDate } from '../utils/session_training_dates';
-import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { lmsCourseIdForSession } from '../utils/sessionCourseResolution';
 import { getEffectiveSessionStatus } from '../utils/course_session_status';
+import { attendanceKindSql, enrollmentBelongs, upsertAttendanceLog } from '../utils/attendance_enrollment';
 
 const courses = new Hono<{ Bindings: Bindings }>();
+
+const requireStaff = requireRole('admin', 'teacher', 'instructor');
+
+/** 출결 화면의 :id(회차 PK 또는 LMS 과정 id) → 회차 id. 회차가 아니면 null(일반 과정) */
+async function resolveAttendanceSessionId(DB: D1Database, idNum: number, sessionIdQ?: string): Promise<number | null> {
+  const explicit = sessionIdQ ? parseInt(sessionIdQ, 10) : NaN;
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  if (isNaN(idNum)) return null;
+  const inSessions = await DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(idNum).first<{ id: number }>();
+  if (inSessions) return inSessions.id;
+  const byLms = await DB.prepare('SELECT id FROM course_sessions WHERE lms_course_id = ?').bind(idNum).first<{ id: number }>();
+  return byLms ? byLms.id : null;
+}
 
 /** 강사 UI용: 유효 상태 → courses 목록 status 값 */
 function toTeacherCourseStatus(effective: string): string {
@@ -323,7 +337,7 @@ courses.get('/', async (c) => {
             ? Number((r as any).lms_course_id)
             : null;
         if (!lmsCourseId) {
-          lmsCourseId = await resolveSessionToLmsCourseId(c.env.DB, sessionId);
+          lmsCourseId = await lmsCourseIdForSession(c.env.DB, sessionId);
         }
         if (lmsCourseId && !lmsMetaById.has(lmsCourseId)) {
           const meta = await c.env.DB.prepare(
@@ -934,7 +948,7 @@ courses.delete('/:id', authMiddleware, requireAdmin, async (c) => {
 });
 
 // GET /api/courses/:id/grades - Get course gradebook (matrix). :id가 회차면 회차 기준, 아니면 과정 기준
-courses.get('/:id/grades', async (c) => {
+courses.get('/:id/grades', authMiddleware, requireStaff, async (c) => {
   const rawId = c.req.param('id');
   const type = (c.req.query('type') || '').toLowerCase();
   const idNum = parseInt(rawId, 10);
@@ -1116,7 +1130,7 @@ courses.get('/:id/attendance-info', async (c) => {
  * GET /api/courses/:id/attendance
  * 특정 날짜의 출결 현황 조회. :id가 회차 ID 또는 LMS courses.id일 때 정확한 회차 기준 조회
  */
-courses.get('/:id/attendance', async (c) => {
+courses.get('/:id/attendance', authMiddleware, requireStaff, async (c) => {
   try {
     const courseId = c.req.param('id');
     const date = c.req.query('date'); // YYYY-MM-DD
@@ -1124,27 +1138,8 @@ courses.get('/:id/attendance', async (c) => {
     const idNum = parseInt(courseId, 10);
     const sessionIdQ = c.req.query('session_id');
 
-    let isHrd = type === 'hrd';
-    let realSessionId: number | null = sessionIdQ ? parseInt(sessionIdQ, 10) : null;
-    if (realSessionId != null && (isNaN(realSessionId) || realSessionId < 1)) realSessionId = null;
-
-    if (!isNaN(idNum)) {
-      if (!realSessionId) {
-        const inSessions: any = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE id = ?').bind(idNum).first();
-        if (inSessions) {
-          realSessionId = inSessions.id;
-          isHrd = true;
-        } else {
-          const byLms: any = await c.env.DB.prepare('SELECT id FROM course_sessions WHERE lms_course_id = ?').bind(idNum).first();
-          if (byLms) {
-            realSessionId = byLms.id;
-            isHrd = true;
-          }
-        }
-      } else {
-        isHrd = true;
-      }
-    }
+    const realSessionId = await resolveAttendanceSessionId(c.env.DB, idNum, sessionIdQ);
+    const isHrd = type === 'hrd' || realSessionId != null;
 
     if (!date) {
       return errorResponse(c, '날짜(date) 파라미터가 필요합니다', 400);
@@ -1192,7 +1187,7 @@ courses.get('/:id/attendance', async (c) => {
         SELECT * FROM attendance_logs 
         WHERE enrollment_id IN (
           SELECT id FROM course_session_enrollments WHERE session_id = ?
-        ) AND date = ?
+        ) AND date = ? AND ${attendanceKindSql('', 'session')}
       `, [targetSessionId, date]);
 
       // 2-1. 전체 출석 기록 조회 (for rate calculation)
@@ -1201,7 +1196,7 @@ courses.get('/:id/attendance', async (c) => {
         FROM attendance_logs
         WHERE enrollment_id IN (
           SELECT id FROM course_session_enrollments WHERE session_id = ?
-        )
+        ) AND ${attendanceKindSql('', 'session')}
       `, [targetSessionId]);
 
       allTimetableDates = await getSessionTrainingDates(
@@ -1230,7 +1225,7 @@ courses.get('/:id/attendance', async (c) => {
         SELECT * FROM attendance_logs 
         WHERE enrollment_id IN (
           SELECT id FROM enrollments WHERE course_id = ?
-        ) AND date = ?
+        ) AND date = ? AND ${attendanceKindSql('', 'course')}
       `;
       attendanceLogs = await getAll<any>(c.env.DB, attendanceQuery, [courseId, date]);
 
@@ -1240,7 +1235,7 @@ courses.get('/:id/attendance', async (c) => {
         FROM attendance_logs 
         WHERE enrollment_id IN (
           SELECT id FROM enrollments WHERE course_id = ?
-        )
+        ) AND ${attendanceKindSql('', 'course')}
       `, [courseId]);
     }
 
@@ -1526,47 +1521,43 @@ courses.get('/:id/attendance', async (c) => {
 
 /**
  * POST /api/courses/:id/attendance
- * 출결 기록 저장 (enrollment_id 기준이라 :id는 로그용)
+ * 출결 기록 저장. :id(회차/과정)에 속한 수강 번호만 저장하며 수강 종류를 함께 기록
  */
-courses.post('/:id/attendance', async (c) => {
+courses.post('/:id/attendance', authMiddleware, requireStaff, async (c) => {
   try {
-    const courseId = c.req.param('id');
+    const idNum = parseInt(c.req.param('id'), 10);
     const body = await c.req.json();
     const { date, records } = body;
 
     if (!date || !records || !Array.isArray(records)) {
       return errorResponse(c, '유효하지 않은 데이터입니다', 400);
     }
+    if (isNaN(idNum)) return errorResponse(c, '잘못된 ID입니다', 400);
 
-    // 트랜잭션 처리가 이상적이나, D1은 아직 완벽한 트랜잭션을 지원하지 않을 수 있음 (배치 실행 권장)
-    // 여기서는 루프를 돌며 처리 (성능 개선 필요 시 배치 쿼리로 변경)
+    const sessionId = await resolveAttendanceSessionId(
+      c.env.DB, idNum, c.req.query('session_id') || (body.session_id != null ? String(body.session_id) : undefined),
+    );
+    const kind = sessionId != null ? 'session' : 'course';
+    const scopeId = sessionId ?? idNum;
+
+    const invalid: number[] = [];
+    for (const record of records) {
+      const enrollmentId = Number(record.enrollment_id);
+      if (!Number.isFinite(enrollmentId) || !(await enrollmentBelongs(c.env.DB, kind, enrollmentId, scopeId))) {
+        invalid.push(record.enrollment_id);
+      }
+    }
+    if (invalid.length > 0) {
+      return errorResponse(c, `이 과정에 속하지 않은 수강 번호가 포함되어 저장하지 않았습니다: ${invalid.join(', ')}`, 400);
+    }
 
     for (const record of records) {
-      // 기존 기록 확인
-      const existingLog = await getOne<any>(
-        c.env.DB,
-        'SELECT id FROM attendance_logs WHERE enrollment_id = ? AND date = ?',
-        [record.enrollment_id, date]
-      );
-
-      if (existingLog) {
-        // 업데이트
-        await execute(
-          c.env.DB,
-          `UPDATE attendance_logs SET 
-            check_in_time = ?, check_out_time = ?, status = ?, note = ?, updated_at = CURRENT_TIMESTAMP
-           WHERE id = ?`,
-          [record.check_in || null, record.check_out || null, record.status, record.note || null, existingLog.id]
-        );
-      } else {
-        // 신규 등록
-        await execute(
-          c.env.DB,
-          `INSERT INTO attendance_logs (enrollment_id, date, check_in_time, check_out_time, status, note)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [record.enrollment_id, date, record.check_in || null, record.check_out || null, record.status, record.note || null]
-        );
-      }
+      await upsertAttendanceLog(c.env.DB, kind, Number(record.enrollment_id), date, {
+        check_in: record.check_in || null,
+        check_out: record.check_out || null,
+        status: record.status,
+        note: record.note || null,
+      });
     }
 
     return successResponse(c, null, '출결 기록이 저장되었습니다');
