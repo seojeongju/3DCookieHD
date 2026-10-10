@@ -190,14 +190,14 @@ app.post('/personnel', authMiddleware, requireRole('admin'), async (c) => {
 });
 
 // 교강사 정보 수정
-app.put('/personnel/:id', authMiddleware, async (c) => {
+app.put('/personnel/:id', authMiddleware, requireStaff, async (c) => {
     try {
         const rawId = c.req.param('id');
         const userId = parseInt(rawId.includes(':') ? rawId.split(':')[0] : rawId);
         const user = c.get('user');
         const body = await c.req.json();
 
-        if (user.role === 'teacher' && user.userId !== userId) {
+        if (user.role !== 'admin' && user.userId !== userId) {
             return forbiddenResponse(c, '본인의 정보만 수정할 수 있습니다.');
         }
 
@@ -1404,7 +1404,7 @@ app.get('/facilities', authMiddleware, requireStaff, async (c) => {
 
         if (search) {
             query += " AND name LIKE ?";
-            params.push(`% ${search}% `);
+            params.push(`%${search}%`);
         }
 
         query += " ORDER BY name ASC";
@@ -1712,7 +1712,7 @@ app.get('/facilities/:id/items', authMiddleware, requireStaff, async (c) => {
         if (!facility) return c.json({ success: false, error: '시설을 찾을 수 없습니다.' }, 404);
 
         // 2. Search items where location contains facility name (simple matching)
-        const { results } = await c.env.DB.prepare("SELECT * FROM hrd_items WHERE location LIKE ?").bind(`% ${facility.name}% `).all();
+        const { results } = await c.env.DB.prepare("SELECT * FROM hrd_items WHERE location LIKE ?").bind(`%${facility.name}%`).all();
 
         return c.json({ success: true, data: results });
     } catch (e) {
