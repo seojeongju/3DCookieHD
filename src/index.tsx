@@ -180,6 +180,7 @@ import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
 import { publicNotFoundHtml } from './views/not_found';
 import { configureJwtSecret } from './utils/jwt';
 import { ensureAttendanceEnrollmentType } from './utils/attendance_enrollment';
+import { ensureEnrollmentDropColumns } from './utils/enrollment_dropout';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -193,6 +194,7 @@ app.use('*', async (c, next) => {
 // 운영 D1에 마이그레이션을 직접 적용할 수 없어, 출결 조회 전에 컬럼을 보장 (isolate당 1회)
 app.use('/api/*', async (c, next) => {
     await ensureAttendanceEnrollmentType(c.env.DB);
+    await ensureEnrollmentDropColumns(c.env.DB);
     await next();
 });
 app.use('*', logger());

@@ -125,6 +125,7 @@ app.get('/', authMiddleware, async (c) => {
       const search = (c.req.query('search') || '').trim();
 
       let asSession: { id: number; approved_course_id: number } | null = null;
+      let isLmsCourse = false;
 
       // session_id 쿼리가 명시되면 해석 없이 해당 회차 직접 사용 (PK 충돌 방지)
       const explicitSessionId = c.req.query('session_id');
@@ -137,7 +138,7 @@ app.get('/', authMiddleware, async (c) => {
           .bind(explicitSid)
           .first<{ id: number; approved_course_id: number }>();
       } else {
-        const isLmsCourse = await isRegisteredLmsCourseId(DB, courseIdNum);
+        isLmsCourse = await isRegisteredLmsCourseId(DB, courseIdNum);
 
         if (isLmsCourse) {
           asSession = await DB.prepare(
@@ -211,7 +212,7 @@ app.get('/', authMiddleware, async (c) => {
         FROM course_session_enrollments cse
         INNER JOIN course_sessions cs ON cse.session_id = cs.id
         INNER JOIN users u ON cse.user_id = u.id
-        WHERE cs.approved_course_id = ?
+        WHERE cs.approved_course_id = ? AND cse.status IN ('approved', 'enrolled')
       `;
       const countParams: any[] = [approvedCourseId];
       if (search) {
@@ -227,7 +228,7 @@ app.get('/', authMiddleware, async (c) => {
         FROM course_session_enrollments cse
         INNER JOIN course_sessions cs ON cse.session_id = cs.id
         INNER JOIN users u ON cse.user_id = u.id
-        WHERE cs.approved_course_id = ?
+        WHERE cs.approved_course_id = ? AND cse.status IN ('approved', 'enrolled')
       `;
       const listParams: any[] = [approvedCourseId];
       if (search) {

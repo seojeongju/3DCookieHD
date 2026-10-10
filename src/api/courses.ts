@@ -285,7 +285,7 @@ courses.get('/', async (c) => {
         const sessionIds = [...new Set((hrdRows.results as any[]).map((r: any) => r.id))];
         for (const sid of sessionIds) {
           const r = await c.env.DB.prepare(
-            'SELECT COUNT(*) as cnt FROM course_session_enrollments WHERE session_id = ?'
+            "SELECT COUNT(*) as cnt FROM course_session_enrollments WHERE session_id = ? AND status IN ('approved', 'enrolled')"
           ).bind(sid).first<{ cnt: number }>();
           enrollmentCounts.set(sid, r?.cnt ?? 0);
         }
@@ -1174,13 +1174,16 @@ courses.get('/:id/attendance', authMiddleware, requireStaff, async (c) => {
         sessionDetails = session;
       }
 
-      // 1. HRD 회차의 수강생 목록 조회 (배정된 학생 포함: approved, enrolled)
+      // 1. HRD 회차의 수강생 목록 조회 (approved, enrolled + 조회일 이후에 중도탈락한 훈련생)
       students = await getAll<any>(c.env.DB, `
-        SELECT u.id, u.name, u.phone, e.id as enrollment_id
+        SELECT u.id,
+               u.name || CASE WHEN e.status = 'dropped' THEN ' (중도탈락)' ELSE '' END as name,
+               u.phone, e.id as enrollment_id
         FROM course_session_enrollments e
         JOIN users u ON e.user_id = u.id
-        WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
-      `, [targetSessionId]);
+        WHERE e.session_id = ?
+          AND (e.status IN ('approved', 'enrolled') OR (e.status = 'dropped' AND e.dropped_at > ?))
+      `, [targetSessionId, date]);
 
       // 2. 해당 날짜의 출결 기록 조회 (course_session_enrollments ID 사용)
       attendanceLogs = await getAll<any>(c.env.DB, `

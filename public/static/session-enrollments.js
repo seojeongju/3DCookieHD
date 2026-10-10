@@ -1,6 +1,7 @@
 (function () {
     var currentSessionId = null;
     var enrolledList = [];
+    var droppedList = [];
     var candidateList = [];
     var coursesData = [];
 
@@ -56,6 +57,8 @@
             .then(function (json) {
                 if (!json.success) return;
                 enrolledList = json.data || [];
+                droppedList = json.dropped || [];
+                renderDropped(droppedList, json.drop_reasons || {});
                 var tbody = document.getElementById('enrolledListBody');
                 var countEl = document.getElementById('enrolledCount');
                 if (countEl) countEl.textContent = enrolledList.length + '명';
@@ -74,24 +77,32 @@
                         '<td class="p-2 text-slate-600">' + phone + '</td>' +
                         '<td class="p-2 text-center whitespace-nowrap">' +
                         '<button type="button" class="text-sky-600 hover:text-sky-800 text-xs font-bold enroll-send-pin mr-2" data-user-id="' + e.user_id + '">메일</button>' +
-                        '<button type="button" class="text-red-500 hover:text-red-700 text-xs font-bold enroll-remove" data-user-id="' + e.user_id + '">삭제</button>' +
+                        '<button type="button" class="text-rose-600 hover:text-rose-800 text-xs font-bold enroll-dropout mr-2" data-user-id="' + e.user_id + '" data-name="' + name.replace(/"/g, '&quot;') + '" title="수강 중 포기한 훈련생 — 기록 보존">중도탈락</button>' +
+                        '<button type="button" class="text-slate-400 hover:text-slate-600 text-xs font-bold enroll-remove" data-user-id="' + e.user_id + '" title="잘못 등록한 경우만 — 출결 기록이 있으면 불가">등록 취소</button>' +
                         '</td></tr>';
                 }).join('');
+                tbody.querySelectorAll('.enroll-dropout').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        openDropoutModal(btn.getAttribute('data-user-id'), btn.getAttribute('data-name'));
+                    });
+                });
                 tbody.querySelectorAll('.enroll-remove').forEach(function (btn) {
                     btn.addEventListener('click', function () {
                         var uid = btn.getAttribute('data-user-id');
-                        if (!uid || !confirm('이 수강생을 등록에서 제거할까요?')) return;
+                        if (!uid || !confirm('잘못 등록한 수강생의 등록을 취소할까요?\n\n수강 중 포기한 경우에는 [중도탈락]을 사용하세요.')) return;
                         fetch('/api/course-sessions/' + currentSessionId + '/enrollments/' + uid, {
                             method: 'DELETE',
                             headers: headers()
                         }).then(function (r) { return r.json(); }).then(function (res) {
                             if (res.success) {
                                 loadEnrolled();
-                                // loadEnrolled calls loadCandidates, so no explicit call needed here if we rely on loadEnrolled structure, 
-                                // but loadEnrolled structure is being changed to call loadCandidates at the end.
-                                // However, in the delete handler, we call loadEnrolled(), which will refresh enrolled list AND then candidate list.
+                            } else if (res.code === 'HAS_ATTENDANCE') {
+                                if (confirm(res.error + '\n\n지금 중도탈락으로 처리할까요?')) {
+                                    var row = enrolledList.find(function (x) { return String(x.user_id) === String(uid); });
+                                    openDropoutModal(uid, row ? row.name : '');
+                                }
                             } else {
-                                alert(res.error || '삭제 실패');
+                                alert(res.error || '등록 취소 실패');
                             }
                         }).catch(function () { alert('오류가 발생했습니다.'); });
                     });
@@ -108,6 +119,97 @@
             .catch(function (e) { console.error(e); });
     }
 
+    function esc(v) {
+        return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderDropped(list, reasons) {
+        var tbody = document.getElementById('droppedListBody');
+        var countEl = document.getElementById('droppedCount');
+        if (countEl) countEl.textContent = list.length + '명';
+        if (!tbody) return;
+        if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">중도탈락한 훈련생이 없습니다.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = list.map(function (d) {
+            return '<tr class="hover:bg-rose-50/40">' +
+                '<td class="p-2 text-slate-700 font-medium cursor-pointer hover:text-blue-600" onclick="window.location.href=\'/admin/students/' + d.user_id + '/journey\'">' + esc(d.name) + '</td>' +
+                '<td class="p-2 text-slate-600 whitespace-nowrap">' + esc(d.dropped_at || '-') + '</td>' +
+                '<td class="p-2"><span class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold">' + esc(reasons[d.drop_reason] || d.drop_reason || '-') + '</span></td>' +
+                '<td class="p-2 text-slate-500 text-xs">' + esc(d.drop_memo || '') + '</td>' +
+                '<td class="p-2 text-center"><button type="button" class="text-emerald-600 hover:text-emerald-800 text-xs font-bold enroll-restore" data-user-id="' + d.user_id + '">수강 복귀</button></td>' +
+                '</tr>';
+        }).join('');
+        tbody.querySelectorAll('.enroll-restore').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var uid = btn.getAttribute('data-user-id');
+                if (!uid || !confirm('중도탈락을 취소하고 다시 수강 중으로 되돌릴까요?')) return;
+                fetch('/api/course-sessions/' + currentSessionId + '/enrollments/' + uid + '/restore', {
+                    method: 'POST',
+                    headers: headers()
+                }).then(function (r) { return r.json(); }).then(function (res) {
+                    if (res.success) loadEnrolled();
+                    else alert(res.error || '복귀 처리 실패');
+                }).catch(function () { alert('오류가 발생했습니다.'); });
+            });
+        });
+    }
+
+    var dropoutUserId = null;
+
+    function kstToday() {
+        return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    }
+
+    function openDropoutModal(uid, name) {
+        var modal = document.getElementById('dropoutModal');
+        if (!modal || !uid) return;
+        dropoutUserId = uid;
+        document.getElementById('dropoutTarget').textContent = (name || '') + ' 훈련생을 이 회차에서 중도탈락 처리합니다.';
+        document.getElementById('dropoutDate').value = kstToday();
+        document.getElementById('dropoutReason').value = '';
+        document.getElementById('dropoutMemo').value = '';
+        modal.classList.remove('hidden');
+    }
+
+    function closeDropoutModal() {
+        var modal = document.getElementById('dropoutModal');
+        if (modal) modal.classList.add('hidden');
+        dropoutUserId = null;
+    }
+
+    function submitDropout() {
+        if (!dropoutUserId || !currentSessionId) return;
+        var reason = document.getElementById('dropoutReason').value;
+        if (!reason) {
+            alert('중도탈락 사유를 선택하세요.');
+            return;
+        }
+        var btn = document.getElementById('dropoutSubmit');
+        btn.disabled = true;
+        fetch('/api/course-sessions/' + currentSessionId + '/enrollments/' + dropoutUserId + '/dropout', {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify({
+                dropped_at: document.getElementById('dropoutDate').value,
+                reason: reason,
+                memo: document.getElementById('dropoutMemo').value
+            })
+        }).then(function (r) { return r.json(); }).then(function (res) {
+            btn.disabled = false;
+            if (res.success) {
+                closeDropoutModal();
+                loadEnrolled();
+            } else {
+                alert(res.error || '중도탈락 처리 실패');
+            }
+        }).catch(function () {
+            btn.disabled = false;
+            alert('오류가 발생했습니다.');
+        });
+    }
+
     function loadCandidates() {
         if (!currentSessionId) return;
         fetch('/api/hrd/students', { headers: headers() }) // This API exists mostly for HRD student list.
@@ -120,6 +222,8 @@
                 }
                 var enrolledIds = {};
                 enrolledList.forEach(function (e) { enrolledIds[e.user_id] = true; });
+                // 중도탈락자는 아래 중도탈락 목록의 [수강 복귀]로 되돌림
+                droppedList.forEach(function (e) { enrolledIds[e.user_id] = true; });
 
                 // Filter out already enrolled students
                 candidateList = (json.data || []).filter(function (s) { return !enrolledIds[s.id]; });
@@ -299,6 +403,11 @@
                 sendPinEmail([]);
             });
         }
+
+        var dropCancel = document.getElementById('dropoutCancel');
+        if (dropCancel) dropCancel.addEventListener('click', closeDropoutModal);
+        var dropSubmit = document.getElementById('dropoutSubmit');
+        if (dropSubmit) dropSubmit.addEventListener('click', submitDropout);
 
         var searchInput = document.getElementById('enrollStudentSearch');
         if (searchInput) {

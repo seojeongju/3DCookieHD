@@ -1563,7 +1563,7 @@ export const adminCoursesSessionEnrollmentsHtml = (sessionId?: string) =>
                                 <tr>
                                     <th class="p-2 text-left border-b border-slate-200">이름</th>
                                     <th class="p-2 text-left border-b border-slate-200">연락처</th>
-                                    <th class="p-2 w-20 text-center border-b border-slate-200">관리</th>
+                                    <th class="p-2 w-36 text-center border-b border-slate-200">관리</th>
                                 </tr>
                             </thead>
                             <tbody id="enrolledListBody" class="divide-y divide-slate-100">
@@ -1600,6 +1600,57 @@ export const adminCoursesSessionEnrollmentsHtml = (sessionId?: string) =>
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- 중도탈락 -->
+            <div class="mt-6 bg-white border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between gap-2">
+                    <h3 class="font-black tracking-tight text-slate-700 flex items-center gap-2">
+                        <i class="fas fa-user-slash text-rose-500"></i> 중도탈락
+                        <span id="droppedCount" class="text-slate-400 text-xs font-normal">0명</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-400">탈락 전 출결·일지 기록은 그대로 보존되며 출석부에는 '(중도탈락)'으로 표시됩니다.</p>
+                </div>
+                <div class="overflow-auto custom-scrollbar max-h-[320px]">
+                    <table class="w-full text-sm border-collapse">
+                        <thead class="bg-slate-50 text-slate-500 text-xs font-bold sticky top-0">
+                            <tr>
+                                <th class="p-2 text-left border-b border-slate-200">이름</th>
+                                <th class="p-2 text-left border-b border-slate-200">탈락일</th>
+                                <th class="p-2 text-left border-b border-slate-200">사유</th>
+                                <th class="p-2 text-left border-b border-slate-200">메모</th>
+                                <th class="p-2 w-24 text-center border-b border-slate-200">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="droppedListBody" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">중도탈락한 훈련생이 없습니다.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 중도탈락 처리 모달 -->
+        <div id="dropoutModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-xl w-full max-w-md p-8">
+                <h3 class="text-lg font-black tracking-tight text-slate-800 mb-1"><i class="fas fa-user-slash text-rose-500 mr-2"></i>중도탈락 처리</h3>
+                <p id="dropoutTarget" class="text-sm text-slate-500 mb-5"></p>
+                <label class="block text-xs font-bold text-slate-500 mb-1">탈락일</label>
+                <input type="date" id="dropoutDate" class="w-full mb-4 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-200">
+                <label class="block text-xs font-bold text-slate-500 mb-1">사유</label>
+                <select id="dropoutReason" class="w-full mb-4 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-200">
+                    <option value="">사유를 선택하세요</option>
+                    <option value="employment">취업</option>
+                    <option value="personal">개인 사정</option>
+                    <option value="attendance">출석 미달</option>
+                    <option value="other">기타</option>
+                </select>
+                <label class="block text-xs font-bold text-slate-500 mb-1">메모 (선택)</label>
+                <textarea id="dropoutMemo" rows="3" maxlength="500" placeholder="예: 10/7 전화 상담 후 포기 의사 확인" class="w-full mb-6 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-200"></textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="dropoutCancel" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition">취소</button>
+                    <button type="button" id="dropoutSubmit" class="px-4 py-2 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 transition">중도탈락 처리</button>
                 </div>
             </div>
         </div>

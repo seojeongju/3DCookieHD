@@ -15,6 +15,8 @@ import { getCourseSessionTimetableHeaderByLmsCourseId } from '../lib/lmsCourseCo
 import { ensureDedicatedLmsCourseForSession } from '../utils/sessionCourseResolution';
 import { sendClassroomPinEmail } from '../utils/email';
 import { syncStudentCompletionStatus } from '../utils/student_journey_status';
+import { DROP_REASONS, recomputeJourneyAfterLeave } from '../utils/enrollment_dropout';
+import { attendanceKindSql } from '../utils/attendance_enrollment';
 
 const STATUS_VALUES = ['recruiting', 'in_progress', 'completed', 'always_open', 'closed'] as const;
 
@@ -1503,7 +1505,16 @@ app.get('/:id/enrollments', authMiddleware, requireRole('admin', 'teacher', 'ins
        ORDER BY u.name ASC, e.enrolled_at ASC`
     ).bind(id).all();
 
-    return c.json({ success: true, data: results || [], session });
+    const { results: dropped } = await DB.prepare(
+      `SELECT e.id, e.session_id, e.user_id, e.status, e.enrolled_at, e.dropped_at, e.drop_reason, e.drop_memo,
+              u.name, u.phone, u.email
+       FROM course_session_enrollments e
+       INNER JOIN users u ON u.id = e.user_id
+       WHERE e.session_id = ? AND e.status = 'dropped'
+       ORDER BY e.dropped_at DESC, u.name ASC`
+    ).bind(id).all();
+
+    return c.json({ success: true, data: results || [], dropped: dropped || [], drop_reasons: DROP_REASONS, session });
   } catch (e) {
     console.error('course-sessions enrollments list:', e);
     return c.json({ success: false, error: '수강생 목록 조회 실패' }, 500);
@@ -1530,17 +1541,28 @@ app.post('/:id/enrollments', authMiddleware, requireRole('admin', 'teacher', 'in
     for (const userId of userIds) {
       const uid = parseInt(String(userId), 10);
       if (isNaN(uid)) continue;
-      try {
-        await DB.prepare(
-          'INSERT INTO course_session_enrollments (session_id, user_id, status) VALUES (?, ?, ?)'
-        ).bind(id, uid, 'enrolled').run();
+      // 같은 회차에서 중도탈락했던 훈련생은 기존 기록을 다시 수강 중으로 되돌림 (출결 이력 유지)
+      const rejoined = await DB.prepare(
+        `UPDATE course_session_enrollments SET status = 'enrolled', dropped_at = NULL, drop_reason = NULL, drop_memo = NULL
+         WHERE session_id = ? AND user_id = ? AND status = 'dropped'`
+      ).bind(id, uid).run();
+      let joined = (rejoined.meta?.changes ?? 0) > 0;
+      if (!joined) {
+        try {
+          await DB.prepare(
+            'INSERT INTO course_session_enrollments (session_id, user_id, status) VALUES (?, ?, ?)'
+          ).bind(id, uid, 'enrolled').run();
+          joined = true;
+        } catch (_) {
+          // UNIQUE violation = already enrolled, skip
+        }
+      }
+      if (joined) {
         added++;
-        // 여정 자동화: 과정 배정 완료 시 집중 훈련(수강중)으로 전환 — 수료완료 후 신규과정 등록 시에도 전환
+        // 여정 자동화: 과정 배정 시 집중 훈련으로 전환 — 수료 완료·중도탈락 후 재수강 포함
         await DB.prepare(
-          `UPDATE hrd_student_details SET status = 'learning' WHERE user_id = ? AND (status IS NULL OR status IN ('consulting', 'registered', 'completed'))`
+          `UPDATE hrd_student_details SET status = 'learning' WHERE user_id = ? AND (status IS NULL OR status IN ('consulting', 'registered', 'completed', 'dropout'))`
         ).bind(uid).run();
-      } catch (_) {
-        // UNIQUE violation = already enrolled, skip
       }
     }
     return c.json({ success: true, message: `${added}명 등록되었습니다`, added });
@@ -1609,8 +1631,64 @@ app.post('/:id/enrollments/send-pin', authMiddleware, requireRole('admin', 'teac
 });
 
 /**
+ * POST /api/course-sessions/:id/enrollments/:userId/dropout
+ * 중도탈락 처리: 수강 기록·출결은 남기고 탈락일·사유 기록, 여정 상태 재계산
+ */
+app.post('/:id/enrollments/:userId/dropout', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    const userId = parseInt(c.req.param('userId'), 10);
+    if (isNaN(id) || isNaN(userId)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+    const body = await c.req.json().catch(() => ({} as Record<string, unknown>));
+    const reason = String(body.reason || '');
+    if (!DROP_REASONS[reason]) return c.json({ success: false, error: '중도탈락 사유를 선택하세요' }, 400);
+    const kstToday = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const droppedAt = /^\d{4}-\d{2}-\d{2}$/.test(String(body.dropped_at || '')) ? String(body.dropped_at) : kstToday;
+    const memo = String(body.memo || '').trim().slice(0, 500) || null;
+
+    const { DB } = c.env;
+    const res = await DB.prepare(
+      `UPDATE course_session_enrollments SET status = 'dropped', dropped_at = ?, drop_reason = ?, drop_memo = ?
+       WHERE session_id = ? AND user_id = ? AND status IN ('enrolled', 'approved')`
+    ).bind(droppedAt, reason, memo, id, userId).run();
+    if ((res.meta?.changes ?? 0) === 0) return c.json({ success: false, error: '이 회차에 수강 중인 기록이 없습니다' }, 404);
+    await recomputeJourneyAfterLeave(DB, userId);
+    return c.json({ success: true, message: '중도탈락으로 처리했습니다' });
+  } catch (e) {
+    console.error('course-sessions enrollments dropout:', e);
+    return c.json({ success: false, error: '중도탈락 처리 실패' }, 500);
+  }
+});
+
+/**
+ * POST /api/course-sessions/:id/enrollments/:userId/restore
+ * 중도탈락 취소 (다시 수강 중으로)
+ */
+app.post('/:id/enrollments/:userId/restore', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'), 10);
+    const userId = parseInt(c.req.param('userId'), 10);
+    if (isNaN(id) || isNaN(userId)) return c.json({ success: false, error: '잘못된 ID' }, 400);
+    const { DB } = c.env;
+    const res = await DB.prepare(
+      `UPDATE course_session_enrollments SET status = 'enrolled', dropped_at = NULL, drop_reason = NULL, drop_memo = NULL
+       WHERE session_id = ? AND user_id = ? AND status = 'dropped'`
+    ).bind(id, userId).run();
+    if ((res.meta?.changes ?? 0) === 0) return c.json({ success: false, error: '중도탈락 기록이 없습니다' }, 404);
+    await DB.prepare(
+      `UPDATE hrd_student_details SET status = 'learning', updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'dropout'`
+    ).bind(userId).run();
+    await syncStudentCompletionStatus(DB, [userId]);
+    return c.json({ success: true, message: '수강 중으로 되돌렸습니다' });
+  } catch (e) {
+    console.error('course-sessions enrollments restore:', e);
+    return c.json({ success: false, error: '복귀 처리 실패' }, 500);
+  }
+});
+
+/**
  * DELETE /api/course-sessions/:id/enrollments/:userId
- * 회차에서 수강생 제거
+ * 잘못 등록한 수강생 등록 해제. 출결 기록이 있으면 지우지 않고 중도탈락 처리를 안내
  */
 app.delete('/:id/enrollments/:userId', authMiddleware, requireRole('admin', 'teacher', 'instructor'), async (c) => {
   try {
@@ -1618,7 +1696,22 @@ app.delete('/:id/enrollments/:userId', authMiddleware, requireRole('admin', 'tea
     const userId = parseInt(c.req.param('userId'), 10);
     if (isNaN(id) || isNaN(userId)) return c.json({ success: false, error: '잘못된 ID' }, 400);
     const { DB } = c.env;
-    await DB.prepare('DELETE FROM course_session_enrollments WHERE session_id = ? AND user_id = ?').bind(id, userId).run();
+    const enrollment = await DB.prepare(
+      'SELECT id FROM course_session_enrollments WHERE session_id = ? AND user_id = ?'
+    ).bind(id, userId).first<{ id: number }>();
+    if (!enrollment) return c.json({ success: false, error: '등록 기록이 없습니다' }, 404);
+    const logs = await DB.prepare(
+      `SELECT COUNT(*) AS n FROM attendance_logs WHERE enrollment_id = ? AND ${attendanceKindSql('', 'session')}`
+    ).bind(enrollment.id).first<{ n: number }>();
+    if (Number(logs?.n ?? 0) > 0) {
+      return c.json({
+        success: false,
+        code: 'HAS_ATTENDANCE',
+        error: `출결 기록(${logs?.n}건)이 있어 삭제할 수 없습니다. 중도 포기라면 '중도탈락'으로 처리해 주세요.`,
+      }, 409);
+    }
+    await DB.prepare('DELETE FROM course_session_enrollments WHERE id = ?').bind(enrollment.id).run();
+    await recomputeJourneyAfterLeave(DB, userId);
     return c.json({ success: true, message: '등록이 해제되었습니다' });
   } catch (e) {
     console.error('course-sessions enrollments delete:', e);

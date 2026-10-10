@@ -9,6 +9,7 @@ import { getEffectiveSessionStatus } from '../utils/course_session_status';
 import { syncStudentCompletionStatus } from '../utils/student_journey_status';
 import { assignTrainingLogToSession, ensureTrainingLogSessionColumn, reviewLegacyTrainingLogs, trainingLogScopeSql } from '../utils/training_log_scope';
 import { attendanceKindSql, upsertAttendanceLog } from '../utils/attendance_enrollment';
+import { DROPPED_SUFFIX_SQL } from '../utils/enrollment_dropout';
 
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
@@ -730,12 +731,12 @@ app.get('/students', authMiddleware, requireCounselingStaff, async (c) => {
                 d.course_id, d.status, d.type, d.last_consult,
                 d.package_type, d.payment_method, d.payment_method_note, d.payment_date, d.self_pay_amount,
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
-                (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')')
+                (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')' || ${DROPPED_SUFFIX_SQL})
                  FROM course_session_enrollments cse
                  JOIN course_sessions cs ON cse.session_id = cs.id
                  JOIN approved_courses a ON cs.approved_course_id = a.id
                  WHERE cse.user_id = u.id
-                 ORDER BY cs.training_start_date DESC LIMIT 1) as current_course_name
+                 ORDER BY (cse.status = 'dropped'), cs.training_start_date DESC LIMIT 1) as current_course_name
             FROM users u
             LEFT JOIN hrd_student_details d ON u.id = d.user_id
             ${whereSql}
@@ -813,12 +814,12 @@ app.get('/students/:id', authMiddleware, requireCounselingStaff, async (c) => {
                 d.course_id, d.status, d.type, d.last_consult,
                 d.package_type, d.payment_method, d.payment_method_note, d.payment_date, d.self_pay_amount,
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
-                (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')')
+                (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')' || ${DROPPED_SUFFIX_SQL})
                  FROM course_session_enrollments cse
                  JOIN course_sessions cs ON cse.session_id = cs.id
                  JOIN approved_courses a ON cs.approved_course_id = a.id
                  WHERE cse.user_id = u.id
-                 ORDER BY cs.training_start_date DESC LIMIT 1) as current_course_name
+                 ORDER BY (cse.status = 'dropped'), cs.training_start_date DESC LIMIT 1) as current_course_name
             FROM users u
             LEFT JOIN hrd_student_details d ON u.id = d.user_id
             WHERE u.role = 'student' AND u.id = ?
@@ -849,7 +850,7 @@ app.get('/students/:id', authMiddleware, requireCounselingStaff, async (c) => {
             JOIN course_sessions cs ON cse.session_id = cs.id
             JOIN approved_courses ac ON cs.approved_course_id = ac.id
             WHERE cse.user_id = ?
-            ORDER BY cs.training_start_date DESC LIMIT 1
+            ORDER BY (cse.status = 'dropped'), cs.training_start_date DESC LIMIT 1
         `).bind(id).first() as { session_id: number; session_status: string; training_start_date: string; training_end_date: string; training_time_start: string; training_time_end: string; total_days: number; total_hours: number; daily_hours: number } | undefined;
 
         let attendance_rate = 0;
@@ -1371,7 +1372,10 @@ app.get('/students/:id/enrollments', authMiddleware, async (c) => {
                         cs.status as session_status,
                         ac.name as course_name,
                         cse.status as enrollment_status,
-                        cse.enrolled_at
+                        cse.enrolled_at,
+                        cse.dropped_at,
+                        cse.drop_reason,
+                        cse.drop_memo
             FROM course_session_enrollments cse
             JOIN course_sessions cs ON cse.session_id = cs.id
             JOIN approved_courses ac ON cs.approved_course_id = ac.id
@@ -1820,7 +1824,9 @@ app.get('/attendance', authMiddleware, async (c) => {
             // HRD 회차용 쿼리
             query = `
                 SELECT
-                    u.id, u.name, u.phone,
+                    u.id,
+                    u.name || CASE WHEN cse.status = 'dropped' THEN ' (중도탈락)' ELSE '' END as name,
+                    u.phone,
                     '' as package_type,
                     cse.id as enrollment_id,
                     al.status,
@@ -1832,6 +1838,7 @@ app.get('/attendance', authMiddleware, async (c) => {
                 LEFT JOIN hrd_student_details d ON u.id = d.user_id
                 LEFT JOIN attendance_logs al ON cse.id = al.enrollment_id AND al.date = ? AND ${attendanceKindSql('al', 'session')}
                 WHERE cse.session_id = ? AND u.role = 'student'
+                  AND (cse.status <> 'dropped' OR cse.dropped_at > ?)
                 ORDER BY u.name ASC
             `;
         } else {
@@ -1854,7 +1861,8 @@ app.get('/attendance', authMiddleware, async (c) => {
             `;
         }
 
-        const { results } = await c.env.DB.prepare(query).bind(date, rawId).all();
+        const binds = isSession ? [date, rawId, date] : [date, rawId];
+        const { results } = await c.env.DB.prepare(query).bind(...binds).all();
 
         // 데이터 포맷팅
         const resultData = results.map((row: any) => ({
@@ -2140,13 +2148,15 @@ app.get('/attendance/print-form', authMiddleware, requireStaff, async (c) => {
             )
         );
 
-        // 3. 수강생 (배정된 학생)
+        // 3. 수강생 (배정된 학생 + 중도탈락자 — 출석부에는 탈락 전 기록이 남아야 함)
         const studentsRows = await DB.prepare(`
-            SELECT e.id as enrollment_id, u.id as user_id, u.name, u.phone
+            SELECT e.id as enrollment_id, u.id as user_id,
+                   u.name || CASE WHEN e.status = 'dropped' THEN ' (중도탈락)' ELSE '' END as name,
+                   u.phone
             FROM course_session_enrollments e
             JOIN users u ON e.user_id = u.id
-            WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
-            ORDER BY u.name ASC
+            WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled', 'dropped')
+            ORDER BY (e.status = 'dropped'), u.name ASC
         `).bind(sessionId).all();
 
         const students = (studentsRows.results || []).map((s: any, i: number) => ({
@@ -2281,12 +2291,15 @@ app.get('/attendance/monthly', authMiddleware, requireStaff, async (c) => {
         if (isHrd) {
             // HRD 회차: course_session_enrollments + attendance_logs (배정된 학생 포함: approved, enrolled)
             const studentsRes = await c.env.DB.prepare(`
-                SELECT u.id, u.name, u.phone, e.id as enrollment_id
+                SELECT u.id,
+                       u.name || CASE WHEN e.status = 'dropped' THEN ' (중도탈락)' ELSE '' END as name,
+                       u.phone, e.id as enrollment_id
                 FROM course_session_enrollments e
                 JOIN users u ON e.user_id = u.id
-                WHERE e.session_id = ? AND e.status IN ('approved', 'enrolled')
-                ORDER BY u.name ASC
-            `).bind(courseId).all();
+                WHERE e.session_id = ?
+                  AND (e.status IN ('approved', 'enrolled') OR (e.status = 'dropped' AND e.dropped_at >= ?))
+                ORDER BY (e.status = 'dropped'), u.name ASC
+            `).bind(courseId, `${dateStr}-01`).all();
             students = studentsRes.results || [];
 
             const logsRes = await c.env.DB.prepare(`
