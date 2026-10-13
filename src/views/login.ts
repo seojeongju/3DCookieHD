@@ -53,10 +53,12 @@ export const loginHtml = `
         }
     </style>
 </head>
-<body class="bg-gradient-mesh min-h-screen relative">
+<body class="bg-gradient-mesh min-h-screen relative overflow-x-hidden">
     <!-- 배경 장식 요소 -->
-    <div class="floating-obj w-96 h-96 bg-blue-200 top-20 left-10 rounded-full"></div>
-    <div class="floating-obj w-80 h-80 bg-purple-100 bottom-20 right-10 rounded-full" style="animation-delay: -5s;"></div>
+    <div aria-hidden="true" class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index:-1">
+        <div class="floating-obj w-72 h-72 sm:w-96 sm:h-96 bg-blue-200 top-20 left-10 rounded-full"></div>
+        <div class="floating-obj w-80 h-80 bg-purple-100 bottom-20 right-10 rounded-full" style="animation-delay: -5s;"></div>
+    </div>
 
     <!-- 네비게이션 -->
     ${navigationHtml('login')}

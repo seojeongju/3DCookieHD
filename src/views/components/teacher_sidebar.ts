@@ -1,5 +1,6 @@
 import { getSidebarPerformanceItems } from './lms_menu_config';
 import { changePasswordModalHtml } from './change_password_modal';
+import { sidebarMobileBar, sidebarMobileCss } from './sidebar_mobile';
 
 export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
     const performanceItems = getSidebarPerformanceItems();
@@ -7,10 +8,9 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
 <!-- 모바일: 사이드바 백드롭 -->
 <div id="teacherSidebarBackdrop" class="fixed inset-0 bg-black/60 z-30 lg:hidden hidden transition-opacity backdrop-blur-sm" aria-hidden="true"></div>
 
-<!-- 모바일: 사이드바 열기 버튼 -->
-<button type="button" id="teacherSidebarToggle" aria-label="메뉴 열기" class="lg:hidden fixed z-50 w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-2xl bg-gray-900 text-white shadow-xl hover:bg-gray-800 active:bg-gray-950 border border-white/10 transition touch-manipulation left-[max(1rem,env(safe-area-inset-left,0px))] top-[max(1rem,env(safe-area-inset-top,0px))]">
-  <i class="fas fa-bars text-lg"></i>
-</button>
+<!-- 모바일: 상단 바 + 사이드바 열기 버튼 -->
+${sidebarMobileBar('teacherSidebarToggle', 'teacherMobileBar', '/teacher', '강사')}
+${sidebarMobileCss}
 
 <!-- 사이드바 래퍼 -->
 <div id="teacherSidebarWrap" class="fixed lg:relative inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-500 ease-out flex-shrink-0 w-72 lg:w-72">
@@ -243,6 +243,9 @@ export const teacherSidebar = (activeMenu: string, activeSubMenu?: string) => {
         }); }
         if(backdrop){ backdrop.addEventListener('click', closeSidebar); }
         if(wrap){ wrap.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', closeSidebar); }); }
+        // 사이드바가 열린 동안 모바일 상단 바(백드롭 위)를 눌러도 닫히도록
+        var bar = document.getElementById('teacherMobileBar');
+        if(bar){ bar.addEventListener('click', function(e){ if(toggle && toggle.contains(e.target)) return; if(wrap && !wrap.classList.contains('-translate-x-full')){ e.preventDefault(); closeSidebar(); } }); }
     })();
 
     // 전역 logout 함수 정의

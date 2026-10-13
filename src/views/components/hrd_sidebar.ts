@@ -1,21 +1,15 @@
 import { changePasswordModalHtml } from './change_password_modal';
+import { sidebarMobileBar, sidebarMobileCss } from './sidebar_mobile';
 
-export type HrdSidebarOptions = { alwaysVisible?: boolean };
-
-export const hrdSidebar = (activeMenu: string, options?: HrdSidebarOptions) => {
-    const alwaysVisible = options?.alwaysVisible === true;
-    const backdropClass = alwaysVisible ? 'hidden' : 'fixed inset-0 bg-black/50 z-30 lg:hidden hidden transition-opacity';
-    const toggleClass = alwaysVisible ? 'hidden' : 'lg:hidden fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-[#0f172a] text-white shadow-lg hover:bg-slate-800 transition';
-    const wrapClass = alwaysVisible
-        ? 'relative inset-y-0 left-0 z-40 flex-shrink-0 w-64 min-w-64'
-        : 'fixed lg:relative inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out flex-shrink-0 w-64 lg:min-w-64';
+export const hrdSidebar = (activeMenu: string) => {
+    const backdropClass = 'fixed inset-0 bg-black/50 z-30 lg:hidden hidden transition-opacity';
+    const wrapClass = 'fixed lg:relative inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out flex-shrink-0 w-64 lg:min-w-64';
     return `
 <!-- 모바일: 사이드바 백드롭 -->
 <div id="adminSidebarBackdrop" class="${backdropClass}" aria-hidden="true"></div>
-<!-- 모바일: 사이드바 열기 버튼 -->
-<button type="button" id="adminSidebarToggle" aria-label="메뉴 열기" class="${toggleClass}">
-  <i class="fas fa-bars"></i>
-</button>
+<!-- 모바일: 상단 바 + 사이드바 열기 버튼 -->
+${sidebarMobileBar('adminSidebarToggle', 'adminMobileBar', '/admin', '관리자')}
+${sidebarMobileCss}
 <!-- 사이드바 래퍼 -->
 <div id="adminSidebarWrap" class="${wrapClass}">
 <aside class="w-64 h-full bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl border-r border-slate-800">

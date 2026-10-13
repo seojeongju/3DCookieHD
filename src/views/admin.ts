@@ -60,14 +60,14 @@ export const adminDashboardHtml = `
                     <span id="user-badge" class="px-2.5 py-0.5 bg-red-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest">ADMIN</span>
                 </div>
                 <div class="flex items-center gap-4">
-                    <span id="header-clock" class="text-sm font-bold text-slate-600 tabular-nums">--:--:--</span>
-                    <a href="/" class="px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm text-slate-700">
-                        <i class="fas fa-external-link-alt"></i> 홈페이지로 이동
+                    <span id="header-clock" class="hidden sm:inline text-sm font-bold text-slate-600 tabular-nums">--:--:--</span>
+                    <a href="/" title="홈페이지로 이동" class="px-3 sm:px-4 py-2 bg-white border border-slate-200 text-[10px] font-black rounded-xl hover:bg-slate-50 transition uppercase tracking-widest flex items-center gap-2 shadow-sm text-slate-700 whitespace-nowrap">
+                        <i class="fas fa-external-link-alt"></i><span class="hidden sm:inline">홈페이지로 이동</span>
                     </a>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar relative z-10">
+            <div class="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar relative z-10">
             <div class="max-w-[1600px] mx-auto space-y-8">
                 <!-- 웰컴 + 핵심 지표 (Bento) -->
                 <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
@@ -84,7 +84,7 @@ export const adminDashboardHtml = `
 
                 <!-- 1. 핵심 지표 카드 섹션 (Bento Grid) -->
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <div onclick="location.href='/admin/users'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm cursor-pointer group">
+                    <div onclick="location.href='/admin/users'" class="bento-card bg-white rounded-[2rem] p-4 sm:p-6 border border-slate-200/60 shadow-sm cursor-pointer group">
                         <div class="flex items-center justify-between mb-2">
                             <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-blue-600 transition-colors">전체 회원</h3>
                             <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-100 transition-colors">
@@ -96,7 +96,7 @@ export const adminDashboardHtml = `
                             <span class="ml-1 text-xs text-slate-500 font-medium">명</span>
                         </div>
                     </div>
-                    <div onclick="location.href='/admin/courses'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm cursor-pointer group">
+                    <div onclick="location.href='/admin/courses'" class="bento-card bg-white rounded-[2rem] p-4 sm:p-6 border border-slate-200/60 shadow-sm cursor-pointer group">
                         <div class="flex items-center justify-between mb-2">
                             <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-purple-600 transition-colors">교육과정</h3>
                             <div class="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-100 transition-colors">
@@ -113,7 +113,7 @@ export const adminDashboardHtml = `
                             <span class="flex items-center" title="종료/마감"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1"></span><b id="stat-c-closed" class="text-slate-700">0</b></span>
                         </div>
                     </div>
-                    <div onclick="location.href='/admin/enrollments'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm cursor-pointer group">
+                    <div onclick="location.href='/admin/enrollments'" class="bento-card bg-white rounded-[2rem] p-4 sm:p-6 border border-slate-200/60 shadow-sm cursor-pointer group">
                         <div class="flex items-center justify-between mb-2">
                             <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-green-600 transition-colors">이번 달 매출</h3>
                             <div class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center text-green-600 group-hover:bg-green-100 transition-colors">
@@ -130,7 +130,7 @@ export const adminDashboardHtml = `
                             <span class="px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded-lg">국비 <b id="stat-rev-gov">0</b></span>
                         </div>
                     </div>
-                    <div onclick="location.href='/admin/inquiries'" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm cursor-pointer group">
+                    <div onclick="location.href='/admin/inquiries'" class="bento-card bg-white rounded-[2rem] p-4 sm:p-6 border border-slate-200/60 shadow-sm cursor-pointer group">
                         <div class="flex items-center justify-between mb-2">
                             <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-red-600 transition-colors">온라인문의</h3>
                             <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center text-red-600 group-hover:bg-red-100 transition-colors">
@@ -146,7 +146,7 @@ export const adminDashboardHtml = `
                             <span class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>완료 <b id="stat-inq-completed" class="text-slate-700">0</b></span>
                         </div>
                     </div>
-                    <a href="/admin/analytics" class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm group block">
+                    <a href="/admin/analytics" class="bento-card bg-white rounded-[2rem] p-4 sm:p-6 border border-slate-200/60 shadow-sm group block">
                         <div class="flex items-center justify-between mb-2">
                             <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider group-hover:text-indigo-600 transition-colors">사이트 접속</h3>
                             <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">

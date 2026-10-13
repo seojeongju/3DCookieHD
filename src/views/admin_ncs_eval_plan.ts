@@ -460,7 +460,7 @@ const NCS_PLAN_PRINT_STYLES = `
 .ncs-achievement-print-root,
 .ncs-review-print-root {
   position: fixed;
-  left: -200vw;
+  left: calc(-200vw - 210mm);
   top: 0;
   width: 210mm;
   max-height: 100vh;

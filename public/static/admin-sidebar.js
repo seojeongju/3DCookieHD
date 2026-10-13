@@ -8,8 +8,9 @@
     if (toggle) { toggle.addEventListener('click', function () { wrap && wrap.classList.contains('-translate-x-full') ? openSidebar() : closeSidebar(); }); }
     if (backdrop) { backdrop.addEventListener('click', closeSidebar); }
     if (wrap) { wrap.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', closeSidebar); }); }
-    var mainWrap = document.getElementById('adminSidebarWrap') && document.getElementById('adminSidebarWrap').nextElementSibling;
-    if (mainWrap) mainWrap.classList.add('pl-14', 'lg:pl-0');
+    // 사이드바가 열린 동안 모바일 상단 바(백드롭 위)를 눌러도 닫히도록
+    var bar = document.getElementById('adminMobileBar');
+    if (bar) { bar.addEventListener('click', function (e) { if (toggle && toggle.contains(e.target)) return; if (wrap && !wrap.classList.contains('-translate-x-full')) { e.preventDefault(); closeSidebar(); } }); }
 })();
 
 window.logout = function () {

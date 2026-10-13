@@ -1,7 +1,7 @@
 import { hrdSidebar } from "./components/hrd_sidebar";
 
 export function adminSessionTimetableHtml(sessionId: number): string {
-    const sidebar = hrdSidebar('courses', { alwaysVisible: true });
+    const sidebar = hrdSidebar('courses');
 
     return `
 <!DOCTYPE html>
@@ -22,19 +22,19 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         .sticky-col { position: sticky; left: 0; background: white; z-index: 10; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        /* 시간표 페이지: 사이드바 항상 노출 (덮이지 않도록) */
-        body.timetable-page #adminSidebarWrap { 
-            position: relative !important;
-            transform: translateX(0) !important; 
-            display: block !important; 
-            flex-shrink: 0 !important; 
-            width: 16rem !important; 
-            min-width: 16rem !important;
-            left: 0 !important;
-            inset-y: 0 !important;
+        /* 시간표 페이지: 데스크톱에서는 사이드바 항상 노출 (덮이지 않도록), 모바일은 공통 상단 바 메뉴 사용 */
+        @media (min-width: 1024px) {
+            body.timetable-page #adminSidebarWrap {
+                position: relative !important;
+                transform: translateX(0) !important;
+                display: block !important;
+                flex-shrink: 0 !important;
+                width: 16rem !important;
+                min-width: 16rem !important;
+                left: 0 !important;
+            }
+            body.timetable-page #adminSidebarBackdrop { display: none !important; }
         }
-        body.timetable-page #adminSidebarBackdrop { display: none !important; }
-        body.timetable-page #adminSidebarToggle { display: none !important; }
     </style>
 </head>
 <body class="timetable-page bg-slate-50 h-[100dvh] flex overflow-hidden min-h-0">
@@ -44,9 +44,6 @@ export function adminSessionTimetableHtml(sessionId: number): string {
         <!-- Header -->
         <header class="h-20 border-b border-slate-100 flex items-center justify-between px-8 shrink-0">
             <div class="flex items-center gap-4">
-                <button type="button" id="timetableMenuBtn" aria-label="메뉴 열기" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition shrink-0">
-                    <i class="fas fa-bars"></i>
-                </button>
                 <div class="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 shrink-0">
                     <i class="fas fa-calendar-alt text-xl"></i>
                 </div>
@@ -87,10 +84,10 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             </div>
         </header>
 
-        <div class="flex-1 flex overflow-hidden min-h-0">
+        <div class="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden min-h-0 custom-scrollbar">
             <!-- Left Panel: Resources (배정 교과목 | 담당 강사) - 넓게 해서 교과목 잘림 방지, 그리드 영역 축소 -->
-            <div class="w-[560px] min-w-[480px] border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
-                <div class="p-6 pb-4">
+            <div class="w-full lg:w-[560px] lg:min-w-[480px] border-b lg:border-b-0 lg:border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
+                <div class="p-4 lg:p-6 pb-4">
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-xs font-black text-slate-400 uppercase tracking-widest">배정 교육 리소스</span>
                         <span class="text-[10px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-bold">항목 선택 후 그리드 클릭</span>
@@ -107,7 +104,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     </div>
                 </div>
 
-                <div id="resourcePanel" class="flex-1 overflow-y-auto p-4 pt-0 custom-scrollbar min-h-0">
+                <div id="resourcePanel" class="flex-1 overflow-y-auto p-4 pt-0 custom-scrollbar min-h-0 max-h-[45vh] lg:max-h-none">
                     <!-- Dynamic: 배정 교과목 | 담당 강사 2열 -->
                     <div class="flex items-center justify-center h-40 text-slate-300">
                         <i class="fas fa-circle-notch fa-spin mr-2"></i> 로딩 중...
@@ -116,7 +113,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
             </div>
 
             <!-- Right Panel: Grid (좌측 리소스 확대에 따라 영역 축소) -->
-            <div class="flex-1 min-w-0 overflow-auto relative grid-bg custom-scrollbar p-6">
+            <div class="flex-1 shrink-0 lg:shrink min-w-0 overflow-auto relative grid-bg custom-scrollbar p-4 lg:p-6">
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden inline-block min-w-full">
                     <table class="border-collapse table-fixed w-full">
                         <thead id="timetableHeader">
@@ -128,7 +125,7 @@ export function adminSessionTimetableHtml(sessionId: number): string {
                     </table>
                 </div>
                 
-                <div class="mt-8 flex gap-6 text-[11px] text-slate-400 font-medium">
+                <div class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-[11px] text-slate-400 font-medium">
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-50 border border-blue-100 rounded"></div> 배정 완료</div>
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-slate-100 border border-slate-200 rounded"></div> 공휴일/일정제외</div>
                     <div class="flex items-center gap-2 text-slate-300 italic"><i class="fas fa-mouse-pointer"></i> 그리드를 클릭하여 배정하거나 수정할 수 있습니다.</div>
@@ -1112,21 +1109,6 @@ export function adminSessionTimetableHtml(sessionId: number): string {
 
 
             // --- Status Analysis (함수는 스크립트 상단에 정의되어 있음) ---
-
-            // 시간표 페이지 메뉴 버튼: 사이드바 열기 (모바일/태블릿)
-            (function menuBtnInit() {
-                var btn = document.getElementById('timetableMenuBtn');
-                var wrap = document.getElementById('adminSidebarWrap');
-                var backdrop = document.getElementById('adminSidebarBackdrop');
-                if (btn && wrap) {
-                    btn.addEventListener('click', function() {
-                        wrap.classList.remove('-translate-x-full');
-                        wrap.classList.add('translate-x-0');
-                        if (backdrop) { backdrop.classList.remove('hidden'); }
-                        document.body.style.overflow = 'hidden';
-                    });
-                }
-            }());
 
             } catch (e) {
                 console.error('Timetable script error:', e);
