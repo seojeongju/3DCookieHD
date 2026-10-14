@@ -1,128 +1,102 @@
-// 학사관리 메뉴 동적 업데이트 스크립트
+// 학사관리 메뉴 동적 업데이트 스크립트 (데스크톱 드롭다운 + 모바일 드로어 공용)
 
-function updateAcademicMenu() {
+function escapeMenuText(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+}
+
+// 역할별 학사관리 링크 목록
+function getAcademicLinks(user) {
+    if (!user) {
+        return [
+            { href: '/login', icon: 'fa-sign-in-alt', label: '로그인하기' },
+            { href: '/register', icon: 'fa-user-plus', label: '회원가입' },
+        ];
+    }
+    switch (user.role) {
+        case 'student':
+            return [{ href: '/student', icon: 'fa-user-graduate', label: '학생 대시보드' }];
+        case 'teacher':
+            return [{ href: '/teacher', icon: 'fa-chalkboard-teacher', label: '강사 대시보드' }];
+        case 'admin':
+            // 홈페이지 학사관리 하위메뉴: 대시보드 3개만 표시
+            return [
+                { href: '/admin', icon: 'fa-chart-line', color: 'text-purple-600', label: '통합 관리자 대시보드' },
+                { href: '/teacher', icon: 'fa-chalkboard-teacher', color: 'text-blue-600', label: '강사 대시보드' },
+                { href: '/student', icon: 'fa-user-graduate', color: 'text-green-600', label: '학생 대시보드' },
+            ];
+        default:
+            return [{ href: '/login', icon: 'fa-sign-in-alt', label: '로그인이 필요합니다' }];
+    }
+}
+
+function readStoredUser() {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
+    if (!token || !userStr) return null;
+    try {
+        return JSON.parse(userStr);
+    } catch (e) {
+        console.error('Failed to parse user data:', e);
+        return null;
+    }
+}
 
-    // 학사관리 드롭다운 찾기
-    const academicMenus = document.querySelectorAll('.academic-menu-dropdown');
+function updateAcademicMenu() {
+    const user = readStoredUser();
+    const links = getAcademicLinks(user);
 
-    if (!academicMenus || academicMenus.length === 0) return;
+    document.querySelectorAll('.academic-menu-dropdown').forEach(function (menu) {
+        menu.innerHTML = links.map(function (l) {
+            return '<a href="' + l.href + '" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 whitespace-nowrap">' +
+                '<i class="fas ' + l.icon + ' mr-2 ' + (l.color || '') + '"></i>' + l.label + '</a>';
+        }).join('');
+    });
 
-    if (token && userStr) {
-        try {
-            const user = JSON.parse(userStr);
+    document.querySelectorAll('.academic-menu-mobile').forEach(function (menu) {
+        menu.innerHTML = links.map(function (l) {
+            return '<a href="' + l.href + '" class="flex items-center px-4 py-3 text-gray-700 font-medium hover:bg-purple-100/60 hover:text-purple-700">' +
+                '<i class="fas ' + l.icon + ' w-5 text-center mr-2.5 text-xs ' + (l.color || 'text-purple-500') + '" aria-hidden="true"></i>' + l.label +
+                '<i class="fas fa-chevron-right ml-auto text-[10px] text-gray-300" aria-hidden="true"></i></a>';
+        }).join('');
+    });
 
-            academicMenus.forEach(menu => {
-                let menuHTML = '';
-
-                switch (user.role) {
-                    case 'student':
-                        menuHTML = `
-                            <a href="/student" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-user-graduate mr-2"></i>학생 대시보드
-                            </a>
-                        `;
-                        break;
-
-                    case 'teacher':
-                        menuHTML = `
-                            <a href="/teacher" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-chalkboard-teacher mr-2"></i>강사 대시보드
-                            </a>
-                        `;
-                        break;
-
-                    case 'admin':
-                        // 홈페이지 학사관리 하위메뉴: 대시보드 3개만 표시
-                        menuHTML = `
-                            <a href="/admin" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-chart-line mr-2 text-purple-600"></i>통합 관리자 대시보드
-                            </a>
-                            <a href="/teacher" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-chalkboard-teacher mr-2 text-blue-600"></i>강사 대시보드
-                            </a>
-                            <a href="/student" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                                <i class="fas fa-user-graduate mr-2 text-green-600"></i>학생 대시보드
-                            </a>
-                        `;
-                        break;
-
-                    default:
-                        // 로그인했지만 역할이 없는 경우
-                        menuHTML = `
-                            <a href="/login" class="block px-4 py-2 text-sm text-gray-500 italic">
-                                로그인이 필요합니다
-                            </a>
-                        `;
-                }
-
-                menu.innerHTML = menuHTML;
-            });
-        } catch (e) {
-            console.error('Failed to parse user data:', e);
-        }
-    } else {
-        // 비로그인 상태
-        academicMenus.forEach(menu => {
-            menu.innerHTML = `
-                <a href="/login" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                    <i class="fas fa-sign-in-alt mr-2"></i>로그인하기
-                </a>
-                <a href="/register" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600">
-                    <i class="fas fa-user-plus mr-2"></i>회원가입
-                </a>
-            `;
-        });
+    // 모바일 드로어 하단: 로그인 상태면 사용자 이름 + 로그아웃
+    const mobileAuth = document.getElementById('navMobileAuth');
+    if (mobileAuth && user) {
+        mobileAuth.innerHTML =
+            '<div class="flex items-center justify-between px-4 py-3">' +
+            '<span class="text-sm text-gray-700"><i class="fas fa-user-circle mr-2 text-gray-400"></i><span class="font-bold">' + escapeMenuText(user.name) + '</span>님</span>' +
+            '<button type="button" onclick="logout()" class="text-sm text-gray-500 hover:text-red-600 font-medium"><i class="fas fa-sign-out-alt mr-1"></i>로그아웃</button>' +
+            '</div>';
     }
 
-    // Auth Menu (Top Right) Update
+    // 상단 우측 메뉴: 좁은 화면에서는 대시보드 링크를 아이콘만, 이름은 숨김
     const authMenu = document.getElementById('authMenu');
-    if (authMenu) {
-        if (token && userStr) {
-            try {
-                const user = JSON.parse(userStr);
-                let menuHtml = '';
-
-                // Dashboard Link based on role
-                // Dashboard Link based on role
-                if (user.role === 'admin') {
-                    // 관리자는 학사관리 메뉴를 통해 대시보드로 이동하므로 헤더에는 별도 링크 없음
-                } else if (user.role === 'teacher') {
-                    menuHtml += `
-                        <a href="/teacher" class="text-blue-600 hover:text-blue-700 font-bold whitespace-nowrap mr-4">
-                            <i class="fas fa-chalkboard-teacher mr-1"></i> 강사 대시보드
-                        </a>
-                    `;
-                } else {
-                    menuHtml += `
-                        <a href="/student" class="text-blue-600 hover:text-blue-700 font-bold whitespace-nowrap mr-4">
-                            <i class="fas fa-user-graduate mr-1"></i> 나의 강의실
-                        </a>
-                    `;
-                }
-
-                menuHtml += `
-                    <span class="text-gray-700 mr-2 text-sm">
-                        <span class="font-bold">${user.name}</span>님
-                    </span>
-                    <button onclick="logout()" class="text-gray-500 hover:text-red-600 font-medium whitespace-nowrap text-sm">
-                        <i class="fas fa-sign-out-alt mr-1"></i> 로그아웃
-                    </button>
-                `;
-
-                authMenu.innerHTML = menuHtml;
-            } catch (e) {
-                console.error('Failed to parse user data for auth menu:', e);
-            }
+    if (!authMenu) return;
+    if (user) {
+        let menuHtml = '';
+        // 관리자는 데스크톱에서 학사관리 버튼으로 이동하므로 바로가기 아이콘은 모바일에서만 노출
+        if (user.role === 'admin') {
+            menuHtml += '<a href="/admin" title="관리자 대시보드" class="lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center text-purple-600 hover:text-purple-700">' +
+                '<i class="fas fa-chart-line"></i></a>';
+        } else if (user.role === 'teacher') {
+            menuHtml += '<a href="/teacher" title="강사 대시보드" class="min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-blue-600 hover:text-blue-700 font-bold whitespace-nowrap sm:mr-3">' +
+                '<i class="fas fa-chalkboard-teacher sm:mr-1"></i><span class="hidden sm:inline"> 강사 대시보드</span></a>';
         } else {
-            // Not logged in - reset to default (Login/Register)
-            // navigation.ts already provides the default, but if we need to reset it dynamically:
-            authMenu.innerHTML = `
-                <a href="/login" class="px-3 py-2 text-gray-500 hover:text-primary-600 font-medium text-sm transition-colors">로그인</a>
-                <a href="/register" class="px-4 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded transition-colors shadow-sm">회원가입</a>
-            `;
+            menuHtml += '<a href="/student" title="나의 강의실" class="min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-blue-600 hover:text-blue-700 font-bold whitespace-nowrap sm:mr-3">' +
+                '<i class="fas fa-user-graduate sm:mr-1"></i><span class="hidden sm:inline"> 나의 강의실</span></a>';
         }
+        menuHtml +=
+            '<span class="hidden sm:inline text-gray-700 mr-2 text-sm"><span class="font-bold">' + escapeMenuText(user.name) + '</span>님</span>' +
+            '<button type="button" onclick="logout()" title="로그아웃" class="min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center text-gray-500 hover:text-red-600 font-medium whitespace-nowrap text-sm">' +
+            '<i class="fas fa-sign-out-alt sm:mr-1"></i><span class="hidden sm:inline"> 로그아웃</span></button>';
+        authMenu.innerHTML = menuHtml;
+    } else {
+        authMenu.innerHTML =
+            '<a href="/login" class="px-2 sm:px-3 py-2 min-h-[44px] sm:min-h-0 flex items-center text-gray-500 hover:text-primary-600 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">로그인</a>' +
+            '<a href="/register" class="px-2.5 sm:px-4 py-2 min-h-[44px] sm:min-h-0 flex items-center bg-primary-500 hover:bg-primary-600 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap">회원가입</a>';
     }
 }
 

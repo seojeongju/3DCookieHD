@@ -140,6 +140,13 @@ export const navigationHtml = (activeMenu = '') => `
                 <button type="button" id="navMobileMenuClose" aria-label="메뉴 닫기" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 active:bg-gray-50"><i class="fas fa-times text-lg"></i></button>
             </div>
             <div class="py-2 pb-6">
+                <div class="mx-3 mt-1 mb-3 rounded-2xl border border-purple-100 bg-purple-50/60 overflow-hidden">
+                    <div class="px-4 pt-3 pb-1 text-[11px] font-black text-purple-600 tracking-wider"><i class="fas fa-graduation-cap mr-1.5" aria-hidden="true"></i>학사관리</div>
+                    <div class="academic-menu-mobile pb-2">
+                        <a href="/login" class="flex items-center px-4 py-3 text-gray-700 hover:bg-purple-100/60 hover:text-purple-700"><i class="fas fa-sign-in-alt w-5 text-center mr-2.5 text-xs text-purple-500" aria-hidden="true"></i>로그인하기</a>
+                        <a href="/register" class="flex items-center px-4 py-3 text-gray-700 hover:bg-purple-100/60 hover:text-purple-700"><i class="fas fa-user-plus w-5 text-center mr-2.5 text-xs text-purple-500" aria-hidden="true"></i>회원가입</a>
+                    </div>
+                </div>
                 <a href="/course-sessions" class="block px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider hover:text-primary-600 transition-colors"><i class="fas fa-book-open mr-1.5" aria-hidden="true"></i>과정안내 <i class="fas fa-chevron-right ml-1 text-[8px]"></i></a>
                 <a href="/course-sessions" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-hand-holding-dollar w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>국비지원과정</a>
                 <a href="/course-sessions?category=일반과정" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-cube w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>일반과정</a>
@@ -170,7 +177,7 @@ export const navigationHtml = (activeMenu = '') => `
                 <a href="/online-consulting" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-comments w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>온라인상담신청</a>
                 <a href="/tomorrow-learning-card" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-primary-600"><i class="fas fa-credit-card w-5 text-center mr-2.5 text-xs" aria-hidden="true"></i>내일배움카드발급안내</a>
                 ${socialLinksMobileNavHtml()}
-                <div class="border-t border-gray-100 mt-2 pt-2">
+                <div id="navMobileAuth" class="border-t border-gray-100 mt-2 pt-2">
                     <a href="/login" class="block px-4 py-3 text-gray-700 hover:bg-gray-50"><i class="fas fa-sign-in-alt mr-2 text-gray-400"></i>로그인</a>
                     <a href="/register" class="block px-4 py-3 text-primary-600 font-medium hover:bg-primary-50"><i class="fas fa-user-plus mr-2"></i>회원가입</a>
                 </div>
