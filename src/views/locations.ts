@@ -4,47 +4,62 @@ import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
 
 /** 옵션: kakaoMapAppKey 있으면 지도 표시 (Cloudflare Pages에서는 Secrets에 KAKAO_MAP_APPKEY 설정) */
-export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 'hongdae' | 'gumi' | 'jeonju' }) {
+export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 'hongdae' | 'gumi' | 'jeonju'; hub?: boolean }) {
     const appKey = (options && options.kakaoMapAppKey) ? options.kakaoMapAppKey : '';
+    const isHub = options?.hub === true || !options?.initialTab;
     const initialTab = options?.initialTab || 'hongdae';
     const campusCopy = {
         hongdae: {
             title: '홍대 3D프린팅 학원 오시는 길',
             lead: '서울 마포 상수역 인근 와우쓰리디홍대센터에서 3D프린팅 국비지원·내일배움카드·기능사 교육을 운영합니다.',
             faqs: [
-                { q: '홍대에서 3D프린팅을 배울 수 있는 곳은 어디인가요?', a: '서울 마포구 독막로 93 4층(상수역 2번 출구) 와우쓰리디홍대센터입니다. 전화 02-3144-3137.' },
-                { q: '홍대센터에서 내일배움카드로 수강할 수 있나요?', a: '가능합니다. 국민내일배움카드(국비지원) 3D프린팅·3D모델링 과정을 운영하며, 모집 회차는 교육과정 목록에서 확인하세요.' },
-                { q: '3D프린터운용기능사 과정도 홍대에서 하나요?', a: '네. 3D프린터 국가자격증(3D프린터운용기능사) 실기 대비 과정(주말반·평일저녁반)을 홍대센터에서 운영합니다.' },
+                { q: '홍대에서 3D프린팅을 배울 수 있는 곳은 어디인가요?', a: '서울 마포구 독막로 93 4층(상수역 2번 출구) 와우쓰리디홍대센터입니다. 전화 02-3144-3137. 상세 안내는 /locations/hongdae 페이지를 보세요.' },
+                { q: '홍대센터에서 내일배움카드로 수강할 수 있나요?', a: '가능합니다. 국민내일배움카드(국비지원) 3D프린팅·3D모델링 과정을 운영하며, 모집 회차는 교육과정 목록(/course-sessions)에서 확인하세요.' },
+                { q: '3D프린터운용기능사 과정도 홍대에서 하나요?', a: '네. 3D프린터 국가자격증(3D프린터운용기능사) 실기 대비 과정(주말반·평일저녁반)을 홍대센터에서 운영합니다. 시험 구성은 기능사 가이드(/guides/craftsman-license)를 참고하세요.' },
             ],
         },
         gumi: {
             title: '구미 3D프린팅 학원 오시는 길',
             lead: '경북 구미시 산호대로 와우쓰리디 구미센터에서 3D프린팅 국비지원·실무 교육을 안내합니다.',
             faqs: [
-                { q: '구미에서 3D프린팅 교육을 받을 수 있나요?', a: '경북 구미시 산호대로 253 606호 와우쓰리디 구미센터에서 3D프린팅 교육을 운영합니다. 전화 054-464-3137.' },
+                { q: '구미에서 3D프린팅 교육을 받을 수 있나요?', a: '경북 구미시 산호대로 253 606호 와우쓰리디 구미센터에서 3D프린팅 교육을 운영합니다. 전화 054-464-3137. 상세는 /locations/gumi.' },
                 { q: '구미센터도 내일배움카드 과정이 있나요?', a: '개설 회차에 따라 국민내일배움카드(국비지원) 과정이 있습니다. 일정은 교육과정 목록과 상담으로 확인하세요.' },
-                { q: '구미센터 위치는 어디인가요?', a: '구미첨단의료기술타워 606호(공단동)입니다. 오시는 길 페이지의 구미 탭에서 지도를 확인할 수 있습니다.' },
+                { q: '구미센터 위치는 어디인가요?', a: '구미첨단의료기술타워 606호(공단동)입니다. 오시는 길 구미 페이지(/locations/gumi)에서 지도를 확인할 수 있습니다.' },
             ],
         },
         jeonju: {
             title: '전주 3D프린팅 교육 오시는 길',
             lead: '전북 전주시 덕진구 와우쓰리디 전주센터에서 3D프린팅 직업훈련·국비지원 교육을 운영합니다.',
             faqs: [
-                { q: '전주에서 3D프린팅을 배울 수 있나요?', a: '전북 전주시 덕진구 반룡로 109 207호 와우쓰리디 전주센터에서 3D프린팅 교육을 운영합니다.' },
+                { q: '전주에서 3D프린팅을 배울 수 있나요?', a: '전북 전주시 덕진구 반룡로 109 207호 와우쓰리디 전주센터에서 3D프린팅 교육을 운영합니다. 상세는 /locations/jeonju.' },
                 { q: '전주센터도 국비지원이 되나요?', a: '개설 회차에 따라 내일배움카드(국비지원) 적용이 가능합니다. 상담 시 해당 회차 기준으로 안내합니다.' },
                 { q: '전주센터 연락처는?', a: '대표 상담 전화 02-3144-3137, 이메일 wow3d16@naver.com으로 문의하시면 전주센터 일정을 안내합니다.' },
             ],
         },
     } as const;
-    const copy = campusCopy[initialTab];
-    const allFaqs = campusCopy[initialTab].faqs;
+    const hubFaqs = [
+        { q: '와우쓰리디는 어디에 있나요?', a: '홍대(서울 마포 상수)·구미(경북)·전주(전북) 3개 센터에서 3D프린팅 교육을 운영합니다. 센터별 주소·지도는 <a href="/locations/hongdae" class="font-bold text-primary-700 hover:underline">홍대</a>·<a href="/locations/gumi" class="font-bold text-primary-700 hover:underline">구미</a>·<a href="/locations/jeonju" class="font-bold text-primary-700 hover:underline">전주</a> 페이지를 보세요.' },
+        { q: '홍대·구미·전주 중 어디서 배워야 하나요?', a: '거주·통학 편의가 가까운 센터를 고르면 됩니다. 과정 개설 여부는 센터·회차마다 다르므로 <a href="/course-sessions" class="font-bold text-primary-700 hover:underline">교육과정 목록</a>과 전화 02-3144-3137로 확인하세요.' },
+        { q: '모든 센터에서 내일배움카드·기능사 과정이 있나요?', a: '국민내일배움카드(국비지원)와 3D프린터운용기능사 대비 과정은 개설 회차에 따라 센터별로 안내합니다. 제도 설명은 <a href="/guides/national-support" class="font-bold text-primary-700 hover:underline">국비지원 가이드</a>·<a href="/guides/craftsman-license" class="font-bold text-primary-700 hover:underline">기능사 가이드</a>를 참고하세요.' },
+        { q: '오시는 길·연락처 요약은?', a: '홍대 02-3144-3137(독막로 93 4층), 구미 054-464-3137(산호대로 253), 전주는 대표 전화로 일정 안내. 이메일 wow3d16@naver.com.' },
+    ];
+    const copy = isHub
+        ? {
+            title: '오시는 길 | 홍대·구미·전주 3D프린팅 학원',
+            lead: '와우쓰리디 홍대·구미·전주 3D프린팅 교육센터 주소, 전화, 대중교통을 안내합니다. 아래 탭에서 센터별 지도를 확인하세요.',
+        }
+        : campusCopy[initialTab];
+    const allFaqs = isHub ? hubFaqs : campusCopy[initialTab].faqs;
     const faqJsonLd = {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
         mainEntity: allFaqs.map((item) => ({
             '@type': 'Question',
             name: item.q,
-            acceptedAnswer: { '@type': 'Answer', text: item.a },
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: item.a.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+            },
         })),
     };
     const faqCards = allFaqs.map((item, index) => `
@@ -87,10 +102,12 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
             <h1 class="text-3xl sm:text-4xl font-bold mb-4">${copy.title}</h1>
             <p class="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">${copy.lead}</p>
             <div class="mt-6 flex flex-wrap justify-center gap-2">
+                <a href="/locations/hongdae" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">홍대센터</a>
+                <a href="/locations/gumi" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">구미센터</a>
+                <a href="/locations/jeonju" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">전주센터</a>
                 <a href="/course-sessions" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">모집 과정</a>
                 <a href="/guides/national-support" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">국비지원</a>
-                <a href="/guides/craftsman-license" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">기능사·국가자격</a>
-                <a href="/tomorrow-learning-card" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">내일배움카드</a>
+                <a href="/faq" class="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/25">FAQ</a>
             </div>
         </div>
     </div>

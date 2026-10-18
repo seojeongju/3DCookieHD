@@ -279,6 +279,20 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                             </div>
                         </div>
 
+                        <!-- AI 검색 유입 랜딩 TOP (GEO) -->
+                        <div class="bg-white rounded-3xl shadow-sm border border-purple-200/60 p-6">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                <h3 class="text-sm font-black text-slate-900 tracking-tight">
+                                    <i class="fas fa-robot text-purple-500 mr-2"></i>AI 검색 유입 랜딩 TOP (GEO)
+                                </h3>
+                                <span class="text-xs font-semibold text-purple-400">ChatGPT · Perplexity · Claude · Gemini · Copilot</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-4">생성형 AI 검색에서 유입된 방문자의 랜딩 페이지입니다. 가이드·FAQ 성과와 대조해 인용·답변 콘텐츠를 보강하세요.</p>
+                            <div id="aiLandingList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+                                <div class="text-slate-400 col-span-full">로딩 중...</div>
+                            </div>
+                        </div>
+
                         <!-- 외부 유입 도메인(Referrers) 목록 (페이지네이션) -->
                         <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden" id="referrerSectionAnchor">
                             <div class="px-8 py-6 border-b border-slate-100 space-y-4">
@@ -944,6 +958,22 @@ export const adminAnalyticsHtml = (sidebar = hrdSidebar('analytics')) => `
                             '<span class="font-extrabold text-amber-600">' + l.pv.toLocaleString() + '</span>' +
                         '</div>';
                     }).join('');
+                }
+
+                // AI 검색 유입 랜딩 TOP
+                const aiLanding = (d.aiLandingPages || []).slice(0, 15);
+                const aiLandingList = document.getElementById('aiLandingList');
+                if (aiLandingList) {
+                    if (aiLanding.length === 0) {
+                        aiLandingList.innerHTML = '<div class="text-slate-400 col-span-full">AI 검색 유입 데이터 없음</div>';
+                    } else {
+                        aiLandingList.innerHTML = aiLanding.map(function(l, i) {
+                            return '<div class="flex items-center justify-between py-2 px-3 rounded-xl border border-purple-100 bg-purple-50/40">' +
+                                '<span class="truncate pr-2 font-mono text-[11px]" title="' + escapeHtml(l.path) + '"><span class="font-bold text-purple-400 font-sans mr-2">' + (i+1) + '.</span>' + escapeHtml(l.path) + '</span>' +
+                                '<span class="font-extrabold text-purple-700 shrink-0">' + l.pv.toLocaleString() + ' PV</span>' +
+                            '</div>';
+                        }).join('');
+                    }
                 }
             }
 

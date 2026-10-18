@@ -30,6 +30,10 @@ export const CAMPUSES = {
         region: '서울특별시',
         postalCode: '04072',
         keyword: '홍대 3D프린팅 학원',
+        latitude: 37.5475,
+        longitude: 126.9240,
+        openingHours: ['Mo-Fr 10:00-19:00', 'Sa 10:00-16:00'],
+        mapUrl: 'https://map.kakao.com/link/map/%EC%99%80%EC%9A%B0%EC%93%B0%EB%A6%AC%EB%94%94%ED%99%8D%EB%8C%80%EC%84%BC%ED%84%B0,37.5475,126.9240',
     },
     gumi: {
         slug: 'gumi',
@@ -40,6 +44,10 @@ export const CAMPUSES = {
         region: '경상북도',
         postalCode: '39371',
         keyword: '구미 3D프린팅 학원',
+        latitude: 36.1145,
+        longitude: 128.3640,
+        openingHours: ['Mo-Fr 10:00-19:00'],
+        mapUrl: 'https://map.kakao.com/link/map/%EC%99%80%EC%9A%B0%EC%93%B0%EB%A6%AC%EB%94%94%EA%B5%AC%EB%AF%B8%EC%84%BC%ED%84%B0,36.1145,128.3640',
     },
     jeonju: {
         slug: 'jeonju',
@@ -50,6 +58,10 @@ export const CAMPUSES = {
         region: '전북특별자치도',
         postalCode: '54810',
         keyword: '전주 3D프린팅 교육',
+        latitude: 35.8478,
+        longitude: 127.0645,
+        openingHours: ['Mo-Fr 10:00-19:00'],
+        mapUrl: 'https://map.kakao.com/link/map/%EC%99%80%EC%9A%B0%EC%93%B0%EB%A6%AC%EB%94%94%EC%A0%84%EC%A3%BC%EC%84%BC%ED%84%B0,35.8478,127.0645',
     },
 } as const;
 
@@ -249,6 +261,25 @@ function campusLocalBusiness(origin: string, slug: CampusSlug) {
             postalCode: campus.postalCode,
             addressCountry: 'KR',
         },
+        geo: {
+            '@type': 'GeoCoordinates',
+            latitude: campus.latitude,
+            longitude: campus.longitude,
+        },
+        openingHoursSpecification: campus.openingHours.map((hours) => {
+            const [days, time] = hours.split(' ');
+            const [opens, closes] = (time || '10:00-19:00').split('-');
+            const dayOfWeek = /Sa/.test(days || '') && !/Mo/.test(days || '')
+                ? ['Saturday']
+                : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            return {
+                '@type': 'OpeningHoursSpecification',
+                dayOfWeek,
+                opens,
+                closes,
+            };
+        }),
+        hasMap: campus.mapUrl,
         areaServed: campus.region,
     };
 }
@@ -331,6 +362,8 @@ export function buildCourseJsonLd(origin: string, row: {
     location?: string | null;
     instructor_name?: string | null;
     description?: string | null;
+    /** 일반과정이면 /courses, 회차이면 /course-sessions (기본) */
+    pathPrefix?: 'session' | 'general';
 }): Record<string, unknown> {
     const name = [row.course_name, row.session_number ? `${row.session_number}회차` : '', row.session_name]
         .filter(Boolean)
@@ -339,11 +372,15 @@ export function buildCourseJsonLd(origin: string, row: {
         .trim();
     const start = String(row.training_start_date || '').slice(0, 10);
     const end = String(row.training_end_date || '').slice(0, 10);
+    const base = origin.replace(/\/$/, '');
+    const path = row.pathPrefix === 'general'
+        ? `${base}/courses/${row.id}`
+        : `${base}/course-sessions/${row.id}`;
     return {
         '@type': 'Course',
         name: name || '3D프린팅 국비지원 과정',
         description: row.description || `${name} 국비지원(내일배움카드) 3D프린팅 교육. ${inferCampusLabel(row.location)}센터.`,
-        url: `${origin}/course-sessions/${row.id}`,
+        url: path,
         provider: { '@id': `${origin}/#organization` },
         inLanguage: 'ko-KR',
         ...(start ? { hasCourseInstance: {
@@ -355,6 +392,168 @@ export function buildCourseJsonLd(origin: string, row: {
             instructor: row.instructor_name || undefined,
         } } : {}),
     };
+}
+
+/** 과정 목록 ItemList JSON-LD */
+export function buildCourseItemListJsonLd(
+    origin: string,
+    rows: Array<{ id: number; name: string; source?: string | null }>,
+): Record<string, unknown> {
+    const base = origin.replace(/\/$/, '');
+    return {
+        '@type': 'ItemList',
+        name: '3D프린팅 국비지원·기능사 교육과정',
+        itemListElement: rows.map((row, index) => {
+            const path = row.source === 'general'
+                ? `${base}/courses/${row.id}`
+                : `${base}/course-sessions/${row.id}`;
+            return {
+                '@type': 'ListItem',
+                position: index + 1,
+                name: row.name,
+                url: path,
+            };
+        }),
+    };
+}
+
+/** 후기 AggregateRating + Review 샘플 */
+export function buildReviewsJsonLd(
+    origin: string,
+    rows: Array<{
+        title?: string | null;
+        content?: string | null;
+        author_name?: string | null;
+        rating?: number | null;
+        created_at?: string | null;
+    }>,
+): Record<string, unknown>[] {
+    const ratings = rows
+        .map((r) => Number(r.rating))
+        .filter((n) => Number.isFinite(n) && n > 0);
+    if (!ratings.length) return [];
+    const avg = Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10;
+    const base = origin.replace(/\/$/, '');
+    const graph: Record<string, unknown>[] = [{
+        '@type': 'EducationalOrganization',
+        '@id': `${base}/#organization-reviews`,
+        name: SITE_NAME,
+        aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: avg,
+            bestRating: 5,
+            worstRating: 1,
+            ratingCount: ratings.length,
+        },
+    }];
+    for (const row of rows.slice(0, 8)) {
+        const rating = Math.max(1, Math.min(5, Number(row.rating) || 0));
+        if (!rating) continue;
+        const body = toPlainMeta(row.content || row.title || '', 280);
+        if (!body) continue;
+        graph.push({
+            '@type': 'Review',
+            itemReviewed: { '@id': `${base}/#organization-reviews` },
+            author: {
+                '@type': 'Person',
+                name: String(row.author_name || '수강생').trim().slice(0, 1) + '**',
+            },
+            datePublished: String(row.created_at || '').slice(0, 10) || undefined,
+            reviewBody: body,
+            name: toPlainMeta(row.title || '교육 후기', 80),
+            reviewRating: {
+                '@type': 'Rating',
+                ratingValue: rating,
+                bestRating: 5,
+                worstRating: 1,
+            },
+        });
+    }
+    return graph;
+}
+
+/** 포트폴리오 CreativeWork / ImageObject */
+export function buildPortfolioJsonLd(origin: string, row: {
+    id: number;
+    title?: string | null;
+    description?: string | null;
+    thumbnail_url?: string | null;
+    student_name?: string | null;
+    course_title?: string | null;
+    category?: string | null;
+}): Record<string, unknown> {
+    const base = origin.replace(/\/$/, '');
+    const url = `${base}/portfolios/${row.id}`;
+    const name = (row.title || `포트폴리오 ${row.id}`).trim();
+    const image = row.thumbnail_url
+        ? (row.thumbnail_url.startsWith('http') ? row.thumbnail_url : `${base}${row.thumbnail_url.startsWith('/') ? '' : '/'}${row.thumbnail_url}`)
+        : undefined;
+    return {
+        '@type': 'CreativeWork',
+        '@id': `${url}#work`,
+        name,
+        description: toPlainMeta(row.description || `${name} 3D모델링·3D프린팅 작품`, 300),
+        url,
+        inLanguage: 'ko-KR',
+        creator: {
+            '@type': 'Person',
+            name: (row.student_name || '수강생').trim(),
+        },
+        ...(row.course_title ? { about: row.course_title } : {}),
+        ...(row.category ? { genre: row.category } : {}),
+        ...(image ? {
+            image: {
+                '@type': 'ImageObject',
+                url: image,
+                contentUrl: image,
+            },
+        } : {}),
+        provider: { '@id': `${base}/#organization` },
+    };
+}
+
+/** 얇은 마케팅 페이지용 FAQ + 사실 요약 (AEO) */
+export function thinPageAeoBlockHtml(faqs: Array<{ q: string; a: string }>): string {
+    const cards = faqs.map((item, index) => `
+      <details class="group rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-black tracking-tight text-slate-900">
+          <span><span class="mr-2 text-indigo-600">Q${index + 1}.</span>${item.q.replace(/</g, '&lt;')}</span>
+          <i class="fas fa-chevron-down text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true"></i>
+        </summary>
+        <div class="border-t border-slate-100 px-5 py-4 text-slate-700 leading-7">${item.a.replace(/</g, '&lt;')}</div>
+      </details>`).join('');
+    const faqLd = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((item) => ({
+            '@type': 'Question',
+            name: item.q,
+            acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+    };
+    return `
+    <script type="application/ld+json">${JSON.stringify(faqLd).replace(/</g, '\\u003c')}</script>
+    <section class="mb-12 space-y-3" aria-label="자주 묻는 질문">
+      <h2 class="text-xl font-black tracking-tight text-slate-900 px-1">자주 묻는 질문</h2>
+      ${cards}
+    </section>
+    ${citationFactBlockHtml()}`;
+}
+
+/** AI·검색 인용용 사실 요약 HTML 블록 */
+export function citationFactBlockHtml(note = '최신 모집·지원 비율은 회차·개인 심사에 따라 달라질 수 있습니다.'): string {
+    const safeNote = String(note).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `
+    <aside class="mt-8 rounded-[2.5rem] border border-slate-200/60 bg-white p-6 sm:p-8 shadow-sm" aria-label="AI·검색 답변용 사실 요약">
+      <p class="text-xs font-black uppercase tracking-[0.2em] text-indigo-600 mb-2">사실 요약</p>
+      <p class="mb-4 text-sm leading-6 text-slate-500">AI·검색 답변용 사실 요약입니다. ${safeNote}</p>
+      <ul class="space-y-2 text-sm text-slate-700 leading-6 list-disc pl-5">
+        <li>기관: ${SITE_NAME} (홍대·구미·전주) · 전화 02-3144-3137 · <a class="text-indigo-600 font-bold hover:underline" href="${SITE_ORIGIN}">${SITE_ORIGIN.replace('https://', '')}</a></li>
+        <li>교육: 3D프린팅·3D모델링 국비지원(국민내일배움카드), 3D프린터운용기능사 실기 대비, 소상공인·시제품·기업·대학 맞춤</li>
+        <li>국가자격 공식명: 3D프린터운용기능사, 3D프린터개발산업기사 (시행 한국산업인력공단·큐넷)</li>
+        <li>자세한 절차: <a class="text-indigo-600 font-bold hover:underline" href="/guides/national-support">국비지원 가이드</a>, <a class="text-indigo-600 font-bold hover:underline" href="/guides/craftsman-license">기능사 가이드</a>, <a class="text-indigo-600 font-bold hover:underline" href="/llms.txt">llms.txt</a></li>
+      </ul>
+    </aside>`;
 }
 
 export async function seoOptionsForSession(
@@ -387,6 +586,7 @@ export async function seoOptionsForSession(
                     training_start_date: row.start_date,
                     training_end_date: row.end_date,
                     description,
+                    pathPrefix: 'general',
                 })],
             };
         }
@@ -437,6 +637,7 @@ export async function seoOptionsForSession(
             extraJsonLd: [buildCourseJsonLd(SITE_ORIGIN, {
                 ...row,
                 description,
+                pathPrefix: 'session',
             })],
         };
     } catch {
@@ -489,6 +690,15 @@ export async function seoOptionsForPortfolio(db: D1Database, id: number): Promis
             image: row.thumbnail_url || DEFAULT_OG_IMAGE,
             path: `/portfolios/${id}`,
             ogType: 'article',
+            extraJsonLd: [buildPortfolioJsonLd(SITE_ORIGIN, {
+                id: row.id,
+                title: work,
+                description: excerpt || description,
+                thumbnail_url: row.thumbnail_url,
+                student_name: author,
+                course_title: course || null,
+                category: category || null,
+            })],
         };
     } catch {
         return null;
@@ -771,8 +981,22 @@ export function isTrackingOnlyQuery(searchParams: URLSearchParams): boolean {
 
 /** 본문을 크게 고친 정적 페이지의 최종 수정일 (sitemap lastmod·Article dateModified 공용) */
 export const PAGE_LASTMOD: Record<string, string> = {
+    '/': '2026-10-18',
+    '/greeting': '2026-10-18',
+    '/locations': '2026-10-18',
+    '/locations/hongdae': '2026-10-18',
+    '/locations/gumi': '2026-10-18',
+    '/locations/jeonju': '2026-10-18',
+    '/faq': '2026-10-18',
+    '/reviews': '2026-10-18',
+    '/course-sessions': '2026-10-18',
+    '/tomorrow-learning-card': '2026-10-18',
+    '/corporate-education': '2026-10-18',
+    '/university-education': '2026-10-18',
     '/guides/national-support': '2026-10-05',
     '/guides/craftsman-license': '2026-10-05',
+    '/guides/small-business': '2026-10-18',
+    '/guides/prototype': '2026-10-18',
     '/guides/3d-printing': '2026-10-05',
     '/guides/3d-printing/history': '2026-10-05',
     '/guides/3d-printing/process': '2026-10-05',

@@ -155,7 +155,7 @@ import { locationsHtml } from './views/locations';
 import { educationPerformanceHtml } from './views/education_performance';
 import { tomorrowLearningCardHtml } from './views/tomorrow_learning_card';
 import { coursesListHtml } from './views/courses';
-import { courseSessionsListHtml, courseSessionDetailHtml, type PublicSessionCard } from './views/course_sessions_public';
+import { courseSessionsListHtml, courseSessionDetailHtml, sessionDisplayName, type PublicSessionCard } from './views/course_sessions_public';
 import { applyEffectiveStatusToList, sqlWhereEffectiveActive, sqlOrderHomeCourses } from './utils/course_session_status';
 import { achievementsHtml } from './views/achievements';
 import { footerHtml } from './views/footer';
@@ -164,6 +164,10 @@ import { homeHtml } from './views/home';
 import { layoutHtml } from './views/components/layout';
 import { resetPasswordHtml } from './views/reset_password';
 import {
+    buildCourseItemListJsonLd,
+    buildReviewsJsonLd,
+    citationFactBlockHtml,
+    thinPageAeoBlockHtml,
     getSeoHead,
     getSeoOptionsForPath,
     isNoindexPath,
@@ -178,6 +182,7 @@ import {
 } from './utils/seo';
 import { resolveLegacyHrdLmsRedirect } from './utils/lmsEntryUrl';
 import { publicNotFoundHtml } from './views/not_found';
+import { postDetailHtml } from './views/post_detail';
 import { configureJwtSecret } from './utils/jwt';
 import { ensureAttendanceEnrollmentType } from './utils/attendance_enrollment';
 import { ensureEnrollmentDropColumns } from './utils/enrollment_dropout';
@@ -227,6 +232,8 @@ app.use('*', async (c, next) => {
     if (noindex) {
         c.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
     }
+    // GEO: AI·LLM이 llms.txt를 발견하도록 Link 헤더 제공
+    c.res.headers.append('Link', `<${canonicalOrigin}/llms.txt>; rel="describedby"; type="text/plain"`);
 
     const contentType = c.res.headers.get('Content-Type') || '';
     if (status >= 400 || !contentType.includes('text/html')) return;
@@ -235,12 +242,28 @@ app.use('*', async (c, next) => {
     const sessionMatch = requestUrl.pathname.match(/^\/course-sessions\/(\d+)$/);
     const generalMatch = requestUrl.pathname.match(/^\/courses\/(\d+)$/);
     const portfolioMatch = requestUrl.pathname.match(/^\/portfolios\/(\d+)$/);
+    const postMatch = requestUrl.pathname.match(/^\/posts\/(\d+)$/);
     if (c.env.DB && sessionMatch) {
         seoOptions = (await seoOptionsForSession(c.env.DB, Number(sessionMatch[1]), 'session')) || seoOptions;
     } else if (c.env.DB && generalMatch) {
         seoOptions = (await seoOptionsForSession(c.env.DB, Number(generalMatch[1]), 'general')) || seoOptions;
     } else if (c.env.DB && portfolioMatch) {
         seoOptions = (await seoOptionsForPortfolio(c.env.DB, Number(portfolioMatch[1]))) || seoOptions;
+    } else if (c.env.DB && postMatch) {
+        try {
+            const row = await c.env.DB.prepare(
+                `SELECT id, title, content, category FROM posts WHERE id = ? AND status = 'published'
+                 AND category IN ('notice','news','event','education_photo','faq')`
+            ).bind(Number(postMatch[1])).first<{ id: number; title?: string; content?: string; category?: string }>();
+            if (row) {
+                seoOptions = {
+                    title: toPlainMeta(row.title || `게시글 ${row.id}`, 70),
+                    description: toPlainMeta(row.content || row.title || '와우쓰리디 공지·게시글', 160),
+                    path: `/posts/${row.id}`,
+                    ogType: 'article',
+                };
+            }
+        } catch { /* ignore */ }
     }
     // 쿼리 URL은 대표 path와 같은 title/desc를 쓰지 않고, noindex + 고유 메타로 진단 중복을 줄인다
     if (seoOptions && hasQuery) {
@@ -260,11 +283,26 @@ app.use('*', async (c, next) => {
             path: requestUrl.pathname,
         };
     }
-    if (!seoOptions) return;
 
     const html = await c.res.text();
+    const headers = new Headers(c.res.headers);
+    headers.delete('Content-Length');
+
+    // 관리·로그인 등 비공개 HTML에도 meta robots를 심어 헤더와 이중 방어
+    if (!seoOptions && noindex) {
+        const withRobots = html.includes('name="robots"') || html.includes("name='robots'")
+            ? html
+            : html.replace('</head>', '    <meta name="robots" content="noindex, nofollow">\n</head>');
+        c.res = new Response(withRobots, { status: c.res.status, statusText: c.res.statusText, headers });
+        return;
+    }
+    if (!seoOptions) {
+        c.res = new Response(html, { status: c.res.status, statusText: c.res.statusText, headers });
+        return;
+    }
+
     if (html.includes('rel="canonical"') || html.includes("rel='canonical'")) {
-        c.res = new Response(html, c.res);
+        c.res = new Response(html, { status: c.res.status, statusText: c.res.statusText, headers });
         return;
     }
 
@@ -275,8 +313,6 @@ app.use('*', async (c, next) => {
         google: c.env.GOOGLE_SITE_VERIFICATION,
         naver: c.env.NAVER_SITE_VERIFICATION,
     });
-    const headers = new Headers(c.res.headers);
-    headers.delete('Content-Length');
     c.res = new Response(cleanedHtml.replace('</head>', `    ${seoHead}\n</head>`), {
         status: c.res.status,
         statusText: c.res.statusText,
@@ -339,30 +375,28 @@ app.get('/robots.txt', (c) => {
         'Allow: /*?gclid=',
         'Allow: /*?fbclid=',
         'Sitemap: ' + origin + '/sitemap.xml',
+        'Sitemap: ' + origin + '/sitemap-images.xml',
         '# LLM context: ' + origin + '/llms.txt',
         '',
         '# AI crawlers',
-        'User-agent: GPTBot',
-        'Allow: /',
-        'Disallow: /admin/',
-        'Disallow: /teacher/',
-        'Disallow: /student/',
-        'Disallow: /api/',
-        '',
-        'User-agent: ChatGPT-User',
-        'Allow: /',
-        'Disallow: /admin/',
-        'Disallow: /api/',
-        '',
-        ...['OAI-SearchBot', 'ClaudeBot', 'Claude-SearchBot', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended'].flatMap((bot) => [
+        ...['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'Claude-SearchBot', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended'].flatMap((bot) => [
             `User-agent: ${bot}`,
             'Allow: /',
             'Disallow: /admin/',
             'Disallow: /teacher/',
             'Disallow: /student/',
             'Disallow: /api/',
+            'Disallow: /login',
+            'Disallow: /register',
+            'Disallow: /reset-password',
             '',
         ]),
+        'User-agent: Bytespider',
+        'Disallow: /admin/',
+        'Disallow: /teacher/',
+        'Disallow: /student/',
+        'Disallow: /api/',
+        '',
     ].join('\n');
     return new Response(body, {
         headers: {
@@ -382,23 +416,25 @@ app.get('/sitemap.xml', async (c) => {
     }));
 
     try {
-        let sessions: Array<{ id: number; created_at?: string }> = [];
+        let sessions: Array<{ id: number; lastmod?: string }> = [];
         try {
             const result = await c.env.DB.prepare(`
-                SELECT id, created_at
+                SELECT id,
+                       COALESCE(training_end_date, training_start_date, created_at) AS lastmod
                 FROM course_sessions
                 WHERE (homepage_exposed = 1 OR homepage_exposed IS NULL)
                   AND LOWER(TRIM(COALESCE(status, ''))) <> 'closed'
                 ORDER BY id
-            `).all<{ id: number; created_at?: string }>();
+            `).all<{ id: number; lastmod?: string }>();
             sessions = result.results || [];
         } catch {
             try {
                 const result = await c.env.DB.prepare(
-                    `SELECT id, created_at FROM course_sessions
+                    `SELECT id, COALESCE(training_end_date, training_start_date, created_at) AS lastmod
+                     FROM course_sessions
                      WHERE LOWER(TRIM(COALESCE(status, ''))) <> 'closed'
                      ORDER BY id`
-                ).all<{ id: number; created_at?: string }>();
+                ).all<{ id: number; lastmod?: string }>();
                 sessions = result.results || [];
             } catch (e) {
                 console.error('sitemap sessions query failed:', e);
@@ -407,9 +443,30 @@ app.get('/sitemap.xml', async (c) => {
         for (const row of sessions) {
             entries.push({
                 path: `/course-sessions/${row.id}`,
-                lastmod: normalizeSitemapDate(row.created_at),
+                lastmod: normalizeSitemapDate(row.lastmod),
                 priority: '0.7',
             });
+        }
+
+        // 공개 공지·뉴스·이벤트 게시글
+        try {
+            const posts = await c.env.DB.prepare(`
+                SELECT id, COALESCE(updated_at, created_at) AS lastmod
+                FROM posts
+                WHERE status = 'published'
+                  AND category IN ('notice', 'news', 'event')
+                ORDER BY id DESC
+                LIMIT 200
+            `).all<{ id: number; lastmod?: string }>();
+            for (const row of posts.results || []) {
+                entries.push({
+                    path: `/posts/${row.id}`,
+                    lastmod: normalizeSitemapDate(row.lastmod),
+                    priority: '0.5',
+                });
+            }
+        } catch (e) {
+            console.error('sitemap posts query failed:', e);
         }
 
         try {
@@ -494,6 +551,71 @@ function normalizeSitemapDate(value?: string): string | undefined {
     const match = String(value).match(/^([0-9]{4}-[0-9]{2}-[0-9]{2})/);
     return match?.[1];
 }
+
+// 이미지 사이트맵 (포트폴리오·OG·과정 썸네일)
+app.get('/sitemap-images.xml', async (c) => {
+    const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
+    const items: Array<{ loc: string; image: string; title: string }> = [
+        { loc: `${origin}/`, image: `${origin}/static/hero1.jpg`, title: '와우쓰리디홍대센터' },
+        { loc: `${origin}/guides/national-support`, image: `${origin}/static/og/national-support.png`, title: '국비지원·내일배움카드' },
+        { loc: `${origin}/guides/craftsman-license`, image: `${origin}/static/og/craftsman-license.png`, title: '3D프린터 국가자격증' },
+        { loc: `${origin}/guides/3d-printing`, image: `${origin}/static/og/3d-printing.png`, title: '3D프린팅이란' },
+    ];
+    try {
+        if (c.env.DB) {
+            const portfolios = await c.env.DB.prepare(`
+                SELECT id, title, thumbnail_url, description
+                FROM student_portfolios
+                WHERE (status IS NULL OR status = 'published')
+                  AND thumbnail_url IS NOT NULL AND TRIM(thumbnail_url) <> ''
+                ORDER BY id DESC
+                LIMIT 500
+            `).all<{ id: number; title?: string; thumbnail_url?: string; description?: string }>();
+            for (const row of portfolios.results || []) {
+                if (toPlainMeta(row.description || '', 400).length < 40) continue;
+                const img = String(row.thumbnail_url || '');
+                const image = img.startsWith('http') ? img : `${origin}${img.startsWith('/') ? '' : '/'}${img}`;
+                items.push({
+                    loc: `${origin}/portfolios/${row.id}`,
+                    image,
+                    title: toPlainMeta(row.title || `포트폴리오 ${row.id}`, 120),
+                });
+            }
+            try {
+                const sessions = await c.env.DB.prepare(`
+                    SELECT id, COALESCE(main_slide_image_url, course_list_image_url) AS image_url
+                    FROM course_sessions
+                    WHERE COALESCE(main_slide_image_url, course_list_image_url) IS NOT NULL
+                      AND TRIM(COALESCE(main_slide_image_url, course_list_image_url)) <> ''
+                      AND LOWER(TRIM(COALESCE(status, ''))) <> 'closed'
+                    ORDER BY id DESC
+                    LIMIT 200
+                `).all<{ id: number; image_url?: string }>();
+                for (const row of sessions.results || []) {
+                    const img = String(row.image_url || '');
+                    const image = img.startsWith('http') ? img : `${origin}${img.startsWith('/') ? '' : '/'}${img}`;
+                    items.push({
+                        loc: `${origin}/course-sessions/${row.id}`,
+                        image,
+                        title: `교육과정 ${row.id}`,
+                    });
+                }
+            } catch { /* 컬럼 없으면 무시 */ }
+        }
+    } catch (e) {
+        console.error('sitemap-images query failed:', e);
+    }
+    const body = items.map((item) => (
+        `  <url>\n    <loc>${escapeXml(item.loc)}</loc>\n    <image:image>\n      <image:loc>${escapeXml(item.image)}</image:loc>\n      <image:title>${escapeXml(item.title)}</image:title>\n    </image:image>\n  </url>`
+    )).join('\n');
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${body}\n</urlset>`;
+    return new Response(xml, {
+        headers: {
+            'Content-Type': 'application/xml; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600',
+        },
+    });
+});
 
 function escapeXml(s: string): string {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -964,7 +1086,15 @@ app.get('/course-sessions', async (c) => {
     } catch (e) {
         console.error('course-sessions SSR list failed:', e);
     }
-    return c.html(courseSessionsListHtml(rows));
+    const itemList = buildCourseItemListJsonLd(SITE_ORIGIN, rows.map((row) => ({
+        id: row.id,
+        name: sessionDisplayName(row) || `3D프린팅 교육과정 ${row.id}`,
+        source: row.source,
+    })));
+    const headExtra = rows.length
+        ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', ...itemList }).replace(/</g, '\\u003c')}</script>`
+        : '';
+    return c.html(courseSessionsListHtml(rows, headExtra));
 });
 app.get('/course-sessions/:id', async (c) => {
     const rawId = c.req.param('id');
@@ -1031,6 +1161,62 @@ app.get('/posts', (c) => {
     }
     return c.html(postsListHtml);
 });
+app.get('/posts/:id', async (c) => {
+    const id = Number(c.req.param('id'));
+    if (!Number.isFinite(id) || id <= 0) {
+        return c.html(publicNotFoundHtml('잘못된 게시글 주소입니다.', '/posts'), 404);
+    }
+    try {
+        const row = await c.env.DB.prepare(`
+            SELECT p.id, p.title, p.content, p.category, p.created_at, p.updated_at,
+                   COALESCE(u.name, p.author_name) as author_name, p.status
+            FROM posts p
+            LEFT JOIN users u ON p.author_id = u.id
+            WHERE p.id = ?
+        `).bind(id).first<{
+            id: number;
+            title?: string;
+            content?: string;
+            category?: string;
+            created_at?: string;
+            updated_at?: string;
+            author_name?: string;
+            status?: string;
+        }>();
+        if (!row || row.status !== 'published') {
+            return c.html(publicNotFoundHtml('요청하신 게시글을 찾을 수 없거나 비공개입니다.', '/posts'), 404);
+        }
+        const allowed = ['notice', 'news', 'event', 'education_photo', 'faq'];
+        if (!allowed.includes(String(row.category || ''))) {
+            return c.html(publicNotFoundHtml('이 게시글은 공개 상세 페이지가 없습니다.', '/posts'), 404);
+        }
+        let content = row.content || '';
+        // R2에 저장된 본문이면 로드
+        const r2Match = content.match(/\[R2:(\/api\/upload\/files\/[^\]]+)\]/)
+            || content.match(/URL: (\/api\/upload\/files\/[^\]]+)/);
+        if (r2Match?.[1] && c.env.R2) {
+            try {
+                const object = await c.env.R2.get(r2Match[1].replace('/api/upload/files/', ''));
+                if (object) content = new TextDecoder('utf-8').decode(await object.arrayBuffer());
+            } catch { /* 본문 없이 SSR */ }
+        }
+        if (String(content).startsWith('[R2:')) {
+            content = toPlainMeta(row.title || '', 200) + ' 자세한 내용은 관리자 게시판에서 확인할 수 있습니다.';
+        }
+        return c.html(postDetailHtml({
+            id: row.id,
+            title: row.title || `게시글 ${row.id}`,
+            content,
+            category: row.category,
+            author_name: row.author_name,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        }));
+    } catch (e) {
+        console.error('posts detail SSR failed:', e);
+        return c.html(publicNotFoundHtml('게시글을 불러오지 못했습니다.', '/posts'), 404);
+    }
+});
 app.get('/faq', async (c) => {
     try {
         const result = await c.env.DB.prepare(`
@@ -1040,58 +1226,59 @@ app.get('/faq', async (c) => {
             ORDER BY pinned DESC, created_at DESC
             LIMIT 30
         `).all<{ title: string; content: string }>();
+        // 대표 FAQ는 /faq에 두고, 센터·가이드 상세는 해당 URL로 안내해 중복 색인을 줄인다
         const aeoDefaults: PublicFaq[] = [
             {
                 title: '3D프린팅 국비지원은 어떻게 신청하나요?',
-                answer: '국민내일배움카드를 발급받은 뒤 와우쓰리디 홍대·구미·전주센터의 모집 과정에 등록하면 됩니다. 상담 전화 02-3144-3137, 자세한 절차는 내일배움카드 안내 페이지를 보세요.',
+                answer: '국민내일배움카드를 발급받은 뒤 와우쓰리디 홍대·구미·전주센터의 모집 과정에 등록하면 됩니다. 상담 전화 02-3144-3137. 절차·한도 요약은 /guides/national-support 와 /tomorrow-learning-card 를 보세요.',
             },
             {
                 title: '내일배움카드로 3D프린팅을 배울 수 있나요?',
-                answer: '가능합니다. 와우쓰리디는 내일배움카드(국비지원) 3D프린팅·3D모델링 직업훈련을 운영합니다. 현재 회차는 교육과정 목록에서 확인하세요.',
+                answer: '가능합니다. 와우쓰리디는 내일배움카드(국비지원) 3D프린팅·3D모델링 직업훈련을 운영합니다. 현재 회차는 /course-sessions 에서 확인하세요.',
             },
             {
                 title: '내일배움카드는 어떻게 발급받나요?',
-                answer: '고용24(워크넷)에서 회원가입 후 상담·심사를 거쳐 국민내일배움카드를 발급받습니다. 자격·한도는 연도별 고시에 따르며, 와우쓰리디 내일배움카드 안내 페이지에서 절차 요약을 볼 수 있습니다.',
+                answer: '고용24에서 구직·상담·심사를 거쳐 국민내일배움카드를 발급받습니다. 자격·한도는 연도별 고시 우선이며, /tomorrow-learning-card 와 /guides/national-support 에 절차 요약을 두었습니다.',
             },
             {
                 title: '3D프린터 국가자격증이 있나요?',
-                answer: '있습니다. 국가기술자격 공식 명칭은 3D프린터운용기능사입니다. 와우쓰리디에서 실기 대비 과정(주말반·평일저녁반)을 운영하며, 자세한 안내는 기능사 자격증 가이드를 보세요.',
+                answer: '있습니다. 공식 명칭은 3D프린터운용기능사와 3D프린터개발산업기사입니다. 시험 구성·응시 자격 비교는 /guides/craftsman-license 를 보세요. 와우쓰리디는 운용기능사 실기 대비 과정을 운영합니다.',
             },
             {
                 title: '3D프린팅 기능사란 무엇인가요?',
-                answer: '일반적으로 말하는 3D프린팅 기능사는 국가기술자격 3D프린터운용기능사를 가리킵니다. 모델링·출력·후가공 실무 능력을 검증하는 자격이며, 와우쓰리디에서 대비 교육을 제공합니다.',
+                answer: '보통 말하는 3D프린팅 기능사는 국가기술자격 3D프린터운용기능사를 가리킵니다. 상세 정의와 시험 안내는 /guides/craftsman-license 가 대표 페이지입니다.',
             },
             {
                 title: '3D프린터운용기능사 학원은 어디인가요?',
-                answer: '와우쓰리디에서 3D프린터운용기능사 실기 대비 과정(주말반·평일저녁반)을 운영합니다. 일정은 교육과정 목록의 기능사 회차를 확인하세요.',
+                answer: '와우쓰리디(홍대·구미·전주)에서 실기 대비 과정(주말반·평일저녁반 등)을 운영합니다. 일정은 /course-sessions 의 기능사 회차, 제도 설명은 /guides/craftsman-license 를 확인하세요.',
             },
             {
                 title: '3D프린터 무료교육이 있나요?',
-                answer: '완전 무료 과정은 회차·자격에 따라 다릅니다. 국민내일배움카드(국비지원)를 이용하면 훈련비 부담을 크게 줄일 수 있습니다. 지원 가능 여부는 상담 시 해당 회차 기준으로 안내합니다.',
+                answer: '「완전 무료」를 단정할 수 없습니다. 국민내일배움카드(국비지원)로 훈련비 부담을 줄일 수 있으며, 자기부담금은 회차·개인 심사에 따릅니다. 자세한 설명은 /guides/national-support 를 보세요.',
             },
             {
                 title: '홍대에서 3D프린팅을 배울 수 있는 곳은 어디인가요?',
-                answer: '서울 마포구 독막로 93 4층(상수역 2번 출구) 와우쓰리디홍대센터에서 3D프린팅 국비지원 교육을 운영합니다. 전화 02-3144-3137.',
+                answer: '서울 마포구 독막로 93 4층(상수역) 와우쓰리디홍대센터입니다. 전화 02-3144-3137. 주소·지도·센터 FAQ는 /locations/hongdae 가 대표 페이지입니다.',
             },
             {
                 title: '소상공인도 3D프린팅 교육을 들을 수 있나요?',
-                answer: '가능합니다. 쿠키틀·몰드·소품 제품화 등 소상공인 맞춤 과정을 운영합니다. 교육과정 목록과 온라인 상담으로 일정을 안내합니다.',
+                answer: '가능합니다. 쿠키틀·몰드·소품 제품화 등 소상공인 맞춤 과정을 운영합니다. 안내 본문은 /guides/small-business , 모집 회차는 /course-sessions 와 온라인 상담을 이용하세요.',
             },
             {
                 title: '와우쓰리디는 학원인가요, 직업훈련기관인가요?',
-                answer: '와우쓰리디홍대센터는 3D프린팅·3D모델링 직업훈련을 운영하는 교육기관입니다. 국민내일배움카드(국비지원) 과정과 3D프린터운용기능사 대비 교육, 소상공인·기업·대학 맞춤 교육을 제공합니다.',
+                answer: '와우쓰리디홍대센터는 3D프린팅·3D모델링 직업훈련을 운영하는 교육기관입니다. 국비지원·기능사·소상공인·기업·대학 맞춤 교육을 제공하며, 기관 요약은 /llms.txt 와 /greeting 을 참고하세요.',
             },
             {
                 title: '3D프린터운용기능사와 산업기사는 다른가요?',
-                answer: '다릅니다. 3D프린터운용기능사는 기능사 등급의 국가기술자격이고, 산업기사는 별도 등급·종목입니다. 와우쓰리디에서 주로 안내하는 국가자격은 3D프린터운용기능사입니다.',
+                answer: '다릅니다. 운용기능사는 기능사 등급, 개발산업기사는 산업기사 등급의 별도 국가기술자격입니다. 비교표는 /guides/craftsman-license 에 있습니다.',
             },
             {
                 title: '구미·전주에서도 3D프린팅을 배울 수 있나요?',
-                answer: '가능합니다. 경북 구미센터(산호대로 253)와 전북 전주센터(반룡로 109)에서도 3D프린팅 교육을 운영합니다. 지역별 안내는 홍대·구미·전주 가이드와 오시는 길 페이지를 보세요.',
+                answer: '가능합니다. 구미센터(/locations/gumi)·전주센터(/locations/jeonju)에서도 교육을 운영합니다. 3센터 허브는 /locations 입니다.',
             },
             {
                 title: '수강 신청은 어떻게 하나요?',
-                answer: '온라인 상담 또는 전화 02-3144-3137로 희망 과정·센터를 상담한 뒤 등록합니다. 국비 과정은 내일배움카드 발급 여부를 함께 확인합니다.',
+                answer: '/online-consulting 온라인 상담 또는 전화 02-3144-3137로 희망 과정·센터를 상담한 뒤 등록합니다. 국비 과정은 내일배움카드 발급 여부를 함께 확인합니다.',
             },
         ];
         const seen = new Set<string>();
@@ -1124,7 +1311,7 @@ app.get('/locations', async (c) => {
         const row = await c.env.DB.prepare('SELECT value FROM site_settings WHERE key = ?').bind('kakao_map_appkey').first<{ value: string }>();
         if (row?.value) appKey = String(row.value).trim();
     }
-    return c.html(locationsHtml({ kakaoMapAppKey: appKey }));
+    return c.html(locationsHtml({ kakaoMapAppKey: appKey, hub: true }));
 });
 app.get('/locations/:campus', async (c) => {
     const campus = c.req.param('campus');
@@ -1134,7 +1321,7 @@ app.get('/locations/:campus', async (c) => {
         const row = await c.env.DB.prepare('SELECT value FROM site_settings WHERE key = ?').bind('kakao_map_appkey').first<{ value: string }>();
         if (row?.value) appKey = String(row.value).trim();
     }
-    return c.html(locationsHtml({ kakaoMapAppKey: appKey, initialTab: campus as 'hongdae' | 'gumi' | 'jeonju' }));
+    return c.html(locationsHtml({ kakaoMapAppKey: appKey, initialTab: campus as 'hongdae' | 'gumi' | 'jeonju', hub: false }));
 });
 app.get('/guides', (c) => c.redirect('/guides/3d-printing', 301));
 app.get('/guides/3d-printing', (c) => c.html(learn3dPrintingHtml('') as string));
@@ -1176,7 +1363,11 @@ app.get('/reviews', async (c) => {
     } catch (e) {
         console.error('reviews SSR list failed:', e);
     }
-    return c.html(reviewsListHtml(rows));
+    const reviewLd = buildReviewsJsonLd(SITE_ORIGIN, rows);
+    const headExtra = reviewLd.length
+        ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': reviewLd }).replace(/</g, '\\u003c')}</script>`
+        : '';
+    return c.html(reviewsListHtml(rows, headExtra));
 });
 
 // ============================================
@@ -1254,9 +1445,17 @@ app.get('/api', (c) => {
 app.get('/', (c) => {
     return c.html(layoutHtml(
         '4차산업 3D프린팅 교육 전문',
-        homeHtml,
+        `${homeHtml}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+          <section class="rounded-[2.5rem] border border-slate-200/60 bg-white p-6 sm:p-8 shadow-sm mb-6" aria-label="한눈에 보는 안내">
+            <h2 class="text-lg font-black tracking-tight text-slate-900 mb-2">3D프린팅 국비지원, 어디서 시작하나요?</h2>
+            <p class="text-sm text-slate-600 leading-7">국민내일배움카드 발급 후 모집 회차에 등록하면 됩니다. 기능사 대비·소상공인·시제품은 과정 목록에서 골라 상담하세요. 완전 무료는 단정하지 않으며, 자기부담금은 회차·심사에 따릅니다.</p>
+            <p class="mt-3 text-sm text-slate-500">관련: <a href="/guides/national-support" class="text-indigo-600 font-bold">국비지원</a> · <a href="/guides/craftsman-license" class="text-indigo-600 font-bold">기능사</a> · <a href="/course-sessions" class="text-indigo-600 font-bold">과정 목록</a> · <a href="/faq" class="text-indigo-600 font-bold">FAQ</a></p>
+          </section>
+          ${citationFactBlockHtml()}
+        </div>`,
         'home',
-        '<link rel="preload" as="image" href="/static/hero1.jpg" fetchpriority="high">',
+        '<link rel="preload" as="image" href="/static/hero1.jpg" fetchpriority="high"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM context">',
     ));
 });
 
@@ -2277,6 +2476,12 @@ app.get('/greeting', (c) => {
                                                                                                                 </div>
                                                                                                             </div>
 
+                                                                                                            ${thinPageAeoBlockHtml([
+                                                                                                                { q: '와우쓰리디는 어떤 교육을 하나요?', a: '3D프린팅·3D모델링 국비지원(내일배움카드), 3D프린터운용기능사 실기 대비, 소상공인·시제품·기업·대학 맞춤 교육을 홍대·구미·전주에서 운영합니다.' },
+                                                                                                                { q: '센터는 어디에 있나요?', a: '홍대(서울 마포)·구미·전주 3센터입니다. 주소·지도는 /locations 허브와 센터별 페이지를 보세요.' },
+                                                                                                                { q: '수강 상담은 어떻게 하나요?', a: '전화 02-3144-3137 또는 /online-consulting 온라인 상담으로 희망 과정·센터를 알려주시면 안내합니다.' },
+                                                                                                            ])}
+
                                                                                                             <!-- 센터 비전 & 목표 -->
                                                                                                             <div class="grid md:grid-cols-3 gap-8 mb-12">
                                                                                                                 <div class="bg-white rounded-xl shadow-lg p-8 text-center border-t-4 border-primary-600">
@@ -2984,6 +3189,12 @@ app.get('/corporate-education', (c) => {
                                                                                                                                                                             </div>
                                                                                                                                                                         </div>
 
+                                                                                                                                                                        ${thinPageAeoBlockHtml([
+                                                                                                                                                                            { q: '기업 맞춤 3D프린팅 교육이 가능한가요?', a: '가능합니다. 인원·일정·과제(시제품·역설계·품질관리 등)에 맞춰 홍대·구미·전주 또는 출장형으로 설계합니다. 문의는 /online-consulting 또는 02-3144-3137.' },
+                                                                                                                                                                            { q: '교육 기간은 얼마나 되나요?', a: '입문 2일(16시간)부터 제조 특화 5일(40시간) 등 목적에 따라 조정합니다. 상세 커리큘럼은 상담 시 제안합니다.' },
+                                                                                                                                                                            { q: '시제품·소상공인 교육과 다른가요?', a: '기업교육은 조직 목표·장비·일정에 맞춘 맞춤형입니다. 개인·소상공인 과정은 /guides/small-business · /guides/prototype 을 참고하세요.' },
+                                                                                                                                                                        ])}
+
                                                                                                                                                                         <!-- 교육 프로그램 -->
                                                                                                                                                                         <div class="mb-12">
                                                                                                                                                                             <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">맞춤형 교육 프로그램</h2>
@@ -3173,6 +3384,12 @@ app.get('/university-education', (c) => {
                                                                                                                                                                                             </div>
                                                                                                                                                                                         </div>
                                                                                                                                                                                     </div>
+
+                                                                                                                                                                                    ${thinPageAeoBlockHtml([
+                                                                                                                                                                                        { q: '대학 산학협력 3D프린팅 교육이 가능한가요?', a: '가능합니다. 정규 교과·비교과·캡스톤·취업 연계형으로 설계하며, 장비·실습실 지원도 협의합니다. 문의는 /online-consulting 또는 02-3144-3137.' },
+                                                                                                                                                                                        { q: '학점 인정 과목도 개설하나요?', a: '대학 측 규정과 협의에 따라 학점 인정·전공 연계 커리큘럼을 구성할 수 있습니다. 세부안은 상담으로 확정합니다.' },
+                                                                                                                                                                                        { q: '기업교육·국비과정과 어떻게 다른가요?', a: '대학교육은 학사 일정·학습 성과에 맞춘 산학협력형입니다. 개인 국비과정은 /course-sessions, 기업 맞춤은 /corporate-education 을 보세요.' },
+                                                                                                                                                                                    ])}
 
                                                                                                                                                                                     <!-- 교육 과정 -->
                                                                                                                                                                                     <div class="mb-12">

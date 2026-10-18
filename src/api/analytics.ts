@@ -150,7 +150,7 @@ export const PUBLIC_VISIT_SQL = [
     `w.page_visited NOT LIKE '/admin%'`,
     `w.page_visited NOT LIKE '/teacher%'`,
     `w.page_visited NOT LIKE '/student%'`,
-    `w.page_visited NOT IN ('/robots.txt', '/sitemap.xml', '/llms.txt', '/favicon.ico')`,
+    `w.page_visited NOT IN ('/robots.txt', '/sitemap.xml', '/sitemap-images.xml', '/llms.txt', '/favicon.ico')`,
     `COALESCE(w.status_code, 200) < 400`,
     `NOT ${BOT_SQL}`,
 ].join(' AND ');
@@ -296,6 +296,12 @@ app.get('/access-stats', authMiddleware, requireAdmin, async (c) => {
             DB.prepare(`SELECT ${SEARCH_ENGINE_SQL} AS label, count(*) AS pv, count(DISTINCT w.ip_address) AS uv
                 FROM website_visits w WHERE ${WS} AND ${IS_SEARCH_ENGINE_SQL}
                 GROUP BY label ORDER BY pv DESC`).bind(...rb),
+            // AI 검색(ChatGPT·Perplexity 등) 유입 랜딩 TOP — GEO 성과 측정
+            DB.prepare(`SELECT w.page_visited AS path, count(*) AS pv, count(DISTINCT w.ip_address) AS uv
+                FROM website_visits w WHERE ${WS}
+                  AND ${likeAny(REF, ['chatgpt.com', 'openai.com', 'perplexity.ai', 'claude.ai', 'anthropic.com', 'gemini.google', 'copilot.microsoft'])}
+                  AND NOT ${likeAny(REF, INTERNAL_HOSTS)}
+                GROUP BY w.page_visited ORDER BY pv DESC LIMIT 15`).bind(...rb),
         ]);
         const rows = <T>(i: number) => (results[i]?.results ?? []) as T[];
         const one = <T>(i: number) => rows<T>(i)[0];
@@ -367,6 +373,7 @@ app.get('/access-stats', authMiddleware, requireAdmin, async (c) => {
                 keywords,
                 landingPages: rows<{ path: string; pv: number; uv: number }>(13),
                 searchEngines: rows<LabelCount>(14),
+                aiLandingPages: rows<{ path: string; pv: number; uv: number }>(15),
             },
         });
     } catch (e) {

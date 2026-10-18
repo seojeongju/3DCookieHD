@@ -356,16 +356,23 @@ export const courseSessionsListTemplate = `
  * 과정 목록 페이지 HTML.
  * rows가 있으면 서버에서 카드를 그려 JS 없이도 본문이 남도록 한다.
  */
-export function courseSessionsListHtml(rows: PublicSessionCard[] = []): string {
+export function courseSessionsListHtml(rows: PublicSessionCard[] = [], headExtra = ''): string {
     const hasRows = rows.length > 0;
     const cards = hasRows
         ? renderSessionCards(rows)
         : '<div class="col-span-full text-center py-12">'
             + '<i class="fas fa-spinner fa-spin text-4xl text-primary-500 mb-4"></i>'
             + '<p class="text-gray-500">과정을 불러오는 중입니다...</p></div>';
+    const aeoBlock = `
+        <section class="mt-10 rounded-[2.5rem] border border-slate-200/60 bg-white p-6 sm:p-8 shadow-sm" aria-label="과정 선택 안내">
+            <h2 class="text-lg font-black tracking-tight text-slate-900 mb-2">어떤 과정을 고르면 되나요?</h2>
+            <p class="text-sm text-slate-600 leading-7 mb-3">국민내일배움카드(국비지원)로 훈련비 부담을 줄이려면 모집 중인 회차를 확인하세요. 3D프린터운용기능사 실기 대비는 기능사·국가자격 표기가 있는 과정을, 쿠키틀·몰드 제품화는 소상공인 과정을 고르면 됩니다. 일정·지원 여부는 회차마다 다르므로 상담으로 확인합니다.</p>
+            <p class="text-sm text-slate-500">관련: <a href="/guides/national-support" class="text-primary-700 font-bold">국비지원 가이드</a> · <a href="/guides/craftsman-license" class="text-primary-700 font-bold">기능사 가이드</a> · <a href="/faq" class="text-primary-700 font-bold">FAQ</a></p>
+        </section>`;
     return courseSessionsListTemplate
+        .replace('</head>', `${headExtra}\n</head>`)
         .replace('{{SSR_CARDS}}', cards)
-        .replace('{{SSR_SUMMARY}}', hasRows ? renderSessionSummaryList(rows) : '')
+        .replace('{{SSR_SUMMARY}}', (hasRows ? renderSessionSummaryList(rows) : '') + aeoBlock)
         .replace('<div id="sessionsList" class="grid', `<div id="sessionsList" data-ssr="${hasRows ? '1' : '0'}" class="grid`);
 }
 
@@ -496,6 +503,14 @@ export function courseSessionDetailHtml(
                 <a href="/course-sessions" class="inline-flex rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-slate-700">과정 목록</a>
             </div>
             ${renderDetailFacts(ssr, source)}
+            <section class="mt-8 rounded-[2.5rem] border border-slate-200/60 bg-white p-6 shadow-sm" aria-label="자주 묻는 질문">
+                <h2 class="text-lg font-black tracking-tight text-slate-900 mb-3">이 과정, 자주 묻는 질문</h2>
+                <div class="space-y-3 text-sm text-slate-700 leading-7">
+                    <p><strong class="text-slate-900">내일배움카드로 수강할 수 있나요?</strong> 회차·개인 심사에 따라 국민내일배움카드(국비지원) 적용이 가능할 수 있습니다. 정확한 여부는 상담 시 해당 회차 기준으로 안내합니다.</p>
+                    <p><strong class="text-slate-900">기능사 자격과 관련이 있나요?</strong> 과정명에 기능사·운용기능사·국가자격이 포함되면 3D프린터운용기능사 실기 대비 성격이 강합니다. 자세한 시험 안내는 <a href="/guides/craftsman-license" class="text-primary-700 font-bold">기능사 가이드</a>를 보세요.</p>
+                    <p><strong class="text-slate-900">수강 신청은 어떻게 하나요?</strong> <a href="/online-consulting" class="text-primary-700 font-bold">온라인 상담</a> 또는 전화 02-3144-3137로 희망 과정·센터를 알려주시면 등록을 안내합니다.</p>
+                </div>
+            </section>
             <div class="mt-10 animate-pulse">
                 <div class="h-48 bg-slate-200 rounded-[2rem]"></div>
                 <p class="mt-4 text-sm text-slate-400 font-bold">상세 정보를 불러오는 중…</p>

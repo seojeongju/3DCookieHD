@@ -13,7 +13,6 @@ export function publicNotFoundHtml(message = '요청하신 페이지를 찾을 �
   <title>페이지를 찾을 수 없습니다 - 와우쓰리디홍대센터</title>
   <meta name="description" content="요청하신 페이지를 찾을 수 없습니다. 와우쓰리디홍대센터 홈으로 이동해 주세요.">
   <meta name="robots" content="noindex, nofollow">
-  <link rel="canonical" href="https://3dcookiehd.com/">
   <link rel="stylesheet" href="/static/tailwind-app.css">
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 </head>

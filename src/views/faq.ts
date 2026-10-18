@@ -56,13 +56,15 @@ export function faqPageHtml(items: PublicFaq[]): string {
                 <header class="mb-8 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10">
                     <p class="mb-3 text-sm font-black uppercase tracking-[0.2em] text-indigo-600">FAQ</p>
                     <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">자주 묻는 질문</h1>
-                    <p class="mt-4 max-w-2xl leading-7 text-slate-600">국비지원, 내일배움카드, 3D프린터 국가자격증(기능사), 무료교육 오해, 홍대·구미·전주 센터에 대해 자주 문의하시는 내용을 답변드립니다.</p>
+                    <p class="mt-4 max-w-2xl leading-7 text-slate-600">국비지원, 내일배움카드, 3D프린터 국가자격증(기능사), 무료교육 오해, 홍대·구미·전주 센터에 대해 자주 문의하시는 내용을 답변드립니다. 센터·제도 상세는 아래 대표 가이드 URL을 우선 참고하세요.</p>
                     <div class="mt-5 flex flex-wrap gap-2">
                         <a href="/guides/national-support" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">국비지원</a>
                         <a href="/guides/craftsman-license" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">기능사·국가자격</a>
                         <a href="/tomorrow-learning-card" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">내일배움카드</a>
                         <a href="/guides/3d-printing" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">3D프린팅 기초</a>
                         <a href="/locations" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">오시는 길</a>
+                        <a href="/locations/hongdae" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">홍대</a>
+                        <a href="/llms.txt" class="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">llms.txt</a>
                     </div>
                 </header>
                 <section class="space-y-4" aria-label="자주 묻는 질문과 답변">

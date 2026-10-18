@@ -379,7 +379,7 @@ const reviewsListTemplate = `
 `;
 
 /** 후기 목록 페이지. rows가 있으면 1페이지를 서버에서 렌더링한다. */
-export function reviewsListHtml(rows: PublicReviewCard[] = []): string {
+export function reviewsListHtml(rows: PublicReviewCard[] = [], headExtra = ''): string {
     const hasRows = rows.length > 0;
     const cards = hasRows
         ? renderReviewCards(rows)
@@ -387,6 +387,7 @@ export function reviewsListHtml(rows: PublicReviewCard[] = []): string {
             + '<i class="fas fa-spinner fa-spin text-4xl text-green-500 mb-4"></i>'
             + '<p class="text-gray-500">후기를 불러오는 중입니다...</p></div>';
     return reviewsListTemplate
+        .replace('</head>', `${headExtra}\n</head>`)
         .replace('{{SSR_REVIEWS}}', cards)
         .replace('<div id="reviewsList" class="grid', `<div id="reviewsList" data-ssr="${hasRows ? '1' : '0'}" class="grid`);
 }
