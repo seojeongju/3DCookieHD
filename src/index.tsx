@@ -557,9 +557,9 @@ app.get('/sitemap-images.xml', async (c) => {
     const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
     const items: Array<{ loc: string; image: string; title: string }> = [
         { loc: `${origin}/`, image: `${origin}/static/hero1.jpg`, title: '와우쓰리디홍대센터' },
-        { loc: `${origin}/guides/national-support`, image: `${origin}/static/og/national-support.png`, title: '국비지원·내일배움카드' },
-        { loc: `${origin}/guides/craftsman-license`, image: `${origin}/static/og/craftsman-license.png`, title: '3D프린터 국가자격증' },
-        { loc: `${origin}/guides/3d-printing`, image: `${origin}/static/og/3d-printing.png`, title: '3D프린팅이란' },
+        { loc: `${origin}/guides/national-support`, image: `${origin}/static/og/guide-national-support.jpg`, title: '국비지원·내일배움카드' },
+        { loc: `${origin}/guides/craftsman-license`, image: `${origin}/static/og/guide-craftsman-license.jpg`, title: '3D프린터 국가자격증' },
+        { loc: `${origin}/guides/3d-printing`, image: `${origin}/static/og/learn-3d-printing.jpg`, title: '3D프린팅이란' },
     ];
     try {
         if (c.env.DB) {

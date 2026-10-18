@@ -324,14 +324,21 @@ export const postsListHtml = `
                     return;
                 }
 
-                list.innerHTML = result.data.map(post => \`
-                        <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-5 border border-gray-100 cursor-pointer \${post.pinned ? 'bg-red-50 border-red-100' : ''}" onclick='openPostDetail(\${JSON.stringify(post).replace(/'/g, "&#39;")})'>
+                // 공지·FAQ 등은 공개 상세 URL(/posts/:id)로 연결해 검색·공유·색인이 가능하도록 한다
+                const publicDetailCats = ['notice', 'news', 'event', 'education_photo', 'faq'];
+                list.innerHTML = result.data.map(post => {
+                    const usePublicUrl = publicDetailCats.indexOf(String(post.category || '')) !== -1 && !post.is_secret;
+                    const openAttr = usePublicUrl
+                        ? 'onclick="location.href=\\'/posts/' + post.id + '\\'"'
+                        : 'onclick=\\'openPostDetail(' + JSON.stringify(post).replace(/'/g, "&#39;") + ')\\'';
+                    return \`
+                        <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition p-5 border border-gray-100 cursor-pointer \${post.pinned ? 'bg-red-50 border-red-100' : ''}" \${openAttr} role="link" tabindex="0">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
                                         \${post.pinned ? '<span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded-full">공지</span>' : ''}
                                         \${post.is_secret ? '<span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">비밀</span>' : ''}
-                                        <h3 class="text-lg font-bold text-gray-800 truncate">\${post.title}</h3>
+                                        <h3 class="text-lg font-bold text-gray-800 truncate">\${usePublicUrl ? '<a href="/posts/' + post.id + '" class="hover:text-primary-700" onclick="event.stopPropagation()">' + post.title + '</a>' : post.title}</h3>
                                     </div>
                                     <p class="text-gray-500 text-sm line-clamp-2 mb-2">\${stripHtml(post.content)}</p>
                                     <div class="flex items-center gap-4 text-xs text-gray-400">
@@ -342,12 +349,13 @@ export const postsListHtml = `
                                 </div>
                                 \${post.images && post.images.length > 0 ? \`
                                     <div class="ml-4 w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                                        <img src="\${post.images[0]}" class="w-full h-full object-cover">
+                                        <img src="\${post.images[0]}" class="w-full h-full object-cover" alt="">
                                     </div>
                                 \` : ''}
                             </div>
                         </div>
-                    \`).join('');
+                    \`;
+                }).join('');
 
                 renderPagination(result.pagination);
                 
