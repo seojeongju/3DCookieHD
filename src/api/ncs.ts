@@ -17,6 +17,97 @@ function isD1SchemaError(e: unknown): boolean {
     return /no such column|no such table|syntax error|undefined/i.test(s);
 }
 
+/** 능력단위 코드로 연결된 요소 조회 (ncs_unit_id FK) */
+const NCS_ELEMENTS_BY_UNIT_CODE_SQL = `
+    SELECT e.code, e.name,
+           e.criteria_text, e.knowledge_text, e.skill_text, e.attitude_text, e.criteria
+    FROM ncs_elements e
+    INNER JOIN ncs_units u ON u.id = e.ncs_unit_id
+    WHERE u.code = ?
+    ORDER BY e.code ASC
+`;
+
+type NcsElementUpsertRow = {
+    code: string;
+    name: string;
+    criteriaText?: string | null;
+    knowledgeText?: string | null;
+    skillText?: string | null;
+    attitudeText?: string | null;
+    criteria?: string | null;
+};
+
+/** DB 행을 API/뷰어가 쓰는 요소 객체로 변환 */
+function mapDbElementRow(row: {
+    code?: string;
+    name?: string;
+    criteria_text?: string | null;
+    knowledge_text?: string | null;
+    skill_text?: string | null;
+    attitude_text?: string | null;
+    criteria?: string | null;
+}) {
+    return {
+        code: String(row.code || '').trim(),
+        name: String(row.name || '').trim(),
+        criteriaText: row.criteria_text || undefined,
+        knowledgeText: row.knowledge_text || undefined,
+        skillText: row.skill_text || undefined,
+        attitudeText: row.attitude_text || undefined,
+        criteria: row.criteria || undefined,
+        evaluationCriteriaText: row.criteria_text || undefined,
+        evaluation_criteria_text: row.criteria_text || undefined,
+    };
+}
+
+/** ncs_unit_id 기준으로 요소 upsert (스키마: ncs_elements.ncs_unit_id FK) */
+async function upsertNcsElementsByUnitId(
+    db: D1Database,
+    unitId: number,
+    elements: NcsElementUpsertRow[],
+): Promise<number> {
+    if (!Number.isFinite(unitId) || unitId < 1 || !elements.length) return 0;
+    const stmt = db.prepare(`
+        INSERT INTO ncs_elements
+            (ncs_unit_id, code, name, criteria_text, knowledge_text, skill_text, attitude_text, criteria)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(ncs_unit_id, code) DO UPDATE SET
+            name = excluded.name,
+            criteria_text = COALESCE(excluded.criteria_text, ncs_elements.criteria_text),
+            knowledge_text = COALESCE(excluded.knowledge_text, ncs_elements.knowledge_text),
+            skill_text = COALESCE(excluded.skill_text, ncs_elements.skill_text),
+            attitude_text = COALESCE(excluded.attitude_text, ncs_elements.attitude_text),
+            criteria = COALESCE(excluded.criteria, ncs_elements.criteria)
+    `);
+    const batch = elements
+        .map((e) => {
+            const code = String(e.code || '').trim();
+            const name = String(e.name || '').trim();
+            if (!code || !name) return null;
+            return stmt.bind(
+                unitId,
+                code,
+                name,
+                e.criteriaText || null,
+                e.knowledgeText || null,
+                e.skillText || null,
+                e.attitudeText || null,
+                e.criteria || e.criteriaText || null,
+            );
+        })
+        .filter(Boolean) as any[];
+    if (!batch.length) return 0;
+    await db.batch(batch);
+    return batch.length;
+}
+
+async function resolveNcsUnitIdByCode(db: D1Database, unitCode: string): Promise<number | null> {
+    const code = String(unitCode || '').trim();
+    if (!code) return null;
+    const row = await db.prepare('SELECT id FROM ncs_units WHERE code = ?').bind(code).first<{ id: number }>();
+    return row?.id != null ? Number(row.id) : null;
+}
+
 /**
  * `session_id` 쿼리가 명시된 경우, 해당 회차의 lms_course_id를 확정해
  * isRegisteredLmsCourseId 와 course_id 숫자 충돌을 방지한다.
@@ -1800,8 +1891,8 @@ app.get('/approved/unit-elements/:unitCode', async (c) => {
 
         // 1. DB 먼저 확인 (ncs_units.elements_json 선호)
         const dbUnit = await c.env.DB.prepare(
-            'SELECT elements_json FROM ncs_units WHERE code = ?'
-        ).bind(unitCode).first() as { elements_json?: string } | null;
+            'SELECT id, elements_json FROM ncs_units WHERE code = ?'
+        ).bind(unitCode).first() as { id?: number; elements_json?: string } | null;
 
         if (dbUnit?.elements_json) {
             try {
@@ -1809,7 +1900,28 @@ app.get('/approved/unit-elements/:unitCode', async (c) => {
                 if (Array.isArray(elements) && elements.length > 0) {
                     return c.json({ success: true, source: 'db', data: elements });
                 }
-            } catch (e) { }
+            } catch (e) { /* JSON 파싱 실패 시 테이블/API 폴백 */ }
+        }
+
+        // 1-b. 관계형 테이블 폴백 (ncs_elements.ncs_unit_id)
+        try {
+            const { results } = await c.env.DB.prepare(NCS_ELEMENTS_BY_UNIT_CODE_SQL)
+                .bind(unitCode)
+                .all();
+            const fromTable = (results || [])
+                .map((row) => mapDbElementRow(row as any))
+                .filter((e) => e.code && e.name);
+            if (fromTable.length > 0) {
+                // JSON 캐시도 맞춰 둔다
+                try {
+                    await c.env.DB.prepare(
+                        'UPDATE ncs_units SET elements_json = ? WHERE code = ?'
+                    ).bind(JSON.stringify(fromTable), unitCode).run();
+                } catch { /* ignore */ }
+                return c.json({ success: true, source: 'db_table', data: fromTable });
+            }
+        } catch (e) {
+            console.warn('unit-elements table fallback failed:', e);
         }
 
         // 2. API 호출
@@ -1817,14 +1929,35 @@ app.get('/approved/unit-elements/:unitCode', async (c) => {
 
         const elements = await fetchNcsUnitElements(rawKey, unitCode, classificationBase);
 
-        // 3. (선택적) DB 업데이트 - 효율적 브라우징을 위해 캐시
+        // 3. DB 캐시: elements_json + ncs_elements(ncs_unit_id)
         if (elements && elements.length > 0) {
             try {
                 await c.env.DB.prepare(
                     'UPDATE ncs_units SET elements_json = ? WHERE code = ?'
                 ).bind(JSON.stringify(elements), unitCode).run();
             } catch (e) {
-                console.warn('Failed to cache elements in DB:', e);
+                console.warn('Failed to cache elements_json in DB:', e);
+            }
+            try {
+                const unitId = dbUnit?.id != null
+                    ? Number(dbUnit.id)
+                    : await resolveNcsUnitIdByCode(c.env.DB, unitCode);
+                if (unitId) {
+                    await upsertNcsElementsByUnitId(
+                        c.env.DB,
+                        unitId,
+                        elements.map((e: any) => ({
+                            code: e.code,
+                            name: e.name,
+                            criteriaText: e.criteriaText || e.evaluationCriteriaText,
+                            knowledgeText: e.knowledgeText,
+                            skillText: e.skillText,
+                            attitudeText: e.attitudeText,
+                        })),
+                    );
+                }
+            } catch (e) {
+                console.warn('Failed to cache ncs_elements rows:', e);
             }
         }
 
@@ -2399,13 +2532,13 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                         const name = (u.name || '').trim() || code;
                         const lv = typeof u.level === 'number' ? u.level : 3;
 
-                        // Fetch elements from DB
+                        // Fetch elements from DB (ncs_unit_id FK)
                         let dbElements: { code: string; name: string }[] = [];
                         try {
-                            const { results } = await c.env.DB.prepare(
-                                'SELECT code, name FROM ncs_elements WHERE unit_code = ? ORDER BY code ASC'
-                            ).bind(code).all() as { results: { code: string; name: string }[] };
-                            if (results) dbElements = results;
+                            const { results } = await c.env.DB.prepare(NCS_ELEMENTS_BY_UNIT_CODE_SQL)
+                                .bind(code)
+                                .all() as { results: { code: string; name: string }[] };
+                            if (results) dbElements = results.map((r) => ({ code: r.code, name: r.name }));
                         } catch (e) {
                             console.warn(`Failed to fetch elements for ${code}`, e);
                         }
@@ -2439,13 +2572,13 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                                 // Fetch elements for this unit from DATABASE instead of API
                                 let elements: { code: string; name: string }[] | undefined;
                                 try {
-                                    // First try DB
-                                    const { results: dbElements } = await c.env.DB.prepare(
-                                        'SELECT code, name FROM ncs_elements WHERE unit_code = ? ORDER BY code ASC'
-                                    ).bind(u.code).all() as { results: { code: string; name: string }[] };
+                                    // First try DB (ncs_unit_id FK JOIN)
+                                    const { results: dbElements } = await c.env.DB.prepare(NCS_ELEMENTS_BY_UNIT_CODE_SQL)
+                                        .bind(u.code)
+                                        .all() as { results: { code: string; name: string }[] };
 
                                     if (dbElements && dbElements.length > 0) {
-                                        elements = dbElements;
+                                        elements = dbElements.map((r) => ({ code: r.code, name: r.name }));
                                         console.log(`[DB] Found ${dbElements.length} elements for ${u.code}`);
                                     } else {
                                         // Try NCS006 API
@@ -2499,44 +2632,32 @@ app.get('/approved/registrations/:id/training-system', authMiddleware, requireAd
                                                 console.warn(`[NCS009] Methods fetch failed for ${u.code}`, methErr);
                                             }
 
-                                            // 2. Cache to DB for future speed
+                                            // 2. Cache to DB: elements_json + ncs_elements(ncs_unit_id)
                                             try {
-                                                const stmt = c.env.DB.prepare(`
-                                                    INSERT INTO ncs_elements 
-                                                    (unit_code, code, name, criteria_text, knowledge_text, skill_text, attitude_text) 
-                                                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                                                    ON CONFLICT(code) DO UPDATE SET
-                                                    name=excluded.name,
-                                                    criteria_text=excluded.criteria_text,
-                                                    knowledge_text=excluded.knowledge_text,
-                                                    skill_text=excluded.skill_text,
-                                                    attitude_text=excluded.attitude_text
-                                                `);
-
-                                                const batch = elements.map(e => {
-                                                    const anyE = e as any;
-                                                    return stmt.bind(
-                                                        u.code,
-                                                        e.code,
-                                                        e.name,
-                                                        anyE.criteriaText || null,
-                                                        anyE.knowledgeText || null,
-                                                        anyE.skillText || null,
-                                                        anyE.attitudeText || null
+                                                await c.env.DB.prepare(
+                                                    'UPDATE ncs_units SET elements_json = ? WHERE code = ?'
+                                                ).bind(JSON.stringify(elements), u.code).run();
+                                                const unitId = await resolveNcsUnitIdByCode(c.env.DB, u.code);
+                                                if (unitId) {
+                                                    const saved = await upsertNcsElementsByUnitId(
+                                                        c.env.DB,
+                                                        unitId,
+                                                        elements.map((e) => {
+                                                            const anyE = e as any;
+                                                            return {
+                                                                code: e.code,
+                                                                name: e.name,
+                                                                criteriaText: anyE.criteriaText || anyE.evaluationCriteriaText,
+                                                                knowledgeText: anyE.knowledgeText,
+                                                                skillText: anyE.skillText,
+                                                                attitudeText: anyE.attitudeText,
+                                                            };
+                                                        }),
                                                     );
-                                                });
-                                                await c.env.DB.batch(batch);
-                                                console.log(`[DB] Cached ${elements.length} elements (detailed=${!!(elements[0] as any).criteriaText}) for ${u.code}`);
-                                            } catch (cacheErr) {
-                                                console.warn(`[DB] Extended cache failed for ${u.code}, trying fallback...`, cacheErr);
-                                                try {
-                                                    const stmt = c.env.DB.prepare('INSERT OR IGNORE INTO ncs_elements (unit_code, code, name) VALUES (?, ?, ?)');
-                                                    const batch = elements.map(e => stmt.bind(u.code, e.code, e.name));
-                                                    await c.env.DB.batch(batch);
-                                                    console.log(`[DB] Cached ${elements.length} elements (basic) for ${u.code}`);
-                                                } catch (err2) {
-                                                    console.error(`[DB] Cache completely failed for ${u.code}`, err2);
+                                                    console.log(`[DB] Cached ${saved} elements for ${u.code} (unit_id=${unitId})`);
                                                 }
+                                            } catch (cacheErr) {
+                                                console.error(`[DB] Cache failed for ${u.code}`, cacheErr);
                                             }
                                         } else if (FALLBACK_ELEMENTS[u.code]) {
                                             // Final fallback: hardcoded data
@@ -2707,17 +2828,13 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
         await c.env.DB.batch(unitBatch);
         unitCount = units.length;
 
-        // 3. Process Elements
-        const elemStmt = c.env.DB.prepare(
-            'INSERT OR REPLACE INTO ncs_elements (ncs_unit_id, code, name) VALUES (?, ?, ?)'
-        );
-
+        // 3. Process Elements — elements_json + ncs_elements(ncs_unit_id)
         const { results: savedUnits } = await c.env.DB.prepare(
             'SELECT id, code FROM ncs_units WHERE code LIKE ?'
         ).bind(subClassCode + '%').all();
 
         const unitIdMap = new Map<string, number>();
-        (savedUnits || []).forEach((u: any) => unitIdMap.set(u.code, u.id));
+        (savedUnits || []).forEach((u: any) => unitIdMap.set(String(u.code), Number(u.id)));
 
         for (const u of units) {
             try {
@@ -2727,7 +2844,11 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
                 const details = await fetchNcsPerformanceCriteria(apiKey, u.code, base);
                 if (details && details.length > 0 && elements && elements.length > 0) {
                     elements.forEach((e: any) => {
-                        const d = details.find(det => det.elemCode === e.code || det.elemCode === e.code.split('_')[0]);
+                        const d = details.find(det =>
+                            det.elemCode === e.code
+                            || det.elemCode === e.code.split('_')[0]
+                            || (e.code && det.elemCode && String(e.code).startsWith(det.elemCode))
+                        );
                         if (d) {
                             e.evaluationCriteriaText = d.evaluationCriteriaText;
                             e.evaluation_criteria_text = d.evaluationCriteriaText || undefined;
@@ -2754,44 +2875,32 @@ app.post('/approved/sync', authMiddleware, requireAdmin, async (c) => {
                 `).bind(elementsJson, evalJson, teachJson, u.code).run();
 
                 if (elements && elements.length > 0) {
-                    // Fix: Use unit_code instead of unitId (integer) if schema changed, 
-                    // or ensure unitId is correct. 
-                    // Recent migration added columns to ncs_elements but didn't change FK structure?
-                    // Let's check schema assumption. Assuming text-based FK `unit_code` exists or was added.
-                    // Actually, previous replace confirmed `unit_code` column exists in INSERT OR IGNORE.
-
-                    const elemStmt = c.env.DB.prepare(`
-                        INSERT INTO ncs_elements 
-                        (unit_code, code, name, criteria_text, knowledge_text, skill_text, attitude_text) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(code) DO UPDATE SET
-                        name=excluded.name,
-                        unit_code=excluded.unit_code,
-                        criteria_text=excluded.criteria_text,
-                        knowledge_text=excluded.knowledge_text,
-                        skill_text=excluded.skill_text,
-                        attitude_text=excluded.attitude_text
-                    `);
-
-                    const batch = elements.map(e => {
-                        const anyE = e as any;
-                        return elemStmt.bind(
-                            u.code,
-                            e.code,
-                            e.name,
-                            anyE.criteriaText || null,
-                            anyE.knowledgeText || null,
-                            anyE.skillText || null,
-                            anyE.attitudeText || null
-                        );
-                    });
-
-                    await c.env.DB.batch(batch);
-                    elementCount += elements.length;
+                    let unitId = unitIdMap.get(u.code);
+                    if (!unitId) {
+                        unitId = (await resolveNcsUnitIdByCode(c.env.DB, u.code)) || undefined;
+                        if (unitId) unitIdMap.set(u.code, unitId);
+                    }
+                    if (!unitId) {
+                        errors.push(`${u.name} (${u.code}): 능력단위 ID를 찾지 못해 요소 테이블 저장 생략`);
+                        continue;
+                    }
+                    const saved = await upsertNcsElementsByUnitId(
+                        c.env.DB,
+                        unitId,
+                        elements.map((e: any) => ({
+                            code: e.code,
+                            name: e.name,
+                            criteriaText: e.criteriaText || e.evaluationCriteriaText,
+                            knowledgeText: e.knowledgeText,
+                            skillText: e.skillText,
+                            attitudeText: e.attitudeText,
+                        })),
+                    );
+                    elementCount += saved;
                 }
             } catch (err) {
                 console.error(`[Sync] Failed elements for ${u.code}`, err);
-                errors.push(`${u.name} (${u.code}): 요소 조회 실패`);
+                errors.push(`${u.name} (${u.code}): 요소 조회/저장 실패`);
             }
         }
 
@@ -6521,7 +6630,7 @@ app.get('/approved/render-step', async (c) => {
     }
 });
 
-// Bulk import NCS elements (Admin only)
+// Bulk import NCS elements (Admin only) — unit_code는 ncs_units.code로 해석해 ncs_unit_id에 연결
 app.post('/admin/import-ncs-elements', authMiddleware, requireAdmin, async (c) => {
     try {
         const body = await c.req.json();
@@ -6532,19 +6641,37 @@ app.post('/admin/import-ncs-elements', authMiddleware, requireAdmin, async (c) =
         }
 
         let imported = 0;
+        let skipped = 0;
+        const unitIdCache = new Map<string, number>();
+
         for (const elem of elements) {
             try {
-                await c.env.DB.prepare(`
-                    INSERT INTO ncs_elements (unit_code, code, name)
-                    VALUES (?, ?, ?)
-                `).bind(elem.unit_code, elem.code, elem.name).run();
-                imported++;
+                const unitCode = String(elem.unit_code || '').trim();
+                const code = String(elem.code || '').trim();
+                const name = String(elem.name || '').trim();
+                if (!unitCode || !code || !name) {
+                    skipped++;
+                    continue;
+                }
+                let unitId = unitIdCache.get(unitCode);
+                if (!unitId) {
+                    const resolved = await resolveNcsUnitIdByCode(c.env.DB, unitCode);
+                    if (!resolved) {
+                        skipped++;
+                        continue;
+                    }
+                    unitId = resolved;
+                    unitIdCache.set(unitCode, unitId);
+                }
+                const n = await upsertNcsElementsByUnitId(c.env.DB, unitId, [{ code, name }]);
+                imported += n;
             } catch (e) {
                 console.error(`Failed to insert element ${elem.code}:`, e);
+                skipped++;
             }
         }
 
-        return c.json({ success: true, imported, total: elements.length });
+        return c.json({ success: true, imported, skipped, total: elements.length });
     } catch (e) {
         console.error('Bulk import failed:', e);
         return c.json({ success: false, error: 'Bulk import failed' }, 500);

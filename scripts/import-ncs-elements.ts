@@ -58,7 +58,10 @@ console.log('-- DB 명령어: wrangler d1 execute education-platform-db --local 
 console.log('');
 
 for (const elem of NCS_ELEMENTS_DATA) {
-    const sql = `INSERT INTO ncs_elements (unit_code, code, name) VALUES ('${elem.unit_code}', '${elem.code}', '${elem.name}');`;
+    // unit_code(능력단위 코드) → ncs_units.id → ncs_elements.ncs_unit_id
+    const sql = `INSERT INTO ncs_elements (ncs_unit_id, code, name)
+SELECT id, '${elem.code}', '${elem.name}' FROM ncs_units WHERE code = '${elem.unit_code}'
+ON CONFLICT(ncs_unit_id, code) DO UPDATE SET name = excluded.name;`;
     console.log(sql);
 }
 
