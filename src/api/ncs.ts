@@ -5364,7 +5364,8 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                 .filter(Boolean);
             if (parts.length <= 1) {
                 // "1. ... 2. ..." / "① ... ② ..." / "가. ... 나. ..." 형태도 분리
-                const numbered = text.split(/(?=(?:^|\s)(?:\d+[.)]\s|[①-⑳]\s|[가-하]\.\s))/u)
+                const numbered = text
+                    .split(/(?=(?:^|\s)(?:\d+[.)]\s|[①-⑳]\s|[가-하]\.\s))/u)
                     .map((s) => s.trim())
                     .filter(Boolean);
                 if (numbered.length > 1) parts = numbered;
@@ -5372,7 +5373,26 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             return parts.length ? parts : [text];
         };
 
-        const extractLines = (el: any, majorIdx: number): CriteriaLine[] => {
+        /** 수행준거/평가준거 원문 앞의 일련번호(1. / ① / 가. 등)를 라벨로 보존 */
+        const parseCriteriaPartLabel = (
+            raw: string,
+            fallbackIdx: number
+        ): CriteriaLine => {
+            const p = String(raw || '').trim();
+            const m = p.match(/^(?:(\d+)[.)]\s*|([①-⑳])\s*|([가-하])\.\s*)/u);
+            if (m) {
+                let label = '';
+                if (m[1]) label = `${m[1]}.`;
+                else if (m[2]) label = m[2];
+                else if (m[3]) label = `${m[3]}.`;
+                const text = p.slice(m[0].length).trim() || p;
+                return { label, text };
+            }
+            // 원문에 번호가 없으면 요소 내 순번만 (1. 2. …) — 요소.행(1.1) 자동번호는 쓰지 않음
+            return { label: `${fallbackIdx}.`, text: p };
+        };
+
+        const extractLines = (el: any, _majorIdx?: number): CriteriaLine[] => {
             const evalCrit = String(el?.evaluation_criteria_text || el?.evaluationCriteriaText || '').trim();
             const performCrit = String(el?.criteria_text || el?.criteriaText || '').trim();
             // 평가준거 우선, 없으면 수행준거
@@ -5383,28 +5403,19 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             const ename = String(el?.name || '').trim();
             if (criteria) {
                 const parts = splitCriteriaParts(criteria);
-                if (parts.length <= 1) {
-                    return [{ label: `${majorIdx}.1`, text: parts[0] || criteria }];
-                }
-                return parts.map((p, i) => ({
-                    label: `${majorIdx}.${i + 1}`,
-                    text: p.replace(/^(?:\d+[.)]|[①-⑳]|[가-하]\.)\s*/, '').trim() || p,
-                }));
+                return parts.map((p, i) => parseCriteriaPartLabel(p, i + 1));
             }
             const chunks: string[] = [];
             if (knowledge) chunks.push(...splitCriteriaParts(knowledge));
             if (skill) chunks.push(...splitCriteriaParts(skill));
             if (attitude) chunks.push(...splitCriteriaParts(attitude));
             if (chunks.length) {
-                return chunks.map((p, i) => ({
-                    label: `${majorIdx}.${i + 1}`,
-                    text: p.replace(/^(?:\d+[.)]|[①-⑳]|[가-하]\.)\s*/, '').trim() || p,
-                }));
+                return chunks.map((p, i) => parseCriteriaPartLabel(p, i + 1));
             }
             // 본문이 전혀 없으면 요소명만으로는 평가준거라 보기 어려워 빈 배열
             // (호출 측에서 NCS008 보강 후 재시도)
             if (ename && elementHasCriteriaBody(el)) {
-                return [{ label: `${majorIdx}.1`, text: ename }];
+                return [{ label: '1.', text: ename }];
             }
             return [];
         };
@@ -5573,7 +5584,7 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                 let lines = extractLines(el, majorCounter);
                 // 보강 후에도 본문이 없으면 요소명을 임시 평가내용으로 둠 (표가 완전히 비지 않도록)
                 if (!lines.length && etitle) {
-                    lines = [{ label: `${majorCounter}.1`, text: etitle }];
+                    lines = [{ label: '1.', text: etitle }];
                 }
                 if (!lines.length) continue;
                 const thisUnitName = String(u.name || '').trim();

@@ -4,13 +4,13 @@ import { lmsNcsSubnavTabsHtml } from './components/lms_ncs_subnav';
 import { LMS_SHELL_COLUMN_CLASS, LMS_SHELL_ROOT_CLASS, lmsFixedHeaderBlock, lmsScrollMainOpen } from './components/lms_page_shell';
 
 const NCS_PLAN_TAB_ITEMS = [
-  { id: 'minutes', label: '평가계획회의록', icon: 'fa-clipboard' },
-  { id: 'schedule', label: '평가실시일자', icon: 'fa-calendar-check' },
-  { id: 'questions', label: '평가문항제작', icon: 'fa-list-check' },
-  { id: 'tools', label: '평가도구제작', icon: 'fa-screwdriver-wrench' },
-  { id: 'rubric', label: '평가도구채점기준표', icon: 'fa-table-list' },
-  { id: 'achievement', label: '평가성취수준기준표', icon: 'fa-chart-column' },
-  { id: 'review', label: '평가도구검토', icon: 'fa-magnifying-glass-chart' },
+  { id: 'minutes', label: '평가계획회의록', icon: 'fa-clipboard', short: '회의록', next: 'schedule' },
+  { id: 'schedule', label: '평가실시일자', icon: 'fa-calendar-check', short: '실시일자', next: 'questions' },
+  { id: 'questions', label: '평가문항제작', icon: 'fa-list-check', short: '문항', next: 'tools' },
+  { id: 'tools', label: '평가도구제작', icon: 'fa-screwdriver-wrench', short: '평가도구', next: 'rubric' },
+  { id: 'rubric', label: '평가도구채점기준표', icon: 'fa-table-list', short: '채점기준', next: 'achievement' },
+  { id: 'achievement', label: '평가성취수준기준표', icon: 'fa-chart-column', short: '성취수준', next: 'review' },
+  { id: 'review', label: '평가도구검토', icon: 'fa-magnifying-glass-chart', short: '검토', next: '' },
 ] as const;
 
 /** 강사 읽기 전용 안내 — body 직하위에 두어 overflow/transform 조상에 가리지 않게 함 */
@@ -730,9 +730,14 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
   const nav = NCS_PLAN_TAB_ITEMS.map((item, idx) => `
       <button type="button"
         data-plan-tab-btn="${item.id}"
+        data-plan-step="${idx + 1}"
         onclick="switchNcsPlanTab('${item.id}')"
-        class="px-4 py-2.5 rounded-xl border text-sm font-bold transition ${idx === 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
-        <i class="fas ${item.icon} mr-1.5"></i>${item.label}
+        class="group relative px-3.5 py-2.5 rounded-xl border text-sm font-bold transition inline-flex items-center gap-2 ${idx === 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">
+        <span data-plan-step-num class="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${idx === 0 ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}">${idx + 1}</span>
+        <i class="fas ${item.icon}"></i>
+        <span class="hidden xl:inline">${item.label}</span>
+        <span class="xl:hidden">${item.short}</span>
+        <span data-plan-tab-dot class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-slate-300 border-2 border-white hidden" title="상태"></span>
       </button>
   `).join('');
 
@@ -740,7 +745,10 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
       <section data-plan-tab-panel="${item.id}" class="${idx === 0 ? '' : 'hidden'}">
           <div class="rounded-[2rem] border border-slate-200/60 shadow-sm bg-white p-6">
               <div class="flex items-center justify-between mb-4 gap-2">
-                  <h3 class="text-lg font-black text-slate-900 tracking-tight">${item.label}</h3>
+                  <div class="min-w-0">
+                    <p class="text-[11px] font-bold text-indigo-500 tracking-wide">STEP ${idx + 1} / ${NCS_PLAN_TAB_ITEMS.length}</p>
+                    <h3 class="text-lg font-black text-slate-900 tracking-tight">${item.label}</h3>
+                  </div>
                   <div class="flex items-center gap-2 flex-wrap justify-end">
                       <span class="text-xs font-bold text-slate-400" id="activeRoundBadge-${item.id}">1차평가(본평가)</span>
                       <div class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
@@ -764,8 +772,13 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                         <i class="fas fa-print mr-1"></i>인쇄
                       </button>
                       ` : ''}
+                      ${item.id === 'achievement' ? `
+                      <button type="button" id="achievementLoadFromUpstreamBtn" class="px-3 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-900 text-xs font-black hover:bg-violet-100 transition" title="평가도구·채점기준표 내용을 성취수준표에 반영합니다">
+                        <i class="fas fa-file-import mr-1"></i>평가도구·채점표 반영
+                      </button>
+                      ` : ''}
                       ${item.id === 'rubric' ? `
-                      <button type="button" id="rubricLoadFromToolsBtn" class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 text-xs font-black hover:bg-indigo-100 transition" title="같은 교과목·회차의 평가도구 제작 저장분">
+                      <button type="button" id="rubricLoadFromToolsBtn" class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-900 text-xs font-black hover:bg-indigo-100 transition" title="같은 교과목·회차의 평가도구 제작 평가내용을 채점기준으로 가져옵니다">
                         <i class="fas fa-file-import mr-1"></i>평가도구 평가내용 반영
                       </button>
                       <button type="button" id="rubricPrintBtn" class="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black hover:bg-amber-600 transition">
@@ -1165,8 +1178,14 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </select>
                             <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>평가내용에 적용</button>
                             <button type="button" id="toolsReloadNcsOriginalBtn" class="shrink-0 px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-800 text-xs font-black hover:bg-indigo-100 disabled:opacity-45 disabled:cursor-not-allowed" disabled title="저장된 문구를 무시하고 NCS 원본 평가준거·수행준거로 다시 채웁니다">NCS 원본 다시 불러오기</button>
+                            <button type="button" id="toolsSaveSubjectBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled title="현재 교과목·평가회차의 평가내용을 저장합니다">
+                              <i class="fas fa-floppy-disk mr-1"></i>이 교과목 저장
+                            </button>
+                            <button type="button" id="toolsPushToRubricBtn" class="shrink-0 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-900 text-xs font-black hover:bg-violet-100 disabled:opacity-45 disabled:cursor-not-allowed" disabled title="현재 평가내용을 평가도구 채점기준표에 반영합니다">
+                              <i class="fas fa-table-list mr-1"></i>채점기준표에 반영
+                            </button>
                           </div>
-                          <p class="mt-2 text-[11px] text-slate-500 leading-snug">교과목을 선택하면 해당 과목의 NCS 평가준거가 <strong class="text-slate-600">평가내용</strong> 표에 자동으로 채워집니다. <strong class="text-slate-600">「평가내용에 적용」</strong>은 저장본·오버레이를 우선하고, 없으면 NCS에서 가져옵니다. <strong class="text-slate-600">「NCS 원본 다시 불러오기」</strong>는 원본만 다시 채웁니다. 표에서 요소명·평가내용을 직접 수정한 뒤 <strong class="text-slate-600">저장</strong>하면 이 과정·교과목·평가회차에 유지됩니다.</p>
+                          <p class="mt-2 text-[11px] text-slate-500 leading-snug"><strong class="text-rose-600">자동 저장되지 않습니다.</strong> 교과목마다 <strong class="text-slate-600">「이 교과목 저장」</strong>을 누르면 저장과 함께 <strong class="text-slate-600">채점기준표</strong>에도 반영됩니다. <strong class="text-slate-600">「채점기준표에 반영」</strong>만으로도 연동할 수 있습니다.</p>
                         </td>
                       </tr>
                       <tr>
@@ -1240,7 +1259,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                 <div class="space-y-4">
                   <p class="text-xs text-slate-700 bg-indigo-50/80 border border-indigo-100 rounded-xl px-3 py-2.5 leading-relaxed">
                     <i class="fas fa-circle-info text-indigo-500 mr-1"></i>
-                    <strong>평가도구 제작</strong>에서 선택한 <strong>교과목·평가회차</strong>와 동일하게 이 탭에서 교과목을 고른 뒤, 상단 <strong>「평가도구 평가내용 반영」</strong>으로 저장된 능력단위요소·평가내용을 채점기준표 행에 채울 수 있습니다.
+                    <strong>평가도구 제작</strong>과 연동됩니다. 같은 <strong>교과목·평가회차</strong>를 선택하면 평가내용(능력단위요소·수행준거)이 채점기준 행으로 채워집니다. 평가도구에서 저장하면 이 표에도 자동 반영되며, <strong>「평가도구 평가내용 반영」</strong>으로 다시 가져올 수 있습니다. 상·중·하 성취기준은 여기서 작성한 뒤 <strong>저장</strong>하세요.
                   </p>
                   <div class="rounded-2xl border border-slate-200/70 bg-white p-4 space-y-4">
                     <div class="overflow-x-auto">
@@ -1554,17 +1573,39 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                   </div>
                 </div>
               ` : ''}
-              <div class="mt-3 text-xs text-slate-500 flex items-center justify-between">
+              <div class="mt-3 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
                 <span id="planDocStatus-${item.id}">저장 대기</span>
                 <span id="planDocUpdatedAt-${item.id}">마지막 저장: -</span>
               </div>
+              ${item.next ? `
+              <div class="mt-4 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/90 to-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                <p class="text-xs text-slate-600 leading-snug">
+                  <i class="fas fa-link text-indigo-500 mr-1"></i>
+                  이 단계 저장 후 다음 업무로 이어집니다. 과정·평가차수·교과목은 모든 탭에서 공유됩니다.
+                </p>
+                <button type="button" data-plan-next-step="${item.next}" class="shrink-0 px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 transition">
+                  다음: ${NCS_PLAN_TAB_ITEMS.find((t) => t.id === item.next)?.short || '다음 단계'} <i class="fas fa-arrow-right ml-1"></i>
+                </button>
+              </div>
+              ` : `
+              <div class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-xs text-emerald-900">
+                <i class="fas fa-flag-checkered mr-1"></i>마지막 단계입니다. 검토 내용을 저장하면 NCS 평가 업무 문서가 일괄 정리됩니다.
+              </div>
+              `}
           </div>
       </section>
   `).join('');
 
   return `
     <div class="rounded-[2rem] border border-slate-200/60 shadow-sm bg-white p-4 mb-4">
-      <div class="grid grid-cols-1 ${useFixedCourseId ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-3">
+      <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+        <div>
+          <p class="text-[11px] font-black tracking-wider text-indigo-500 uppercase">NCS 평가 업무 흐름</p>
+          <p class="text-sm font-bold text-slate-700 mt-0.5">회의록 → 일정 → 문항 → 평가도구 → 채점기준 → 성취수준 → 검토</p>
+        </div>
+        <p id="ncsPlanWorkflowHint" class="text-[11px] text-slate-500 max-w-md text-right leading-snug">교과목을 선택하면 이후 탭에 동일하게 적용됩니다.</p>
+      </div>
+      <div class="grid grid-cols-1 ${useFixedCourseId ? 'md:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-2 xl:grid-cols-4'} gap-3">
         ${useFixedCourseId ? `
           <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">과정</p>
@@ -1586,16 +1627,27 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
             <option value="3">3차평가(재평가)</option>
           </select>
         </label>
+        <label class="block">
+          <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">공통 교과목</span>
+          <select id="ncsPlanSharedSubjectSelect" class="mt-1 w-full px-3 py-2 rounded-xl border border-indigo-200 text-sm bg-white disabled:opacity-60" disabled>
+            <option value="">과정 선택 후 교과목</option>
+          </select>
+        </label>
         <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">현재문서</p>
+          <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">현재 단계</p>
           <p id="activeDocLabel" class="text-sm font-black text-slate-800 mt-1">${prefix ? '평가계획회의록' : '평가계획회의록'}</p>
         </div>
       </div>
     </div>
     <div class="rounded-[2rem] border border-slate-200/60 shadow-sm bg-white/80 backdrop-blur-md p-4">
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2" id="ncsPlanTabNav">
             ${nav}
         </div>
+        <p class="mt-3 text-[11px] text-slate-500 leading-snug">
+          <span class="inline-flex items-center gap-1 mr-3"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>저장됨</span>
+          <span class="inline-flex items-center gap-1 mr-3"><span class="h-2 w-2 rounded-full bg-amber-400"></span>작성 중/연동 가능</span>
+          <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-slate-300"></span>미작성</span>
+        </p>
     </div>
     <div class="space-y-4 mt-4">
         ${panels}
@@ -1678,6 +1730,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     var toolsNcsCriteriaJustLoaded = false;
     var toolsCriteriaInputBound = false;
     var toolsCriteriaDeleteBound = false;
+    /** 평가도구: 현재 표가 속한 교과목(저장·전환 확인용) */
+    var toolsBoundCurriculumId = '';
+    var toolsBoundSubjectLabel = '';
+    var toolsCriteriaDirty = false;
+    /** 사용자가 표를 직접 수정했는지(자동 적용만으로는 과목 전환 confirm 안 띄움 → 화면 튐 방지) */
+    var toolsCriteriaUserEdited = false;
+    var toolsSubjectChangeSeq = 0;
     var TOOLS_ACHIEVEMENT_DEFAULT = '5점(매우 우수), 4점(우수), 3점(보통), 2점(부족), 1점(매우부족) - 채점기준표 참고';
     /** NCS 평가문항 유형 기본값 (과정심사 참고 평가방법 목록과 동일) */
     var NCS_QUESTION_TYPE_DEFAULT = '포트폴리오';
@@ -1700,6 +1759,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       achievement: '평가성취수준기준표',
       review: '평가도구검토'
     };
+    /** 전 탭 공통 교과목 (평가 업무 연동 축) */
+    var sharedPlanCurriculumId = '';
+    var sharedPlanSubjectLabel = '';
+    var sharedSubjectSyncing = false;
 
     function roundLabel(n) {
       if (Number(n) === 1) return '1차평가(본평가)';
@@ -4010,10 +4073,52 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function updateToolsLoadButtonState() {
       var sel = document.getElementById('toolsSubjectSelect');
       var ok = !!(selectedCourseId && sel && String(sel.value || '').trim() && !sel.disabled);
-      ['toolsLoadNcsCriteriaBtn', 'toolsReloadNcsOriginalBtn'].forEach(function(id) {
+      ['toolsLoadNcsCriteriaBtn', 'toolsReloadNcsOriginalBtn', 'toolsSaveSubjectBtn', 'toolsPushToRubricBtn'].forEach(function(id) {
         var btn = document.getElementById(id);
         if (btn) btn.disabled = !ok;
       });
+    }
+
+    function markToolsCriteriaDirty() {
+      toolsCriteriaDirty = true;
+      toolsCriteriaUserEdited = true;
+    }
+
+    function clearToolsCriteriaDirty() {
+      toolsCriteriaDirty = false;
+      toolsCriteriaUserEdited = false;
+    }
+
+    function bindToolsFormToSelectedSubject() {
+      toolsBoundCurriculumId = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect') || '';
+      toolsBoundSubjectLabel = getNcsSubjectSelectPlainName('toolsSubjectSelect') || '';
+    }
+
+    /** 교과목 select 위치를 유지해 표 높이 변화로 화면이 튀지 않게 함 */
+    function preserveToolsSubjectScroll(run) {
+      var sel = document.getElementById('toolsSubjectSelect');
+      var scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      var anchorTop = sel ? sel.getBoundingClientRect().top : null;
+      return Promise.resolve()
+        .then(function() {
+          return typeof run === 'function' ? run() : null;
+        })
+        .then(function(result) {
+          try {
+            if (sel && anchorTop != null && sel.isConnected) {
+              var nextTop = sel.getBoundingClientRect().top;
+              var delta = nextTop - anchorTop;
+              if (Math.abs(delta) > 1) window.scrollBy(0, delta);
+            } else {
+              window.scrollTo(0, scrollY);
+            }
+          } catch (_) {
+            try {
+              window.scrollTo(0, scrollY);
+            } catch (__) {}
+          }
+          return result;
+        });
     }
 
     /** 평가내용 표에 실제 문구가 있는지 */
@@ -4047,6 +4152,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (!Number.isFinite(g) || g < 0 || !toolsCriteriaGroupsState[g] || !toolsCriteriaGroupsState[g].lines) return;
         if (!Number.isFinite(ln) || ln < 0 || !toolsCriteriaGroupsState[g].lines[ln]) return;
         toolsCriteriaGroupsState[g].lines[ln].text = String(t.textContent || '').trim();
+        markToolsCriteriaDirty();
       });
       document.addEventListener('blur', function(ev) {
         var t = ev.target;
@@ -4054,6 +4160,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var g = parseInt(t.getAttribute('data-g') || '-1', 10);
         if (!Number.isFinite(g) || g < 0 || !toolsCriteriaGroupsState[g]) return;
         toolsCriteriaGroupsState[g].element_title = String(t.textContent || '').trim() || '-';
+        markToolsCriteriaDirty();
       }, true);
     }
 
@@ -4076,14 +4183,19 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       });
     }
 
-    function renumberToolsCriteriaLabels() {
-      for (var g = 0; g < toolsCriteriaGroupsState.length; g++) {
-        var lines = toolsCriteriaGroupsState[g].lines;
-        if (!Array.isArray(lines)) continue;
-        for (var ln = 0; ln < lines.length; ln++) {
-          if (lines[ln]) lines[ln].label = (g + 1) + '.' + (ln + 1);
+    /** 수행준거 원본 일련번호는 유지. 수동 추가 행만 같은 요소 내 다음 숫자 번호 부여 */
+    function nextToolsCriteriaLabelInGroup(grp) {
+      var lines = grp && Array.isArray(grp.lines) ? grp.lines : [];
+      var maxNum = 0;
+      for (var i = 0; i < lines.length; i++) {
+        var lab = String((lines[i] && lines[i].label) || '').trim();
+        var m = lab.match(/^(\d+)/);
+        if (m) {
+          var n = parseInt(m[1], 10);
+          if (Number.isFinite(n) && n > maxNum) maxNum = n;
         }
       }
+      return maxNum + 1 + '.';
     }
 
     function deleteToolsCriteriaLine(g, ln) {
@@ -4094,7 +4206,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (grp.lines.length === 0) {
         toolsCriteriaGroupsState.splice(g, 1);
       }
-      renumberToolsCriteriaLabels();
+      // 삭제 후 나머지 수행준거 번호는 재부여하지 않음
+      markToolsCriteriaDirty();
       renderToolsCriteriaBody(toolsCriteriaGroupsState);
     }
 
@@ -4102,7 +4215,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       syncToolsCriteriaStateFromDom();
       if (toolsCriteriaGroupsState[g] == null) return;
       toolsCriteriaGroupsState.splice(g, 1);
-      renumberToolsCriteriaLabels();
+      markToolsCriteriaDirty();
       renderToolsCriteriaBody(toolsCriteriaGroupsState);
     }
 
@@ -4135,7 +4248,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!toolsCriteriaGroupsState.length) {
         toolsCriteriaGroupsState = [
           Object.assign(
-            { element_title: '능력단위 요소', lines: [{ label: '1.1', text: '' }] },
+            { element_title: '능력단위 요소', lines: [{ label: '1.', text: '' }] },
             umeta.unit_name_level ? umeta : {}
           )
         ];
@@ -4143,28 +4256,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var lastG = toolsCriteriaGroupsState.length - 1;
         var grp = toolsCriteriaGroupsState[lastG];
         if (!Array.isArray(grp.lines)) grp.lines = [];
-        var major = lastG + 1;
-        var nextMinor = grp.lines.length + 1;
-        grp.lines.push({ label: major + '.' + nextMinor, text: '' });
+        grp.lines.push({ label: nextToolsCriteriaLabelInGroup(grp), text: '' });
       }
-      renumberToolsCriteriaLabels();
+      markToolsCriteriaDirty();
       renderToolsCriteriaBody(toolsCriteriaGroupsState);
     }
 
     function addToolsCriteriaElementGroup() {
       syncToolsCriteriaStateFromDom();
-      var nextMajor = toolsCriteriaGroupsState.length + 1;
       var umeta = getToolsSheetUnitContext();
       toolsCriteriaGroupsState.push(
         Object.assign(
           {
             element_title: '능력단위 요소',
-            lines: [{ label: nextMajor + '.1', text: '' }]
+            lines: [{ label: '1.', text: '' }]
           },
           umeta.unit_name_level ? umeta : {}
         )
       );
-      renumberToolsCriteriaLabels();
+      markToolsCriteriaDirty();
       renderToolsCriteriaBody(toolsCriteriaGroupsState);
     }
 
@@ -4185,7 +4295,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var lines = Array.isArray(grp.lines) ? grp.lines : [];
         // 본문이 비어 있어도 요소행은 보이게 해 수동 입력을 유도
         if (!lines.length) {
-          lines = [{ label: (g + 1) + '.1', text: '' }];
+          lines = [{ label: '1.', text: '' }];
           grp.lines = lines;
         }
         var rs = lines.length;
@@ -4398,12 +4508,15 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             if (mySeq !== toolsNcsCriteriaLoadSeq) return false;
             var docPayload = docJson && docJson.success && docJson.data ? docJson.data.payload || {} : null;
             var savedGroups = docPayload && Array.isArray(docPayload.criteria_groups) ? docPayload.criteria_groups : [];
+            // 이 교과목 문서가 있으면 ID를 고정(내용이 비어 있어도 이후 PUT 대상)
+            if (docJson && docJson.success && docJson.data && docJson.data.id != null) {
+              selectedDocIdByTab.tools = String(docJson.data.id);
+              await loadDocumentList('tools', selectedDocIdByTab.tools);
+              setUpdatedAt('tools', docJson.data.updated_at || null);
+            } else {
+              selectedDocIdByTab.tools = '';
+            }
             if (toolsCriteriaGroupsHaveBody(savedGroups)) {
-              if (docJson.data && docJson.data.id != null) {
-                selectedDocIdByTab.tools = String(docJson.data.id);
-                await loadDocumentList('tools', selectedDocIdByTab.tools);
-                setUpdatedAt('tools', docJson.data.updated_at || null);
-              }
               // applyDocForm은 불러오기 레이스 가드로 표를 건너뛸 수 있어, 평가내용은 직접 적용
               if (docJson.data && docJson.data.title != null) {
                 setToolsFieldValue('tools_doc_title', docJson.data.title || '');
@@ -4430,15 +4543,22 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
               toolsNcsCriteriaJustLoaded = true;
               applied = true;
               appliedFrom = 'saved';
+              clearToolsCriteriaDirty();
+              bindToolsFormToSelectedSubject();
               setStatus('tools', '[' + subjectLabel + '] 저장된 평가내용을 적용했습니다.', false);
             }
           } catch (docErr) {
             console.warn('[평가도구] 저장 문서 조회 실패, NCS로 진행', docErr);
+            selectedDocIdByTab.tools = '';
           }
         }
 
         // 2) NCS evaluation-tool-form (refresh=0: 오버레이 병합 / refresh=1: 원본만)
         if (!applied) {
+          // 이 교과목에 저장문서가 전혀 없을 때만 ID 비움(다른 과목 ID로 PUT 방지)
+          if (!String(selectedDocIdByTab.tools || '').trim()) {
+            await loadDocumentList('tools', '');
+          }
           var formUrl =
             '/api/ncs/approved/curriculum/' +
             encodeURIComponent(cid) +
@@ -4496,6 +4616,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           applied = toolsCriteriaGroupsHaveBody(groups) || groups.length > 0;
           appliedFrom = refreshNcs ? 'ncs_original' : 'ncs_overlay';
           if (applied) {
+            // 자동/버튼 적용: 저장 권장만 표시. 사용자 편집 플래그는 켜지 않음(과목 전환 confirm·튐 방지)
+            toolsCriteriaDirty = true;
+            toolsCriteriaUserEdited = false;
+            bindToolsFormToSelectedSubject();
             setStatus(
               'tools',
               '[' +
@@ -4503,7 +4627,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
                 '] NCS 평가준거 ' +
                 groups.length +
                 '개 요소를 평가내용에 적용했습니다.' +
-                (refreshNcs ? ' (원본)' : ''),
+                (refreshNcs ? ' (원본)' : '') +
+                ' — 「이 교과목 저장」을 눌러 주세요.',
               false
             );
           }
@@ -4552,21 +4677,110 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
-    /** 교과목 변경 시: 해당 과목 평가준거를 평가내용에 자동 적용 */
-    async function onToolsSubjectChangeApplyCriteria() {
-      syncToolsSubjectDisplay();
-      updateToolsLoadButtonState();
-      var cid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
-      if (!cid) {
-        void applyDefaultToolsInstructorFromEvalFormApi();
-        return;
+    /**
+     * 현재(또는 지정) 교과목 평가도구 문서를 저장.
+     * @returns {Promise<boolean>}
+     */
+    async function saveToolsSubjectDocument(opts) {
+      opts = opts || {};
+      var sel = document.getElementById('toolsSubjectSelect');
+      var overrideCid = opts.curriculumId != null ? String(opts.curriculumId).trim() : '';
+      var overrideLabel = String(opts.subjectLabel || '').trim();
+      var prevValue = sel ? String(sel.value || '') : '';
+      var prevDocId = String(selectedDocIdByTab.tools || '');
+      try {
+        if (overrideCid && sel && prevValue !== overrideCid) {
+          // 이전 교과목으로 잠깐 맞춰 curriculum_id·문서 매칭
+          sel.value = overrideCid;
+          selectedDocIdByTab.tools = '';
+          try {
+            var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+            var roundQ =
+              typeof selectedRound === 'number' && selectedRound >= 1 && selectedRound <= 3
+                ? selectedRound
+                : 1;
+            var docUrl =
+              '/api/ncs/plan-documents?course_id=' +
+              encodeURIComponent(String(courseId)) +
+              '&evaluation_round=' +
+              encodeURIComponent(String(roundQ)) +
+              '&doc_type=tools' +
+              (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
+              '&curriculum_id=' +
+              encodeURIComponent(overrideCid);
+            var docRes = await authFetch(docUrl);
+            var docJson = await docRes.json();
+            if (docJson && docJson.success && docJson.data && docJson.data.id != null) {
+              selectedDocIdByTab.tools = String(docJson.data.id);
+            }
+          } catch (e) {
+            console.warn(e);
+          }
+        }
+        syncToolsCriteriaStateFromDom();
+        var ok = await saveDocument('tools');
+        if (ok) {
+          clearToolsCriteriaDirty();
+          if (!overrideCid) bindToolsFormToSelectedSubject();
+          if (overrideLabel) {
+            showPlanToast('[' + overrideLabel + '] 평가내용을 저장했습니다.', false);
+          }
+        }
+        return !!ok;
+      } catch (e) {
+        console.error(e);
+        return false;
+      } finally {
+        if (overrideCid && sel) {
+          sel.value = prevValue;
+          selectedDocIdByTab.tools = prevDocId;
+        }
+        updateToolsLoadButtonState();
       }
-      var emptyTable = !toolsCriteriaGroupsHaveBody(toolsCriteriaGroupsState);
-      await loadNcsCriteriaIntoToolsForm({
-        preferSavedDoc: true,
-        refreshNcs: false,
-        silent: true,
-        skipConfirm: emptyTable
+    }
+
+    /** 교과목 변경 시: (필요 시) 미저장 확인 후 해당 과목 평가준거를 평가내용에 적용 */
+    async function onToolsSubjectChangeApplyCriteria(changeToken) {
+      var myChange = changeToken != null ? Number(changeToken) : ++toolsSubjectChangeSeq;
+      return preserveToolsSubjectScroll(async function() {
+        if (myChange !== toolsSubjectChangeSeq) return;
+
+        var newCid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+        var prevCid = String(toolsBoundCurriculumId || '').trim();
+        var prevLabel = String(toolsBoundSubjectLabel || '이전 교과목').trim();
+
+        // 사용자가 직접 수정한 경우에만 confirm — 매번 confirm이면 select 직후 화면이 튐
+        if (prevCid && newCid && prevCid !== newCid && toolsCriteriaUserEdited) {
+          var savePrev = confirm(
+            '[' +
+              prevLabel +
+              ']에서 수정한 평가내용이 있습니다.\\n과목을 바꾸기 전에 저장할까요?\\n\\n확인=저장 후 전환 / 취소=저장하지 않고 전환'
+          );
+          if (myChange !== toolsSubjectChangeSeq) return;
+          if (savePrev) {
+            await saveToolsSubjectDocument({ curriculumId: prevCid, subjectLabel: prevLabel });
+            if (myChange !== toolsSubjectChangeSeq) return;
+          }
+        }
+
+        syncToolsSubjectDisplay();
+        updateToolsLoadButtonState();
+        if (!newCid) {
+          toolsBoundCurriculumId = '';
+          toolsBoundSubjectLabel = '';
+          clearToolsCriteriaDirty();
+          void applyDefaultToolsInstructorFromEvalFormApi();
+          return;
+        }
+
+        await loadNcsCriteriaIntoToolsForm({
+          preferSavedDoc: true,
+          refreshNcs: false,
+          silent: true,
+          skipConfirm: true
+        });
+        if (myChange !== toolsSubjectChangeSeq) return;
+        bindToolsFormToSelectedSubject();
       });
     }
 
@@ -4609,6 +4823,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           var text = String(line.text || '').trim();
           var lineDesc = (label ? label + ' ' : '') + text;
           lineDesc = String(lineDesc || '').trim();
+          if (!lineDesc) continue;
           rows.push({
             item: elTitle,
             criterion: lineDesc,
@@ -4622,17 +4837,44 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       return rows;
     }
 
+    function isRubricLevelPlaceholder(s) {
+      var t = String(s || '').trim();
+      return !t || t === '성취기준 등록';
+    }
+
     function rubricPayloadNeedsToolsAutoSync(payload) {
       var rows = payload && Array.isArray(payload.rows) ? payload.rows : [];
       if (!rows.length) return true;
-      function isPlaceholder(s) {
-        var t = String(s || '').trim();
-        return !t || t === '성취기준 등록';
-      }
       return rows.every(function(r) {
         var crit = String(r.criterion || '').trim();
         if (!crit) return true;
-        return isPlaceholder(r.high) && isPlaceholder(r.mid) && isPlaceholder(r.low);
+        return (
+          isRubricLevelPlaceholder(r.high) &&
+          isRubricLevelPlaceholder(r.mid) &&
+          isRubricLevelPlaceholder(r.low)
+        );
+      });
+    }
+
+    /** 같은 요소·평가내용이면 기존 상·중·하 성취기준 유지 */
+    function mergeRubricRowsPreservingLevels(newRows, oldRows) {
+      var oldMap = {};
+      (Array.isArray(oldRows) ? oldRows : []).forEach(function(r) {
+        var k = String(r.item || '').trim() + '||' + String(r.criterion || '').trim();
+        if (k !== '||') oldMap[k] = r;
+      });
+      return (Array.isArray(newRows) ? newRows : []).map(function(nr) {
+        var k = String(nr.item || '').trim() + '||' + String(nr.criterion || '').trim();
+        var old = oldMap[k];
+        if (!old) return nr;
+        return {
+          item: nr.item,
+          criterion: nr.criterion,
+          score: Number(old.score) > 0 ? Number(old.score) : nr.score,
+          high: !isRubricLevelPlaceholder(old.high) ? old.high : nr.high,
+          mid: !isRubricLevelPlaceholder(old.mid) ? old.mid : nr.mid,
+          low: !isRubricLevelPlaceholder(old.low) ? old.low : nr.low
+        };
       });
     }
 
@@ -4643,86 +4885,263 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (String(rSel.value || '').trim()) return;
       var tv = String(tSel.value || '').trim();
       if (!tv) return;
-      applyNcsSubjectSelectValue('rubric_subject_name', tv, '');
+      applyNcsSubjectSelectValue('rubric_subject_name', tv, getNcsSubjectSelectPlainName('toolsSubjectSelect'));
     }
 
-    async function fetchToolsPlanPayloadForRubricMerge() {
+    function syncRubricSubjectFromTools(force) {
+      var tCid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      if (!tCid) return;
+      var rCid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      if (!force && rCid && rCid === tCid) return;
+      applyNcsSubjectSelectValue(
+        'rubric_subject_name',
+        tCid,
+        getNcsSubjectSelectPlainName('toolsSubjectSelect')
+      );
+    }
+
+    async function fetchToolsPlanPayloadForRubricMerge(curriculumIdOverride) {
       var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
-      ensureRubricSubjectFromToolsIfEmpty();
-      var cid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      var cid =
+        curriculumIdOverride != null && String(curriculumIdOverride).trim() !== ''
+          ? String(curriculumIdOverride).trim()
+          : getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      if (!cid) {
+        ensureRubricSubjectFromToolsIfEmpty();
+        cid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      }
       if (!courseId || !cid) return { ok: false, error: 'no_course_or_curriculum', payload: null };
-      var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(courseId) +
-        '&evaluation_round=' + encodeURIComponent(selectedRound) +
+      var url =
+        '/api/ncs/plan-documents?course_id=' +
+        encodeURIComponent(courseId) +
+        '&evaluation_round=' +
+        encodeURIComponent(selectedRound) +
         '&doc_type=tools' +
         (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
-        '&curriculum_id=' + encodeURIComponent(cid);
+        '&curriculum_id=' +
+        encodeURIComponent(cid);
       var res = await authFetch(url);
       var json = await res.json();
       if (!json || !json.success) return { ok: false, error: 'fetch_failed', payload: null };
       if (!json.data || !json.data.payload) return { ok: false, error: 'no_tools_doc', payload: null };
-      return { ok: true, error: '', payload: json.data.payload || {} };
+      return { ok: true, error: '', payload: json.data.payload || {}, data: json.data };
     }
 
-    function applyToolsPayloadToRubricForm(payload) {
-      var rows = buildRubricRowsFromToolsCriteriaGroups(payload.criteria_groups);
+    function buildToolsPayloadFromMemoryForRubric() {
+      syncToolsCriteriaStateFromDom();
+      if (!toolsCriteriaGroupsHaveBody(toolsCriteriaGroupsState)) return null;
+      return {
+        criteria_groups: JSON.parse(JSON.stringify(toolsCriteriaGroupsState || [])),
+        tools_unit_name_level: getToolsFieldValue('tools_unit_name_level'),
+        writer:
+          getToolsInstructorFieldTrimmed() ||
+          getToolsFieldValue('tools_writer') ||
+          '',
+        subject_name: getNcsSubjectSelectPlainName('toolsSubjectSelect'),
+        curriculum_id: getNcsSubjectSelectCurriculumValue('toolsSubjectSelect')
+      };
+    }
+
+    function applyToolsPayloadToRubricForm(payload, opts) {
+      opts = opts || {};
+      var force = !!opts.force;
+      var rows = buildRubricRowsFromToolsCriteriaGroups(payload && payload.criteria_groups);
       if (!rows.length) return false;
-      var u = String(getRubricFieldValue('rubric_unit_name') || '').trim();
-      if (!u) {
-        var tul = String(payload.tools_unit_name_level || '').trim();
-        if (tul) setRubricFieldValue('rubric_unit_name', tul);
+      if (!force) {
+        rows = mergeRubricRowsPreservingLevels(rows, readRubricRowsFromTable());
       }
-      var w = String(getRubricFieldValue('rubric_writer') || '').trim();
-      if (!w && payload.writer) setRubricFieldValue('rubric_writer', String(payload.writer || ''));
+      var tul = String((payload && payload.tools_unit_name_level) || '').trim();
+      if (tul && (force || !String(getRubricFieldValue('rubric_unit_name') || '').trim())) {
+        setRubricFieldValue('rubric_unit_name', tul);
+      }
+      var w = String((payload && payload.writer) || '').trim();
+      if (w && (force || !String(getRubricFieldValue('rubric_writer') || '').trim())) {
+        setRubricFieldValue('rubric_writer', w);
+      }
+      var courseTitle = String(getToolsFieldValue('tools_display_course') || '').trim();
+      if (courseTitle && (force || !String(getRubricFieldValue('rubric_doc_title') || '').trim())) {
+        setRubricFieldValue('rubric_doc_title', courseTitle);
+      }
       renderRubricRows(rows);
       return true;
+    }
+
+    /**
+     * 평가도구 → 채점기준표 연동.
+     * @param opts.force 기존 상·중·하 무시하고 덮어쓰기
+     * @param opts.silent alert 최소화
+     * @param opts.preferMemory 같은 교과목이면 화면의 평가도구 표 우선
+     * @param opts.syncSubject 평가도구 교과목을 채점표에 맞춤
+     */
+    async function syncRubricFromTools(opts) {
+      opts = opts || {};
+      var force = !!opts.force;
+      var silent = !!opts.silent;
+      var preferMemory = opts.preferMemory !== false;
+      if (opts.syncSubject !== false) {
+        if (opts.alignSubjectFromTools) syncRubricSubjectFromTools(true);
+        else ensureRubricSubjectFromToolsIfEmpty();
+      }
+      var rubricCid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      var toolsCid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      if (!rubricCid) {
+        if (!silent) alert('채점기준표에서 교과목을 선택해 주세요. (평가도구 제작과 같은 교과목)');
+        return false;
+      }
+      try {
+        var payload = null;
+        if (preferMemory && toolsCid && toolsCid === rubricCid) {
+          payload = buildToolsPayloadFromMemoryForRubric();
+        }
+        if (!payload || !toolsCriteriaGroupsHaveBody(payload.criteria_groups)) {
+          var got = await fetchToolsPlanPayloadForRubricMerge(rubricCid);
+          if (!got.ok || !got.payload) {
+            if (!silent) {
+              if (got.error === 'no_tools_doc') {
+                alert(
+                  '저장된 평가도구 제작 문서가 없습니다. 평가도구 제작 탭에서 이 교과목을 선택한 뒤 「이 교과목 저장」을 해 주세요.'
+                );
+              } else if (!payload) {
+                alert('평가도구 평가내용을 찾지 못했습니다. 평가도구 제작에서 평가내용을 채운 뒤 저장해 주세요.');
+              }
+            }
+            if (!payload) return false;
+          } else {
+            payload = got.payload;
+          }
+        }
+        if (!applyToolsPayloadToRubricForm(payload, { force: force })) {
+          if (!silent) {
+            alert(
+              '평가도구 문서에 평가내용이 없습니다. 평가도구 제작에서 「평가내용에 적용」 후 저장해 주세요.'
+            );
+          }
+          return false;
+        }
+        setStatus(
+          'rubric',
+          '평가도구 평가내용을 채점기준표에 반영했습니다. 상·중·하 성취기준을 확인한 뒤 저장하세요.',
+          false
+        );
+        return true;
+      } catch (e) {
+        console.error(e);
+        if (!silent) alert('평가도구 → 채점기준표 연동 중 오류가 발생했습니다.');
+        return false;
+      }
     }
 
     async function tryAutoFillRubricFromTools(savedPayload, opts) {
       opts = opts || {};
       var force = !!opts.force;
-      if (!force && savedPayload && !rubricPayloadNeedsToolsAutoSync(savedPayload)) return;
-      try {
-        var got = await fetchToolsPlanPayloadForRubricMerge();
-        if (!got.ok || !got.payload) return;
-        if (!applyToolsPayloadToRubricForm(got.payload)) return;
-        setStatus('rubric', '평가도구 평가내용을 자동 반영했습니다. 확인 후 저장하세요.', false);
-      } catch (e) {
-        console.error(e);
-      }
+      if (!force && savedPayload && !rubricPayloadNeedsToolsAutoSync(savedPayload)) return false;
+      return syncRubricFromTools({
+        force: false,
+        silent: true,
+        preferMemory: true,
+        syncSubject: true
+      });
     }
 
     async function applyRubricFromSavedToolsDocument() {
       var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
       if (!courseId) {
         alert('과정을 먼저 선택해 주세요.');
-        return;
+        return false;
       }
       ensureRubricSubjectFromToolsIfEmpty();
       var cid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
       if (!cid) {
         alert('채점기준표에서 교과목을 선택해 주세요. (평가도구 제작에서 저장할 때와 같은 교과목이어야 합니다.)');
+        return false;
+      }
+      if (
+        !confirm(
+          '현재 채점기준표 행을, 이 교과목·평가회차의 평가도구 제작 평가내용으로 다시 채울까요?\n(같은 평가내용의 상·중·하 성취기준은 유지됩니다)'
+        )
+      ) {
+        return false;
+      }
+      return syncRubricFromTools({
+        force: false,
+        silent: false,
+        preferMemory: true,
+        syncSubject: true
+      });
+    }
+
+    /** 평가도구 저장 직후: 같은 교과목 채점기준표 폼에 반영 */
+    async function afterToolsSavedSyncRubric() {
+      try {
+        syncRubricSubjectFromTools(true);
+        var ok = await syncRubricFromTools({
+          force: false,
+          silent: true,
+          preferMemory: true,
+          syncSubject: false,
+          alignSubjectFromTools: false
+        });
+        if (ok) {
+          showPlanToast('채점기준표에도 평가내용을 반영했습니다. 채점기준표 탭에서 확인·저장하세요.', false);
+        }
+      } catch (e) {
+        console.warn('[tools→rubric]', e);
+      }
+    }
+
+    /** 평가도구 저장 후 하위 단계(채점·성취·검토) 메타/내용 연쇄 반영 */
+    async function afterToolsSavedSyncDownstream() {
+      try {
+        syncSharedSubjectFromSelect('toolsSubjectSelect', { triggerSideEffects: false });
+        await afterToolsSavedSyncRubric();
+        carryUpstreamMetaToAchievement({ force: false });
+        carryUpstreamMetaToReview({ force: false });
+        refreshNcsPlanTabDots();
+      } catch (e) {
+        console.warn('[tools→downstream]', e);
+      }
+    }
+
+    /** 평가도구 화면에서 채점기준표로 명시 반영 */
+    async function pushToolsCriteriaToRubricFromToolsTab() {
+      var cid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      if (!cid) {
+        alert('교과목을 먼저 선택해 주세요.');
         return;
       }
-      if (!confirm('현재 채점기준표 표의 행을, 이 교과목·평가회차에 저장된 평가도구 제작 문서의 평가내용으로 덮어씁니다. 계속할까요?')) return;
-      try {
-        var got = await fetchToolsPlanPayloadForRubricMerge();
-        if (!got.ok) {
-          if (got.error === 'no_tools_doc') {
-            alert('저장된 평가도구 제작 문서가 없습니다. 평가도구 제작 탭에서 이 교과목을 선택한 뒤 저장해 주세요.');
-          } else {
-            alert('평가도구 문서를 불러오지 못했습니다.');
-          }
-          return;
-        }
-        if (!applyToolsPayloadToRubricForm(got.payload)) {
-          alert('평가도구 문서에 평가내용(능력단위요소·평가내용 표)이 없습니다. 평가도구 제작에서 교과목을 선택한 뒤 「평가내용에 적용」으로 채우고 저장해 주세요.');
-          return;
-        }
-        setStatus('rubric', '평가도구 평가내용을 반영했습니다. 필요 시 수정 후 저장하세요.', false);
-      } catch (e) {
-        console.error(e);
-        alert('평가도구 내용을 가져오는 중 오류가 발생했습니다.');
+      if (!toolsCriteriaGroupsHaveBody(toolsCriteriaGroupsState)) {
+        alert('반영할 평가내용이 없습니다. 「평가내용에 적용」으로 채운 뒤 다시 시도해 주세요.');
+        return;
       }
+      syncRubricSubjectFromTools(true);
+      var ok = await syncRubricFromTools({
+        force: false,
+        silent: false,
+        preferMemory: true,
+        syncSubject: false
+      });
+      if (ok) {
+        showPlanToast('채점기준표에 반영했습니다. 「평가도구채점기준표」 탭에서 확인하세요.', false);
+        if (confirm('채점기준표 탭으로 이동할까요?')) {
+          switchNcsPlanTab('rubric');
+        }
+      }
+    }
+
+    async function onRubricSubjectChangeSyncFromTools() {
+      var cid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      if (!cid) return;
+      var currentRows = readRubricRowsFromTable();
+      var needs =
+        !currentRows.length ||
+        rubricPayloadNeedsToolsAutoSync({ rows: currentRows });
+      if (!needs) return; // 이미 성취기준이 있으면 수동 「평가도구 평가내용 반영」 사용
+      await syncRubricFromTools({
+        force: false,
+        silent: true,
+        preferMemory: true,
+        syncSubject: false
+      });
     }
 
     function readRubricRowsFromTable() {
@@ -5285,6 +5704,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     var NCS_PLAN_SUBJECT_SELECT_IDS = [
+      'ncsPlanSharedSubjectSelect',
       'scheduleSubjectSelect',
       'questionsSubjectSelect',
       'toolsSubjectSelect',
@@ -5305,6 +5725,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         el.innerHTML = '<option value="">과정 선택 후 교과목</option>';
         el.disabled = true;
       });
+      sharedPlanCurriculumId = '';
+      sharedPlanSubjectLabel = '';
+      updateNcsPlanWorkflowHint();
       resetScheduleInstructorSelect();
     }
 
@@ -5381,6 +5804,292 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
       el.value = '';
+    }
+
+    function updateNcsPlanWorkflowHint() {
+      var hint = document.getElementById('ncsPlanWorkflowHint');
+      if (!hint) return;
+      if (sharedPlanCurriculumId && sharedPlanSubjectLabel) {
+        hint.textContent = '공통 교과목: ' + sharedPlanSubjectLabel + ' — 전 탭에 동일 적용·연동 중';
+        return;
+      }
+      hint.textContent = '교과목을 선택하면 이후 탭에 동일하게 적용됩니다.';
+    }
+
+    function fillEditableIfEmpty(id, value, force) {
+      var next = value != null ? String(value).trim() : '';
+      if (!next) return false;
+      var el = document.getElementById(id);
+      if (!el) return false;
+      var tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+      var cur = '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') cur = String(el.value || '').trim();
+      else if (el.isContentEditable) cur = String(el.textContent || '').trim();
+      else cur = String(el.textContent || '').trim();
+      if (!force && cur) return false;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') el.value = next;
+      else if (el.isContentEditable) el.textContent = next;
+      else el.textContent = next;
+      return true;
+    }
+
+    /** 일정표에서 공통 교과목(또는 지정 교과목)의 평가일·강사 메타 */
+    function readScheduleMetaForSubject(curriculumIdRaw, subjectNameRaw) {
+      var cid = curriculumIdRaw != null ? String(curriculumIdRaw).trim() : '';
+      var namePlain = stripSubjectTypeBadge(subjectNameRaw || '');
+      var rows = readScheduleRowsFromTable();
+      var matched = null;
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var rcid = String(r.curriculum_id || '').trim();
+        var rname = stripSubjectTypeBadge(r.subject || '');
+        if (cid && rcid && cid === rcid) {
+          matched = r;
+          break;
+        }
+        if (namePlain && rname && namePlain === rname) {
+          matched = r;
+          break;
+        }
+      }
+      if (!matched && rows.length === 1) matched = rows[0];
+      if (!matched) return { date: '', time: '', datetime: '', instructor_id: '', instructor_name: '', place: '' };
+      var date = String(matched.date || '').trim();
+      var time = String(matched.time || '').trim();
+      return {
+        date: date,
+        time: time,
+        datetime: date ? (time ? date + ' ' + time : date) : '',
+        instructor_id: String(matched.instructor_id || '').trim(),
+        instructor_name: String(matched.instructor_name || '').trim(),
+        place: String(matched.place || '').trim()
+      };
+    }
+
+    function firstToolsCriteriaElementName() {
+      var groups = Array.isArray(toolsCriteriaGroupsState) ? toolsCriteriaGroupsState : [];
+      for (var i = 0; i < groups.length; i++) {
+        var g = groups[i];
+        var nm = String(
+          (g && (g.element_title || g.element_name || g.element || g.name)) || ''
+        ).trim();
+        if (nm && nm !== '-') return nm;
+      }
+      var rows = readToolRowsFromTable();
+      if (rows.length) return String(rows[0].name || '').trim();
+      return '';
+    }
+
+    function carryUpstreamMetaToTools(opts) {
+      opts = opts || {};
+      var force = !!opts.force;
+      var cid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect') || sharedPlanCurriculumId;
+      var label = getNcsSubjectSelectPlainName('toolsSubjectSelect') || sharedPlanSubjectLabel;
+      var meta = readScheduleMetaForSubject(cid, label);
+      if (meta.datetime) fillEditableIfEmpty('tools_eval_datetime', meta.datetime, force);
+      if (meta.instructor_name) {
+        var curIns = getToolsInstructorFieldTrimmed();
+        if (force || !curIns) syncToolsInstructorSelectToSavedName(meta.instructor_name);
+      }
+      var courseTitle = getSelectedLmsCourseDisplayTitle();
+      if (courseTitle) fillEditableIfEmpty('tools_display_course', courseTitle, force);
+    }
+
+    function carryUpstreamMetaToAchievement(opts) {
+      opts = opts || {};
+      var force = !!opts.force;
+      var cid = getNcsSubjectSelectCurriculumValue('achievement_subject_name') || sharedPlanCurriculumId || getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      var label = getNcsSubjectSelectPlainName('achievement_subject_name') || sharedPlanSubjectLabel || getNcsSubjectSelectPlainName('toolsSubjectSelect');
+      if (cid) applyNcsSubjectSelectValue('achievement_subject_name', cid, label);
+      var meta = readScheduleMetaForSubject(cid, label);
+      var toolsDt = String(getToolsFieldValue('tools_eval_datetime') || '').trim();
+      var evalDate = meta.date || toolsDt || '';
+      if (evalDate) fillEditableIfEmpty('achievement_eval_date', evalDate, force);
+      var unit = String(getToolsFieldValue('tools_unit_name_level') || '').trim() || String(getRubricFieldValue('rubric_unit_name') || '').trim();
+      if (unit) fillEditableIfEmpty('achievement_unit_level', unit, force);
+      var writer = getToolsInstructorFieldTrimmed() || String(getToolsFieldValue('tools_writer') || '').trim() || meta.instructor_name;
+      if (writer) fillEditableIfEmpty('achievement_writer', writer, force);
+      var trainee = String(getToolsFieldValue('tools_trainee') || '').trim();
+      if (trainee) fillEditableIfEmpty('achievement_trainee', trainee, force);
+      var courseTitle = String(getToolsFieldValue('tools_display_course') || '').trim() || getSelectedLmsCourseDisplayTitle();
+      if (courseTitle) fillEditableIfEmpty('achievement_doc_title', courseTitle, force);
+      var elementName = firstToolsCriteriaElementName() || String(getRubricFieldValue('rubric_unit_name') || '').trim();
+      if (elementName) fillEditableIfEmpty('achievement_score_item_name', elementName, force);
+      var achNote = String(getToolsFieldValue('tools_achievement_note') || '').trim();
+      if (achNote) {
+        var notesEl = document.getElementById('achievement_notes');
+        var notesEmpty = !notesEl || !String(notesEl.isContentEditable ? notesEl.textContent : (notesEl.value || '')).trim();
+        if (force || notesEmpty) setAchievementFieldValue('achievement_notes', achNote);
+      }
+      var target = Number(getRubricFieldValue('rubric_total_target') || 0);
+      if (target > 0) fillEditableIfEmpty('achievement_target_score', String(target), force);
+    }
+
+    function carryUpstreamMetaToReview(opts) {
+      opts = opts || {};
+      var force = !!opts.force;
+      var cid = getNcsSubjectSelectCurriculumValue('review_subject_name') || sharedPlanCurriculumId || getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      var label = getNcsSubjectSelectPlainName('review_subject_name') || sharedPlanSubjectLabel || getNcsSubjectSelectPlainName('toolsSubjectSelect');
+      if (cid) applyNcsSubjectSelectValue('review_subject_name', cid, label);
+      var unit = String(getToolsFieldValue('tools_unit_name_level') || '').trim() || String(getAchievementFieldValue('achievement_unit_level') || '').trim();
+      if (unit) fillEditableIfEmpty('review_unit_level', unit, force);
+      var toolName = firstToolsCriteriaElementName() || '평가도구';
+      if (toolName) fillEditableIfEmpty('review_tool_name', toolName, force);
+      var writer = getToolsInstructorFieldTrimmed() || String(getToolsFieldValue('tools_writer') || '').trim();
+      if (writer) fillEditableIfEmpty('review_writer', writer, force);
+      var courseTitle = String(getToolsFieldValue('tools_display_course') || '').trim() || getSelectedLmsCourseDisplayTitle();
+      if (courseTitle) fillEditableIfEmpty('review_doc_title', courseTitle, force);
+      var meta = readScheduleMetaForSubject(cid, label);
+      if (meta.date) fillEditableIfEmpty('review_review_date', meta.date, force);
+    }
+
+    async function syncAchievementFromToolsAndRubric(opts) {
+      opts = opts || {};
+      var silent = !!opts.silent;
+      var force = opts.force !== false;
+      try {
+        if (sharedPlanCurriculumId) {
+          applyNcsSubjectSelectValue('achievement_subject_name', sharedPlanCurriculumId, sharedPlanSubjectLabel);
+        } else {
+          ensureRubricSubjectFromToolsIfEmpty();
+          var tCid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+          if (tCid) {
+            applyNcsSubjectSelectValue(
+              'achievement_subject_name',
+              tCid,
+              getNcsSubjectSelectPlainName('toolsSubjectSelect')
+            );
+          }
+        }
+        carryUpstreamMetaToAchievement({ force: force });
+        var rows = readAchievementRowsFromTable();
+        if (!rows.length) renderAchievementRows(defaultAchievementRows());
+        setStatus('achievement', '평가도구·채점기준표 메타를 성취수준표에 반영했습니다. 확인 후 저장하세요.', false);
+        if (!silent) showPlanToast('성취수준표에 상위 단계 내용을 반영했습니다.', false);
+        return true;
+      } catch (e) {
+        console.error(e);
+        if (!silent) alert('성취수준표 연동 중 오류가 발생했습니다.');
+        return false;
+      }
+    }
+
+    function setPlanTabDotState(tabId, state) {
+      var btn = document.querySelector('[data-plan-tab-btn="' + tabId + '"]');
+      if (!btn) return;
+      var dot = btn.querySelector('[data-plan-tab-dot]');
+      if (!dot) return;
+      dot.classList.remove('hidden', 'bg-slate-300', 'bg-amber-400', 'bg-emerald-500');
+      if (state === 'saved') {
+        dot.classList.add('bg-emerald-500');
+      } else if (state === 'draft') {
+        dot.classList.add('bg-amber-400');
+      } else {
+        dot.classList.add('bg-slate-300');
+        if (state !== 'empty-show') {
+          // 미작성도 점 표시로 워크플로 가시성 유지
+        }
+      }
+      dot.classList.remove('hidden');
+    }
+
+    function tabHasSavedDocument(tabId) {
+      var sel = document.getElementById('planDocSelect-' + tabId);
+      if (!sel) return !!(selectedDocIdByTab[tabId] || '').trim();
+      var opts = sel.options ? sel.options.length : 0;
+      // 첫 옵션은 "최신 문서" 플레이스홀더
+      if (opts > 1) return true;
+      return !!(selectedDocIdByTab[tabId] || '').trim() || !!(sel.value || '').trim();
+    }
+
+    function refreshNcsPlanTabDots() {
+      var ids = ['minutes', 'schedule', 'questions', 'tools', 'rubric', 'achievement', 'review'];
+      ids.forEach(function(tid) {
+        if (tabHasSavedDocument(tid)) {
+          setPlanTabDotState(tid, 'saved');
+          return;
+        }
+        if (tid === 'tools' && toolsCriteriaGroupsHaveBody(toolsCriteriaGroupsState)) {
+          setPlanTabDotState(tid, 'draft');
+          return;
+        }
+        if (tid === 'rubric') {
+          var rr = readRubricRowsFromTable();
+          if (rr && rr.length) {
+            setPlanTabDotState(tid, 'draft');
+            return;
+          }
+        }
+        setPlanTabDotState(tid, 'empty');
+      });
+    }
+
+    async function refreshAllNcsPlanTabDotsFromServer() {
+      if (!selectedCourseId) {
+        refreshNcsPlanTabDots();
+        return;
+      }
+      var ids = ['minutes', 'schedule', 'questions', 'tools', 'rubric', 'achievement', 'review'];
+      try {
+        await Promise.all(ids.map(function(tid) {
+          return loadDocumentList(tid, selectedDocIdByTab[tid] || '').catch(function() { return []; });
+        }));
+      } catch (_) {}
+      refreshNcsPlanTabDots();
+    }
+
+    /**
+     * 전 탭 공통 교과목 동기화.
+     * @param opts.sourceSelectId 변경 원본 select — 해당 탭의 change 핸들러와 중복 실행 방지
+     * @param opts.triggerSideEffects 공유 셀렉트에서 바꿨을 때 하위 연동 실행
+     */
+    function setSharedNcsPlanSubject(curriculumIdRaw, subjectNameRaw, opts) {
+      opts = opts || {};
+      if (sharedSubjectSyncing) return;
+      var cid = curriculumIdRaw != null ? String(curriculumIdRaw).trim() : '';
+      var name = subjectNameRaw != null ? String(subjectNameRaw).trim() : '';
+      sharedSubjectSyncing = true;
+      try {
+        NCS_PLAN_SUBJECT_SELECT_IDS.forEach(function(sid) {
+          applyNcsSubjectSelectValue(sid, cid, name);
+        });
+        sharedPlanCurriculumId = getNcsSubjectSelectCurriculumValue('ncsPlanSharedSubjectSelect') || cid;
+        sharedPlanSubjectLabel =
+          getNcsSubjectSelectPlainName('ncsPlanSharedSubjectSelect') ||
+          stripSubjectTypeBadge(name) ||
+          '';
+        updateNcsPlanWorkflowHint();
+      } finally {
+        sharedSubjectSyncing = false;
+      }
+
+      if (!opts.triggerSideEffects) return;
+
+      syncToolsSubjectDisplay();
+      updateToolsLoadButtonState();
+      carryUpstreamMetaToTools({ force: false });
+      carryUpstreamMetaToAchievement({ force: false });
+      carryUpstreamMetaToReview({ force: false });
+      var changeToken = ++toolsSubjectChangeSeq;
+      setTimeout(function() {
+        if (changeToken !== toolsSubjectChangeSeq) return;
+        void onToolsSubjectChangeApplyCriteria(changeToken);
+      }, 50);
+      void maybeAutoReuseQuestionsForSelectedSubject();
+      setTimeout(function() {
+        void onRubricSubjectChangeSyncFromTools();
+      }, 40);
+    }
+
+    function syncSharedSubjectFromSelect(selectId, opts) {
+      opts = opts || {};
+      if (sharedSubjectSyncing) return;
+      var cid = getNcsSubjectSelectCurriculumValue(selectId);
+      var label = getNcsSubjectSelectPlainName(selectId);
+      setSharedNcsPlanSubject(cid, label, {
+        sourceSelectId: selectId,
+        triggerSideEffects: !!opts.triggerSideEffects
+      });
     }
 
     function appendSubjectOptionsToSelect(el, subjects) {
@@ -5471,6 +6180,33 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             if (!s) return;
             applyNcsSubjectSelectValue(sid, s.v, s.n);
           });
+        }
+        // 공통 교과목 우선 — 저장된 공유값 또는 탭 선택값으로 전 탭 정렬
+        var preferCid = sharedPlanCurriculumId || '';
+        var preferName = sharedPlanSubjectLabel || '';
+        if (!preferCid) {
+          var seedIds = [
+            'ncsPlanSharedSubjectSelect',
+            'toolsSubjectSelect',
+            'questionsSubjectSelect',
+            'scheduleSubjectSelect',
+            'rubric_subject_name',
+            'achievement_subject_name',
+            'review_subject_name'
+          ];
+          for (var si = 0; si < seedIds.length; si++) {
+            var seedCid = getNcsSubjectSelectCurriculumValue(seedIds[si]);
+            if (seedCid) {
+              preferCid = seedCid;
+              preferName = getNcsSubjectSelectPlainName(seedIds[si]);
+              break;
+            }
+          }
+        }
+        if (preferCid) {
+          setSharedNcsPlanSubject(preferCid, preferName, { triggerSideEffects: false });
+        } else {
+          updateNcsPlanWorkflowHint();
         }
         syncToolsSubjectDisplay();
         updateToolsLoadButtonState();
@@ -5622,15 +6358,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
     async function saveDocument(tabId, opts) {
       opts = opts || {};
-      if (blockIfMinutesAdminOnly(tabId)) return;
+      if (blockIfMinutesAdminOnly(tabId)) return false;
       if (!selectedCourseId) {
         alert('먼저 과정을 선택해 주세요.');
-        return;
+        return false;
       }
       var currentDocId = String(selectedDocIdByTab[tabId] || '').trim();
       if (!opts.forceNew && currentDocId) {
-        await updateDocument(tabId, { fromSave: true });
-        return;
+        return await updateDocument(tabId, { fromSave: true });
       }
       const form = getDocForm(tabId);
       setStatus(tabId, '저장 중...', false);
@@ -5660,16 +6395,31 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         } else {
           await loadDocumentList(tabId, selectedDocIdByTab[tabId] || '');
         }
+        if (tabId === 'tools') {
+          clearToolsCriteriaDirty();
+          bindToolsFormToSelectedSubject();
+          await afterToolsSavedSyncDownstream();
+        } else if (tabId === 'schedule') {
+          carryUpstreamMetaToTools({ force: false });
+          carryUpstreamMetaToAchievement({ force: false });
+          carryUpstreamMetaToReview({ force: false });
+        } else if (tabId === 'rubric') {
+          carryUpstreamMetaToAchievement({ force: false });
+          carryUpstreamMetaToReview({ force: false });
+        }
+        refreshNcsPlanTabDots();
         const now = new Date();
         const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         setUpdatedAt(tabId, stamp);
         var tabName = TAB_NAMES[tabId] || tabId;
         showPlanToast('[' + tabName + ']' + (opts.forceNew ? ' 새 문서로 저장했습니다.' : ' 새 저장문서를 만들었습니다.'), false);
+        return true;
       } catch (e) {
         console.error(e);
         setStatus(tabId, '저장 실패', true);
         var errMsg = (e && e.message) ? String(e.message) : '알 수 없는 오류';
         alert('문서 저장에 실패했습니다.\\n' + errMsg);
+        return false;
       }
     }
 
@@ -5686,19 +6436,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
 
     async function updateDocument(tabId, opts) {
       opts = opts || {};
-      if (blockIfMinutesAdminOnly(tabId)) return;
+      if (blockIfMinutesAdminOnly(tabId)) return false;
       if (!selectedCourseId) {
         alert('먼저 과정을 선택해 주세요.');
-        return;
+        return false;
       }
       var docId = String(selectedDocIdByTab[tabId] || '').trim();
       if (!docId) {
         if (opts.fromSave) {
-          await saveDocument(tabId, { forceNew: true });
-          return;
+          return await saveDocument(tabId, { forceNew: true });
         }
         alert('수정할 저장문서를 먼저 선택해 주세요.');
-        return;
+        return false;
       }
       const form = getDocForm(tabId);
       setStatus(tabId, opts.fromSave ? '저장 중...' : '수정 저장 중...', false);
@@ -5719,19 +6468,42 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           })
         });
         const json = await res.json();
-        if (!json?.success) throw new Error(json?.error || 'update failed');
+        if (!json?.success) {
+          var errText = String((json && json.error) || 'update failed');
+          // 다른 교과목 문서 ID·삭제된 문서 등으로 PUT 404 → 현재 교과목으로 신규 저장
+          if (opts.fromSave && /not found/i.test(errText)) {
+            selectedDocIdByTab[tabId] = '';
+            return await saveDocument(tabId, { forceNew: true });
+          }
+          throw new Error(errText);
+        }
         setStatus(tabId, opts.fromSave ? '저장 완료' : '수정 저장 완료', false);
         await loadDocumentList(tabId, docId);
+        if (tabId === 'tools') {
+          clearToolsCriteriaDirty();
+          bindToolsFormToSelectedSubject();
+          await afterToolsSavedSyncDownstream();
+        } else if (tabId === 'schedule') {
+          carryUpstreamMetaToTools({ force: false });
+          carryUpstreamMetaToAchievement({ force: false });
+          carryUpstreamMetaToReview({ force: false });
+        } else if (tabId === 'rubric') {
+          carryUpstreamMetaToAchievement({ force: false });
+          carryUpstreamMetaToReview({ force: false });
+        }
+        refreshNcsPlanTabDots();
         const now = new Date();
         const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         setUpdatedAt(tabId, stamp);
         var tabName = TAB_NAMES[tabId] || tabId;
         showPlanToast('[' + tabName + ']' + (opts.fromSave ? ' 현재 문서를 저장했습니다.' : ' 선택 문서를 수정 저장했습니다.'), false);
+        return true;
       } catch (e) {
         console.error(e);
         setStatus(tabId, opts.fromSave ? '저장 실패' : '수정 저장 실패', true);
         var errMsg = (e && e.message) ? String(e.message) : '알 수 없는 오류';
         alert((opts.fromSave ? '문서 저장에 실패했습니다.\\n' : '문서 수정에 실패했습니다.\\n') + errMsg);
+        return false;
       }
     }
 
@@ -5793,18 +6565,107 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         btn.classList.toggle('bg-white', !isActive);
         btn.classList.toggle('text-slate-600', !isActive);
         btn.classList.toggle('border-slate-200', !isActive);
+        var stepNum = btn.querySelector('[data-plan-step-num]');
+        if (stepNum) {
+          stepNum.classList.toggle('bg-white/20', isActive);
+          stepNum.classList.toggle('text-white', isActive);
+          stepNum.classList.toggle('bg-slate-100', !isActive);
+          stepNum.classList.toggle('text-slate-500', !isActive);
+        }
       });
       document.querySelectorAll('[data-plan-tab-panel]').forEach(function(panel) {
         panel.classList.toggle('hidden', panel.getAttribute('data-plan-tab-panel') !== tabId);
       });
       const activeDocLabel = document.getElementById('activeDocLabel');
       if (activeDocLabel) activeDocLabel.textContent = TAB_NAMES[tabId] || tabId;
+      updateNcsPlanWorkflowHint();
     }
 
-    function switchNcsPlanTab(tabId) {
+    async function switchNcsPlanTab(tabId) {
       setNcsPlanTabUiOnly(tabId);
-      loadDocument(tabId);
+      // 공통 교과목을 현재 탭 select에 재적용 (문서 로드 전·후 일치)
+      if (sharedPlanCurriculumId && tabId !== 'minutes') {
+        var selectIdByTab = {
+          schedule: 'scheduleSubjectSelect',
+          questions: 'questionsSubjectSelect',
+          tools: 'toolsSubjectSelect',
+          rubric: 'rubric_subject_name',
+          achievement: 'achievement_subject_name',
+          review: 'review_subject_name'
+        };
+        var sid = selectIdByTab[tabId];
+        if (sid) applyNcsSubjectSelectValue(sid, sharedPlanCurriculumId, sharedPlanSubjectLabel);
+      }
+      await loadDocument(tabId);
+      if (sharedPlanCurriculumId && tabId !== 'minutes') {
+        var selectIdByTab2 = {
+          schedule: 'scheduleSubjectSelect',
+          questions: 'questionsSubjectSelect',
+          tools: 'toolsSubjectSelect',
+          rubric: 'rubric_subject_name',
+          achievement: 'achievement_subject_name',
+          review: 'review_subject_name'
+        };
+        var sid2 = selectIdByTab2[tabId];
+        if (sid2) {
+          var cur = getNcsSubjectSelectCurriculumValue(sid2);
+          if (!cur) applyNcsSubjectSelectValue(sid2, sharedPlanCurriculumId, sharedPlanSubjectLabel);
+        }
+      }
+      if (tabId === 'tools') {
+        try {
+          carryUpstreamMetaToTools({ force: false });
+          syncToolsSubjectDisplay();
+          updateToolsLoadButtonState();
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      if (tabId === 'rubric') {
+        // 탭 진입 시 비어 있거나 플레이스홀더면 평가도구와 연동
+        try {
+          if (sharedPlanCurriculumId) {
+            applyNcsSubjectSelectValue('rubric_subject_name', sharedPlanCurriculumId, sharedPlanSubjectLabel);
+          }
+          ensureRubricSubjectFromToolsIfEmpty();
+          var rows = readRubricRowsFromTable();
+          if (!rows.length || rubricPayloadNeedsToolsAutoSync({ rows: rows })) {
+            await syncRubricFromTools({
+              force: false,
+              silent: true,
+              preferMemory: true,
+              syncSubject: true
+            });
+          }
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      if (tabId === 'achievement') {
+        try {
+          carryUpstreamMetaToAchievement({ force: false });
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      if (tabId === 'review') {
+        try {
+          carryUpstreamMetaToReview({ force: false });
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      if (tabId === 'questions' && sharedPlanCurriculumId) {
+        try {
+          void maybeAutoReuseQuestionsForSelectedSubject();
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      refreshNcsPlanTabDots();
     }
+
+    window.switchNcsPlanTab = switchNcsPlanTab;
 
     window.addEventListener('afterprint', function() {
       document.body.removeAttribute('data-print-target');
@@ -5923,19 +6784,86 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           selectedRound = parseInt(roundSel.value, 10) || 1;
           applyRoundBadges();
           await loadDocument(activeTab);
+          void refreshAllNcsPlanTabDotsFromServer();
         });
       }
 
+      var sharedSubSelInit = document.getElementById('ncsPlanSharedSubjectSelect');
+      if (sharedSubSelInit) {
+        sharedSubSelInit.addEventListener('change', function() {
+          if (sharedSubjectSyncing) return;
+          var cid = getNcsSubjectSelectCurriculumValue('ncsPlanSharedSubjectSelect');
+          var label = getNcsSubjectSelectPlainName('ncsPlanSharedSubjectSelect');
+          setSharedNcsPlanSubject(cid, label, { triggerSideEffects: true });
+        });
+      }
       var toolsSubSelInit = document.getElementById('toolsSubjectSelect');
       if (toolsSubSelInit) {
         toolsSubSelInit.addEventListener('change', function() {
-          void onToolsSubjectChangeApplyCriteria();
+          if (!sharedSubjectSyncing) {
+            syncSharedSubjectFromSelect('toolsSubjectSelect', { triggerSideEffects: false });
+          }
+          // select 드롭다운이 닫힌 뒤 표 갱신 → 마우스 선택 직후 레이아웃 튐 완화
+          var changeToken = ++toolsSubjectChangeSeq;
+          syncToolsSubjectDisplay();
+          updateToolsLoadButtonState();
+          setTimeout(function() {
+            if (changeToken !== toolsSubjectChangeSeq) return;
+            void onToolsSubjectChangeApplyCriteria(changeToken);
+          }, 50);
         });
       }
       var questionsSubSelInit = document.getElementById('questionsSubjectSelect');
       if (questionsSubSelInit) {
         questionsSubSelInit.addEventListener('change', function() {
+          if (!sharedSubjectSyncing) {
+            syncSharedSubjectFromSelect('questionsSubjectSelect', { triggerSideEffects: false });
+          }
           void maybeAutoReuseQuestionsForSelectedSubject();
+        });
+      }
+      var scheduleSubSelInit = document.getElementById('scheduleSubjectSelect');
+      if (scheduleSubSelInit) {
+        scheduleSubSelInit.addEventListener('change', function() {
+          if (sharedSubjectSyncing) return;
+          syncSharedSubjectFromSelect('scheduleSubjectSelect', { triggerSideEffects: false });
+        });
+      }
+      var achievementSubSelInit = document.getElementById('achievement_subject_name');
+      if (achievementSubSelInit) {
+        achievementSubSelInit.addEventListener('change', function() {
+          if (sharedSubjectSyncing) return;
+          syncSharedSubjectFromSelect('achievement_subject_name', { triggerSideEffects: false });
+          carryUpstreamMetaToAchievement({ force: false });
+        });
+      }
+      var reviewSubSelInit = document.getElementById('review_subject_name');
+      if (reviewSubSelInit) {
+        reviewSubSelInit.addEventListener('change', function() {
+          if (sharedSubjectSyncing) return;
+          syncSharedSubjectFromSelect('review_subject_name', { triggerSideEffects: false });
+          carryUpstreamMetaToReview({ force: false });
+        });
+      }
+      document.querySelectorAll('[data-plan-next-step]').forEach(function(btn) {
+        btn.addEventListener('click', function(ev) {
+          ev.preventDefault();
+          var nextId = btn.getAttribute('data-plan-next-step');
+          if (!nextId) return;
+          void switchNcsPlanTab(nextId);
+        });
+      });
+      var achievementLoadBtn = document.getElementById('achievementLoadFromUpstreamBtn');
+      if (achievementLoadBtn) {
+        achievementLoadBtn.addEventListener('click', function() {
+          if (
+            !confirm(
+              '평가도구·채점기준표의 교과목·평가일·능력단위·훈련교사 등을 성취수준표에 반영할까요?\\n(이미 입력된 값은 덮어씁니다)'
+            )
+          ) {
+            return;
+          }
+          void syncAchievementFromToolsAndRubric({ force: true, silent: false });
         });
       }
       var questionsReuseBtn = document.getElementById('questionsReuseSavedBtn');
@@ -5973,6 +6901,62 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             silent: false,
             skipConfirm: false
           });
+        });
+      }
+      var toolsSaveSubjectBtn = document.getElementById('toolsSaveSubjectBtn');
+      if (toolsSaveSubjectBtn) {
+        toolsSaveSubjectBtn.addEventListener('click', async function() {
+          var cid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+          if (!cid) {
+            alert('교과목을 먼저 선택해 주세요.');
+            return;
+          }
+          // 저장 직전: 이 교과목 전용 문서 ID를 다시 조회(다른 과목 ID로 PUT 방지)
+          try {
+            var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+            var roundQ =
+              typeof selectedRound === 'number' && selectedRound >= 1 && selectedRound <= 3
+                ? selectedRound
+                : 1;
+            var docUrl =
+              '/api/ncs/plan-documents?course_id=' +
+              encodeURIComponent(String(courseId)) +
+              '&evaluation_round=' +
+              encodeURIComponent(String(roundQ)) +
+              '&doc_type=tools' +
+              (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
+              '&curriculum_id=' +
+              encodeURIComponent(cid);
+            var docRes = await authFetch(docUrl);
+            var docJson = await docRes.json();
+            if (docJson && docJson.success && docJson.data && docJson.data.id != null) {
+              selectedDocIdByTab.tools = String(docJson.data.id);
+            } else {
+              selectedDocIdByTab.tools = '';
+            }
+          } catch (e) {
+            selectedDocIdByTab.tools = '';
+          }
+          void saveToolsSubjectDocument({
+            subjectLabel: getNcsSubjectSelectPlainName('toolsSubjectSelect') || '교과목'
+          });
+        });
+      }
+      var toolsPushToRubricBtn = document.getElementById('toolsPushToRubricBtn');
+      if (toolsPushToRubricBtn) {
+        toolsPushToRubricBtn.addEventListener('click', function() {
+          void pushToolsCriteriaToRubricFromToolsTab();
+        });
+      }
+      var rubricSubSelInit = document.getElementById('rubric_subject_name');
+      if (rubricSubSelInit) {
+        rubricSubSelInit.addEventListener('change', function() {
+          if (!sharedSubjectSyncing) {
+            syncSharedSubjectFromSelect('rubric_subject_name', { triggerSideEffects: false });
+          }
+          setTimeout(function() {
+            void onRubricSubjectChangeSyncFromTools();
+          }, 40);
         });
       }
       var toolsCritAddLineBtn = document.getElementById('toolsCriteriaAddLineBtn');
@@ -6226,8 +7210,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (initialPlanTab !== 'minutes') {
           void loadDocument('minutes');
         }
+        void refreshAllNcsPlanTabDotsFromServer();
       } else {
-        switchNcsPlanTab(initialPlanTab);
+        await switchNcsPlanTab(initialPlanTab);
+        void refreshAllNcsPlanTabDotsFromServer();
       }
 
       var minutesPrintBtn = document.getElementById('minutesPrintBtn');
