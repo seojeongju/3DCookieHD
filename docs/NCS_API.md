@@ -51,7 +51,12 @@
 
 1. **공공데이터포털** 접속: https://www.data.go.kr  
 2. 로그인 후 아래 API 중 필요한 것을 검색해서 **활용신청**  
-   - **한국산업인력공단_국가직무능력표준 정보**  
+   - **한국산업인력공단_국가직무능력표준 정보_GW** (수행준거·KSA **권장**)  
+     - https://www.data.go.kr/data/15157547/openapi.do  
+     - Base URL: `https://apis.data.go.kr/B490007/ncsInfo`  
+     - 오퍼레이션: `/ncsKsaInfo`(수행준거·KSA), `/ncsCompeUnitFactrInfo`(능력단위요소) 등  
+     - 요청: `serviceKey`, `dutyCd`(8자리), `compUnitCd`(2자리, 선택), `returnType=json`  
+   - **한국산업인력공단_국가직무능력표준 정보** (구 openapi5, 폴백)  
      - https://www.data.go.kr/data/3072161/openapi.do  
      - 서비스 URL: `http://www.ncs.go.kr/api/openapi5.do`  
      - 요청: `ServiceKey`, `dutyCd`(8자리 직무코드) 등  

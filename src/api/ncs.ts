@@ -236,6 +236,9 @@ const NCS_TRAINING_API_BASE = 'https://apis.data.go.kr/B490007/ncsTrainingCource
 /** NCS 기준정보조회 API (15128213) — 전체 분류체계. env NCS_CLASSIFICATION_API_BASE 로 덮을 수 있음. */
 const NCS_CLASSIFICATION_API_BASE_DEFAULT = 'http://apis.data.go.kr/B490007/hrdkapi';
 
+/** 국가직무능력표준 정보_GW (15157547) — 수행준거·KSA. env NCS_INFO_GW_API_BASE 로 덮을 수 있음. */
+const NCS_INFO_GW_API_BASE_DEFAULT = 'https://apis.data.go.kr/B490007/ncsInfo';
+
 function parseClassificationItems(raw: unknown): Record<string, unknown>[] {
     if (!raw || typeof raw !== 'object') return [];
 
@@ -578,19 +581,527 @@ async function fetchNcsUnitElements(
     return [];
 }
 
-/** NCS008: 능력단위 요소별 평가준거·수행준거, 지식, 기술, 태도 (HRD 분류 API 필드명은 버전에 따라 다를 수 있음) */
-async function fetchNcsPerformanceCriteria(
-    apiKey: string,
-    ncsClCd: string,
-    baseUrl?: string
-): Promise<{
+type NcsCriteriaDetailRow = {
     elemCode: string;
     evaluationCriteriaText: string;
     criteriaText: string;
     knowledgeText: string;
     skillText: string;
     attitudeText: string;
-}[]> {
+};
+
+function keepNcsCriteriaDetailRow(e: NcsCriteriaDetailRow): boolean {
+    return (
+        !!e.elemCode &&
+        !!(
+            e.evaluationCriteriaText ||
+            e.criteriaText ||
+            e.knowledgeText ||
+            (e.skillText || '').trim() ||
+            (e.attitudeText || '').trim()
+        )
+    );
+}
+
+/** 능력단위코드 → openapi5 dutyCd(8)·compUnitCd(2) */
+function parseNcsDutyCompUnit(ncsClCd: string): { dutyCd: string; compUnitCd: string; unitBase: string } | null {
+    const unitBase = String(ncsClCd || '')
+        .trim()
+        .split('_')[0];
+    if (!/^\d{10}$/.test(unitBase)) return null;
+    return {
+        unitBase,
+        dutyCd: unitBase.slice(0, 8),
+        compUnitCd: unitBase.slice(8, 10),
+    };
+}
+
+/** openapi5 URL 조립 — ServiceKey 이중 인코딩 방지(공공데이터 Decoding 키 기준) */
+function buildOpenApi5RequestUrl(
+    endpoint: string,
+    serviceKey: string,
+    params: { pageNo: number; numOfRows: number; dutyCd: string; compUnitCd?: string }
+): string {
+    const decoded = decodeServiceKey(serviceKey);
+    // Encoding 키(%3D 등)가 그대로 온 경우 재인코딩하지 않음
+    const keyPart = decoded.includes('%') ? decoded : encodeURIComponent(decoded);
+    const parts = [
+        `ServiceKey=${keyPart}`,
+        `pageNo=${params.pageNo}`,
+        `numOfRows=${params.numOfRows}`,
+        `returnType=json`,
+        `dutyCd=${encodeURIComponent(params.dutyCd)}`,
+    ];
+    if (params.compUnitCd) parts.push(`compUnitCd=${encodeURIComponent(params.compUnitCd)}`);
+    return `${endpoint}?${parts.join('&')}`;
+}
+
+function parseOpenApi5JsonList(json: any): {
+    list: Record<string, unknown>[];
+    infoCode: string;
+    infoMessage: string;
+    totalPage: number;
+} {
+    const info = json?.dataInfo || json?.header || {};
+    const infoCode = String(info.code ?? info.resultCode ?? json?.code ?? '').trim();
+    const infoMessage = String(info.message ?? info.resultMsg ?? json?.messege ?? json?.message ?? '').trim();
+    let list: Record<string, unknown>[] = [];
+    if (Array.isArray(json)) list = json as Record<string, unknown>[];
+    else if (Array.isArray(json?.data?.row)) list = json.data.row;
+    else if (json?.data?.row && typeof json.data.row === 'object') list = [json.data.row];
+    else if (Array.isArray(json?.data)) list = json.data;
+    else if (Array.isArray(json?.response?.body?.items?.item)) list = json.response.body.items.item;
+    else if (json?.response?.body?.items?.item && typeof json.response.body.items.item === 'object') {
+        list = [json.response.body.items.item];
+    } else list = parseClassificationItems(json);
+    // 응답이 행 배열이면서 각 행에 code/totCnt 메타만 있는 경우 필터
+    list = list.filter((r) => r && typeof r === 'object' && (rowVal(r, 'gbnVal', 'GBN_VAL', 'compUnitFactrName', 'compUnitFactrNo') || rowVal(r, 'gbnName', 'GBN_NAME')));
+    const totalPage = Number(info.totalPage ?? json?.totalPage ?? list[0]?.totalPage ?? 1);
+    return {
+        list,
+        infoCode,
+        infoMessage,
+        totalPage: Number.isFinite(totalPage) && totalPage > 0 ? totalPage : 1,
+    };
+}
+
+/** 15157547 GW URL 조립 — serviceKey 이중 인코딩 방지 */
+function buildNcsInfoGwRequestUrl(
+    endpointPath: string,
+    serviceKey: string,
+    params: { pageNo: number; numOfRows: number; dutyCd: string; compUnitCd?: string },
+    baseUrl?: string
+): string {
+    const base = (baseUrl || NCS_INFO_GW_API_BASE_DEFAULT).replace(/\/$/, '');
+    const decoded = decodeServiceKey(serviceKey);
+    const keyPart = decoded.includes('%') ? decoded : encodeURIComponent(decoded);
+    const parts = [
+        `serviceKey=${keyPart}`,
+        `pageNo=${params.pageNo}`,
+        `numOfRows=${params.numOfRows}`,
+        `returnType=json`,
+        `dutyCd=${encodeURIComponent(params.dutyCd)}`,
+    ];
+    if (params.compUnitCd) parts.push(`compUnitCd=${encodeURIComponent(params.compUnitCd)}`);
+    const path = endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`;
+    return `${base}${path}?${parts.join('&')}`;
+}
+
+/**
+ * 공공데이터 15157547 국가직무능력표준 정보_GW — /ncsKsaInfo (수행준거·KSA).
+ * openapi5(3072161)와 동일 필드를 GW 게이트웨이로 제공.
+ */
+async function fetchNcsCriteriaFromInfoGw(
+    apiKey: string,
+    ncsClCd: string,
+    baseUrl?: string
+): Promise<NcsCriteriaDetailRow[]> {
+    const parsed = parseNcsDutyCompUnit(ncsClCd);
+    if (!parsed) return [];
+    const attempts: { dutyCd: string; compUnitCd?: string }[] = [
+        { dutyCd: parsed.dutyCd, compUnitCd: parsed.compUnitCd },
+        { dutyCd: parsed.dutyCd },
+    ];
+
+    for (const attempt of attempts) {
+        const all: Record<string, unknown>[] = [];
+        let pageNo = 1;
+        let lastMsg = '';
+        for (;;) {
+            try {
+                const url = buildNcsInfoGwRequestUrl(
+                    '/ncsKsaInfo',
+                    apiKey,
+                    {
+                        pageNo,
+                        numOfRows: 100,
+                        dutyCd: attempt.dutyCd,
+                        compUnitCd: attempt.compUnitCd,
+                    },
+                    baseUrl
+                );
+                const res = await fetch(url);
+                if (!res.ok) {
+                    console.warn(`[ncsInfoGW] HTTP ${res.status} /ncsKsaInfo`);
+                    break;
+                }
+                const text = await res.text();
+                let json: any = null;
+                try {
+                    json = JSON.parse(text);
+                } catch {
+                    console.warn(`[ncsInfoGW] JSON parse fail`, text.slice(0, 120));
+                    break;
+                }
+                const parsedJson = parseOpenApi5JsonList(json);
+                lastMsg = parsedJson.infoMessage || parsedJson.infoCode;
+                if (
+                    parsedJson.infoCode &&
+                    parsedJson.infoCode !== '000' &&
+                    parsedJson.infoCode !== '00' &&
+                    parsedJson.infoCode !== '0' &&
+                    parsedJson.infoCode.toLowerCase() !== 'ok'
+                ) {
+                    console.warn(`[ncsInfoGW] API code=${parsedJson.infoCode} msg=${parsedJson.infoMessage}`);
+                    break;
+                }
+                if (!parsedJson.list.length) break;
+                all.push(...parsedJson.list);
+                if (pageNo >= parsedJson.totalPage || parsedJson.list.length < 100) break;
+                pageNo += 1;
+                if (pageNo > 20) break;
+            } catch (e) {
+                console.warn('[ncsInfoGW] fetch error', e);
+                break;
+            }
+        }
+        if (!all.length) {
+            if (lastMsg) {
+                console.warn(
+                    `[ncsInfoGW] empty ${ncsClCd} duty=${attempt.dutyCd} comp=${attempt.compUnitCd || '-'} (${lastMsg})`
+                );
+            }
+            continue;
+        }
+        let rows = all;
+        if (!attempt.compUnitCd) {
+            const want = parsed.compUnitCd;
+            rows = all.filter((r) => {
+                const cd = rowVal(r as any, 'compUnitCd', 'COMP_UNIT_CD');
+                return !cd || cd === want || cd.padStart(2, '0') === want;
+            });
+            if (!rows.length) rows = all;
+        }
+        const mapped = mapOpenApi5RowsToCriteria(ncsClCd, rows);
+        if (mapped.length) {
+            console.log(`[ncsInfoGW] ${ncsClCd} → ${mapped.length} elements via /ncsKsaInfo`);
+            return mapped;
+        }
+    }
+
+    console.warn(`[ncsInfoGW] empty for ${ncsClCd} (duty=${parsed.dutyCd}, comp=${parsed.compUnitCd})`);
+    return [];
+}
+
+/** /approved/check 용: 15157547 ncsInfo GW 스모크 */
+async function probeNcsInfoGwSmoke(
+    apiKey: string,
+    baseUrl?: string
+): Promise<{
+    ok: boolean;
+    status: string;
+    message: string;
+    detail?: Record<string, unknown>;
+}> {
+    const sampleDuty = '01010101';
+    const sampleComp = '02';
+    const sampleUnit = `${sampleDuty}${sampleComp}_13v1`;
+    try {
+        const url = buildNcsInfoGwRequestUrl(
+            '/ncsKsaInfo',
+            apiKey,
+            { pageNo: 1, numOfRows: 5, dutyCd: sampleDuty, compUnitCd: sampleComp },
+            baseUrl
+        );
+        const res = await fetch(url);
+        const text = await res.text();
+        let json: any = null;
+        try {
+            json = JSON.parse(text);
+        } catch {
+            return {
+                ok: false,
+                status: 'parse_error',
+                message: 'ncsInfo GW 응답이 JSON이 아닙니다.',
+                detail: { httpStatus: res.status, bodyPreview: text.slice(0, 200) },
+            };
+        }
+        const parsed = parseOpenApi5JsonList(json);
+        if (!res.ok) {
+            return {
+                ok: false,
+                status: 'http_error',
+                message: `ncsInfo GW HTTP ${res.status}`,
+                detail: { infoCode: parsed.infoCode, infoMessage: parsed.infoMessage },
+            };
+        }
+        if (
+            parsed.infoCode &&
+            parsed.infoCode !== '000' &&
+            parsed.infoCode !== '00' &&
+            parsed.infoCode !== '0' &&
+            parsed.infoCode.toLowerCase() !== 'ok'
+        ) {
+            return {
+                ok: false,
+                status: 'api_error',
+                message: `ncsInfo GW 오류: ${parsed.infoMessage || parsed.infoCode}. 15157547 활용승인·인증키(Decoding)를 확인하세요.`,
+                detail: { infoCode: parsed.infoCode, infoMessage: parsed.infoMessage },
+            };
+        }
+        const mapped = mapOpenApi5RowsToCriteria(sampleUnit, parsed.list);
+        if (!parsed.list.length) {
+            return {
+                ok: false,
+                status: 'ok_no_data',
+                message: 'ncsInfo GW는 응답했으나 샘플 직무(01010101) 데이터가 0건입니다.',
+                detail: { infoCode: parsed.infoCode },
+            };
+        }
+        return {
+            ok: mapped.length > 0 || parsed.list.length > 0,
+            status: mapped.length > 0 ? 'ok' : 'ok_rows_no_gbnVal',
+            message:
+                mapped.length > 0
+                    ? 'ncsInfo GW(/ncsKsaInfo) 정상 — 수행준거 본문 조회 가능'
+                    : 'ncsInfo GW 행은 있으나 gbnVal 매핑 실패',
+            detail: {
+                rowCount: parsed.list.length,
+                criteriaElementCount: mapped.length,
+                sampleKeys: parsed.list[0] ? Object.keys(parsed.list[0]).slice(0, 20) : [],
+            },
+        };
+    } catch (e) {
+        return {
+            ok: false,
+            status: 'network_error',
+            message: 'ncsInfo GW 연결 실패(Workers→apis.data.go.kr).',
+            detail: { error: e instanceof Error ? e.message : String(e) },
+        };
+    }
+}
+
+function mapOpenApi5RowsToCriteria(ncsClCd: string, all: Record<string, unknown>[]): NcsCriteriaDetailRow[] {
+    type Acc = {
+        name: string;
+        perform: string[];
+        knowledge: string[];
+        skill: string[];
+        attitude: string[];
+        evalCrit: string[];
+    };
+    const byFactr = new Map<string, Acc>();
+    for (const raw of all) {
+        const r = raw as Record<string, unknown>;
+        const factrNo = rowVal(r, 'compUnitFactrNo', 'COMP_UNIT_FACTR_NO', 'compunitfactrno');
+        const factrName = rowVal(r, 'compUnitFactrName', 'COMP_UNIT_FACTR_NAME', 'compunitfactrname');
+        const gbnCd = rowVal(r, 'gbnCd', 'GBN_CD');
+        const gbnName = rowVal(r, 'gbnName', 'GBN_NAME');
+        const gbnVal = rowVal(r, 'gbnVal', 'GBN_VAL');
+        if (!gbnVal) continue;
+        const fk = factrNo || factrName || '1';
+        let acc = byFactr.get(fk);
+        if (!acc) {
+            acc = { name: factrName, perform: [], knowledge: [], skill: [], attitude: [], evalCrit: [] };
+            byFactr.set(fk, acc);
+        }
+        if (factrName && !acc.name) acc.name = factrName;
+        const nm = gbnName.replace(/\s+/g, '');
+        if (gbnCd === '00' || nm.includes('수행')) acc.perform.push(gbnVal);
+        else if (gbnCd === '01' || nm.includes('지식')) acc.knowledge.push(gbnVal);
+        else if (gbnCd === '02' || nm.includes('기술')) acc.skill.push(gbnVal);
+        else if (gbnCd === '03' || nm.includes('태도')) acc.attitude.push(gbnVal);
+        else if (nm.includes('평가')) acc.evalCrit.push(gbnVal);
+        else acc.perform.push(gbnVal);
+    }
+
+    const unitCode = String(ncsClCd || '').trim();
+    const out: NcsCriteriaDetailRow[] = [];
+    for (const [factrNo, acc] of byFactr) {
+        const seqNum = parseInt(String(factrNo).replace(/\D/g, ''), 10);
+        const seq =
+            Number.isFinite(seqNum) && seqNum > 0
+                ? String(seqNum).padStart(2, '0')
+                : String(factrNo).padStart(2, '0');
+        out.push({
+            elemCode: `${unitCode}_${seq}`,
+            evaluationCriteriaText: acc.evalCrit.join('\n'),
+            criteriaText: acc.perform.join('\n'),
+            knowledgeText: acc.knowledge.join('\n'),
+            skillText: acc.skill.join('\n'),
+            attitudeText: acc.attitude.join('\n'),
+        });
+    }
+    return out.filter(keepNcsCriteriaDetailRow);
+}
+
+/**
+ * ncs.go.kr openapi5.do — 수행준거·KSA(지식/기술/태도).
+ * HRD NCS008에 평가준거 본문이 없을 때 사용 (공공데이터 3072161).
+ */
+async function fetchNcsCriteriaFromOpenApi5(apiKey: string, ncsClCd: string): Promise<NcsCriteriaDetailRow[]> {
+    const parsed = parseNcsDutyCompUnit(ncsClCd);
+    if (!parsed) return [];
+    const endpoints = ['https://www.ncs.go.kr/api/openapi5.do', 'http://www.ncs.go.kr/api/openapi5.do'];
+    // compUnitCd 없이 직무 전체 → 필터, 또는 지정 코드
+    const attempts: { dutyCd: string; compUnitCd?: string }[] = [
+        { dutyCd: parsed.dutyCd, compUnitCd: parsed.compUnitCd },
+        { dutyCd: parsed.dutyCd },
+    ];
+
+    for (const endpoint of endpoints) {
+        for (const attempt of attempts) {
+            const all: Record<string, unknown>[] = [];
+            let pageNo = 1;
+            let lastMsg = '';
+            for (;;) {
+                try {
+                    const url = buildOpenApi5RequestUrl(endpoint, apiKey, {
+                        pageNo,
+                        numOfRows: 100,
+                        dutyCd: attempt.dutyCd,
+                        compUnitCd: attempt.compUnitCd,
+                    });
+                    const res = await fetch(url);
+                    if (!res.ok) {
+                        console.warn(`[openapi5] HTTP ${res.status} ${endpoint}`);
+                        break;
+                    }
+                    const text = await res.text();
+                    let json: any = null;
+                    try {
+                        json = JSON.parse(text);
+                    } catch {
+                        console.warn(`[openapi5] JSON parse fail ${endpoint}`, text.slice(0, 120));
+                        break;
+                    }
+                    const parsedJson = parseOpenApi5JsonList(json);
+                    lastMsg = parsedJson.infoMessage || parsedJson.infoCode;
+                    if (
+                        parsedJson.infoCode &&
+                        parsedJson.infoCode !== '000' &&
+                        parsedJson.infoCode !== '00' &&
+                        parsedJson.infoCode.toLowerCase() !== 'ok'
+                    ) {
+                        console.warn(`[openapi5] API code=${parsedJson.infoCode} msg=${parsedJson.infoMessage}`);
+                        break;
+                    }
+                    if (!parsedJson.list.length) break;
+                    all.push(...parsedJson.list);
+                    if (pageNo >= parsedJson.totalPage || parsedJson.list.length < 100) break;
+                    pageNo += 1;
+                    if (pageNo > 20) break;
+                } catch (e) {
+                    console.warn('[openapi5] fetch error', endpoint, e);
+                    break;
+                }
+            }
+            if (!all.length) {
+                if (lastMsg) console.warn(`[openapi5] empty ${ncsClCd} duty=${attempt.dutyCd} comp=${attempt.compUnitCd || '-'} (${lastMsg})`);
+                continue;
+            }
+            // compUnitCd 없이 받은 경우 해당 능력단위만 남김
+            let rows = all;
+            if (!attempt.compUnitCd) {
+                const want = parsed.compUnitCd;
+                rows = all.filter((r) => {
+                    const cd = rowVal(r as any, 'compUnitCd', 'COMP_UNIT_CD');
+                    return !cd || cd === want || cd.padStart(2, '0') === want;
+                });
+                if (!rows.length) rows = all;
+            }
+            const mapped = mapOpenApi5RowsToCriteria(ncsClCd, rows);
+            if (mapped.length) {
+                console.log(`[openapi5] ${ncsClCd} → ${mapped.length} elements via ${endpoint}`);
+                return mapped;
+            }
+        }
+    }
+
+    console.warn(`[openapi5] empty for ${ncsClCd} (duty=${parsed.dutyCd}, comp=${parsed.compUnitCd})`);
+    return [];
+}
+
+/** /approved/check 용: openapi5(3072161) 연결·본문 확보 스모크 */
+async function probeOpenApi5Smoke(apiKey: string): Promise<{
+    ok: boolean;
+    status: string;
+    message: string;
+    detail?: Record<string, unknown>;
+}> {
+    const sampleDuty = '01010101';
+    const sampleComp = '02';
+    const sampleUnit = `${sampleDuty}${sampleComp}_13v1`;
+    try {
+        const url = buildOpenApi5RequestUrl('https://www.ncs.go.kr/api/openapi5.do', apiKey, {
+            pageNo: 1,
+            numOfRows: 5,
+            dutyCd: sampleDuty,
+            compUnitCd: sampleComp,
+        });
+        const res = await fetch(url);
+        const text = await res.text();
+        let json: any = null;
+        try {
+            json = JSON.parse(text);
+        } catch {
+            return {
+                ok: false,
+                status: 'parse_error',
+                message: 'openapi5 응답이 JSON이 아닙니다(네트워크/차단 가능).',
+                detail: { httpStatus: res.status, bodyPreview: text.slice(0, 200) },
+            };
+        }
+        const parsed = parseOpenApi5JsonList(json);
+        if (!res.ok) {
+            return {
+                ok: false,
+                status: 'http_error',
+                message: `openapi5 HTTP ${res.status}`,
+                detail: { infoCode: parsed.infoCode, infoMessage: parsed.infoMessage },
+            };
+        }
+        if (
+            parsed.infoCode &&
+            parsed.infoCode !== '000' &&
+            parsed.infoCode !== '00' &&
+            parsed.infoCode.toLowerCase() !== 'ok'
+        ) {
+            return {
+                ok: false,
+                status: 'api_error',
+                message: `openapi5 오류: ${parsed.infoMessage || parsed.infoCode}. 인증키(Decoding)·3072161 활용승인·키 재등록을 확인하세요.`,
+                detail: { infoCode: parsed.infoCode, infoMessage: parsed.infoMessage },
+            };
+        }
+        const mapped = mapOpenApi5RowsToCriteria(sampleUnit, parsed.list);
+        if (!parsed.list.length) {
+            return {
+                ok: false,
+                status: 'ok_no_data',
+                message: 'openapi5는 응답했으나 샘플 직무(01010101) 데이터가 0건입니다.',
+                detail: { infoCode: parsed.infoCode },
+            };
+        }
+        return {
+            ok: mapped.length > 0 || parsed.list.length > 0,
+            status: mapped.length > 0 ? 'ok' : 'ok_rows_no_gbnVal',
+            message:
+                mapped.length > 0
+                    ? 'openapi5(수행준거) 정상 — 평가준거 본문 조회 가능'
+                    : 'openapi5 행은 있으나 gbnVal(수행준거) 매핑 실패',
+            detail: {
+                rowCount: parsed.list.length,
+                criteriaElementCount: mapped.length,
+                sampleKeys: parsed.list[0] ? Object.keys(parsed.list[0]).slice(0, 20) : [],
+            },
+        };
+    } catch (e) {
+        return {
+            ok: false,
+            status: 'network_error',
+            message: 'openapi5 연결 실패(Workers→ncs.go.kr).',
+            detail: { error: e instanceof Error ? e.message : String(e) },
+        };
+    }
+}
+
+/** NCS008: 능력단위 요소별 평가준거·수행준거, 지식, 기술, 태도 (HRD 분류 API 필드명은 버전에 따라 다를 수 있음) */
+async function fetchNcsPerformanceCriteria(
+    apiKey: string,
+    ncsClCd: string,
+    baseUrl?: string
+): Promise<NcsCriteriaDetailRow[]> {
     const key = decodeServiceKey(apiKey);
     const base = (baseUrl || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
 
@@ -603,8 +1114,8 @@ async function fetchNcsPerformanceCriteria(
         return '';
     };
 
-    const mapNcs008Row = (r: any) => ({
-        elemCode: getVal(r, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD'),
+    const mapNcs008Row = (r: any): NcsCriteriaDetailRow => ({
+        elemCode: getVal(r, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD', 'compeUnitElemCd', 'ncsClElemCd'),
         evaluationCriteriaText: getVal(
             r,
             'EVALUAT_CRIT_CONT',
@@ -615,33 +1126,28 @@ async function fetchNcsPerformanceCriteria(
             'EVAL_CRITERIA',
             'EVALUAT_CRITERIA',
             'EVL_CRIT_CONT',
-            'EVL_CRITERIA_CONT'
+            'EVL_CRITERIA_CONT',
+            'evaluatCritCont',
+            'evalCritCont'
         ),
-        criteriaText: getVal(r, 'PERFORMAN_CRIT_CONT', 'PERFORM_CRITERIA', 'CRITERIA_CONT', 'CRITERIA'),
-        knowledgeText: getVal(r, 'KNOWLEDGE_CONT', 'KNOWLEDGE', 'KNOW_CONT'),
-        skillText: getVal(r, 'SKILL_CONT', 'SKILL', 'SKILL_CONT'),
-        attitudeText: getVal(r, 'ATTITUDE_CONT', 'ATTITUDE', 'ATTIT_CONT')
+        criteriaText: getVal(
+            r,
+            'PERFORMAN_CRIT_CONT',
+            'PERFORM_CRITERIA',
+            'CRITERIA_CONT',
+            'CRITERIA',
+            'performanCritCont',
+            'performCritCont',
+            'gbnVal' // openapi5 형식 혼재 대비
+        ),
+        knowledgeText: getVal(r, 'KNOWLEDGE_CONT', 'KNOWLEDGE', 'KNOW_CONT', 'knowledgeCont'),
+        skillText: getVal(r, 'SKILL_CONT', 'SKILL', 'skillCont'),
+        attitudeText: getVal(r, 'ATTITUDE_CONT', 'ATTITUDE', 'ATTIT_CONT', 'attitudeCont')
     });
 
-    const keepRow = (e: {
-        elemCode: string;
-        evaluationCriteriaText: string;
-        criteriaText: string;
-        knowledgeText: string;
-        skillText?: string;
-        attitudeText?: string;
-    }) =>
-        !!e.elemCode &&
-        !!(
-            e.evaluationCriteriaText ||
-            e.criteriaText ||
-            e.knowledgeText ||
-            (e.skillText || '').trim() ||
-            (e.attitudeText || '').trim()
-        );
-
+    // 1) 기준정보 NCS008 우선 (15128213 — 현재 키로 분류 API가 되는 경로)
     const baseCode = ncsClCd.split('_')[0];
-    const ops = ['NCS008', 'getNcsCompeUnitElemDtlList', 'getNcsCompeUnitElemList']; // 008 is standard for details
+    const ops = ['NCS008', 'getNcsCompeUnitElemDtlList'];
     const paramNames = ['ncsClCd', 'NCS_CL_CD', 'COMPE_UNIT_CD'];
 
     for (const op of ops) {
@@ -649,23 +1155,73 @@ async function fetchNcsPerformanceCriteria(
             try {
                 const list = await fetchClassificationAllPages(base, key, op, { [pName]: ncsClCd });
                 if (list.length > 0) {
-                    console.log(`[CRITERIA] Found ${list.length} via ${op}(${pName}=${ncsClCd})`);
-                    return list.map(mapNcs008Row).filter(keepRow);
+                    const mapped = list.map(mapNcs008Row).filter(keepNcsCriteriaDetailRow);
+                    if (mapped.length) {
+                        console.log(`[CRITERIA] Found ${mapped.length} via ${op}(${pName}=${ncsClCd})`);
+                        return mapped;
+                    }
+                    // 매핑 실패해도 원본에 긴 텍스트가 있으면 첫 문자열 필드를 수행준거로 사용
+                    const loose: NcsCriteriaDetailRow[] = [];
+                    for (const row of list) {
+                        const elemCode = getVal(row, 'COMPE_UNIT_ELEM_CD', 'NCS_CL_ELEM_CD', 'ELEM_CD', 'compeUnitElemCd')
+                            || `${ncsClCd}_01`;
+                        let longest = '';
+                        for (const [k, v] of Object.entries(row as object)) {
+                            if (typeof v !== 'string') continue;
+                            const s = v.trim();
+                            const useful =
+                                s.length > 80 ||
+                                (k.toLowerCase().includes('cont') &&
+                                    s.length > longest.length &&
+                                    !/^(Y|N|\d{1,4})$/.test(s));
+                            if (useful && s.length > longest.length) longest = s;
+                        }
+                        if (longest) {
+                            loose.push({
+                                elemCode,
+                                evaluationCriteriaText: '',
+                                criteriaText: longest,
+                                knowledgeText: '',
+                                skillText: '',
+                                attitudeText: '',
+                            });
+                        }
+                    }
+                    if (loose.length) {
+                        console.log(`[CRITERIA] Loose-mapped ${loose.length} via ${op}`);
+                        return loose;
+                    }
                 }
             } catch (e) { /* ignore and try next */ }
         }
     }
 
-    // Try baseCode if full code failed
     if (baseCode !== ncsClCd) {
         for (const op of ops) {
             try {
                 const list = await fetchClassificationAllPages(base, key, op, { [paramNames[0]]: baseCode });
                 if (list.length > 0) {
-                    return list.map(mapNcs008Row).filter(keepRow);
+                    const mapped = list.map(mapNcs008Row).filter(keepNcsCriteriaDetailRow);
+                    if (mapped.length) return mapped;
                 }
             } catch (e) { }
         }
+    }
+
+    // 2) 국가직무능력표준 정보_GW (15157547) — /ncsKsaInfo 수행준거·KSA (권장)
+    try {
+        const fromGw = await fetchNcsCriteriaFromInfoGw(apiKey, ncsClCd);
+        if (fromGw.length) return fromGw;
+    } catch (e) {
+        console.warn('[CRITERIA] ncsInfo GW failed', ncsClCd, e);
+    }
+
+    // 3) openapi5 폴백 (3072161 — 개발계정에서 ACCESS DENIED 날 수 있음)
+    try {
+        const fromOpenApi5 = await fetchNcsCriteriaFromOpenApi5(apiKey, ncsClCd);
+        if (fromOpenApi5.length) return fromOpenApi5;
+    } catch (e) {
+        console.warn('[CRITERIA] openapi5 failed', ncsClCd, e);
     }
 
     console.warn(`[CRITERIA] Failed for ${ncsClCd}`);
@@ -1039,6 +1595,17 @@ const FALLBACK_ELEMENTS: Record<string, { code: string; name: string }[]> = {
         { code: '1501020125_19v3_02', name: '3D 부품 모델링하기' },
         { code: '1501020125_19v3_03', name: '3D 조립 모델링 및 모델링 검토하기' }
     ],
+    // 구코드(1501020113) — 동일 능력단위「3D형상모델링작업」의 신코드(1501020125) 요소
+    '1501020113_16v3': [
+        { code: '1501020125_19v3_01', name: '3D 형상 모델링 준비하기' },
+        { code: '1501020125_19v3_02', name: '3D 부품 모델링하기' },
+        { code: '1501020125_19v3_03', name: '3D 조립 모델링 및 모델링 검토하기' }
+    ],
+    '1501020113': [
+        { code: '1501020125_19v3_01', name: '3D 형상 모델링 준비하기' },
+        { code: '1501020125_19v3_02', name: '3D 부품 모델링하기' },
+        { code: '1501020125_19v3_03', name: '3D 조립 모델링 및 모델링 검토하기' }
+    ],
     '1501020123_19v2': [
         { code: '1501020123_19v2_01', name: '2D 도면 작성하기' },
         { code: '1501020123_19v2_02', name: '부품도 상세 기입하기' },
@@ -1250,15 +1817,34 @@ app.get('/approved/check', async (c) => {
     }
     const ncsLclasCd = c.req.query('ncsLclasCd') || '15';
     const key = decodeServiceKey(rawKey);
-    const params = new URLSearchParams({
-        serviceKey: key,
-        pageNo: '1',
-        numOfRows: '10',
-        returnType: 'json',
-        ncsLclasCd
-    });
+    const keyMeta = {
+        length: rawKey.length,
+        decodedLength: key.length,
+        hasPercent: rawKey.includes('%'),
+        prefix: rawKey.slice(0, 4),
+        suffix: rawKey.slice(-4),
+        /** Encoding 키처럼 보이면 true */
+        looksEncoded: /%[0-9A-Fa-f]{2}/.test(rawKey),
+    };
+    // 공공 API는 serviceKey를 URL에 붙일 때 Encoding/Decoding 혼선이 잦아 두 방식을 모두 시도
+    const tryTrainingFetch = async (serviceKeyForUrl: string) => {
+        const url =
+            `${NCS_TRAINING_API_BASE}?serviceKey=${serviceKeyForUrl}` +
+            `&pageNo=1&numOfRows=10&returnType=json&ncsLclasCd=${encodeURIComponent(ncsLclasCd)}`;
+        return fetch(url);
+    };
     try {
-        const res = await fetch(`${NCS_TRAINING_API_BASE}?${params.toString()}`);
+        let res = await tryTrainingFetch(key.includes('%') ? key : encodeURIComponent(key));
+        let keyMode = key.includes('%') ? 'as-is-encoded' : 'encodeURIComponent(decoded)';
+        if (!res.ok && res.status === 403) {
+            // 반대 방식 재시도
+            const alt = rawKey.includes('%') ? encodeURIComponent(key) : rawKey;
+            const res2 = await tryTrainingFetch(alt);
+            if (res2.ok || res2.status !== 403) {
+                res = res2;
+                keyMode = rawKey.includes('%') ? 'encodeURIComponent(decoded)' : 'raw-as-stored';
+            }
+        }
         const httpOk = res.ok;
         let resultCode = '';
         let resultMsg = '';
@@ -1311,20 +1897,127 @@ app.get('/approved/check', async (c) => {
         }
         const fromApi = httpOk && !resultCode ? await fetchNcsTrainingByLarge(rawKey, ncsLclasCd) : [];
         itemCount = fromApi.length;
+        // 훈련과정 API가 403이어도 기준정보·GW·openapi5는 별도 점검 (키 길이와 무관하게 서비스별 권한/게이트웨이가 다름)
+        const infoGwBase = (c.env as { NCS_INFO_GW_API_BASE?: string }).NCS_INFO_GW_API_BASE?.trim();
+        const ncsInfoGw = await probeNcsInfoGwSmoke(rawKey, infoGwBase);
+        const openapi5 = await probeOpenApi5Smoke(rawKey);
+        const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+        let classificationOk = false;
+        let classificationCount = 0;
+        try {
+            const mid = await fetchNcsLargeClasses(rawKey, classificationBase);
+            classificationOk = Array.isArray(mid) && mid.length > 0;
+            classificationCount = mid?.length || 0;
+        } catch {
+            classificationOk = false;
+        }
+        // 평가준거: openapi5 실패 시에도 기준정보 NCS008이 되면 본문 확보 가능
+        let ncs008Smoke: { ok: boolean; count: number; sampleElem?: string; message: string } = {
+            ok: false,
+            count: 0,
+            message: '미실행',
+        };
+        try {
+            const sampleUnit = '1501020125_19v3';
+            // openapi5를 건너뛰고 NCS008만 보려면 임시로 빈 키 경로가 아니라 직접 classification fetch 사용
+            const base = (classificationBase || NCS_CLASSIFICATION_API_BASE_DEFAULT).replace(/\/$/, '');
+            const keyDecoded = decodeServiceKey(rawKey);
+            let rows: Record<string, unknown>[] = [];
+            for (const op of ['NCS008', 'getNcsCompeUnitElemDtlList']) {
+                for (const pName of ['ncsClCd', 'NCS_CL_CD']) {
+                    try {
+                        const list = await fetchClassificationAllPages(base, keyDecoded, op, { [pName]: sampleUnit });
+                        if (list.length) {
+                            rows = list;
+                            break;
+                        }
+                    } catch {
+                        /* next */
+                    }
+                }
+                if (rows.length) break;
+            }
+            const sampleKeys = rows[0] ? Object.keys(rows[0]).slice(0, 25) : [];
+            const hasText = rows.some((r) =>
+                Object.values(r).some((v) => typeof v === 'string' && String(v).trim().length > 40)
+            );
+            ncs008Smoke = {
+                ok: rows.length > 0,
+                count: rows.length,
+                sampleElem: sampleKeys.join(','),
+                message: rows.length
+                    ? hasText
+                        ? `NCS008 ${rows.length}행 (긴 텍스트 필드 있음) — 평가준거 후보`
+                        : `NCS008 ${rows.length}행 (키: ${sampleKeys.slice(0, 8).join(',')})`
+                    : 'NCS008 0건 — 기준정보 상세 오퍼레이션 응답 없음',
+            };
+        } catch (e) {
+            ncs008Smoke = {
+                ok: false,
+                count: 0,
+                message: e instanceof Error ? e.message : String(e),
+            };
+        }
+
         if (!httpOk) {
+            let bodySnippet = '';
+            try {
+                bodySnippet = (await res.clone().text()).slice(0, 240);
+            } catch {
+                /* */
+            }
+            const partialOk = ncsInfoGw.ok || openapi5.ok || classificationOk;
             return c.json({
-                success: false,
-                publicApi: 'http_error',
-                message: '공공 API 서버 HTTP 오류입니다.',
-                detail: { status: res.status, statusText: res.statusText }
+                success: partialOk,
+                publicApi: partialOk ? 'partial' : 'http_error',
+                message: partialOk
+                    ? '훈련과정 API는 실패했지만, 기준정보/ncsInfo GW/openapi5 중 일부는 동작합니다. 수행준거는 ncsInfo GW(/ncsKsaInfo)가 핵심입니다.'
+                    : '공공 API 서버 HTTP 오류입니다. 인증키 값·Production 환경 저장 여부를 확인하세요.',
+                detail: {
+                    status: res.status,
+                    statusText: res.statusText,
+                    bodySnippet,
+                    keyMeta,
+                    keyMode,
+                    trainingApi: 'fail',
+                    classificationApi: classificationOk ? 'ok' : 'fail',
+                    classificationCount,
+                },
+                /** 15157547 국가직무능력표준 정보_GW — 수행준거·KSA */
+                ncsInfoGw: {
+                    ok: ncsInfoGw.ok,
+                    status: ncsInfoGw.status,
+                    message: ncsInfoGw.message,
+                    detail: ncsInfoGw.detail,
+                },
+                openapi5: {
+                    ok: openapi5.ok,
+                    status: openapi5.status,
+                    message: openapi5.message,
+                    detail: openapi5.detail,
+                },
+                ncs008: ncs008Smoke,
             });
         }
         if (resultCode && resultCode !== '00' && resultCode.toLowerCase() !== 'ok') {
             return c.json({
-                success: false,
+                success: ncsInfoGw.ok || openapi5.ok || classificationOk,
                 publicApi: 'api_error',
-                message: '공공 API가 오류를 반환했습니다. 인증키·요청 파라미터를 확인하세요.',
-                detail: { resultCode, resultMsg }
+                message: '훈련과정 API가 오류를 반환했습니다. 인증키·요청 파라미터를 확인하세요.',
+                detail: { resultCode, resultMsg, keyMeta, keyMode },
+                ncsInfoGw: {
+                    ok: ncsInfoGw.ok,
+                    status: ncsInfoGw.status,
+                    message: ncsInfoGw.message,
+                    detail: ncsInfoGw.detail,
+                },
+                openapi5: {
+                    ok: openapi5.ok,
+                    status: openapi5.status,
+                    message: openapi5.message,
+                    detail: openapi5.detail,
+                },
+                ncs008: ncs008Smoke,
             });
         }
         if (itemCount === 0 && rawItemCount === 0) {
@@ -1332,14 +2025,51 @@ app.get('/approved/check', async (c) => {
                 success: true,
                 publicApi: 'ok_no_data',
                 message: '공공 API는 응답했으나 해당 대분류(' + ncsLclasCd + ')에 항목이 0건이거나, 응답 구조가 다릅니다.',
-                detail: { ncsLclasCd, parsedItemCount: itemCount, rawItemCount, responseKeys, bodyKeys, firstRawItemKeys, firstRawItemSample }
+                detail: { ncsLclasCd, parsedItemCount: itemCount, rawItemCount, responseKeys, bodyKeys, firstRawItemKeys, firstRawItemSample, keyMeta, keyMode },
+                ncsInfoGw: {
+                    ok: ncsInfoGw.ok,
+                    status: ncsInfoGw.status,
+                    message: ncsInfoGw.message,
+                    detail: ncsInfoGw.detail,
+                },
+                openapi5: {
+                    ok: openapi5.ok,
+                    status: openapi5.status,
+                    message: openapi5.message,
+                    detail: openapi5.detail,
+                },
+                ncs008: ncs008Smoke,
             });
         }
         return c.json({
             success: true,
             publicApi: 'ok',
             message: '공공 API 정상 동작 중입니다.',
-            detail: { ncsLclasCd, itemCount, firstRawItemKeys, firstRawItemSample }
+            detail: {
+                ncsLclasCd,
+                itemCount,
+                firstRawItemKeys,
+                firstRawItemSample,
+                keyMeta,
+                keyMode,
+                classificationApi: classificationOk ? 'ok' : 'fail',
+                classificationCount,
+            },
+            /** 15157547 국가직무능력표준 정보_GW — 수행준거·KSA */
+            ncsInfoGw: {
+                ok: ncsInfoGw.ok,
+                status: ncsInfoGw.status,
+                message: ncsInfoGw.message,
+                detail: ncsInfoGw.detail,
+            },
+            /** 3072161 국가직무능력표준 정보(openapi5) — 폴백 */
+            openapi5: {
+                ok: openapi5.ok,
+                status: openapi5.status,
+                message: openapi5.message,
+                detail: openapi5.detail,
+            },
+            ncs008: ncs008Smoke,
         });
     } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
@@ -1347,7 +2077,7 @@ app.get('/approved/check', async (c) => {
             success: false,
             publicApi: 'network_error',
             message: '공공 API 연결 실패(네트워크/타임아웃 등)입니다.',
-            detail: errMsg
+            detail: { errMsg, keyMeta }
         });
     }
 });
@@ -1724,8 +2454,12 @@ app.get('/approved/debug/unit-criteria', authMiddleware, requireAdmin, async (c)
         }
 
         const ncs006 = await fetchNcsUnitElements(rawKey, unitCode, classificationBase);
+        const infoGwBase = (c.env as { NCS_INFO_GW_API_BASE?: string }).NCS_INFO_GW_API_BASE?.trim();
+        const ncsInfoGwOnly = await fetchNcsCriteriaFromInfoGw(rawKey, unitCode, infoGwBase);
+        const openapi5Only = await fetchNcsCriteriaFromOpenApi5(rawKey, unitCode);
         const ncs008Production = await fetchNcsPerformanceCriteria(rawKey, unitCode, classificationBase);
         const ncs008Debug = await debugNcs008Inspection(rawKey, unitCode, classificationBase);
+        const dutyParsed = parseNcsDutyCompUnit(unitCode);
 
         const unitForEnrich: { code: string; elements?: unknown[] } = { code: unitCode, elements: [] };
         try {
@@ -1747,11 +2481,16 @@ app.get('/approved/debug/unit-criteria', authMiddleware, requireAdmin, async (c)
                 description:
                     '분류보기와 문서(훈련편성표) 수행준거 문구 차이·빈 열 원인 조사용. production fetchNcsPerformanceCriteria는 평가/수행/지식 중 하나 이상 있을 때만 행을 유지합니다.',
                 unitCode,
+                dutyComp: dutyParsed,
                 classificationApiBase: classificationBase || '(env 미설정 시 기본 URL)'
             },
             database: dbSnapshot,
             ncs006_element_count: ncs006.length,
             ncs006_elements: ncs006,
+            ncsInfoGw_row_count: ncsInfoGwOnly.length,
+            ncsInfoGw_production: ncsInfoGwOnly,
+            openapi5_row_count: openapi5Only.length,
+            openapi5_production: openapi5Only,
             ncs008_production_row_count: ncs008Production.length,
             ncs008_production: ncs008Production,
             ncs008_raw_inspection: ncs008Debug,
@@ -3743,6 +4482,65 @@ function normalizeEvalElementTitle(t: string): string {
         .replace(/\s+/g, ' ');
 }
 
+/**
+ * 능력단위요소 코드에서 소속 능력단위 코드 추론.
+ * 예: 1501020125_19v3_01 / 1501020125_19v3.01 → 1501020125_19v3
+ */
+function inferNcsUnitCodeFromElementCode(elemCode: string): string | null {
+    const c = String(elemCode || '').trim();
+    if (!c) return null;
+    const m = c.match(/^(\d{8,12}_[0-9]+v[0-9]+)[._]\d{1,3}$/i);
+    if (m) return m[1];
+    const m2 = c.match(/^(\d{8,12})[._]([0-9]+v[0-9]+)[._]\d{1,3}$/i);
+    if (m2) return `${m2[1]}_${m2[2]}`;
+    return null;
+}
+
+/** NCS008 행을 요소에 병합 (코드·이름 유연 매칭) */
+function mergeNcs008DetailsIntoElements(
+    els: any[],
+    details: {
+        elemCode: string;
+        evaluationCriteriaText: string;
+        criteriaText: string;
+        knowledgeText: string;
+        skillText: string;
+        attitudeText: string;
+    }[]
+): any[] {
+    if (!details.length) return els;
+    const findDetail = (elemCode: string) =>
+        details.find((det) => {
+            const dc = String(det.elemCode || '').trim();
+            if (!dc) return false;
+            const ec = String(elemCode || '').trim();
+            if (ec && (dc === ec || dc.endsWith(ec) || ec.endsWith(dc) || ec.startsWith(dc) || dc.startsWith(ec.split('_').pop() || ''))) {
+                return true;
+            }
+            const short = ec.split(/[._]/).pop() || '';
+            if (short && (dc === short || dc.endsWith(short) || dc.endsWith('_' + short))) return true;
+            return false;
+        });
+    return els.map((e) => {
+        if (elementHasCriteriaBody(e)) return e;
+        const d = findDetail(String(e?.code || ''));
+        if (!d) return e;
+        return {
+            ...e,
+            evaluationCriteriaText: d.evaluationCriteriaText || e.evaluationCriteriaText,
+            evaluation_criteria_text: d.evaluationCriteriaText || e.evaluation_criteria_text,
+            criteriaText: d.criteriaText || e.criteriaText,
+            criteria_text: d.criteriaText || e.criteria_text,
+            knowledgeText: d.knowledgeText || e.knowledgeText,
+            knowledge_text: d.knowledgeText || e.knowledge_text,
+            skillText: d.skillText || e.skillText,
+            skill_text: d.skillText || e.skill_text,
+            attitudeText: d.attitudeText || e.attitudeText,
+            attitude_text: d.attitudeText || e.attitude_text,
+        };
+    });
+}
+
 /** 요소에 평가준거·수행준거 본문이 있는지 */
 function elementHasCriteriaBody(el: any): boolean {
     const evalCrit = String(el?.evaluation_criteria_text || el?.evaluationCriteriaText || '').trim();
@@ -3765,11 +4563,14 @@ async function enrichUnitElementsWithCriteria(
     classificationBase?: string,
 ): Promise<any[]> {
     let els = Array.isArray(elements) ? elements.map((e) => ({ ...e })) : [];
-    if (!els.length && apiKey) {
-        try {
-            els = await fetchNcsUnitElements(apiKey, unitCode, classificationBase);
-        } catch (e) {
-            console.warn('[eval-tool] NCS006 enrich failed', unitCode, e);
+    // 알려진 유닛은 로컬 fallback을 API보다 먼저 적용 (다단 재시도 지연 방지)
+    if (!els.length) {
+        const fb =
+            FALLBACK_ELEMENTS[unitCode] ||
+            FALLBACK_ELEMENTS[String(unitCode).split('_')[0]] ||
+            null;
+        if (fb?.length) {
+            els = fb.map((e) => ({ ...e }));
         }
     }
     if (!els.length) {
@@ -3778,6 +4579,13 @@ async function enrichUnitElementsWithCriteria(
             els = (results || []).map((row) => mapDbElementRow(row as any)).filter((e) => e.code || e.name);
         } catch (e) {
             console.warn('[eval-tool] table enrich failed', unitCode, e);
+        }
+    }
+    if (!els.length && apiKey) {
+        try {
+            els = await fetchNcsUnitElements(apiKey, unitCode, classificationBase);
+        } catch (e) {
+            console.warn('[eval-tool] NCS006 enrich failed', unitCode, e);
         }
     }
     if (!els.length) return els;
@@ -3823,45 +4631,104 @@ async function enrichUnitElementsWithCriteria(
         console.warn('[eval-tool] merge from table failed', unitCode, e);
     }
 
-    const stillNeeds = els.some((e) => !elementHasCriteriaBody(e));
+    let stillNeeds = els.some((e) => !elementHasCriteriaBody(e));
     if (stillNeeds && apiKey) {
         try {
             const details = await fetchNcsPerformanceCriteria(apiKey, unitCode, classificationBase);
             if (details.length) {
-                const findDetail = (elemCode: string, elemName: string) =>
-                    details.find((det) => {
-                        const dc = String(det.elemCode || '').trim();
-                        if (!dc) return false;
-                        const ec = String(elemCode || '').trim();
-                        if (ec && (dc === ec || dc.endsWith(ec) || ec.endsWith(dc) || ec.startsWith(dc) || dc.startsWith(ec.split('_').pop() || ''))) {
-                            return true;
-                        }
-                        // 일부 API는 요소코드 끝에 _01 / .01 만 줌
-                        const short = ec.split(/[._]/).pop() || '';
-                        if (short && (dc === short || dc.endsWith(short) || dc.endsWith('_' + short))) return true;
-                        return false;
-                    });
-                els = els.map((e) => {
-                    if (elementHasCriteriaBody(e)) return e;
-                    const d = findDetail(String(e?.code || ''), String(e?.name || ''));
-                    if (!d) return e;
-                    return {
-                        ...e,
-                        evaluationCriteriaText: d.evaluationCriteriaText || e.evaluationCriteriaText,
-                        evaluation_criteria_text: d.evaluationCriteriaText || e.evaluation_criteria_text,
-                        criteriaText: d.criteriaText || e.criteriaText,
-                        criteria_text: d.criteriaText || e.criteria_text,
-                        knowledgeText: d.knowledgeText || e.knowledgeText,
-                        knowledge_text: d.knowledgeText || e.knowledge_text,
-                        skillText: d.skillText || e.skillText,
-                        skill_text: d.skillText || e.skill_text,
-                        attitudeText: d.attitudeText || e.attitudeText,
-                        attitude_text: d.attitudeText || e.attitude_text,
-                    };
-                });
+                els = mergeNcs008DetailsIntoElements(els, details);
             }
         } catch (e) {
             console.warn('[eval-tool] NCS008 enrich failed', unitCode, e);
+        }
+    }
+
+    // 편성 요소 코드가 소속 능력단위와 다른 경우(구코드 유닛 + 신코드 요소 등)
+    // 요소 코드에서 추론한 능력단위로 NCS006/NCS008을 추가 조회한다.
+    stillNeeds = els.some((e) => !elementHasCriteriaBody(e));
+    if (stillNeeds) {
+        const altUnitCodes = new Set<string>();
+        for (const e of els) {
+            const inferred = inferNcsUnitCodeFromElementCode(String(e?.code || ''));
+            if (inferred && inferred !== unitCode) altUnitCodes.add(inferred);
+        }
+        for (const alt of altUnitCodes) {
+            if (!els.some((e) => !elementHasCriteriaBody(e))) break;
+            try {
+                // 대체 유닛 DB/API 요소로 이름·코드 보강
+                let altEls: any[] = [];
+                try {
+                    const altRow = await db
+                        .prepare('SELECT elements_json FROM ncs_units WHERE code = ? LIMIT 1')
+                        .bind(alt)
+                        .first() as { elements_json?: string | null } | null;
+                    if (altRow?.elements_json) {
+                        const parsed = JSON.parse(String(altRow.elements_json || '[]'));
+                        if (Array.isArray(parsed) && parsed.length) altEls = parsed;
+                    }
+                } catch {
+                    /* ignore */
+                }
+                if (!altEls.length && apiKey) {
+                    try {
+                        altEls = await fetchNcsUnitElements(apiKey, alt, classificationBase);
+                    } catch (e) {
+                        console.warn('[eval-tool] alt NCS006 failed', alt, e);
+                    }
+                }
+                if (!altEls.length) {
+                    try {
+                        const { results } = await db.prepare(NCS_ELEMENTS_BY_UNIT_CODE_SQL).bind(alt).all();
+                        altEls = (results || []).map((row) => mapDbElementRow(row as any)).filter((e) => e.code || e.name);
+                    } catch {
+                        /* ignore */
+                    }
+                }
+                if (altEls.length && altEls.some((e) => !elementHasCriteriaBody(e)) && apiKey) {
+                    try {
+                        const details = await fetchNcsPerformanceCriteria(apiKey, alt, classificationBase);
+                        altEls = mergeNcs008DetailsIntoElements(altEls, details);
+                    } catch (e) {
+                        console.warn('[eval-tool] alt NCS008 failed', alt, e);
+                    }
+                }
+                if (!altEls.length) continue;
+                // 현재 요소에 대체 유닛 결과를 코드·이름으로 병합
+                const byCode = new Map<string, any>();
+                const byName = new Map<string, any>();
+                for (const ae of altEls) {
+                    const c = normalizeEvalElementTitle(String(ae?.code || ''));
+                    const n = normalizeEvalElementTitle(String(ae?.name || '').replace(/^-\s*/, ''));
+                    if (c) byCode.set(c, ae);
+                    if (n) byName.set(n, ae);
+                }
+                els = els.map((e) => {
+                    if (elementHasCriteriaBody(e)) return e;
+                    const c = normalizeEvalElementTitle(String(e?.code || ''));
+                    const n = normalizeEvalElementTitle(String(e?.name || '').replace(/^-\s*/, ''));
+                    const hit =
+                        (c && [...byCode.entries()].find(([k]) => k === c || k.endsWith(c) || c.endsWith(k))?.[1]) ||
+                        (n && byName.get(n));
+                    if (!hit) return e;
+                    return {
+                        ...e,
+                        code: e.code || hit.code,
+                        name: e.name || hit.name,
+                        evaluationCriteriaText: hit.evaluationCriteriaText || hit.evaluation_criteria_text || e.evaluationCriteriaText,
+                        evaluation_criteria_text: hit.evaluation_criteria_text || hit.evaluationCriteriaText || e.evaluation_criteria_text,
+                        criteriaText: hit.criteriaText || hit.criteria_text || e.criteriaText,
+                        criteria_text: hit.criteria_text || hit.criteriaText || e.criteria_text,
+                        knowledgeText: hit.knowledgeText || hit.knowledge_text || e.knowledgeText,
+                        knowledge_text: hit.knowledge_text || hit.knowledgeText || e.knowledge_text,
+                        skillText: hit.skillText || hit.skill_text || e.skillText,
+                        skill_text: hit.skill_text || hit.skillText || e.skill_text,
+                        attitudeText: hit.attitudeText || hit.attitude_text || e.attitudeText,
+                        attitude_text: hit.attitude_text || hit.attitudeText || e.attitude_text,
+                    };
+                });
+            } catch (e) {
+                console.warn('[eval-tool] alt-unit enrich failed', alt, e);
+            }
         }
     }
 
@@ -4590,14 +5457,82 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             // 평가준거 본문이 비어 있으면 NCS008·테이블에서 보강 (이름만 있는 elements_json 대응)
             const apiKey = (c.env.NCS_API_KEY || '').trim();
             const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
-            elements = await enrichUnitElementsWithCriteria(
-                c.env.DB,
-                String(u.code || code),
-                elements,
-                apiKey || undefined,
-                classificationBase,
-            );
-            elements = filterNcsElementsByCourseConfig(elements, configuredEls);
+            const unitCodeNow = String(u.code || code);
+            const parentBase = unitCodeNow.split('_')[0];
+            // 편성 요소 코드 접두가 능력단위와 다르면(구코드 유닛+신코드 요소) 대체 유닛을 먼저 조회
+            const altUnitCodesPrefer = configuredEls
+                ? [
+                      ...new Set(
+                          configuredEls
+                              .map((cfg) => inferNcsUnitCodeFromElementCode(String(cfg?.code || '')))
+                              .filter((c): c is string => {
+                                  if (!c || c === unitCodeNow) return false;
+                                  const eb = c.split('_')[0];
+                                  return !!eb && eb !== parentBase;
+                              })
+                      ),
+                  ]
+                : [];
+            if (altUnitCodesPrefer.length && (!elements.length || elements.every((e) => !elementHasCriteriaBody(e)))) {
+                for (const alt of altUnitCodesPrefer) {
+                    let altElements = await enrichUnitElementsWithCriteria(
+                        c.env.DB,
+                        alt,
+                        [],
+                        apiKey || undefined,
+                        classificationBase,
+                    );
+                    altElements = filterNcsElementsByCourseConfig(altElements, configuredEls);
+                    if (altElements.length && altElements.some((e) => elementHasCriteriaBody(e))) {
+                        elements = altElements;
+                        break;
+                    }
+                    if (altElements.length && !elements.length) {
+                        elements = altElements;
+                    }
+                }
+            }
+            if (!elements.length || elements.every((e) => !elementHasCriteriaBody(e))) {
+                const enrichedPrimary = await enrichUnitElementsWithCriteria(
+                    c.env.DB,
+                    unitCodeNow,
+                    elements,
+                    apiKey || undefined,
+                    classificationBase,
+                );
+                const filteredPrimary = filterNcsElementsByCourseConfig(enrichedPrimary, configuredEls);
+                if (filteredPrimary.length) {
+                    elements = filteredPrimary;
+                } else if (enrichedPrimary.length && !configuredEls?.length) {
+                    elements = enrichedPrimary;
+                }
+            } else {
+                elements = filterNcsElementsByCourseConfig(elements, configuredEls);
+            }
+            // 1차 보강 후에도 비면 대체 유닛 재시도
+            if (elements.length === 0 && configuredEls && configuredEls.length > 0) {
+                const altUnitCodes = [
+                    ...new Set(
+                        configuredEls
+                            .map((cfg) => inferNcsUnitCodeFromElementCode(String(cfg?.code || '')))
+                            .filter((c): c is string => !!c && c !== unitCodeNow)
+                    ),
+                ];
+                for (const alt of altUnitCodes) {
+                    let altElements = await enrichUnitElementsWithCriteria(
+                        c.env.DB,
+                        alt,
+                        [],
+                        apiKey || undefined,
+                        classificationBase,
+                    );
+                    altElements = filterNcsElementsByCourseConfig(altElements, configuredEls);
+                    if (altElements.length) {
+                        elements = altElements;
+                        break;
+                    }
+                }
+            }
             if (elements.length === 0 && configuredEls && configuredEls.length > 0) {
                 // 편성 요소만 있고 마스터에 매칭이 안 되면 이름만이라도 넣고, 다시 보강 시도
                 elements = configuredEls.map((cfg: { code?: string; name?: string }) => ({

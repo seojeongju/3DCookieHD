@@ -1163,9 +1163,10 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <select id="toolsSubjectSelect" class="flex-1 min-w-[200px] max-w-xl px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
                               <option value="">과정 선택 후 교과목</option>
                             </select>
-                            <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>NCS 평가준거 불러오기</button>
+                            <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>평가내용에 적용</button>
+                            <button type="button" id="toolsReloadNcsOriginalBtn" class="shrink-0 px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-800 text-xs font-black hover:bg-indigo-100 disabled:opacity-45 disabled:cursor-not-allowed" disabled title="저장된 문구를 무시하고 NCS 원본 평가준거·수행준거로 다시 채웁니다">NCS 원본 다시 불러오기</button>
                           </div>
-                          <p class="mt-2 text-[11px] text-slate-500 leading-snug">표에서 요소명·평가 내용을 직접 수정할 수 있습니다. <strong class="text-slate-600">「NCS 평가준거 불러오기」</strong>는 NCS 원본(평가준거·수행준거)을 다시 채웁니다. <strong class="text-slate-600">저장</strong> 후 화면을 다시 열면 이 과정·교과목·평가회차에 저장한 문구가 우선 표시됩니다. <strong class="text-slate-600">능력단위가 여러 개</strong>인 교과목도 요소별로 소속 능력단위명·수준이 구분됩니다. 편성에서 선택한 능력단위 요소만 불러오며, 동일 조합이면 다른 과정에서 작성한 평가내용이 참고로 채워질 수 있습니다.</p>
+                          <p class="mt-2 text-[11px] text-slate-500 leading-snug">교과목을 선택하면 해당 과목의 NCS 평가준거가 <strong class="text-slate-600">평가내용</strong> 표에 자동으로 채워집니다. <strong class="text-slate-600">「평가내용에 적용」</strong>은 저장본·오버레이를 우선하고, 없으면 NCS에서 가져옵니다. <strong class="text-slate-600">「NCS 원본 다시 불러오기」</strong>는 원본만 다시 채웁니다. 표에서 요소명·평가내용을 직접 수정한 뒤 <strong class="text-slate-600">저장</strong>하면 이 과정·교과목·평가회차에 유지됩니다.</p>
                         </td>
                       </tr>
                       <tr>
@@ -1210,7 +1211,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </thead>
                             <tbody id="toolsCriteriaBody" class="bg-white"></tbody>
                           </table>
-                          <p class="text-[10px] text-slate-500 px-2 py-1">교과목 선택 후 「NCS 평가준거 불러오기」로 능력단위 요소별 평가준거를 채웁니다. 평가준거가 없으면 수행준거 문구가 사용됩니다. 셀을 직접 수정할 수 있습니다.</p>
+                          <p class="text-[10px] text-slate-500 px-2 py-1">교과목별로 능력단위 요소·평가준거(없으면 수행준거)가 이 표에 적용됩니다. 셀을 직접 수정할 수 있습니다.</p>
                         </td>
                       </tr>
                       <tr>
@@ -1671,6 +1672,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     var scheduleInstructorOptions = [];
     /** 평가도구 제작: NCS 평가준거 그리드 상태 */
     var toolsCriteriaGroupsState = [];
+    /** NCS 평가준거 불러오기 진행 중 — 문서 로드가 표를 비우지 않도록 */
+    var toolsNcsCriteriaLoadSeq = 0;
+    var toolsNcsCriteriaLoadInFlight = false;
+    var toolsNcsCriteriaJustLoaded = false;
     var toolsCriteriaInputBound = false;
     var toolsCriteriaDeleteBound = false;
     var TOOLS_ACHIEVEMENT_DEFAULT = '5점(매우 우수), 4점(우수), 3점(보통), 2점(부족), 1점(매우부족) - 채점기준표 참고';
@@ -3395,6 +3400,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         };
       }
       if (tabId === 'tools') {
+        syncToolsCriteriaStateFromDom();
         var tRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
         var tSubEl = document.getElementById('toolsSubjectSelect');
         var tRawCur = tSubEl && tSubEl.value ? parseInt(tSubEl.value, 10) : NaN;
@@ -4002,11 +4008,24 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     }
 
     function updateToolsLoadButtonState() {
-      var btn = document.getElementById('toolsLoadNcsCriteriaBtn');
       var sel = document.getElementById('toolsSubjectSelect');
-      if (!btn || !sel) return;
-      var ok = !!(selectedCourseId && String(sel.value || '').trim() && !sel.disabled);
-      btn.disabled = !ok;
+      var ok = !!(selectedCourseId && sel && String(sel.value || '').trim() && !sel.disabled);
+      ['toolsLoadNcsCriteriaBtn', 'toolsReloadNcsOriginalBtn'].forEach(function(id) {
+        var btn = document.getElementById(id);
+        if (btn) btn.disabled = !ok;
+      });
+    }
+
+    /** 평가내용 표에 실제 문구가 있는지 */
+    function toolsCriteriaGroupsHaveBody(groups) {
+      var list = Array.isArray(groups) ? groups : [];
+      for (var i = 0; i < list.length; i++) {
+        var lines = Array.isArray(list[i] && list[i].lines) ? list[i].lines : [];
+        for (var j = 0; j < lines.length; j++) {
+          if (String(lines[j] && lines[j].text || '').trim()) return true;
+        }
+      }
+      return false;
     }
 
     /** 상단 표의 능력단위명/수준 — 수동 추가 요소 그룹에 소속 단위 메타로 사용 */
@@ -4157,13 +4176,18 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!tbody) return;
       if (!toolsCriteriaGroupsState.length) {
         tbody.innerHTML =
-          '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">「NCS 평가준거 불러오기」로 채우거나, 위의 <strong class="text-slate-600">평가내용 행 추가</strong>로 수동 입력을 시작할 수 있습니다.</td></tr>';
+          '<tr><td colspan="3" class="border border-black px-3 py-8 text-center text-sm text-slate-400">교과목을 선택하거나 「평가내용에 적용」으로 채우거나, 위의 <strong class="text-slate-600">평가내용 행 추가</strong>로 수동 입력을 시작할 수 있습니다.</td></tr>';
         return;
       }
       var html = '';
       for (var g = 0; g < toolsCriteriaGroupsState.length; g++) {
         var grp = toolsCriteriaGroupsState[g];
         var lines = Array.isArray(grp.lines) ? grp.lines : [];
+        // 본문이 비어 있어도 요소행은 보이게 해 수동 입력을 유도
+        if (!lines.length) {
+          lines = [{ label: (g + 1) + '.1', text: '' }];
+          grp.lines = lines;
+        }
         var rs = lines.length;
         if (rs < 1) continue;
         var title = String(grp.element_title || '-').trim();
@@ -4310,88 +4334,240 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
-    async function loadNcsCriteriaIntoToolsForm() {
+    /**
+     * 교과목별 NCS 평가준거를 평가내용 표에 적용.
+     * @param opts.refreshNcs true면 저장 오버레이를 건너뛰고 NCS 원본만
+     * @param opts.preferSavedDoc true면 저장된 평가도구 문서 우선
+     * @param opts.silent true면 alert 최소화(과목 자동 적용)
+     * @param opts.skipConfirm true면 덮어쓰기 확인 생략
+     */
+    async function loadNcsCriteriaIntoToolsForm(opts) {
+      opts = opts || {};
+      var refreshNcs = !!opts.refreshNcs;
+      var preferSavedDoc = opts.preferSavedDoc !== false && !refreshNcs;
+      var silent = !!opts.silent;
+      var skipConfirm = !!opts.skipConfirm;
       var cid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
       var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      var subjectLabel = getNcsSubjectSelectPlainName('toolsSubjectSelect') || '교과목';
       if (!cid || !courseId) {
-        alert('과정과 교과목(커리큘럼)을 선택해 주세요.');
-        return;
+        if (!silent) alert('과정과 교과목(커리큘럼)을 선택해 주세요.');
+        return false;
       }
-      var btn = document.getElementById('toolsLoadNcsCriteriaBtn');
-      if (btn) {
-        btn.setAttribute('disabled', 'disabled');
-        btn.textContent = '불러오는 중…';
+      if (!skipConfirm && toolsCriteriaGroupsHaveBody(toolsCriteriaGroupsState)) {
+        var confirmMsg = refreshNcs
+          ? '[' + subjectLabel + '] NCS 원본 평가준거로 평가내용을 덮어쓸까요?'
+          : '[' + subjectLabel + '] 과목의 평가준거를 평가내용에 적용할까요? (현재 표 내용이 바뀝니다)';
+        if (!confirm(confirmMsg)) return false;
       }
+
+      var mySeq = ++toolsNcsCriteriaLoadSeq;
+      toolsNcsCriteriaLoadInFlight = true;
+      var applyBtn = document.getElementById('toolsLoadNcsCriteriaBtn');
+      var reloadBtn = document.getElementById('toolsReloadNcsOriginalBtn');
+      var applyLabel = applyBtn ? String(applyBtn.textContent || '평가내용에 적용') : '평가내용에 적용';
+      var reloadLabel = reloadBtn ? String(reloadBtn.textContent || 'NCS 원본 다시 불러오기') : 'NCS 원본 다시 불러오기';
+      if (applyBtn) {
+        applyBtn.setAttribute('disabled', 'disabled');
+        applyBtn.textContent = '적용 중…';
+      }
+      if (reloadBtn) {
+        reloadBtn.setAttribute('disabled', 'disabled');
+        if (refreshNcs) reloadBtn.textContent = '불러오는 중…';
+      }
+      var alertMsg = '';
+      var applied = false;
+      var appliedFrom = '';
       try {
         var roundQ = (typeof selectedRound === 'number' && selectedRound >= 1 && selectedRound <= 3) ? selectedRound : 1;
-        // refresh=1: 저장된 오버레이를 건너뛰고 NCS 원본(평가준거)을 다시 채운다
-        var res = await authFetch(
-          '/api/ncs/approved/curriculum/' +
+
+        // 1) 저장된 평가도구 문서 우선 (과목·회차별)
+        if (preferSavedDoc) {
+          try {
+            var docUrl =
+              '/api/ncs/plan-documents?course_id=' +
+              encodeURIComponent(String(courseId)) +
+              '&evaluation_round=' +
+              encodeURIComponent(String(roundQ)) +
+              '&doc_type=tools' +
+              (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
+              '&curriculum_id=' +
+              encodeURIComponent(cid);
+            var docRes = await authFetch(docUrl);
+            var docJson = await docRes.json();
+            if (mySeq !== toolsNcsCriteriaLoadSeq) return false;
+            var docPayload = docJson && docJson.success && docJson.data ? docJson.data.payload || {} : null;
+            var savedGroups = docPayload && Array.isArray(docPayload.criteria_groups) ? docPayload.criteria_groups : [];
+            if (toolsCriteriaGroupsHaveBody(savedGroups)) {
+              if (docJson.data && docJson.data.id != null) {
+                selectedDocIdByTab.tools = String(docJson.data.id);
+                await loadDocumentList('tools', selectedDocIdByTab.tools);
+                setUpdatedAt('tools', docJson.data.updated_at || null);
+              }
+              // applyDocForm은 불러오기 레이스 가드로 표를 건너뛸 수 있어, 평가내용은 직접 적용
+              if (docJson.data && docJson.data.title != null) {
+                setToolsFieldValue('tools_doc_title', docJson.data.title || '');
+              }
+              setToolsFieldValue('tools_writer', docPayload.writer || '');
+              setToolsFieldValue('tools_notes', docPayload.notes || '');
+              setToolsFieldValue('tools_eval_datetime', docPayload.tools_eval_datetime || '');
+              setToolsFieldValue('tools_trainee', docPayload.tools_trainee || '');
+              setToolsFieldValue('tools_unit_name_level', docPayload.tools_unit_name_level || '');
+              setToolsFieldValue('tools_element_focus', docPayload.tools_element_focus || '');
+              setToolsFieldValue('tools_eval_duration', docPayload.tools_eval_duration || '');
+              setToolsFieldValue(
+                'tools_achievement_note',
+                String(docPayload.tools_achievement_note || '').trim() || TOOLS_ACHIEVEMENT_DEFAULT
+              );
+              if (docPayload.tools_display_course) {
+                setToolsFieldValue('tools_display_course', docPayload.tools_display_course);
+              }
+              if (docPayload.tools_instructor) {
+                syncToolsInstructorSelectToSavedName(docPayload.tools_instructor);
+              }
+              renderToolsAttachments(docPayload.attachments || []);
+              renderToolsCriteriaBody(savedGroups);
+              toolsNcsCriteriaJustLoaded = true;
+              applied = true;
+              appliedFrom = 'saved';
+              setStatus('tools', '[' + subjectLabel + '] 저장된 평가내용을 적용했습니다.', false);
+            }
+          } catch (docErr) {
+            console.warn('[평가도구] 저장 문서 조회 실패, NCS로 진행', docErr);
+          }
+        }
+
+        // 2) NCS evaluation-tool-form (refresh=0: 오버레이 병합 / refresh=1: 원본만)
+        if (!applied) {
+          var formUrl =
+            '/api/ncs/approved/curriculum/' +
             encodeURIComponent(cid) +
             '/evaluation-tool-form?course_id=' +
             encodeURIComponent(String(courseId)) +
             '&evaluation_round=' +
             encodeURIComponent(String(roundQ)) +
-            '&refresh=1'
-        );
-        var json = await res.json();
-        if (!json || !json.success) {
-          alert((json && json.error) ? String(json.error) : '불러오기에 실패했습니다.');
-          return;
+            (refreshNcs ? '&refresh=1' : '');
+          var res = await authFetch(formUrl);
+          var json = await res.json();
+          if (mySeq !== toolsNcsCriteriaLoadSeq) return false;
+          if (!json || !json.success) {
+            alertMsg = (json && json.error) ? String(json.error) : '불러오기에 실패했습니다.';
+            return false;
+          }
+          var d = json.data || {};
+          // refresh=0에서 비면 원본(refresh=1) 한 번 더
+          var groups = Array.isArray(d.criteria_groups) ? d.criteria_groups : [];
+          if (!refreshNcs && !toolsCriteriaGroupsHaveBody(groups)) {
+            var res2 = await authFetch(formUrl + (formUrl.indexOf('refresh=') >= 0 ? '' : '&refresh=1'));
+            var json2 = await res2.json();
+            if (mySeq !== toolsNcsCriteriaLoadSeq) return false;
+            if (json2 && json2.success && json2.data) {
+              d = json2.data;
+              groups = Array.isArray(d.criteria_groups) ? d.criteria_groups : [];
+              refreshNcs = true;
+            }
+          }
+          var lmsTitleForTools = getSelectedLmsCourseDisplayTitle();
+          if (!lmsTitleForTools && courseId) {
+            try {
+              var cdx = await fetchLmsCourseDetail(courseId);
+              if (cdx && (cdx.title || cdx.name)) lmsTitleForTools = String(cdx.title || cdx.name).trim();
+            } catch (e) {}
+          }
+          setToolsFieldValue('tools_display_course', lmsTitleForTools || d.course_title || '');
+          syncToolsSubjectDisplay();
+          setToolsFieldValue('tools_unit_name_level', d.unit_name_level || '');
+          var insDefault = String(d.default_tools_instructor || '').trim();
+          if (insDefault && !getToolsInstructorFieldTrimmed()) {
+            syncToolsInstructorSelectToSavedName(insDefault);
+          }
+          var loadHint = String(d.load_hint || '').trim();
+          if (loadHint && !groups.length) {
+            console.warn('[평가도구]', loadHint);
+            alertMsg = loadHint;
+          }
+          if (groups.length && groups[0] && groups[0].element_title) {
+            setToolsFieldValue('tools_element_focus', '- ' + String(groups[0].element_title));
+          } else {
+            setToolsFieldValue('tools_element_focus', '');
+          }
+          renderToolsCriteriaBody(groups);
+          toolsNcsCriteriaJustLoaded = groups.length > 0;
+          applied = toolsCriteriaGroupsHaveBody(groups) || groups.length > 0;
+          appliedFrom = refreshNcs ? 'ncs_original' : 'ncs_overlay';
+          if (applied) {
+            setStatus(
+              'tools',
+              '[' +
+                subjectLabel +
+                '] NCS 평가준거 ' +
+                groups.length +
+                '개 요소를 평가내용에 적용했습니다.' +
+                (refreshNcs ? ' (원본)' : ''),
+              false
+            );
+          }
+          var onlyNames =
+            groups.length > 0 &&
+            groups.every(function(g) {
+              var lines = Array.isArray(g.lines) ? g.lines : [];
+              if (!lines.length) return true;
+              var title = String(g.element_title || '').trim();
+              return lines.every(function(ln) {
+                return String(ln && ln.text || '').trim() === title;
+              });
+            });
+          if (onlyNames && !alertMsg) {
+            alertMsg =
+              '능력단위 요소는 불러왔지만 NCS 평가준거 본문이 비어 있습니다. NCS API 키·동기화 상태를 확인하거나, 평가내용을 수동으로 입력해 주세요.';
+          }
         }
-        var d = json.data || {};
-        var lmsTitleForTools = getSelectedLmsCourseDisplayTitle();
-        if (!lmsTitleForTools && courseId) {
-          try {
-            var cdx = await fetchLmsCourseDetail(courseId);
-            if (cdx && (cdx.title || cdx.name)) lmsTitleForTools = String(cdx.title || cdx.name).trim();
-          } catch (e) {}
+
+        if (!applied && !alertMsg) {
+          alertMsg = '[' + subjectLabel + '] 적용할 NCS 평가준거가 없습니다. 편성된 능력단위·요소를 확인해 주세요.';
         }
-        setToolsFieldValue('tools_display_course', lmsTitleForTools || d.course_title || '');
-        syncToolsSubjectDisplay();
-        setToolsFieldValue('tools_unit_name_level', d.unit_name_level || '');
-        var insDefault = String(d.default_tools_instructor || '').trim();
-        if (insDefault && !getToolsInstructorFieldTrimmed()) {
-          syncToolsInstructorSelectToSavedName(insDefault);
-        }
-        var loadHint = String(d.load_hint || '').trim();
-        var groups = Array.isArray(d.criteria_groups) ? d.criteria_groups : [];
-        if (loadHint && !groups.length) {
-          console.warn('[평가도구]', loadHint);
-          alert(loadHint);
-        }
-        if (groups.length && groups[0] && groups[0].element_title) {
-          setToolsFieldValue('tools_element_focus', '- ' + String(groups[0].element_title));
-        } else {
-          setToolsFieldValue('tools_element_focus', '');
-        }
-        renderToolsCriteriaBody(groups);
-        // 요소는 있는데 평가준거 본문이 요소명과 같으면(보강 실패) 안내
-        var onlyNames = groups.length > 0 && groups.every(function(g) {
-          var lines = Array.isArray(g.lines) ? g.lines : [];
-          if (!lines.length) return true;
-          var title = String(g.element_title || '').trim();
-          return lines.every(function(ln) {
-            return String(ln && ln.text || '').trim() === title;
-          });
-        });
-        if (onlyNames) {
-          alert('능력단위 요소는 불러왔지만 NCS 평가준거 본문이 비어 있습니다. NCS API 키·동기화 상태를 확인하거나, 평가내용을 수동으로 입력해 주세요.');
-        }
+        return applied;
       } catch (e) {
         console.error(e);
-        alert('NCS 평가준거를 불러오지 못했습니다.');
+        if (mySeq === toolsNcsCriteriaLoadSeq) {
+          alertMsg = 'NCS 평가준거를 평가내용에 적용하지 못했습니다.';
+        }
+        return false;
       } finally {
-        if (btn) {
-          btn.removeAttribute('disabled');
-          btn.textContent = 'NCS 평가준거 불러오기';
-          // 교과목 선택 상태에 맞게 다시 enable
-          try {
-            var cid2 = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
-            if (!cid2) btn.setAttribute('disabled', 'disabled');
-          } catch (e2) {}
+        if (mySeq === toolsNcsCriteriaLoadSeq) {
+          toolsNcsCriteriaLoadInFlight = false;
+          if (applyBtn) {
+            applyBtn.textContent = applyLabel.indexOf('적용') >= 0 ? '평가내용에 적용' : applyLabel;
+          }
+          if (reloadBtn) {
+            reloadBtn.textContent = reloadLabel.indexOf('원본') >= 0 ? 'NCS 원본 다시 불러오기' : reloadLabel;
+          }
+          updateToolsLoadButtonState();
+          void applyDefaultToolsInstructorFromEvalFormApi();
+        }
+        if (alertMsg && mySeq === toolsNcsCriteriaLoadSeq && !silent) alert(alertMsg);
+        else if (alertMsg && mySeq === toolsNcsCriteriaLoadSeq && silent) {
+          setStatus('tools', alertMsg, true);
         }
       }
+    }
+
+    /** 교과목 변경 시: 해당 과목 평가준거를 평가내용에 자동 적용 */
+    async function onToolsSubjectChangeApplyCriteria() {
+      syncToolsSubjectDisplay();
+      updateToolsLoadButtonState();
+      var cid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      if (!cid) {
+        void applyDefaultToolsInstructorFromEvalFormApi();
+        return;
+      }
+      var emptyTable = !toolsCriteriaGroupsHaveBody(toolsCriteriaGroupsState);
+      await loadNcsCriteriaIntoToolsForm({
+        preferSavedDoc: true,
+        refreshNcs: false,
+        silent: true,
+        skipConfirm: emptyTable
+      });
     }
 
     function defaultToolRows() {
@@ -4539,7 +4715,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           return;
         }
         if (!applyToolsPayloadToRubricForm(got.payload)) {
-          alert('평가도구 문서에 평가내용(능력단위요소·평가내용 표)이 없습니다. 평가도구 제작에서 「NCS 평가준거 불러오기」 등으로 채운 뒤 저장해 주세요.');
+          alert('평가도구 문서에 평가내용(능력단위요소·평가내용 표)이 없습니다. 평가도구 제작에서 교과목을 선택한 뒤 「평가내용에 적용」으로 채우고 저장해 주세요.');
           return;
         }
         setStatus('rubric', '평가도구 평가내용을 반영했습니다. 필요 시 수정 후 저장하세요.', false);
@@ -4958,17 +5134,22 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var ach = String(payload.tools_achievement_note || '').trim();
         setToolsFieldValue('tools_achievement_note', ach || TOOLS_ACHIEVEMENT_DEFAULT);
         renderToolsAttachments(payload.attachments || []);
-        var crit = payload.criteria_groups;
-        if (Array.isArray(crit) && crit.length) {
-          toolsCriteriaGroupsState = JSON.parse(JSON.stringify(crit));
-          renderToolsCriteriaBody(toolsCriteriaGroupsState);
+        // NCS 불러오기 직후·진행 중이면 문서 로드가 평가내용 표를 덮어쓰지 않음
+        if (toolsNcsCriteriaLoadInFlight || toolsNcsCriteriaJustLoaded) {
+          toolsNcsCriteriaJustLoaded = false;
         } else {
-          toolsCriteriaGroupsState = [];
-          renderToolsCriteriaBody([]);
-          if (Array.isArray(payload.rows) && payload.rows.length) {
-            var tb = document.getElementById('toolsCriteriaBody');
-            if (tb) {
-              tb.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-4 text-sm text-amber-900 bg-amber-50">이 문서는 이전 형식(도구명·유형 목록)으로 저장되었습니다. 필요 시 「NCS 평가준거 불러오기」로 양식을 다시 채우거나 비고에 기록을 남겨 주세요.</td></tr>';
+          var crit = payload.criteria_groups;
+          if (Array.isArray(crit) && crit.length) {
+            toolsCriteriaGroupsState = JSON.parse(JSON.stringify(crit));
+            renderToolsCriteriaBody(toolsCriteriaGroupsState);
+          } else {
+            toolsCriteriaGroupsState = [];
+            renderToolsCriteriaBody([]);
+            if (Array.isArray(payload.rows) && payload.rows.length) {
+              var tb = document.getElementById('toolsCriteriaBody');
+              if (tb) {
+                tb.innerHTML = '<tr><td colspan="3" class="border border-black px-3 py-4 text-sm text-amber-900 bg-amber-50">이 문서는 이전 형식(도구명·유형 목록)으로 저장되었습니다. 필요 시 「평가내용에 적용」으로 양식을 다시 채우거나 비고에 기록을 남겨 주세요.</td></tr>';
+              }
             }
           }
         }
@@ -5748,9 +5929,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var toolsSubSelInit = document.getElementById('toolsSubjectSelect');
       if (toolsSubSelInit) {
         toolsSubSelInit.addEventListener('change', function() {
-          syncToolsSubjectDisplay();
-          updateToolsLoadButtonState();
-          void applyDefaultToolsInstructorFromEvalFormApi();
+          void onToolsSubjectChangeApplyCriteria();
         });
       }
       var questionsSubSelInit = document.getElementById('questionsSubjectSelect');
@@ -5777,7 +5956,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var toolsLoadBtnInit = document.getElementById('toolsLoadNcsCriteriaBtn');
       if (toolsLoadBtnInit) {
         toolsLoadBtnInit.addEventListener('click', function() {
-          void loadNcsCriteriaIntoToolsForm();
+          void loadNcsCriteriaIntoToolsForm({
+            preferSavedDoc: true,
+            refreshNcs: false,
+            silent: false,
+            skipConfirm: false
+          });
+        });
+      }
+      var toolsReloadOrigBtn = document.getElementById('toolsReloadNcsOriginalBtn');
+      if (toolsReloadOrigBtn) {
+        toolsReloadOrigBtn.addEventListener('click', function() {
+          void loadNcsCriteriaIntoToolsForm({
+            preferSavedDoc: false,
+            refreshNcs: true,
+            silent: false,
+            skipConfirm: false
+          });
         });
       }
       var toolsCritAddLineBtn = document.getElementById('toolsCriteriaAddLineBtn');
