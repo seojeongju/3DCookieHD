@@ -1165,7 +1165,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             </select>
                             <button type="button" id="toolsLoadNcsCriteriaBtn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 disabled:opacity-45 disabled:cursor-not-allowed" disabled>NCS 평가준거 불러오기</button>
                           </div>
-                          <p class="mt-2 text-[11px] text-slate-500 leading-snug">표에서 요소명·평가 내용을 직접 수정할 수 있습니다. <strong class="text-slate-600">저장</strong> 시 이 과정·교과목·평가회차별로 서버에 보관되며, 이후 「NCS 평가준거 불러오기」·교수계획서 연동 시 저장된 문구가 우선 반영됩니다. <strong class="text-slate-600">능력단위가 여러 개</strong>인 교과목도 요소별로 소속 능력단위명·수준이 구분되어, 동일 조합(능력단위명·수준·요소명·평가회차)이면 <strong class="text-slate-600">다른 과정</strong>에서 작성한 평가내용이 자동으로 채워집니다. 과정별로 수정한 내용은 해당 과정에만 우선 적용됩니다.</p>
+                          <p class="mt-2 text-[11px] text-slate-500 leading-snug">표에서 요소명·평가 내용을 직접 수정할 수 있습니다. <strong class="text-slate-600">「NCS 평가준거 불러오기」</strong>는 NCS 원본(평가준거·수행준거)을 다시 채웁니다. <strong class="text-slate-600">저장</strong> 후 화면을 다시 열면 이 과정·교과목·평가회차에 저장한 문구가 우선 표시됩니다. <strong class="text-slate-600">능력단위가 여러 개</strong>인 교과목도 요소별로 소속 능력단위명·수준이 구분됩니다. 편성에서 선택한 능력단위 요소만 불러오며, 동일 조합이면 다른 과정에서 작성한 평가내용이 참고로 채워질 수 있습니다.</p>
                         </td>
                       </tr>
                       <tr>
@@ -4317,9 +4317,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         alert('과정과 교과목(커리큘럼)을 선택해 주세요.');
         return;
       }
+      var btn = document.getElementById('toolsLoadNcsCriteriaBtn');
+      if (btn) {
+        btn.setAttribute('disabled', 'disabled');
+        btn.textContent = '불러오는 중…';
+      }
       try {
         var roundQ = (typeof selectedRound === 'number' && selectedRound >= 1 && selectedRound <= 3) ? selectedRound : 1;
-        var res = await authFetch('/api/ncs/approved/curriculum/' + encodeURIComponent(cid) + '/evaluation-tool-form?course_id=' + encodeURIComponent(String(courseId)) + '&evaluation_round=' + encodeURIComponent(String(roundQ)));
+        // refresh=1: 저장된 오버레이를 건너뛰고 NCS 원본(평가준거)을 다시 채운다
+        var res = await authFetch(
+          '/api/ncs/approved/curriculum/' +
+            encodeURIComponent(cid) +
+            '/evaluation-tool-form?course_id=' +
+            encodeURIComponent(String(courseId)) +
+            '&evaluation_round=' +
+            encodeURIComponent(String(roundQ)) +
+            '&refresh=1'
+        );
         var json = await res.json();
         if (!json || !json.success) {
           alert((json && json.error) ? String(json.error) : '불러오기에 실패했습니다.');
@@ -4341,19 +4355,42 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           syncToolsInstructorSelectToSavedName(insDefault);
         }
         var loadHint = String(d.load_hint || '').trim();
-        if (loadHint && !(Array.isArray(d.criteria_groups) && d.criteria_groups.length)) {
-          console.warn('[평가도구]', loadHint);
-        }
         var groups = Array.isArray(d.criteria_groups) ? d.criteria_groups : [];
+        if (loadHint && !groups.length) {
+          console.warn('[평가도구]', loadHint);
+          alert(loadHint);
+        }
         if (groups.length && groups[0] && groups[0].element_title) {
           setToolsFieldValue('tools_element_focus', '- ' + String(groups[0].element_title));
         } else {
           setToolsFieldValue('tools_element_focus', '');
         }
         renderToolsCriteriaBody(groups);
+        // 요소는 있는데 평가준거 본문이 요소명과 같으면(보강 실패) 안내
+        var onlyNames = groups.length > 0 && groups.every(function(g) {
+          var lines = Array.isArray(g.lines) ? g.lines : [];
+          if (!lines.length) return true;
+          var title = String(g.element_title || '').trim();
+          return lines.every(function(ln) {
+            return String(ln && ln.text || '').trim() === title;
+          });
+        });
+        if (onlyNames) {
+          alert('능력단위 요소는 불러왔지만 NCS 평가준거 본문이 비어 있습니다. NCS API 키·동기화 상태를 확인하거나, 평가내용을 수동으로 입력해 주세요.');
+        }
       } catch (e) {
         console.error(e);
         alert('NCS 평가준거를 불러오지 못했습니다.');
+      } finally {
+        if (btn) {
+          btn.removeAttribute('disabled');
+          btn.textContent = 'NCS 평가준거 불러오기';
+          // 교과목 선택 상태에 맞게 다시 enable
+          try {
+            var cid2 = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+            if (!cid2) btn.setAttribute('disabled', 'disabled');
+          } catch (e2) {}
+        }
       }
     }
 

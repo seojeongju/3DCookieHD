@@ -3743,6 +3743,160 @@ function normalizeEvalElementTitle(t: string): string {
         .replace(/\s+/g, ' ');
 }
 
+/** 요소에 평가준거·수행준거 본문이 있는지 */
+function elementHasCriteriaBody(el: any): boolean {
+    const evalCrit = String(el?.evaluation_criteria_text || el?.evaluationCriteriaText || '').trim();
+    const performCrit = String(el?.criteria_text || el?.criteriaText || '').trim();
+    const knowledge = String(el?.knowledge_text || el?.knowledgeText || '').trim();
+    const skill = String(el?.skill_text || el?.skillText || '').trim();
+    const attitude = String(el?.attitude_text || el?.attitudeText || '').trim();
+    return !!(evalCrit || performCrit || knowledge || skill || attitude);
+}
+
+/**
+ * elements_json에 이름만 있는 경우 NCS008·ncs_elements 테이블로 평가준거를 보강한다.
+ * 보강에 성공하면 elements_json / ncs_elements도 갱신한다.
+ */
+async function enrichUnitElementsWithCriteria(
+    db: D1Database,
+    unitCode: string,
+    elements: any[],
+    apiKey?: string,
+    classificationBase?: string,
+): Promise<any[]> {
+    let els = Array.isArray(elements) ? elements.map((e) => ({ ...e })) : [];
+    if (!els.length && apiKey) {
+        try {
+            els = await fetchNcsUnitElements(apiKey, unitCode, classificationBase);
+        } catch (e) {
+            console.warn('[eval-tool] NCS006 enrich failed', unitCode, e);
+        }
+    }
+    if (!els.length) {
+        try {
+            const { results } = await db.prepare(NCS_ELEMENTS_BY_UNIT_CODE_SQL).bind(unitCode).all();
+            els = (results || []).map((row) => mapDbElementRow(row as any)).filter((e) => e.code || e.name);
+        } catch (e) {
+            console.warn('[eval-tool] table enrich failed', unitCode, e);
+        }
+    }
+    if (!els.length) return els;
+
+    const needsCriteria = els.some((e) => !elementHasCriteriaBody(e));
+    if (!needsCriteria) return els;
+
+    // 1) 관계형 테이블에서 보강
+    try {
+        const { results } = await db.prepare(NCS_ELEMENTS_BY_UNIT_CODE_SQL).bind(unitCode).all();
+        const byCode = new Map<string, ReturnType<typeof mapDbElementRow>>();
+        const byName = new Map<string, ReturnType<typeof mapDbElementRow>>();
+        for (const row of results || []) {
+            const mapped = mapDbElementRow(row as any);
+            if (mapped.code) byCode.set(normalizeEvalElementTitle(mapped.code), mapped);
+            if (mapped.name) byName.set(normalizeEvalElementTitle(mapped.name), mapped);
+        }
+        if (byCode.size || byName.size) {
+            els = els.map((e) => {
+                if (elementHasCriteriaBody(e)) return e;
+                const c = normalizeEvalElementTitle(String(e?.code || ''));
+                const n = normalizeEvalElementTitle(String(e?.name || '').replace(/^-\s*/, ''));
+                const hit =
+                    (c && [...byCode.entries()].find(([k]) => k === c || k.endsWith(c) || c.endsWith(k))?.[1]) ||
+                    (n && byName.get(n));
+                if (!hit || !elementHasCriteriaBody(hit)) return e;
+                return {
+                    ...e,
+                    evaluationCriteriaText: hit.evaluationCriteriaText || e.evaluationCriteriaText,
+                    evaluation_criteria_text: hit.evaluation_criteria_text || e.evaluation_criteria_text,
+                    criteriaText: hit.criteriaText || e.criteriaText,
+                    criteria_text: hit.criteriaText || e.criteria_text,
+                    knowledgeText: hit.knowledgeText || e.knowledgeText,
+                    knowledge_text: hit.knowledgeText || e.knowledge_text,
+                    skillText: hit.skillText || e.skillText,
+                    skill_text: hit.skillText || e.skill_text,
+                    attitudeText: hit.attitudeText || e.attitudeText,
+                    attitude_text: hit.attitudeText || e.attitude_text,
+                };
+            });
+        }
+    } catch (e) {
+        console.warn('[eval-tool] merge from table failed', unitCode, e);
+    }
+
+    const stillNeeds = els.some((e) => !elementHasCriteriaBody(e));
+    if (stillNeeds && apiKey) {
+        try {
+            const details = await fetchNcsPerformanceCriteria(apiKey, unitCode, classificationBase);
+            if (details.length) {
+                const findDetail = (elemCode: string, elemName: string) =>
+                    details.find((det) => {
+                        const dc = String(det.elemCode || '').trim();
+                        if (!dc) return false;
+                        const ec = String(elemCode || '').trim();
+                        if (ec && (dc === ec || dc.endsWith(ec) || ec.endsWith(dc) || ec.startsWith(dc) || dc.startsWith(ec.split('_').pop() || ''))) {
+                            return true;
+                        }
+                        // 일부 API는 요소코드 끝에 _01 / .01 만 줌
+                        const short = ec.split(/[._]/).pop() || '';
+                        if (short && (dc === short || dc.endsWith(short) || dc.endsWith('_' + short))) return true;
+                        return false;
+                    });
+                els = els.map((e) => {
+                    if (elementHasCriteriaBody(e)) return e;
+                    const d = findDetail(String(e?.code || ''), String(e?.name || ''));
+                    if (!d) return e;
+                    return {
+                        ...e,
+                        evaluationCriteriaText: d.evaluationCriteriaText || e.evaluationCriteriaText,
+                        evaluation_criteria_text: d.evaluationCriteriaText || e.evaluation_criteria_text,
+                        criteriaText: d.criteriaText || e.criteriaText,
+                        criteria_text: d.criteriaText || e.criteria_text,
+                        knowledgeText: d.knowledgeText || e.knowledgeText,
+                        knowledge_text: d.knowledgeText || e.knowledge_text,
+                        skillText: d.skillText || e.skillText,
+                        skill_text: d.skillText || e.skill_text,
+                        attitudeText: d.attitudeText || e.attitudeText,
+                        attitude_text: d.attitudeText || e.attitude_text,
+                    };
+                });
+            }
+        } catch (e) {
+            console.warn('[eval-tool] NCS008 enrich failed', unitCode, e);
+        }
+    }
+
+    // 캐시: 평가준거가 하나라도 채워졌으면 저장
+    if (els.some((e) => elementHasCriteriaBody(e))) {
+        try {
+            await db.prepare('UPDATE ncs_units SET elements_json = ? WHERE code = ?')
+                .bind(JSON.stringify(els), unitCode)
+                .run();
+        } catch (e) {
+            console.warn('[eval-tool] cache elements_json failed', unitCode, e);
+        }
+        try {
+            const unitId = await resolveNcsUnitIdByCode(db, unitCode);
+            if (unitId) {
+                await upsertNcsElementsByUnitId(
+                    db,
+                    unitId,
+                    els.map((e) => ({
+                        code: String(e.code || '').trim(),
+                        name: String(e.name || '').trim(),
+                        criteriaText: e.criteriaText || e.criteria_text || e.evaluationCriteriaText || e.evaluation_criteria_text,
+                        knowledgeText: e.knowledgeText || e.knowledge_text,
+                        skillText: e.skillText || e.skill_text,
+                        attitudeText: e.attitudeText || e.attitude_text,
+                    })).filter((e) => e.code && e.name),
+                );
+            }
+        } catch (e) {
+            console.warn('[eval-tool] cache ncs_elements failed', unitCode, e);
+        }
+    }
+    return els;
+}
+
 /** 능력단위명·수준 문자열 정규화(과정 간 공유 키) — 공백만 통일 */
 function normalizeUnitLevelKey(t: string): string {
     return normalizeEvalElementTitle(t);
@@ -4333,35 +4487,56 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             unit_level_key?: string;
         };
 
+        const splitCriteriaParts = (raw: string): string[] => {
+            const text = String(raw || '').trim();
+            if (!text) return [];
+            // 줄바꿈 우선
+            let parts = text
+                .split(/\r?\n+/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+            if (parts.length <= 1) {
+                // "1. ... 2. ..." / "① ... ② ..." / "가. ... 나. ..." 형태도 분리
+                const numbered = text.split(/(?=(?:^|\s)(?:\d+[.)]\s|[①-⑳]\s|[가-하]\.\s))/u)
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                if (numbered.length > 1) parts = numbered;
+            }
+            return parts.length ? parts : [text];
+        };
+
         const extractLines = (el: any, majorIdx: number): CriteriaLine[] => {
             const evalCrit = String(el?.evaluation_criteria_text || el?.evaluationCriteriaText || '').trim();
             const performCrit = String(el?.criteria_text || el?.criteriaText || '').trim();
+            // 평가준거 우선, 없으면 수행준거
             const criteria = evalCrit || performCrit;
             const knowledge = String(el?.knowledge_text || el?.knowledgeText || '').trim();
             const skill = String(el?.skill_text || el?.skillText || '').trim();
             const attitude = String(el?.attitude_text || el?.attitudeText || '').trim();
             const ename = String(el?.name || '').trim();
             if (criteria) {
-                const parts = criteria
-                    .split(/\r?\n+/)
-                    .map((s) => s.trim())
-                    .filter(Boolean);
+                const parts = splitCriteriaParts(criteria);
                 if (parts.length <= 1) {
                     return [{ label: `${majorIdx}.1`, text: parts[0] || criteria }];
                 }
                 return parts.map((p, i) => ({
                     label: `${majorIdx}.${i + 1}`,
-                    text: p.replace(/^\d+(\.\d+)?\s*/, '').trim() || p,
+                    text: p.replace(/^(?:\d+[.)]|[①-⑳]|[가-하]\.)\s*/, '').trim() || p,
                 }));
             }
             const chunks: string[] = [];
-            if (knowledge) chunks.push(knowledge);
-            if (skill) chunks.push(skill);
-            if (attitude) chunks.push(attitude);
+            if (knowledge) chunks.push(...splitCriteriaParts(knowledge));
+            if (skill) chunks.push(...splitCriteriaParts(skill));
+            if (attitude) chunks.push(...splitCriteriaParts(attitude));
             if (chunks.length) {
-                return chunks.map((p, i) => ({ label: `${majorIdx}.${i + 1}`, text: p }));
+                return chunks.map((p, i) => ({
+                    label: `${majorIdx}.${i + 1}`,
+                    text: p.replace(/^(?:\d+[.)]|[①-⑳]|[가-하]\.)\s*/, '').trim() || p,
+                }));
             }
-            if (ename) {
+            // 본문이 전혀 없으면 요소명만으로는 평가준거라 보기 어려워 빈 배열
+            // (호출 측에서 NCS008 보강 후 재시도)
+            if (ename && elementHasCriteriaBody(el)) {
                 return [{ label: `${majorIdx}.1`, text: ename }];
             }
             return [];
@@ -4412,8 +4587,19 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
             ) {
                 configuredEls = auEntry.elements;
             }
+            // 평가준거 본문이 비어 있으면 NCS008·테이블에서 보강 (이름만 있는 elements_json 대응)
+            const apiKey = (c.env.NCS_API_KEY || '').trim();
+            const classificationBase = (c.env as { NCS_CLASSIFICATION_API_BASE?: string }).NCS_CLASSIFICATION_API_BASE?.trim();
+            elements = await enrichUnitElementsWithCriteria(
+                c.env.DB,
+                String(u.code || code),
+                elements,
+                apiKey || undefined,
+                classificationBase,
+            );
             elements = filterNcsElementsByCourseConfig(elements, configuredEls);
             if (elements.length === 0 && configuredEls && configuredEls.length > 0) {
+                // 편성 요소만 있고 마스터에 매칭이 안 되면 이름만이라도 넣고, 다시 보강 시도
                 elements = configuredEls.map((cfg: { code?: string; name?: string }) => ({
                     code: cfg?.code,
                     name:
@@ -4423,13 +4609,37 @@ app.get('/approved/curriculum/:curriculumId/evaluation-tool-form', authMiddlewar
                     criteria_text: '',
                     evaluation_criteria_text: ''
                 }));
+                elements = await enrichUnitElementsWithCriteria(
+                    c.env.DB,
+                    String(u.code || code),
+                    elements,
+                    apiKey || undefined,
+                    classificationBase,
+                );
+                // 보강 결과는 전체 요소일 수 있으므로 편성 선택으로 다시 필터
+                elements = filterNcsElementsByCourseConfig(elements, configuredEls);
+                if (elements.length === 0) {
+                    elements = configuredEls.map((cfg: { code?: string; name?: string }) => ({
+                        code: cfg?.code,
+                        name:
+                            (cfg?.name && String(cfg.name).trim()) ||
+                            String(cfg?.code || '').trim() ||
+                            '-',
+                        criteria_text: '',
+                        evaluation_criteria_text: ''
+                    }));
+                }
             }
             for (let ei = 0; ei < elements.length; ei++) {
                 majorCounter += 1;
                 const el = elements[ei];
                 const etitle = String(el?.name || '').trim() || '-';
                 allowedElementTitles.add(normalizeEvalElementTitle(etitle));
-                const lines = extractLines(el, majorCounter);
+                let lines = extractLines(el, majorCounter);
+                // 보강 후에도 본문이 없으면 요소명을 임시 평가내용으로 둠 (표가 완전히 비지 않도록)
+                if (!lines.length && etitle) {
+                    lines = [{ label: `${majorCounter}.1`, text: etitle }];
+                }
                 if (!lines.length) continue;
                 const thisUnitName = String(u.name || '').trim();
                 const thisLevel = u.level != null && u.level !== '' ? u.level : null;
