@@ -1584,7 +1584,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
               <div class="mt-4 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/90 to-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                 <p class="text-xs text-slate-600 leading-snug">
                   <i class="fas fa-link text-indigo-500 mr-1"></i>
-                  이 단계 저장 후 다음 업무로 이어집니다. 과정·평가차수·교과목은 모든 탭에서 공유됩니다.
+                  「다음」을 누르면 이 단계가 자동 저장된 뒤 다음 업무로 이어집니다. 과정·평가차수·교과목은 모든 탭에서 공유됩니다.
                 </p>
                 <button type="button" data-plan-next-step="${item.next}" class="shrink-0 px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 transition">
                   다음: ${NCS_PLAN_TAB_ITEMS.find((t) => t.id === item.next)?.short || '다음 단계'} <i class="fas fa-arrow-right ml-1"></i>
@@ -6541,6 +6541,69 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
+    /** 자동 생성·공유 메타 키 — 이 값만 있으면 "작성한 내용 없음"으로 봄 */
+    var PLAN_AUTO_META_KEYS = {
+      session_id: true,
+      curriculum_id: true,
+      subject_name: true,
+      approval_role_chair: true,
+      approval_role_writer: true,
+      approval_role_reviewer: true,
+      tools_display_course: true,
+      tools_achievement_note: true,
+      total_target: true,
+      target_score: true,
+      tool_name: true
+    };
+
+    /** 탭 양식에 사용자가 작성한 내용이 있는지 (빈 문서를 자동 저장하지 않기 위함) */
+    function planTabFormHasContent(tabId, form) {
+      var payload = form && form.payload ? form.payload : {};
+      var keys = Object.keys(payload);
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        if (PLAN_AUTO_META_KEYS[k]) continue;
+        var v = payload[k];
+        if (k === 'criteria_groups') {
+          if (toolsCriteriaGroupsHaveBody(v)) return true;
+          continue;
+        }
+        if (Array.isArray(v)) {
+          if (v.length > 0) return true;
+          continue;
+        }
+        if (v && typeof v === 'object') {
+          var ok = Object.keys(v).some(function(sk) { return String(v[sk] || '').trim() !== ''; });
+          if (ok) return true;
+          continue;
+        }
+        if (typeof v === 'number') {
+          if (v > 0) return true;
+          continue;
+        }
+        if (String(v == null ? '' : v).trim() !== '') return true;
+      }
+      return false;
+    }
+
+    /**
+     * 「다음 단계」 이동 전 현재 탭 자동 저장.
+     * - 작성 내용이 없으면 저장 없이 이동
+     * - 강사의 회의록(열람 전용)은 저장 없이 이동
+     * - 저장 실패 시 false (이동 중단, saveDocument가 오류를 안내함)
+     */
+    async function autoSavePlanTabBeforeLeave(tabId) {
+      if (!tabId || !selectedCourseId) return true;
+      if (tabId === 'minutes' && isMinutesReadOnlyMode()) return true;
+      var form = getDocForm(tabId);
+      if (!planTabFormHasContent(tabId, form)) return true;
+      if (tabId === 'tools') {
+        // 평가도구는 교과목별 저장 흐름(채점기준표 연동 포함)을 그대로 사용
+        return await saveToolsSubjectDocument();
+      }
+      return await saveDocument(tabId);
+    }
+
     async function startNewDocument(tabId) {
       if (blockIfMinutesAdminOnly(tabId)) return;
       selectedDocIdByTab[tabId] = '';
@@ -6968,11 +7031,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         });
       }
       document.querySelectorAll('[data-plan-next-step]').forEach(function(btn) {
-        btn.addEventListener('click', function(ev) {
+        btn.addEventListener('click', async function(ev) {
           ev.preventDefault();
           var nextId = btn.getAttribute('data-plan-next-step');
           if (!nextId) return;
-          void switchNcsPlanTab(nextId);
+          if (btn.disabled) return;
+          var originalHtml = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>저장 후 이동 중…';
+          try {
+            // 현재 탭 내용을 자동 저장한 뒤 다음 탭으로 이동 (저장 실패 시 이동하지 않음)
+            var saved = await autoSavePlanTabBeforeLeave(activeTab);
+            if (!saved) return;
+            await switchNcsPlanTab(nextId);
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+          }
         });
       });
       var achievementLoadBtn = document.getElementById('achievementLoadFromUpstreamBtn');
