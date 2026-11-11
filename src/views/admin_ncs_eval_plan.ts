@@ -5780,8 +5780,21 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     /** 교과목 선택이 바뀐 탭의 문서를 그 교과목 기준으로 다시 불러옴 — 저장 문서가 없으면 빈 양식(빈 슬롯) */
     async function reloadSubjectScopedPlanDoc(tabId) {
       if (!selectedCourseId) return;
+      var selectIdByTab = {
+        schedule: 'scheduleSubjectSelect',
+        questions: 'questionsSubjectSelect',
+        tools: 'toolsSubjectSelect',
+        rubric: 'rubric_subject_name',
+        achievement: 'achievement_subject_name',
+        review: 'review_subject_name'
+      };
+      var selId = selectIdByTab[tabId] || '';
+      var keepCid = selId ? getNcsSubjectSelectCurriculumValue(selId) : '';
+      var keepLabel = selId ? getNcsSubjectSelectPlainName(selId) : '';
       selectedDocIdByTab[tabId] = '';
       await loadDocument(tabId, '');
+      // 문서 적용 중 교과목 선택이 비워지지 않도록 사용자가 고른 교과목을 다시 맞춤
+      if (selId && keepCid) applyNcsSubjectSelectValue(selId, keepCid, keepLabel);
     }
 
     async function loadCourseOptions() {
@@ -6055,6 +6068,152 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (meta.date) fillEditableIfEmpty('review_review_date', meta.date, force);
     }
 
+    /** 교과목·회차 기준 저장 문서 payload 조회 (없으면 null) */
+    async function fetchPlanDocPayloadForSubject(docType, curriculumId) {
+      var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      var cid = curriculumId != null ? String(curriculumId).trim() : '';
+      if (!courseId || !cid) return null;
+      try {
+        var url =
+          '/api/ncs/plan-documents?course_id=' +
+          encodeURIComponent(courseId) +
+          '&evaluation_round=' +
+          encodeURIComponent(selectedRound) +
+          '&doc_type=' +
+          encodeURIComponent(docType) +
+          (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
+          '&curriculum_id=' +
+          encodeURIComponent(cid);
+        var res = await authFetch(url);
+        var json = await res.json();
+        if (!json || !json.success || !json.data || !json.data.payload) return null;
+        return json.data.payload;
+      } catch (e) {
+        console.warn('[plan-doc:' + docType + ']', e);
+        return null;
+      }
+    }
+
+    /**
+     * 성취수준·검토용 상위 단계 메타를 "선택한 교과목" 기준으로 수집.
+     * 평가도구·채점기준표 탭 화면이 같은 교과목이면 화면 값을, 아니면 그 교과목의 저장 문서를 사용한다.
+     * (이전에는 화면에 떠 있는 다른 교과목의 값을 그대로 가져와 선택한 교과목 내용이 로드되지 않았음)
+     */
+    async function collectUpstreamMetaForSubject(curriculumIdRaw, subjectNameRaw) {
+      var cid = curriculumIdRaw != null ? String(curriculumIdRaw).trim() : '';
+      var label = stripSubjectTypeBadge(subjectNameRaw || '');
+      var meta = {
+        eval_date: '',
+        unit_level: '',
+        trainee: '',
+        writer: '',
+        course_title: '',
+        element_name: '',
+        ach_note: '',
+        target_score: 0
+      };
+      if (!cid) return meta;
+
+      var toolsPayload = null;
+      var toolsCid = getNcsSubjectSelectCurriculumValue('toolsSubjectSelect');
+      if (toolsCid && toolsCid === cid) {
+        syncToolsCriteriaStateFromDom();
+        toolsPayload = {
+          criteria_groups: toolsCriteriaGroupsState || [],
+          tools_unit_name_level: getToolsFieldValue('tools_unit_name_level'),
+          tools_trainee: getToolsFieldValue('tools_trainee'),
+          tools_instructor: getToolsInstructorFieldTrimmed(),
+          writer: getToolsFieldValue('tools_writer'),
+          tools_display_course: getToolsFieldValue('tools_display_course'),
+          tools_achievement_note: getToolsFieldValue('tools_achievement_note')
+        };
+      } else {
+        toolsPayload = await fetchPlanDocPayloadForSubject('tools', cid);
+      }
+      if (toolsPayload) {
+        meta.unit_level = String(toolsPayload.tools_unit_name_level || '').trim();
+        meta.trainee = String(toolsPayload.tools_trainee || '').trim();
+        meta.writer = String(toolsPayload.tools_instructor || toolsPayload.writer || '').trim();
+        meta.course_title = String(toolsPayload.tools_display_course || '').trim();
+        meta.ach_note = String(toolsPayload.tools_achievement_note || '').trim();
+        var groups = Array.isArray(toolsPayload.criteria_groups) ? toolsPayload.criteria_groups : [];
+        for (var g = 0; g < groups.length; g++) {
+          var nm = String((groups[g] && (groups[g].element_title || groups[g].element_name || groups[g].name)) || '').trim();
+          if (nm && nm !== '-') {
+            meta.element_name = nm;
+            break;
+          }
+        }
+      }
+
+      var rubricCid = getNcsSubjectSelectCurriculumValue('rubric_subject_name');
+      var rubricPayload = null;
+      if (rubricCid && rubricCid === cid) {
+        rubricPayload = {
+          total_target: Number(getRubricFieldValue('rubric_total_target') || 0),
+          unit_name: getRubricFieldValue('rubric_unit_name'),
+          rows: readRubricRowsFromTable()
+        };
+      } else {
+        rubricPayload = await fetchPlanDocPayloadForSubject('rubric', cid);
+      }
+      if (rubricPayload) {
+        meta.target_score = Number(rubricPayload.total_target || 0);
+        if (!meta.unit_level) meta.unit_level = String(rubricPayload.unit_name || '').trim();
+        if (!meta.element_name) {
+          var rRows = Array.isArray(rubricPayload.rows) ? rubricPayload.rows : [];
+          for (var r = 0; r < rRows.length; r++) {
+            var it = String((rRows[r] && rRows[r].item) || '').trim();
+            if (it) {
+              meta.element_name = it;
+              break;
+            }
+          }
+        }
+      }
+
+      var sch = readScheduleMetaForSubject(cid, label);
+      meta.eval_date = sch.date || '';
+      if (!meta.writer) meta.writer = sch.instructor_name || '';
+      if (!meta.course_title) meta.course_title = getSelectedLmsCourseDisplayTitle() || '';
+      return meta;
+    }
+
+    /** 선택한 교과목의 상위 단계 메타를 성취수준표에 반영 (force=false면 빈 칸만) */
+    async function applyUpstreamMetaToAchievementForSubject(curriculumIdRaw, subjectNameRaw, opts) {
+      opts = opts || {};
+      var force = !!opts.force;
+      var meta = await collectUpstreamMetaForSubject(curriculumIdRaw, subjectNameRaw);
+      if (meta.eval_date) fillEditableIfEmpty('achievement_eval_date', meta.eval_date, force);
+      if (meta.unit_level) fillEditableIfEmpty('achievement_unit_level', meta.unit_level, force);
+      if (meta.writer) fillEditableIfEmpty('achievement_writer', meta.writer, force);
+      if (meta.trainee) fillEditableIfEmpty('achievement_trainee', meta.trainee, force);
+      if (meta.course_title) fillEditableIfEmpty('achievement_doc_title', meta.course_title, force);
+      if (meta.element_name) fillEditableIfEmpty('achievement_score_item_name', meta.element_name, force);
+      if (meta.ach_note) {
+        var notesEl = document.getElementById('achievement_notes');
+        var notesEmpty = !notesEl || !String(notesEl.isContentEditable ? notesEl.textContent : (notesEl.value || '')).trim();
+        if (force || notesEmpty) setAchievementFieldValue('achievement_notes', meta.ach_note);
+      }
+      if (meta.target_score > 0) fillEditableIfEmpty('achievement_target_score', String(meta.target_score), force);
+      var rows = readAchievementRowsFromTable();
+      if (!rows.length) renderAchievementRows(defaultAchievementRows());
+      return meta;
+    }
+
+    /** 선택한 교과목의 상위 단계 메타를 평가도구검토표에 반영 (force=false면 빈 칸만) */
+    async function applyUpstreamMetaToReviewForSubject(curriculumIdRaw, subjectNameRaw, opts) {
+      opts = opts || {};
+      var force = !!opts.force;
+      var meta = await collectUpstreamMetaForSubject(curriculumIdRaw, subjectNameRaw);
+      if (meta.unit_level) fillEditableIfEmpty('review_unit_level', meta.unit_level, force);
+      fillEditableIfEmpty('review_tool_name', meta.element_name || '평가도구', force);
+      if (meta.writer) fillEditableIfEmpty('review_writer', meta.writer, force);
+      if (meta.course_title) fillEditableIfEmpty('review_doc_title', meta.course_title, force);
+      if (meta.eval_date) fillEditableIfEmpty('review_review_date', meta.eval_date, force);
+      return meta;
+    }
+
     async function syncAchievementFromToolsAndRubric(opts) {
       opts = opts || {};
       var silent = !!opts.silent;
@@ -6073,7 +6232,13 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             );
           }
         }
-        carryUpstreamMetaToAchievement({ force: force });
+        var achCid = getNcsSubjectSelectCurriculumValue('achievement_subject_name');
+        if (!achCid) {
+          if (!silent) alert('성취수준표에서 교과목을 먼저 선택해 주세요.');
+          return false;
+        }
+        // 선택한 교과목의 평가도구·채점기준표(저장 문서) 기준으로 반영
+        await applyUpstreamMetaToAchievementForSubject(achCid, getNcsSubjectSelectPlainName('achievement_subject_name'), { force: force });
         var rows = readAchievementRowsFromTable();
         if (!rows.length) renderAchievementRows(defaultAchievementRows());
         setStatus('achievement', '평가도구·채점기준표 메타를 성취수준표에 반영했습니다. 확인 후 저장하세요.', false);
@@ -6192,9 +6357,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       // 성취수준·검토도 바뀐 교과목 문서로 교체 (없으면 빈 양식) 후 상위 단계 메타를 빈 칸에만 채움
       void (async function() {
         await reloadSubjectScopedPlanDoc('achievement');
-        carryUpstreamMetaToAchievement({ force: false });
+        await applyUpstreamMetaToAchievementForSubject(cid, name, { force: false });
         await reloadSubjectScopedPlanDoc('review');
-        carryUpstreamMetaToReview({ force: false });
+        await applyUpstreamMetaToReviewForSubject(cid, name, { force: false });
       })();
     }
 
@@ -7015,19 +7180,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (achievementSubSelInit) {
         achievementSubSelInit.addEventListener('change', async function() {
           if (sharedSubjectSyncing) return;
+          var achCid = getNcsSubjectSelectCurriculumValue('achievement_subject_name');
+          var achLabel = getNcsSubjectSelectPlainName('achievement_subject_name');
           syncSharedSubjectFromSelect('achievement_subject_name', { triggerSideEffects: false });
-          // 바뀐 교과목의 저장 문서를 불러오고(없으면 빈 양식), 상위 단계 메타는 빈 칸만 채움
+          // 바뀐 교과목의 저장 문서를 불러오고(없으면 빈 양식), 그 교과목의 평가도구·채점표 메타를 빈 칸에 채움
           await reloadSubjectScopedPlanDoc('achievement');
-          carryUpstreamMetaToAchievement({ force: false });
+          await applyUpstreamMetaToAchievementForSubject(achCid, achLabel, { force: false });
         });
       }
       var reviewSubSelInit = document.getElementById('review_subject_name');
       if (reviewSubSelInit) {
         reviewSubSelInit.addEventListener('change', async function() {
           if (sharedSubjectSyncing) return;
+          var revCid = getNcsSubjectSelectCurriculumValue('review_subject_name');
+          var revLabel = getNcsSubjectSelectPlainName('review_subject_name');
           syncSharedSubjectFromSelect('review_subject_name', { triggerSideEffects: false });
           await reloadSubjectScopedPlanDoc('review');
-          carryUpstreamMetaToReview({ force: false });
+          await applyUpstreamMetaToReviewForSubject(revCid, revLabel, { force: false });
         });
       }
       document.querySelectorAll('[data-plan-next-step]').forEach(function(btn) {
