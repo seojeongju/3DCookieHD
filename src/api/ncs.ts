@@ -6045,15 +6045,47 @@ function dashScheduleRowMatchesPlan(row: Record<string, any>, plan: Record<strin
     return false;
 }
 
-function dashScheduleOkForPlan(schedulePayload: Record<string, any>, plan: Record<string, any>): boolean {
-    const rows = Array.isArray(schedulePayload?.rows) ? schedulePayload.rows : [];
-    return rows.some((r: any) => dashScheduleRowMatchesPlan(r, plan) && String(r?.date ?? '').trim() !== '');
+/**
+ * (평가회차:문서유형) → 문서 payload 목록 (최신순).
+ * 평가도구 등은 교과목마다 별도 문서로 저장되므로 최신 1건만 보면 다른 교과목이 "미설정"으로 보인다.
+ */
+function dashGroupDocsByRoundType(docRows: unknown): Map<string, Record<string, any>[]> {
+    const map = new Map<string, Record<string, any>[]>();
+    for (const r of (Array.isArray(docRows) ? docRows : [])) {
+        const row = r as any;
+        const key = `${row.evaluation_round}:${row.doc_type}`;
+        const list = map.get(key) || [];
+        list.push(dashParsePlanDocPayload(row.payload_json));
+        map.set(key, list);
+    }
+    return map;
+}
+
+function dashPayloadsFor(map: Map<string, Record<string, any>[]>, round: number, docType: string): Record<string, any>[] {
+    return map.get(`${round}:${docType}`) || [];
+}
+
+function dashScheduleOkForPlan(schedulePayloads: Record<string, any>[], plan: Record<string, any>): boolean {
+    return schedulePayloads.some((p) => {
+        const rows = Array.isArray(p?.rows) ? p.rows : [];
+        return rows.some((r: any) => dashScheduleRowMatchesPlan(r, plan) && String(r?.date ?? '').trim() !== '');
+    });
+}
+
+/** 평가도구 제작 신규 형식(criteria_groups)에 실제 평가내용 문구가 있는지 */
+function dashCriteriaGroupsHaveBody(groups: unknown): boolean {
+    if (!Array.isArray(groups)) return false;
+    return groups.some((g: any) => {
+        const lines = Array.isArray(g?.lines) ? g.lines : [];
+        return lines.some((ln: any) => String(ln?.text ?? '').trim() !== '');
+    });
 }
 
 function dashTypedDocOk(payload: Record<string, any>, plan: Record<string, any>): boolean {
     const p = payload || {};
     const rows = Array.isArray(p?.rows) ? p.rows : [];
-    if (!rows.length) return false;
+    const hasCriteria = dashCriteriaGroupsHaveBody(p?.criteria_groups);
+    if (!rows.length && !hasCriteria) return false;
 
     // 1) 기존: payload 상단 필드(curriculum_id/subject_name)로 매칭
     if (dashPayloadMatchesPlan(p, plan)) return true;
@@ -6072,16 +6104,22 @@ function dashTypedDocOk(payload: Record<string, any>, plan: Record<string, any>)
     return hit;
 }
 
-function dashProgressLabel(schedulePayload: Record<string, any>, plan: Record<string, any>, plannedDate: unknown): string {
-    const rows = Array.isArray(schedulePayload?.rows) ? schedulePayload.rows : [];
-    const hit = rows.find((r: any) => dashScheduleRowMatchesPlan(r, plan) && String(r?.date ?? '').trim());
-    if (hit) {
+function dashTypedDocsOk(payloads: Record<string, any>[], plan: Record<string, any>): boolean {
+    return payloads.some((p) => dashTypedDocOk(p, plan));
+}
+
+function dashProgressLabel(schedulePayloads: Record<string, any>[], plan: Record<string, any>, plannedDate: unknown): string {
+    for (const schedulePayload of schedulePayloads) {
+        const rows = Array.isArray(schedulePayload?.rows) ? schedulePayload.rows : [];
+        const hit = rows.find((r: any) => dashScheduleRowMatchesPlan(r, plan) && String(r?.date ?? '').trim());
+        if (!hit) continue;
         const d = String(hit.date || '').trim();
         const t = String(hit.time || '').trim();
+        const te = String(hit.time_end || '').trim();
         const place = String(hit.place || '').trim();
         let s = d;
-        if (t) s += ' ' + t;
-        if (place) s += ' ~ ' + place;
+        if (t) s += ' ' + t + (te ? '~' + te : '');
+        if (place) s += ' · ' + place;
         return s;
     }
     if (plannedDate != null && String(plannedDate).trim() !== '') return String(plannedDate).trim();
@@ -6490,7 +6528,8 @@ app.post('/plan-documents', authMiddleware, async (c) => {
         const deniedMinutes = forbidTeacherMinutesMutation(c, docType);
         if (deniedMinutes) return deniedMinutes;
 
-        const allowed = await ensureNcsCoursePermission(c, courseId);
+        // PUT·DELETE와 동일하게 회차(session_id) 기준 권한 확인 — 강사가 회차 화면에서 새 문서를 못 만들던 문제
+        const allowed = await ensureNcsCoursePermission(c, courseId, c.req.query('session_id') ?? (body as any).session_id);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
 
         const payloadJson = JSON.stringify(payload ?? {});
@@ -6769,14 +6808,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             ORDER BY evaluation_round ASC, doc_type ASC, updated_at DESC, id DESC
         `).bind(...safeInList, ...DASHBOARD_PLAN_DOC_TYPES).all();
 
-        const latestByRoundType = new Map<string, any>();
-        for (const r of docRows || []) {
-            const row = r as any;
-            const key = `${row.evaluation_round}:${row.doc_type}`;
-            if (!latestByRoundType.has(key)) {
-                latestByRoundType.set(key, row);
-            }
-        }
+        const docsByRoundType = dashGroupDocsByRoundType(docRows);
 
         const { results: unitRows } = await c.env.DB.prepare(`
             SELECT cnu.ncs_unit_id, u.name as unit_name, u.code as unit_code
@@ -6851,28 +6883,14 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             })();
 
         const roundsOut = [1, 2, 3].map((round) => {
-            const minutesRow = latestByRoundType.get(`${round}:minutes`);
-            const minutesPayload = minutesRow ? dashParsePlanDocPayload(minutesRow.payload_json) : {};
-            const plan_confirmed = dashMinutesLooksComplete(minutesPayload);
+            const plan_confirmed = dashPayloadsFor(docsByRoundType, round, 'minutes').some(dashMinutesLooksComplete);
 
-            const schedulePayload = latestByRoundType.get(`${round}:schedule`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:schedule`).payload_json)
-                : {};
-            const questionsPayload = latestByRoundType.get(`${round}:questions`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:questions`).payload_json)
-                : {};
-            const toolsPayload = latestByRoundType.get(`${round}:tools`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:tools`).payload_json)
-                : {};
-            const rubricPayload = latestByRoundType.get(`${round}:rubric`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:rubric`).payload_json)
-                : {};
-            const achievementPayload = latestByRoundType.get(`${round}:achievement`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:achievement`).payload_json)
-                : {};
-            const reviewPayload = latestByRoundType.get(`${round}:review`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:review`).payload_json)
-                : {};
+            const schedulePayloads = dashPayloadsFor(docsByRoundType, round, 'schedule');
+            const questionsPayloads = dashPayloadsFor(docsByRoundType, round, 'questions');
+            const toolsPayloads = dashPayloadsFor(docsByRoundType, round, 'tools');
+            const rubricPayloads = dashPayloadsFor(docsByRoundType, round, 'rubric');
+            const achievementPayloads = dashPayloadsFor(docsByRoundType, round, 'achievement');
+            const reviewPayloads = dashPayloadsFor(docsByRoundType, round, 'review');
 
             const roundPlans = plans.filter((p: any) => Number(p.evaluation_round) === round);
             const planByUnitId = new Map<string, any>();
@@ -6897,13 +6915,13 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
                     ncs_unit_id: u?.ncs_unit_id ?? null,
                     subject_label: subject_label || '-',
                     method: plan ? String(plan.method || '-') : '-',
-                    progress_label: plan ? dashProgressLabel(schedulePayload, plan, plan.planned_date) : '-',
-                    schedule: plan ? dashScheduleOkForPlan(schedulePayload, plan) : false,
-                    questions: plan ? dashTypedDocOk(questionsPayload, plan) : false,
-                    tools: plan ? dashTypedDocOk(toolsPayload, plan) : false,
-                    rubric: plan ? dashTypedDocOk(rubricPayload, plan) : false,
-                    achievement: plan ? dashTypedDocOk(achievementPayload, plan) : false,
-                    review: plan ? dashTypedDocOk(reviewPayload, plan) : false,
+                    progress_label: plan ? dashProgressLabel(schedulePayloads, plan, plan.planned_date) : '-',
+                    schedule: plan ? dashScheduleOkForPlan(schedulePayloads, plan) : false,
+                    questions: plan ? dashTypedDocsOk(questionsPayloads, plan) : false,
+                    tools: plan ? dashTypedDocsOk(toolsPayloads, plan) : false,
+                    rubric: plan ? dashTypedDocsOk(rubricPayloads, plan) : false,
+                    achievement: plan ? dashTypedDocsOk(achievementPayloads, plan) : false,
+                    review: plan ? dashTypedDocsOk(reviewPayloads, plan) : false,
                     scores_missing,
                     plan_registered: !!plan,
                 };
@@ -7086,12 +7104,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
             ORDER BY evaluation_round ASC, doc_type ASC, updated_at DESC, id DESC
         `).bind(...safeInList, ...DASHBOARD_PLAN_DOC_TYPES).all();
 
-        const latestByRoundType = new Map<string, any>();
-        for (const r of docRows || []) {
-            const row = r as any;
-            const key = `${row.evaluation_round}:${row.doc_type}`;
-            if (!latestByRoundType.has(key)) latestByRoundType.set(key, row);
-        }
+        const docsByRoundType = dashGroupDocsByRoundType(docRows);
 
         // subjects를 대시보드용 pseudo-plan으로 변환(대시보드 판정 함수 재사용)
         const subjectPlans = (Array.isArray(subjects) ? subjects : []).map((s: any) => {
@@ -7115,41 +7128,22 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         }).filter((p: any) => Number.isFinite(Number(p.ncs_unit_id)) && Number(p.ncs_unit_id) >= 1);
 
         const roundsOut = [1, 2, 3].map((round) => {
-            const minutesRow = latestByRoundType.get(`${round}:minutes`);
-            const minutesPayload = minutesRow ? dashParsePlanDocPayload(minutesRow.payload_json) : {};
-            const plan_confirmed = dashMinutesLooksComplete(minutesPayload);
+            const plan_confirmed = dashPayloadsFor(docsByRoundType, round, 'minutes').some(dashMinutesLooksComplete);
 
-            const schedulePayload = latestByRoundType.get(`${round}:schedule`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:schedule`).payload_json)
-                : {};
-
-            const questionsPayload = latestByRoundType.get(`${round}:questions`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:questions`).payload_json)
-                : {};
-
-            const toolsPayload = latestByRoundType.get(`${round}:tools`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:tools`).payload_json)
-                : {};
-
-            const rubricPayload = latestByRoundType.get(`${round}:rubric`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:rubric`).payload_json)
-                : {};
-
-            const achievementPayload = latestByRoundType.get(`${round}:achievement`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:achievement`).payload_json)
-                : {};
-
-            const reviewPayload = latestByRoundType.get(`${round}:review`)
-                ? dashParsePlanDocPayload(latestByRoundType.get(`${round}:review`).payload_json)
-                : {};
+            const schedulePayloads = dashPayloadsFor(docsByRoundType, round, 'schedule');
+            const questionsPayloads = dashPayloadsFor(docsByRoundType, round, 'questions');
+            const toolsPayloads = dashPayloadsFor(docsByRoundType, round, 'tools');
+            const rubricPayloads = dashPayloadsFor(docsByRoundType, round, 'rubric');
+            const achievementPayloads = dashPayloadsFor(docsByRoundType, round, 'achievement');
+            const reviewPayloads = dashPayloadsFor(docsByRoundType, round, 'review');
 
             const rows = subjectPlans.map((plan: any) => {
-                const scheduleOk = dashScheduleOkForPlan(schedulePayload, plan);
-                const questionsOk = dashTypedDocOk(questionsPayload, plan);
-                const toolsOk = dashTypedDocOk(toolsPayload, plan);
-                const rubricOk = dashTypedDocOk(rubricPayload, plan);
-                const achievementOk = dashTypedDocOk(achievementPayload, plan);
-                const reviewOk = dashTypedDocOk(reviewPayload, plan);
+                const scheduleOk = dashScheduleOkForPlan(schedulePayloads, plan);
+                const questionsOk = dashTypedDocsOk(questionsPayloads, plan);
+                const toolsOk = dashTypedDocsOk(toolsPayloads, plan);
+                const rubricOk = dashTypedDocsOk(rubricPayloads, plan);
+                const achievementOk = dashTypedDocsOk(achievementPayloads, plan);
+                const reviewOk = dashTypedDocsOk(reviewPayloads, plan);
 
                 const plan_registered = scheduleOk || questionsOk || toolsOk || rubricOk || achievementOk || reviewOk;
 
@@ -7158,7 +7152,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                     ncs_unit_id: plan.ncs_unit_id,
                     subject_label: plan.unit_name || '-',
                     method: plan.method && String(plan.method).trim() !== '' ? String(plan.method) : '-',
-                    progress_label: dashProgressLabel(schedulePayload, plan, ''),
+                    progress_label: dashProgressLabel(schedulePayloads, plan, ''),
                     schedule: scheduleOk,
                     questions: questionsOk,
                     tools: toolsOk,

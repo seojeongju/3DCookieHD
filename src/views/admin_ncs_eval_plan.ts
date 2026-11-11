@@ -959,7 +959,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                       <tr>
                         <td class="border border-black text-center bg-slate-50 font-bold align-top py-2">일정 입력</td>
                         <td class="border border-black p-2" colspan="7">
-                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
+                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-2 items-end">
                             <label class="block text-[11px] font-bold text-slate-600 lg:col-span-2">교과목 · 하위 과목
                               <select id="scheduleSubjectSelect" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm disabled:opacity-60" disabled>
                                 <option value="">과정 선택 후 교과목</option>
@@ -968,8 +968,11 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                             <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">평가일정
                               <input id="scheduleInputDate" type="date" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" />
                             </label>
-                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">시간
+                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">시작 시간
                               <input id="scheduleInputTime" type="time" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" />
+                            </label>
+                            <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">종료 시간
+                              <input id="scheduleInputTimeEnd" type="time" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" />
                             </label>
                             <label class="block text-[11px] font-bold text-slate-600 sm:col-span-1">장소
                               <input id="scheduleInputPlace" class="mt-0.5 w-full px-2 py-1.5 border border-slate-200 rounded bg-white text-sm" placeholder="장소" />
@@ -996,7 +999,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                                 <tr>
                                   <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 min-w-[8rem]">과목</th>
                                   <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">평가일정</th>
-                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-28">시간</th>
+                                  <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-36">시간 (시작~종료)</th>
                                   <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50">장소</th>
                                   <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 min-w-[7rem]">배정 강사</th>
                                   <th class="border border-black px-2 py-2 text-center text-xs font-black text-slate-800 bg-slate-50 w-24">수정</th>
@@ -3575,11 +3578,27 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           curriculum_id: cid,
           date: String(r.date || '').trim(),
           time: String(r.time || '').trim(),
+          time_end: String(r.time_end || '').trim(),
           place: String(r.place || '').trim(),
           instructor_id: instructorId,
           instructor_name: instructorName
         };
       });
+    }
+
+    /** "19:00" + "21:00" → "19:00~21:00" (종료시간 없으면 시작시간만) */
+    function formatScheduleTimeRange(time, timeEnd) {
+      var t = String(time || '').trim();
+      var te = String(timeEnd || '').trim();
+      if (!t) return te ? ('~' + te) : '';
+      return te ? (t + '~' + te) : t;
+    }
+
+    /** "HH:MM" → 분. 형식이 아니면 NaN */
+    function scheduleTimeToMinutes(v) {
+      var m = /^(\\d{1,2}):(\\d{2})$/.exec(String(v || '').trim());
+      if (!m) return NaN;
+      return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
     }
 
     function applyScheduleDocTitleAuto() {
@@ -3596,9 +3615,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     function clearScheduleInputRow() {
       var d = document.getElementById('scheduleInputDate');
       var t = document.getElementById('scheduleInputTime');
+      var te = document.getElementById('scheduleInputTimeEnd');
       var p = document.getElementById('scheduleInputPlace');
       if (d) d.value = '';
       if (t) t.value = '';
+      if (te) te.value = '';
       if (p) p.value = '';
       var ins = document.getElementById('scheduleInstructorSelect');
       if (ins && String(ins.tagName).toUpperCase() === 'SELECT' && !ins.disabled && ins.options.length > 0) {
@@ -3718,6 +3739,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           curriculum_id: tr.getAttribute('data-curriculum-id') || '',
           date: tr.getAttribute('data-date') || '',
           time: tr.getAttribute('data-time') || '',
+          time_end: tr.getAttribute('data-time-end') || '',
           place: tr.getAttribute('data-place') || '',
           instructor_id: tr.getAttribute('data-instructor-id') || '',
           instructor_name: tr.getAttribute('data-instructor-name') || ''
@@ -3747,13 +3769,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         const cid = String(row?.curriculum_id || '');
         const date = String(row?.date || '');
         const time = String(row?.time || '');
+        const timeEnd = String(row?.time_end || '');
         const place = String(row?.place || '');
         const instructorId = String(row?.instructor_id || '');
         const instructorName = String(row?.instructor_name || '');
-        return '<tr data-schedule-row data-subject="' + escapeHtml(subject) + '" data-curriculum-id="' + escapeHtml(cid) + '" data-date="' + escapeHtml(date) + '" data-time="' + escapeHtml(time) + '" data-place="' + escapeHtml(place) + '" data-instructor-id="' + escapeHtml(instructorId) + '" data-instructor-name="' + escapeHtml(instructorName) + '">' +
+        return '<tr data-schedule-row data-subject="' + escapeHtml(subject) + '" data-curriculum-id="' + escapeHtml(cid) + '" data-date="' + escapeHtml(date) + '" data-time="' + escapeHtml(time) + '" data-time-end="' + escapeHtml(timeEnd) + '" data-place="' + escapeHtml(place) + '" data-instructor-id="' + escapeHtml(instructorId) + '" data-instructor-name="' + escapeHtml(instructorName) + '">' +
           '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(subject || '-') + '</td>' +
           '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(date || '-') + '</td>' +
-          '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(time || '-') + '</td>' +
+          '<td class="border border-black px-2 py-2 text-sm text-slate-800 whitespace-nowrap">' + escapeHtml(formatScheduleTimeRange(time, timeEnd) || '-') + '</td>' +
           '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(place || '-') + '</td>' +
           '<td class="border border-black px-2 py-2 text-sm text-slate-800">' + escapeHtml(instructorName || '-') + '</td>' +
           '<td class="border border-black px-2 py-2 text-center align-middle"><button type="button" class="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 transition" data-edit-schedule-row="' + idx + '">수정</button></td>' +
@@ -3781,6 +3804,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       const subSel = document.getElementById('scheduleSubjectSelect');
       const dateEl = document.getElementById('scheduleInputDate');
       const timeEl = document.getElementById('scheduleInputTime');
+      const timeEndEl = document.getElementById('scheduleInputTimeEnd');
       const placeEl = document.getElementById('scheduleInputPlace');
       const instructorEl = document.getElementById('scheduleInstructorSelect');
       const curriculumId = subSel ? String(subSel.value || '').trim() : '';
@@ -3793,6 +3817,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       const date = (dateEl?.value || '').trim();
       const time = (timeEl?.value || '').trim();
+      const timeEnd = (timeEndEl?.value || '').trim();
       const place = (placeEl?.value || '').trim();
 
       if (!curriculumId) {
@@ -3803,12 +3828,25 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         alert('평가일정(일자)를 입력해 주세요.');
         return false;
       }
+      if (timeEnd && !time) {
+        alert('종료 시간을 입력했으면 시작 시간도 입력해 주세요.');
+        return false;
+      }
+      if (time && timeEnd) {
+        var startMin = scheduleTimeToMinutes(time);
+        var endMin = scheduleTimeToMinutes(timeEnd);
+        if (Number.isFinite(startMin) && Number.isFinite(endMin) && endMin <= startMin) {
+          alert('종료 시간은 시작 시간보다 늦어야 합니다.');
+          return false;
+        }
+      }
 
       const newRow = {
         subject: subjectLabel || '-',
         curriculum_id: curriculumId,
         date: date,
         time: time,
+        time_end: timeEnd,
         place: place,
         instructor_id: instructorId,
         instructor_name: instructorName
@@ -5853,13 +5891,20 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         }
       }
       if (!matched && rows.length === 1) matched = rows[0];
-      if (!matched) return { date: '', time: '', datetime: '', instructor_id: '', instructor_name: '', place: '' };
+      if (!matched) return { date: '', time: '', time_end: '', datetime: '', duration_minutes: NaN, instructor_id: '', instructor_name: '', place: '' };
       var date = String(matched.date || '').trim();
       var time = String(matched.time || '').trim();
+      var timeEnd = String(matched.time_end || '').trim();
+      var timeRange = formatScheduleTimeRange(time, timeEnd);
+      var startMin = scheduleTimeToMinutes(time);
+      var endMin = scheduleTimeToMinutes(timeEnd);
+      var durationMinutes = (Number.isFinite(startMin) && Number.isFinite(endMin) && endMin > startMin) ? (endMin - startMin) : NaN;
       return {
         date: date,
         time: time,
-        datetime: date ? (time ? date + ' ' + time : date) : '',
+        time_end: timeEnd,
+        datetime: date ? (timeRange ? date + ' ' + timeRange : date) : '',
+        duration_minutes: durationMinutes,
         instructor_id: String(matched.instructor_id || '').trim(),
         instructor_name: String(matched.instructor_name || '').trim(),
         place: String(matched.place || '').trim()
@@ -5887,6 +5932,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       var label = getNcsSubjectSelectPlainName('toolsSubjectSelect') || sharedPlanSubjectLabel;
       var meta = readScheduleMetaForSubject(cid, label);
       if (meta.datetime) fillEditableIfEmpty('tools_eval_datetime', meta.datetime, force);
+      // 시작~종료 시간이 모두 있으면 평가 소요시간(분)도 채움
+      if (Number.isFinite(meta.duration_minutes) && meta.duration_minutes > 0) {
+        fillEditableIfEmpty('tools_eval_duration', String(meta.duration_minutes) + '분', force);
+      }
       if (meta.instructor_name) {
         var curIns = getToolsInstructorFieldTrimmed();
         if (force || !curIns) syncToolsInstructorSelectToSavedName(meta.instructor_name);
@@ -6381,6 +6430,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             curriculum_id: getCurriculumIdForPlanTab(tabId) || undefined,
             evaluation_round: Number(selectedRound),
             doc_type: tabId,
+            session_id: _sid || undefined,
             title: form.title,
             payload: form.payload
           })
@@ -6463,6 +6513,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             curriculum_id: getCurriculumIdForPlanTab(tabId) || undefined,
             evaluation_round: Number(selectedRound),
             doc_type: tabId,
+            session_id: _sid || undefined,
             title: form.title,
             payload: form.payload
           })
@@ -7089,9 +7140,11 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           if (schInstEl && String(schInstEl.tagName).toUpperCase() === 'SELECT') schInstEl.disabled = false;
           var sde = document.getElementById('scheduleInputDate');
           var ste = document.getElementById('scheduleInputTime');
+          var stee = document.getElementById('scheduleInputTimeEnd');
           var spe = document.getElementById('scheduleInputPlace');
           if (sde) sde.value = row.date || '';
           if (ste) ste.value = row.time || '';
+          if (stee) stee.value = row.time_end || '';
           if (spe) spe.value = row.place || '';
           updateScheduleAddButtonLabel();
           return;
