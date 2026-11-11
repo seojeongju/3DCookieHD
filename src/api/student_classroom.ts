@@ -286,13 +286,19 @@ app.get('/:sessionId/ncs-plans/:planId/exam', async (c) => {
         docs = [];
     }
 
-    // 평가문항: 이 교과목 행이 있는 최신 문서
+    // 평가문항: 이 교과목 전용 문서(상단 curriculum_id/subject_name 일치)를 우선, 없으면 행 기준 매칭
     let questions: any[] = [];
     let questionAttachments: any[] = [];
     let questionNotes = '';
     let questionTarget = 0;
-    for (const d of docs.filter((x) => x.doc_type === 'questions')) {
-        const p = parsePayload(d.payload_json);
+    const questionDocs = docs
+        .filter((x) => x.doc_type === 'questions')
+        .map((x) => ({ p: parsePayload(x.payload_json) }));
+    const orderedQuestionDocs = [
+        ...questionDocs.filter((x) => matches(x.p.curriculum_id, x.p.subject_name)),
+        ...questionDocs.filter((x) => !matches(x.p.curriculum_id, x.p.subject_name)),
+    ];
+    for (const { p } of orderedQuestionDocs) {
         const rows = (Array.isArray(p.rows) ? p.rows : []).filter((r: any) => matches(r?.curriculum_id, r?.subject));
         if (!rows.length) continue;
         questions = rows

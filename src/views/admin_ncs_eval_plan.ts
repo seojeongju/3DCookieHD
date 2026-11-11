@@ -1721,6 +1721,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
     var lastFocusedEditableId = '';
     var autoEditableSeq = 1;
     var selectedDocIdByTab = {};
+    /** 평가문항: 현재 교과목 보기에서 숨긴 다른 교과목 행 (이전 형식의 다과목 문서 보존용, 저장 시 함께 저장) */
+    var questionsOtherSubjectRows = [];
     var selectedSessionIdForSubject = '';
     /** 평가실시일자: 수정 중일 때 행 삽입 위치 (null이면 맨 뒤 추가) */
     var schedulePendingEditIndex = null;
@@ -2785,6 +2787,90 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }).map(cloneQuestionRow);
     }
 
+    async function fetchQuestionsDocForCurriculum(cid) {
+      var courseId = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
+      if (!courseId || !cid) return null;
+      try {
+        var url = '/api/ncs/plan-documents?course_id=' + encodeURIComponent(courseId) +
+          '&evaluation_round=' + encodeURIComponent(selectedRound) +
+          '&doc_type=questions' +
+          (_sid ? '&session_id=' + encodeURIComponent(_sid) : '') +
+          '&curriculum_id=' + encodeURIComponent(cid);
+        var res = await authFetch(url);
+        var json = await res.json();
+        return json && json.success && json.data ? json.data : null;
+      } catch (e) {
+        console.warn('[questions doc]', e);
+        return null;
+      }
+    }
+
+    /**
+     * 저장 직전: 현재 보기에서 숨긴 다른 교과목 문항을 그 교과목 전용 문서로 옮긴다 (문서당 한 교과목).
+     * 옮기지 못한 행만 questionsOtherSubjectRows 에 남겨 현재 문서에 함께 저장한다.
+     * (교과목별 문서에 다른 교과목의 옛 문항이 복사본으로 남아, 한 교과목을 수정하면
+     *  다른 교과목 문항이 바뀌어 보이던 문제의 근본 원인 제거)
+     */
+    async function migrateOtherSubjectQuestionRows() {
+      var rows = Array.isArray(questionsOtherSubjectRows) ? questionsOtherSubjectRows : [];
+      if (!rows.length || !selectedCourseId) return;
+      var groups = {};
+      var remaining = [];
+      rows.forEach(function(r) {
+        var k = String(r && r.curriculum_id != null ? r.curriculum_id : '').trim();
+        if (!k) { remaining.push(cloneQuestionRow(r)); return; }
+        (groups[k] = groups[k] || []).push(cloneQuestionRow(r));
+      });
+      var keys = Object.keys(groups);
+      var moved = 0;
+      for (var i = 0; i < keys.length; i++) {
+        var cid = keys[i];
+        var existing = await fetchQuestionsDocForCurriculum(cid);
+        var existingPayload = existing && existing.payload ? existing.payload : null;
+        // 현재 문서가 아닌 다른 문서에 그 교과목 문항이 이미 있으면 숨긴 복사본은 버린다
+        // (옛 복사본으로 새 문서를 만들어 최신 문항을 덮지 않도록)
+        var coveredElsewhere =
+          !!existingPayload &&
+          String(existing.id || '') !== String(selectedDocIdByTab.questions || '') &&
+          questionRowsForCurriculum(existingPayload.rows || [], cid).length > 0;
+        if (coveredElsewhere) continue;
+        var ok = false;
+        try {
+          var res = await authFetch('/api/ncs/plan-documents', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token'), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              course_id: Number(selectedCourseId),
+              curriculum_id: cid,
+              evaluation_round: Number(selectedRound),
+              doc_type: 'questions',
+              session_id: _sid || undefined,
+              title: getQuestionsFieldValue('questions_doc_title'),
+              payload: {
+                writer: getQuestionsFieldValue('questions_writer'),
+                total_target: 0,
+                notes: '',
+                attachments: [],
+                rows: groups[cid],
+                session_id: selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : '',
+                curriculum_id: parseInt(cid, 10),
+                subject_name: stripSubjectTypeBadge(groups[cid][0] && groups[cid][0].subject)
+              }
+            })
+          });
+          var json = await res.json();
+          ok = !!(json && json.success);
+          if (ok) moved += groups[cid].length;
+        } catch (e) {
+          console.warn('[questions split]', e);
+        }
+        if (!ok) remaining = remaining.concat(groups[cid]);
+      }
+      questionsOtherSubjectRows = remaining;
+      if (moved) showPlanToast('다른 교과목 문항 ' + moved + '개를 해당 교과목 문서로 분리했습니다.', false);
+      if (moved) void refreshAllNcsPlanTabDotsFromServer();
+    }
+
     function replaceQuestionRowsForCurriculum(rows, curriculumId, nextRows) {
       var cid = String(curriculumId || '').trim();
       var kept = (Array.isArray(rows) ? rows : []).filter(function(row) {
@@ -3441,7 +3527,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       if (tabId === 'questions') {
         var qRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
-        var qRows = readQuestionRowsFromTable();
+        // 보이는(선택 교과목) 행 + 숨긴 다른 교과목 행을 함께 저장 (이전 형식 다과목 문서 보존)
+        var qRows = readQuestionRowsFromTable().concat(
+          (Array.isArray(questionsOtherSubjectRows) ? questionsOtherSubjectRows : []).map(cloneQuestionRow)
+        );
         var qCidSet = {};
         (Array.isArray(qRows) ? qRows : []).forEach(function(r) {
           var cid = r && r.curriculum_id != null ? String(r.curriculum_id).trim() : '';
@@ -3895,17 +3984,44 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       return rows;
     }
 
+    /** 숨김 안내 행 — 표 맨 아래 (data-question-row 없음 → 읽기·인쇄 대상 아님) */
+    function questionsHiddenNoticeHtml() {
+      var n = Array.isArray(questionsOtherSubjectRows) ? questionsOtherSubjectRows.length : 0;
+      if (!n) return '';
+      return '<tr data-questions-hidden-notice><td colspan="7" class="px-4 py-2 text-[11px] text-slate-400 bg-slate-50/60">다른 교과목 문항 ' + n + '개는 이 교과목 보기에서 숨겨져 있으며, 저장 시 해당 교과목 문서로 분리됩니다. 해당 교과목을 선택하면 볼 수 있습니다.</td></tr>';
+    }
+
+    /**
+     * 평가문항 표 렌더 — 교과목별 보기.
+     * 선택한 교과목의 행만 표시하고, 다른 교과목 행은 questionsOtherSubjectRows 에 보존한다.
+     * (이전에는 모든 교과목 행을 한 표에 보여 교과목 전환·저장 시 서로 섞이는 문제가 있었음)
+     */
     function renderQuestionRows(rows) {
       const body = document.getElementById('questionsRowsBody');
       if (!body) return;
-      const safeRows = (Array.isArray(rows) ? rows : []).slice().sort(function(a, b) {
+      var allRows = Array.isArray(rows) ? rows : [];
+      var curCid = getNcsSubjectSelectCurriculumValue('questionsSubjectSelect');
+      var visibleRows = allRows;
+      if (curCid) {
+        var others = allRows.filter(function(r) {
+          var rc = String(r && r.curriculum_id != null ? r.curriculum_id : '').trim();
+          return rc && rc !== curCid;
+        });
+        visibleRows = allRows.filter(function(r) {
+          var rc = String(r && r.curriculum_id != null ? r.curriculum_id : '').trim();
+          return !rc || rc === curCid;
+        });
+        // 호출자가 다른 교과목 행을 함께 넘겼을 때만 갱신 (보이는 행만 넘기는 추가·수정 흐름에서는 기존 보존분 유지)
+        if (others.length) questionsOtherSubjectRows = others.map(cloneQuestionRow);
+      }
+      const safeRows = visibleRows.slice().sort(function(a, b) {
         var sa = String(a?.subject || '');
         var sb = String(b?.subject || '');
         if (sa !== sb) return sa.localeCompare(sb);
         return Number(a?.no || 0) - Number(b?.no || 0);
       });
       if (!safeRows.length) {
-        body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-400">등록된 문항이 없습니다.</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-400">' + (curCid ? '이 교과목에 등록된 문항이 없습니다.' : '등록된 문항이 없습니다.') + '</td></tr>' + questionsHiddenNoticeHtml();
         updateQuestionTotalScore([]);
         return;
       }
@@ -3930,7 +4046,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             '<button type="button" data-remove-question-row="' + idx + '" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black hover:bg-rose-100 transition">삭제</button>' +
           '</td>' +
         '</tr>';
-      }).join('');
+      }).join('') + questionsHiddenNoticeHtml();
       updateQuestionTotalScore(safeRows);
     }
 
@@ -5603,6 +5719,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         setQuestionsFieldValue('questions_total_target', payload.total_target || '');
         setQuestionsFieldValue('questions_notes', payload.notes || '');
         renderQuestionsAttachments(payload.attachments || []);
+        // 문서를 새로 적용할 때는 이전 문서의 숨김 행을 버리고 이 문서 기준으로 다시 나눔
+        questionsOtherSubjectRows = [];
         renderQuestionRows(payload.rows || []);
         void (async function() {
           var cid = selectedCourseId || (useFixedCourseId ? fixedCourseId : '');
@@ -6350,7 +6468,10 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         if (changeToken !== toolsSubjectChangeSeq) return;
         void onToolsSubjectChangeApplyCriteria(changeToken);
       }, 50);
-      void maybeAutoReuseQuestionsForSelectedSubject();
+      void (async function() {
+        await reloadSubjectScopedPlanDoc('questions');
+        void maybeAutoReuseQuestionsForSelectedSubject();
+      })();
       setTimeout(function() {
         void onRubricSubjectChangeSyncFromTools();
       }, 40);
@@ -6544,6 +6665,17 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
     }
 
+    /**
+     * 저장 문서의 교과목 컬럼.
+     * 평가문항에 다른 교과목 행(이전 형식 다과목 문서)이 섞여 있으면 교과목을 비워 모든 교과목에서 보이게 유지한다.
+     */
+    function planDocCurriculumIdForSave(tabId) {
+      if (tabId === 'questions' && Array.isArray(questionsOtherSubjectRows) && questionsOtherSubjectRows.length > 0) {
+        return '';
+      }
+      return getCurriculumIdForPlanTab(tabId);
+    }
+
     function getCurriculumIdForPlanTab(tabId) {
       const selectIdByTab = {
         schedule: 'scheduleSubjectSelect',
@@ -6649,6 +6781,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       if (!opts.forceNew && currentDocId) {
         return await updateDocument(tabId, { fromSave: true });
       }
+      // 평가문항: 숨긴 다른 교과목 행을 먼저 전용 문서로 분리 (문서당 한 교과목)
+      if (tabId === 'questions') await migrateOtherSubjectQuestionRows();
       const form = getDocForm(tabId);
       setStatus(tabId, '저장 중...', false);
       try {
@@ -6660,7 +6794,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           },
           body: JSON.stringify({
             course_id: Number(selectedCourseId),
-            curriculum_id: getCurriculumIdForPlanTab(tabId) || undefined,
+            curriculum_id: planDocCurriculumIdForSave(tabId) || undefined,
             evaluation_round: Number(selectedRound),
             doc_type: tabId,
             session_id: _sid || undefined,
@@ -6795,6 +6929,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         alert('수정할 저장문서를 먼저 선택해 주세요.');
         return false;
       }
+      // 평가문항: 숨긴 다른 교과목 행을 먼저 전용 문서로 분리 (문서당 한 교과목)
+      if (tabId === 'questions') await migrateOtherSubjectQuestionRows();
       const form = getDocForm(tabId);
       setStatus(tabId, opts.fromSave ? '저장 중...' : '수정 저장 중...', false);
       try {
@@ -6806,7 +6942,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
           },
           body: JSON.stringify({
             course_id: Number(selectedCourseId),
-            curriculum_id: getCurriculumIdForPlanTab(tabId) || undefined,
+            curriculum_id: planDocCurriculumIdForSave(tabId) || undefined,
             evaluation_round: Number(selectedRound),
             doc_type: tabId,
             session_id: _sid || undefined,
@@ -7162,10 +7298,12 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       }
       var questionsSubSelInit = document.getElementById('questionsSubjectSelect');
       if (questionsSubSelInit) {
-        questionsSubSelInit.addEventListener('change', function() {
+        questionsSubSelInit.addEventListener('change', async function() {
           if (!sharedSubjectSyncing) {
             syncSharedSubjectFromSelect('questionsSubjectSelect', { triggerSideEffects: false });
           }
+          // 교과목별 보기: 바뀐 교과목의 저장 문항 문서를 다시 불러온 뒤(없으면 빈 표), 저장 문항이 있으면 자동 재사용
+          await reloadSubjectScopedPlanDoc('questions');
           void maybeAutoReuseQuestionsForSelectedSubject();
         });
       }
