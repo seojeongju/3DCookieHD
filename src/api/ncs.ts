@@ -6308,6 +6308,9 @@ app.get('/plan-documents', authMiddleware, async (c) => {
         const hasCurriculumFilter = curriculumId != null && Number.isFinite(curriculumId) && curriculumId > 0;
         const cidFilterSql = hasCurriculumFilter ? 'AND (n.curriculum_id = ? OR n.curriculum_id IS NULL)' : '';
         const cidFilterSqlPlain = hasCurriculumFilter ? 'AND (curriculum_id = ? OR curriculum_id IS NULL)' : '';
+        // 교과목이 지정된 조회에서는 그 교과목 문서를 교과목 미지정(이전 형식) 문서보다 우선
+        const cidOrderSql = hasCurriculumFilter ? 'CASE WHEN n.curriculum_id = ? THEN 0 ELSE 1 END,' : '';
+        const cidOrderSqlPlain = hasCurriculumFilter ? 'CASE WHEN curriculum_id = ? THEN 0 ELSE 1 END,' : '';
 
         const allowed = await ensureNcsCoursePermission(c, courseId);
         if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
@@ -6365,6 +6368,7 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                   ${cidFilterSql}
                   AND ${sqlNcsPlanDocBelongsToLmsCourse('n')}
                 ORDER BY
+                  ${cidOrderSql}
                   CASE
                     WHEN n.course_id = ? AND NOT EXISTS (SELECT 1 FROM course_sessions s3 WHERE s3.id = n.course_id)
                     THEN 0 ELSE 1
@@ -6374,7 +6378,16 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 LIMIT 1
             `
                 )
-                .bind(round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid, effectiveCid, effectiveCid, effectiveCid)
+                .bind(
+                    round,
+                    docType,
+                    ...(hasCurriculumFilter ? [curriculumId] : []),
+                    effectiveCid,
+                    effectiveCid,
+                    effectiveCid,
+                    ...(hasCurriculumFilter ? [curriculumId] : []),
+                    effectiveCid
+                )
                 .first();
         } else {
             row = await db
@@ -6384,11 +6397,18 @@ app.get('/plan-documents', authMiddleware, async (c) => {
                 FROM ncs_plan_documents
                 WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type = ?
                   ${cidFilterSqlPlain}
-                ORDER BY CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
+                ORDER BY ${cidOrderSqlPlain} CASE WHEN course_id = ? THEN 0 ELSE 1 END, updated_at DESC, id DESC
                 LIMIT 1
             `
                 )
-                .bind(...inList, round, docType, ...(hasCurriculumFilter ? [curriculumId] : []), effectiveCid)
+                .bind(
+                    ...inList,
+                    round,
+                    docType,
+                    ...(hasCurriculumFilter ? [curriculumId] : []),
+                    ...(hasCurriculumFilter ? [curriculumId] : []),
+                    effectiveCid
+                )
                 .first();
         }
 
