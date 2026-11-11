@@ -2,12 +2,14 @@
 import { footerHtml } from './footer';
 
 import { navigationHtml } from './components/navigation';
+import { publicBreadcrumbNavHtml } from '../utils/seo';
 
 /** 옵션: kakaoMapAppKey 있으면 지도 표시 (Cloudflare Pages에서는 Secrets에 KAKAO_MAP_APPKEY 설정) */
 export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 'hongdae' | 'gumi' | 'jeonju'; hub?: boolean }) {
     const appKey = (options && options.kakaoMapAppKey) ? options.kakaoMapAppKey : '';
     const isHub = options?.hub === true || !options?.initialTab;
     const initialTab = options?.initialTab || 'hongdae';
+    const breadcrumbPath = isHub ? '/locations' : `/locations/${initialTab}`;
     const campusCopy = {
         hongdae: {
             title: '홍대 3D프린팅 학원 오시는 길',
@@ -99,6 +101,7 @@ export function locationsHtml(options?: { kakaoMapAppKey?: string; initialTab?: 
     <!-- 헤더 -->
     <div class="bg-gradient-to-r from-gray-700 to-gray-900 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            ${publicBreadcrumbNavHtml(breadcrumbPath, { light: true })}
             <h1 class="text-3xl sm:text-4xl font-bold mb-4">${copy.title}</h1>
             <p class="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">${copy.lead}</p>
             <div class="mt-6 flex flex-wrap justify-center gap-2">

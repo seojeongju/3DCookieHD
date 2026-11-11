@@ -1,4 +1,5 @@
 import { layoutHtml } from './components/layout';
+import { publicBreadcrumbNavHtml } from '../utils/seo';
 
 export type PublicFaq = {
     title: string;
@@ -54,6 +55,7 @@ export function faqPageHtml(items: PublicFaq[]): string {
         <div class="min-h-screen bg-slate-50 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] py-12 sm:py-16">
             <div class="mx-auto max-w-4xl px-4 sm:px-6">
                 <header class="mb-8 rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-7 shadow-sm backdrop-blur-md sm:p-10">
+                    ${publicBreadcrumbNavHtml('/faq')}
                     <p class="mb-3 text-sm font-black uppercase tracking-[0.2em] text-indigo-600">FAQ</p>
                     <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">자주 묻는 질문</h1>
                     <p class="mt-4 max-w-2xl leading-7 text-slate-600">국비지원, 내일배움카드, 3D프린터 국가자격증(기능사), 무료교육 오해, 홍대·구미·전주 센터에 대해 자주 문의하시는 내용을 답변드립니다. 센터·제도 상세는 아래 대표 가이드 URL을 우선 참고하세요.</p>

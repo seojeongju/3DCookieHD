@@ -1,5 +1,6 @@
 import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
+import { publicBreadcrumbNavHtml } from '../utils/seo';
 
 const _navigationHtml = navigationHtml;
 const _footerHtml = footerHtml;
@@ -152,6 +153,7 @@ export const courseSessionsListTemplate = `
 
     <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            ` + publicBreadcrumbNavHtml('/course-sessions', { light: true }) + `
             <h1 class="text-4xl font-bold mb-4">3D프린팅 국비지원·내일배움카드 교육과정</h1>
             <p class="text-xl text-blue-100 max-w-3xl mx-auto">모집 중인 3D프린터운용기능사, 국비지원, 소상공인 맞춤 과정의 일정과 장소를 확인하세요.</p>
         </div>
@@ -495,6 +497,7 @@ export function courseSessionDetailHtml(
 
     <div id="detailContent">
         <div class="max-w-6xl mx-auto px-4 py-12" id="ssrCourseDetail">
+            ${publicBreadcrumbNavHtml(source === 'general' ? `/courses/${id}` : `/course-sessions/${id}`)}
             <p class="text-xs font-black uppercase tracking-wider text-primary-600 mb-3">${source === 'general' ? '일반 교육과정' : '국비지원·내일배움카드 과정'}</p>
             <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 mb-4">${ssrTitle}</h1>
             <p class="text-slate-600 leading-relaxed max-w-3xl mb-6">${ssrSummary}</p>

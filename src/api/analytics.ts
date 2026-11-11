@@ -150,7 +150,7 @@ export const PUBLIC_VISIT_SQL = [
     `w.page_visited NOT LIKE '/admin%'`,
     `w.page_visited NOT LIKE '/teacher%'`,
     `w.page_visited NOT LIKE '/student%'`,
-    `w.page_visited NOT IN ('/robots.txt', '/sitemap.xml', '/sitemap-images.xml', '/llms.txt', '/favicon.ico')`,
+    `w.page_visited NOT IN ('/robots.txt', '/sitemap.xml', '/sitemap-images.xml', '/llms.txt', '/ai.txt', '/favicon.ico')`,
     `COALESCE(w.status_code, 200) < 400`,
     `NOT ${BOT_SQL}`,
 ].join(' AND ');

@@ -1,5 +1,6 @@
 import { footerHtml } from './footer';
 import { navigationHtml } from './components/navigation';
+import { publicBreadcrumbNavHtml } from '../utils/seo';
 
 /** 서버에서 미리 그릴 후기 데이터 */
 export type PublicReviewCard = {
@@ -108,6 +109,7 @@ const reviewsListTemplate = `
     <!-- \ud5e4\ub354 -->
     <div class="bg-gradient-to-r from-green-600 to-teal-600 text-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            ${publicBreadcrumbNavHtml('/reviews', { light: true })}
             <h1 class="text-4xl font-bold mb-4">3D프린팅 교육 수강후기</h1>
             <p class="text-xl text-green-100 max-w-3xl mx-auto">국비지원·내일배움카드·3D프린터운용기능사 과정을 수강한 분들이 전하는 생생한 후기입니다.</p>
             <div class="mt-6 flex flex-wrap justify-center gap-2 text-sm">

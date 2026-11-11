@@ -172,6 +172,7 @@ import {
     getSeoOptionsForPath,
     isNoindexPath,
     isTrackingOnlyQuery,
+    aiTxt,
     llmsTxt,
     PAGE_LASTMOD,
     PUBLIC_PATHS,
@@ -232,8 +233,9 @@ app.use('*', async (c, next) => {
     if (noindex) {
         c.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
     }
-    // GEO: AI·LLM이 llms.txt를 발견하도록 Link 헤더 제공
+    // GEO: AI·LLM이 llms.txt·ai.txt를 발견하도록 Link 헤더 제공
     c.res.headers.append('Link', `<${canonicalOrigin}/llms.txt>; rel="describedby"; type="text/plain"`);
+    c.res.headers.append('Link', `<${canonicalOrigin}/ai.txt>; rel="describedby"; type="text/plain"`);
 
     const contentType = c.res.headers.get('Content-Type') || '';
     if (status >= 400 || !contentType.includes('text/html')) return;
@@ -350,10 +352,34 @@ app.get('/llms.txt', (c) => {
     });
 });
 
+app.get('/ai.txt', (c) => {
+    const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
+    return new Response(aiTxt(origin), {
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400',
+        },
+    });
+});
+
 // robots.txt (네이버·구글 등 검색엔진 크롤러 안내)
 app.get('/robots.txt', (c) => {
     const origin = (c.env.SITE_URL || SITE_ORIGIN).replace(/\/$/, '');
+    const aiBots = [
+        'GPTBot',
+        'ChatGPT-User',
+        'OAI-SearchBot',
+        'ClaudeBot',
+        'Claude-SearchBot',
+        'PerplexityBot',
+        'Google-Extended',
+        'Applebot-Extended',
+    ];
     const body = [
+        '# 사이트 정책 (앱 생성). Cloudflare Managed robots 규칙이 앞에 붙을 수 있음.',
+        '# GEO: 검색·인용용 AI 봇은 Allow. 학습(ai-train) 제한은 Cloudflare Content-Signal / AI Crawl Control에서 맞출 것.',
+        '# 정책 문서: ' + origin + '/ai.txt · LLM 요약: ' + origin + '/llms.txt',
+        '',
         'User-agent: *',
         'Allow: /',
         '# 관리·학습 영역 (색인 불필요)',
@@ -377,11 +403,16 @@ app.get('/robots.txt', (c) => {
         'Sitemap: ' + origin + '/sitemap.xml',
         'Sitemap: ' + origin + '/sitemap-images.xml',
         '# LLM context: ' + origin + '/llms.txt',
+        '# AI policy: ' + origin + '/ai.txt',
         '',
-        '# AI crawlers',
-        ...['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'Claude-SearchBot', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended'].flatMap((bot) => [
+        '# AI crawlers — 검색·인용 허용 (Cloudflare 대시보드에서 동일 봇 Disallow가 있으면 대시보드를 Allow/인용 허용으로 맞추세요)',
+        ...aiBots.flatMap((bot) => [
             `User-agent: ${bot}`,
             'Allow: /',
+            'Allow: /llms.txt',
+            'Allow: /ai.txt',
+            'Allow: /sitemap.xml',
+            'Allow: /sitemap-images.xml',
             'Disallow: /admin/',
             'Disallow: /teacher/',
             'Disallow: /student/',
@@ -1455,7 +1486,7 @@ app.get('/', (c) => {
           ${citationFactBlockHtml()}
         </div>`,
         'home',
-        '<link rel="preload" as="image" href="/static/hero1.jpg" fetchpriority="high"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM context">',
+        '<link rel="preload" as="image" href="/static/hero1.jpg" fetchpriority="high"><link rel="alternate" type="text/plain" href="/llms.txt" title="LLM context"><link rel="alternate" type="text/plain" href="/ai.txt" title="AI access policy">',
     ));
 });
 
