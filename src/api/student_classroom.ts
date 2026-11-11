@@ -224,6 +224,177 @@ app.get('/:sessionId/ncs-plans', async (c) => {
     }
 });
 
+/** 이름 느슨 비교 (교과목명 ↔ 능력단위명) */
+function ncsNamesRoughlyMatch(a: unknown, b: unknown): boolean {
+    const norm = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const x = norm(a);
+    const y = norm(b);
+    if (!x || !y) return false;
+    return x === y || x.includes(y) || y.includes(x);
+}
+
+function parsePayload(raw: unknown): Record<string, any> {
+    try {
+        return raw ? JSON.parse(String(raw)) : {};
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * 학생용 본평가 시험지: 계획(능력단위)에 해당하는 교과목의 평가문항·평가내용·일정과
+ * 본인 제출물·채점 결과를 함께 돌려준다. (교사가 평가계획 7단계에서 저장한 문서 기준)
+ */
+app.get('/:sessionId/ncs-plans/:planId/exam', async (c) => {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const planId = parseInt(c.req.param('planId'), 10);
+    const enrolled = await requireEnrollment(c, sessionId);
+    if (!enrolled) return c.json({ success: false, error: '이 강의실에 등록되어 있지 않습니다' }, 403);
+    if (!enrolled.lms_course_id || !Number.isFinite(planId)) {
+        return c.json({ success: false, error: '평가 계획을 찾을 수 없습니다' }, 404);
+    }
+    const userId = c.get('user').userId;
+    const db = c.env.DB;
+
+    const plan: any = await db.prepare(
+        `SELECT p.*, u.name as unit_name, u.code as unit_code
+         FROM ncs_evaluation_plans p
+         JOIN ncs_units u ON u.id = p.ncs_unit_id
+         WHERE p.id = ? AND p.course_id = ?`
+    ).bind(planId, enrolled.lms_course_id).first();
+    if (!plan) return c.json({ success: false, error: '평가 계획을 찾을 수 없습니다' }, 404);
+
+    const round = Number(plan.evaluation_round) || 1;
+    const unitCode = String(plan.unit_code || '');
+    const curriculumId = unitCode.startsWith('CURR-') ? parseInt(unitCode.slice(5), 10) : NaN;
+    const unitName = String(plan.unit_name || '');
+    const matches = (cid: unknown, subj: unknown) =>
+        (Number.isFinite(curriculumId) && cid != null && String(cid).trim() === String(curriculumId)) ||
+        ncsNamesRoughlyMatch(subj, unitName);
+
+    // 계획 문서는 LMS 과정 ID 또는 회차 ID로 저장될 수 있음
+    let docs: any[] = [];
+    try {
+        const { results } = await db.prepare(
+            `SELECT doc_type, payload_json
+             FROM ncs_plan_documents
+             WHERE course_id IN (?, ?) AND evaluation_round = ? AND doc_type IN ('questions', 'tools', 'schedule')
+             ORDER BY updated_at DESC, id DESC`
+        ).bind(enrolled.lms_course_id, sessionId, round).all();
+        docs = results || [];
+    } catch {
+        docs = [];
+    }
+
+    // 평가문항: 이 교과목 행이 있는 최신 문서
+    let questions: any[] = [];
+    let questionAttachments: any[] = [];
+    let questionNotes = '';
+    let questionTarget = 0;
+    for (const d of docs.filter((x) => x.doc_type === 'questions')) {
+        const p = parsePayload(d.payload_json);
+        const rows = (Array.isArray(p.rows) ? p.rows : []).filter((r: any) => matches(r?.curriculum_id, r?.subject));
+        if (!rows.length) continue;
+        questions = rows
+            .map((r: any) => ({
+                no: Number(r?.no || 0),
+                type: String(r?.type || ''),
+                text: String(r?.text || ''),
+                score: Number(r?.score || 0),
+            }))
+            .sort((a: any, b: any) => a.no - b.no);
+        questionAttachments = Array.isArray(p.attachments) ? p.attachments : [];
+        questionNotes = String(p.notes || '');
+        questionTarget = Number(p.total_target || 0);
+        break;
+    }
+
+    // 평가내용(평가도구): 이 교과목 문서
+    let criteriaGroups: any[] = [];
+    let toolsMeta: Record<string, string> = {};
+    for (const d of docs.filter((x) => x.doc_type === 'tools')) {
+        const p = parsePayload(d.payload_json);
+        if (!matches(p.curriculum_id, p.subject_name)) continue;
+        const groups = Array.isArray(p.criteria_groups) ? p.criteria_groups : [];
+        const hasBody = groups.some((g: any) => (Array.isArray(g?.lines) ? g.lines : []).some((l: any) => String(l?.text || '').trim()));
+        if (!hasBody) continue;
+        criteriaGroups = groups.map((g: any) => ({
+            element_title: String(g?.element_title || g?.element_name || g?.name || '').trim(),
+            lines: (Array.isArray(g?.lines) ? g.lines : [])
+                .map((l: any) => ({ label: String(l?.label || '').trim(), text: String(l?.text || '').trim() }))
+                .filter((l: any) => l.text),
+        }));
+        toolsMeta = {
+            eval_datetime: String(p.tools_eval_datetime || ''),
+            duration: String(p.tools_eval_duration || ''),
+            achievement_note: String(p.tools_achievement_note || ''),
+            unit_level: String(p.tools_unit_name_level || ''),
+        };
+        break;
+    }
+
+    // 일정
+    let schedule: Record<string, string> | null = null;
+    for (const d of docs.filter((x) => x.doc_type === 'schedule')) {
+        const p = parsePayload(d.payload_json);
+        const hit = (Array.isArray(p.rows) ? p.rows : []).find((r: any) => matches(r?.curriculum_id, r?.subject) && String(r?.date || '').trim());
+        if (!hit) continue;
+        schedule = {
+            date: String(hit.date || ''),
+            time: String(hit.time || ''),
+            time_end: String(hit.time_end || ''),
+            place: String(hit.place || ''),
+            instructor_name: String(hit.instructor_name || ''),
+        };
+        break;
+    }
+
+    let evidence: any[] = [];
+    try {
+        const { results } = await db.prepare(
+            'SELECT id, file_name, file_url, file_type, comment, uploaded_at FROM ncs_evidence WHERE plan_id = ? AND student_id = ? ORDER BY uploaded_at DESC'
+        ).bind(planId, userId).all();
+        evidence = results || [];
+    } catch {
+        evidence = [];
+    }
+    let result: any = null;
+    try {
+        result = await db.prepare(
+            'SELECT score, is_passed, feedback, graded_at FROM ncs_evaluation_results WHERE plan_id = ? AND student_id = ?'
+        ).bind(planId, userId).first();
+    } catch {
+        result = null;
+    }
+
+    return c.json({
+        success: true,
+        data: {
+            plan: {
+                id: plan.id,
+                unit_name: unitName,
+                unit_code: unitCode.startsWith('CURR-') ? '' : unitCode,
+                method: plan.method || '',
+                planned_date: plan.planned_date || '',
+                target_score: plan.target_score,
+                status: plan.status || '',
+                evaluation_round: round,
+            },
+            schedule,
+            questions: {
+                rows: questions,
+                attachments: questionAttachments,
+                notes: questionNotes,
+                total_score: questions.reduce((s: number, q: any) => s + (Number(q.score) || 0), 0),
+                target: questionTarget,
+            },
+            tools: { criteria_groups: criteriaGroups, ...toolsMeta },
+            evidence,
+            result: result && result.score != null ? result : null,
+        },
+    });
+});
+
 app.get('/:sessionId/materials', async (c) => {
     const sessionId = parseInt(c.req.param('sessionId'), 10);
     const enrolled = await requireEnrollment(c, sessionId);

@@ -73,15 +73,20 @@ export const studentClassroomHtml = (sessionId: string) => `
 
     <div id="evidenceModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-[2rem] p-6 sm:p-8 shadow-2xl">
-            <h3 class="text-lg font-black tracking-tight mb-1">NCS 증빙 제출</h3>
+            <h3 class="text-lg font-black tracking-tight mb-1">NCS 답안·증빙 제출</h3>
             <p class="text-sm text-slate-500 mb-4" id="evidenceUnitName"></p>
             <input type="hidden" id="evidencePlanId">
             <input id="evidenceFileName" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="제출물 제목">
-            <input id="evidenceFileUrl" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="파일 URL 또는 링크">
+            <label class="block mb-3">
+                <span class="block text-xs font-black text-slate-600 mb-1.5">파일 첨부 <span class="font-semibold text-slate-400">(여러 개 가능 · PDF, 이미지, 문서, 압축, 동영상 · 50MB 이하)</span></span>
+                <input type="file" id="evidenceFiles" multiple onchange="onEvidenceFilesChange()" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.txt,.zip,.rar,.mp4,.webm,.ogv" class="block w-full text-sm text-slate-600 file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border-0 file:bg-sky-50 file:text-sky-700 file:text-xs file:font-black hover:file:bg-sky-100">
+                <ul id="evidenceFileList" class="mt-2 space-y-1"></ul>
+            </label>
+            <input id="evidenceFileUrl" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="링크로 제출할 경우 URL (선택)">
             <textarea id="evidenceComment" rows="3" class="w-full rounded-2xl border border-slate-200 p-3 text-sm mb-4" placeholder="메모 (선택)"></textarea>
             <div class="flex gap-2">
                 <button type="button" onclick="closeEvidenceModal()" class="flex-1 min-h-[44px] rounded-2xl border border-slate-200 font-black text-sm">취소</button>
-                <button type="button" onclick="submitEvidence()" class="flex-1 min-h-[44px] rounded-2xl bg-sky-600 text-white font-black text-sm">제출</button>
+                <button type="button" id="evidenceSubmitBtn" onclick="submitEvidence()" class="flex-1 min-h-[44px] rounded-2xl bg-sky-600 text-white font-black text-sm disabled:opacity-60">제출</button>
             </div>
         </div>
     </div>
@@ -767,10 +772,14 @@ export const studentClassroomHtml = (sessionId: string) => `
                 html += '<div class="bento-card rounded-[2rem] border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div class="flex gap-4 items-start"><div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0"><i class="fas fa-certificate"></i></div><div><span class="text-[10px] font-black uppercase tracking-widest text-amber-600">NCS본평가</span><h3 class="font-black text-lg mt-1">과정 본평가</h3><p class="text-xs text-slate-500 mt-1">' + ncs.question_count + '문항</p></div></div>' + ncsBtn + '</div>';
             }
             if (plans.length) {
-                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 증빙 자료</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">';
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 본평가 (능력단위별)</h3><p class="text-xs text-slate-500 mb-3">시험지·평가내용을 확인한 뒤 답안·증빙 파일을 제출하세요.</p><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">';
                 plans.forEach(function(p) {
                     const done = !!p.has_evidence;
-                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col justify-between min-h-[140px]"><div><p class="text-[10px] font-black text-sky-600">[' + esc(p.unit_code || '') + ']</p><h3 class="font-black mt-1">' + esc(p.unit_name) + '</h3><p class="text-xs text-slate-500 mt-2">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div><div class="mt-4">' + (done ? '<span class="inline-flex px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black">제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black">제출</button>') + '</div></div>';
+                    const codeTag = p.unit_code && String(p.unit_code).indexOf('CURR-') !== 0 ? '<p class="text-[10px] font-black text-sky-600">[' + esc(p.unit_code) + ']</p>' : '<p class="text-[10px] font-black text-sky-600">교과목 평가</p>';
+                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col justify-between min-h-[150px]"><div>' + codeTag + '<h3 class="font-black mt-1">' + esc(p.unit_name) + '</h3><p class="text-xs text-slate-500 mt-2">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div><div class="mt-4 flex flex-wrap items-center gap-2">' +
+                        '<button type="button" onclick="openNcsPlanExam(' + p.id + ')" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black"><i class="fas fa-file-lines mr-1"></i>시험지·평가내용 보기</button>' +
+                        (done ? '<span class="inline-flex px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black"><i class="fas fa-check mr-1"></i>제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black">답안·증빙 제출</button>') +
+                        '</div></div>';
                 });
                 html += '</div>';
             }
@@ -1282,14 +1291,145 @@ export const studentClassroomHtml = (sessionId: string) => `
             }
         };
 
+        /** 교사가 작성한 문항 본문(HTML 번들·HTML·마크다운·텍스트) → 학생 화면용 HTML */
+        function ncsQuestionHtml(raw) {
+            var text = String(raw || '');
+            if (!text.trim()) return '<span class="text-slate-400">-</span>';
+            var hasTag = /<[a-z][^>]*>/i.test(text);
+            if (hasTag) {
+                var start = '<' + '!--qimg-->';
+                var mid = '<' + '!--/qimg--><' + '!--qbody-->';
+                var end = '<' + '!--/qbody-->';
+                if (text.indexOf(start) === 0 && text.indexOf(mid) > 0) {
+                    var img = text.slice(start.length, text.indexOf(mid));
+                    var body = text.slice(text.indexOf(mid) + mid.length);
+                    if (body.lastIndexOf(end) >= 0) body = body.slice(0, body.lastIndexOf(end));
+                    text = (img.trim() ? '<div class="mb-3">' + img + '</div>' : '') + body;
+                }
+                // 스크립트·인라인 이벤트 제거
+                text = text.replace(/<script[^]*?<\\/script>/gi, '').replace(/\\son[a-z]+\\s*=\\s*("[^"]*"|'[^']*')/gi, '');
+                return '<div class="ncs-q-body break-words [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-2">' + text + '</div>';
+            }
+            var safe = esc(text);
+            // 마크다운 이미지 ![alt](url)
+            safe = safe.replace(/!\\[([^\\]]*)\\]\\(([^)]+)\\)/g, '<img src="$2" alt="$1" class="max-w-full rounded-xl my-2">');
+            return '<div class="whitespace-pre-wrap break-words">' + safe + '</div>';
+        }
+
+        function ncsTimeRange(s) {
+            if (!s) return '';
+            var t = String(s.time || '').trim();
+            var te = String(s.time_end || '').trim();
+            return t ? (te ? t + '~' + te : t) : '';
+        }
+
+        window._ncsExamPlanId = null;
+
+        /** 능력단위(교과목) 시험지·평가내용 화면 */
+        window.openNcsPlanExam = async function(planId) {
+            const content = document.getElementById('tabContent');
+            content.innerHTML = '<div class="text-center py-16 text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i><p class="mt-3 text-sm font-bold">시험지를 불러오는 중...</p></div>';
+            try {
+                const res = await fetch('/api/student/classroom/' + sessionId + '/ncs-plans/' + planId + '/exam', { headers: authHeaders() });
+                const json = await res.json();
+                if (!json || !json.success) {
+                    content.innerHTML = emptyState('fa-triangle-exclamation', (json && json.error) || '시험지를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(&#39;ncs&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+                    return;
+                }
+                const d = json.data || {};
+                const plan = d.plan || {};
+                const q = d.questions || { rows: [], attachments: [] };
+                const tools = d.tools || { criteria_groups: [] };
+                const sch = d.schedule;
+                const evidence = Array.isArray(d.evidence) ? d.evidence : [];
+                const result = d.result;
+                window._ncsExamPlanId = planId;
+
+                let html = '<button type="button" onclick="loadTab(&#39;ncs&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
+                html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-6 mb-5">';
+                html += '<span class="text-[10px] font-black uppercase tracking-widest text-indigo-600">NCS 본평가 · ' + plan.evaluation_round + '차</span>';
+                html += '<h2 class="text-xl font-black mt-1">' + esc(plan.unit_name) + '</h2>';
+                html += '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 text-xs">';
+                html += '<div class="rounded-xl bg-slate-50 p-3"><p class="text-[10px] text-slate-400 font-bold">평가방법</p><p class="font-black mt-0.5">' + esc(plan.method || '-') + '</p></div>';
+                html += '<div class="rounded-xl bg-slate-50 p-3"><p class="text-[10px] text-slate-400 font-bold">평가일시</p><p class="font-black mt-0.5">' + esc(sch && sch.date ? fmtDate(sch.date) + (ncsTimeRange(sch) ? ' ' + ncsTimeRange(sch) : '') : fmtDate(plan.planned_date)) + '</p></div>';
+                html += '<div class="rounded-xl bg-slate-50 p-3"><p class="text-[10px] text-slate-400 font-bold">장소 · 소요시간</p><p class="font-black mt-0.5">' + esc((sch && sch.place) || '-') + (tools.duration ? ' · ' + esc(tools.duration) : '') + '</p></div>';
+                html += '<div class="rounded-xl bg-slate-50 p-3"><p class="text-[10px] text-slate-400 font-bold">통과 기준 · 총배점</p><p class="font-black mt-0.5">' + esc(plan.target_score != null ? plan.target_score + '점' : '-') + (q.total_score ? ' · ' + q.total_score + '점' : '') + '</p></div>';
+                html += '</div>';
+                if (result) {
+                    html += '<div class="mt-4 rounded-xl border ' + (Number(result.is_passed) === 1 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800') + ' p-3 text-sm font-black">채점 결과: ' + esc(result.score) + '점 · ' + (Number(result.is_passed) === 1 ? '이수' : '미이수') + (result.feedback ? '<p class="text-xs font-semibold mt-1 opacity-80">' + esc(result.feedback) + '</p>' : '') + '</div>';
+                }
+                html += '</div>';
+
+                const groups = Array.isArray(tools.criteria_groups) ? tools.criteria_groups : [];
+                if (groups.length) {
+                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-6 mb-5"><h3 class="font-black mb-3"><i class="fas fa-list-check text-indigo-500 mr-2"></i>평가내용 (평가도구)</h3>';
+                    groups.forEach(function(g) {
+                        html += '<div class="mb-3"><p class="text-sm font-black text-slate-800">' + esc(g.element_title || '능력단위 요소') + '</p><ul class="mt-1.5 space-y-1">';
+                        (g.lines || []).forEach(function(l) {
+                            html += '<li class="text-sm text-slate-700 pl-3 border-l-2 border-indigo-100">' + (l.label ? '<span class="font-bold text-indigo-600 mr-1">' + esc(l.label) + '</span>' : '') + esc(l.text) + '</li>';
+                        });
+                        html += '</ul></div>';
+                    });
+                    if (tools.achievement_note) html += '<p class="text-xs text-slate-500 mt-2">' + esc(tools.achievement_note) + '</p>';
+                    html += '</div>';
+                }
+
+                const rows = Array.isArray(q.rows) ? q.rows : [];
+                html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-6 mb-5"><h3 class="font-black mb-3"><i class="fas fa-pen-to-square text-amber-500 mr-2"></i>평가문항 <span class="text-xs text-slate-400 font-bold">' + rows.length + '문항</span></h3>';
+                if (!rows.length) {
+                    html += '<p class="text-sm text-slate-500 py-6 text-center">아직 등록된 평가문항이 없습니다. 담당 교사가 평가문항을 저장하면 여기에 표시됩니다.</p>';
+                } else {
+                    html += '<div class="space-y-4">';
+                    rows.forEach(function(r, idx) {
+                        html += '<div class="rounded-2xl border border-slate-100 bg-slate-50/50 p-5"><div class="flex items-center justify-between gap-2 mb-3"><p class="font-black text-slate-800">문항 ' + (r.no || (idx + 1)) + (r.type ? ' <span class="ml-2 px-2 py-0.5 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-500">' + esc(r.type) + '</span>' : '') + '</p><span class="text-xs font-black text-indigo-600">' + (Number(r.score) || 0) + '점</span></div>' + ncsQuestionHtml(r.text) + '</div>';
+                    });
+                    html += '</div>';
+                }
+                const atts = Array.isArray(q.attachments) ? q.attachments : [];
+                if (atts.length) {
+                    html += '<div class="mt-4 pt-4 border-t border-slate-100"><p class="text-xs font-black text-slate-500 mb-2">첨부 자료</p>' + atts.map(function(a) { return '<a href="' + esc(a.url || '') + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 mr-2 mb-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-sky-700"><i class="fas fa-paperclip"></i>' + esc(a.name || '첨부') + '</a>'; }).join('') + '</div>';
+                }
+                if (q.notes) html += '<p class="text-xs text-slate-500 mt-3 whitespace-pre-wrap">' + esc(q.notes) + '</p>';
+                html += '</div>';
+
+                html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-6"><div class="flex flex-wrap items-center justify-between gap-3"><h3 class="font-black"><i class="fas fa-upload text-sky-500 mr-2"></i>내 제출물 <span class="text-xs text-slate-400 font-bold">' + evidence.length + '건</span></h3><button type="button" onclick="openEvidenceModal(' + planId + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-xs font-black"><i class="fas fa-plus mr-1"></i>답안·증빙 제출</button></div>';
+                if (evidence.length) {
+                    html += '<ul class="mt-4 space-y-2">' + evidence.map(function(e) {
+                        return '<li class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 px-4 py-3 text-sm"><a href="' + esc(e.file_url || '') + '" target="_blank" rel="noopener" class="font-bold text-sky-700 break-all"><i class="fas ' + (e.file_type === 'link' ? 'fa-link' : 'fa-file') + ' mr-1"></i>' + esc(e.file_name || '제출물') + '</a><span class="text-[11px] text-slate-400">' + esc(fmtDate(e.uploaded_at)) + '</span>' + (e.comment ? '<p class="w-full text-xs text-slate-500">' + esc(e.comment) + '</p>' : '') + '</li>';
+                    }).join('') + '</ul>';
+                } else {
+                    html += '<p class="text-sm text-slate-500 mt-3">아직 제출한 답안·증빙이 없습니다.</p>';
+                }
+                html += '</div>';
+                content.innerHTML = html;
+            } catch (e) {
+                console.error(e);
+                content.innerHTML = emptyState('fa-triangle-exclamation', '시험지를 불러오지 못했습니다.') + '<button type="button" onclick="loadTab(&#39;ncs&#39;)" class="mt-4 text-xs font-black text-sky-600">목록으로</button>';
+            }
+        };
+
+        function renderEvidenceFileList() {
+            const input = document.getElementById('evidenceFiles');
+            const list = document.getElementById('evidenceFileList');
+            if (!input || !list) return;
+            const files = input.files ? Array.prototype.slice.call(input.files) : [];
+            list.innerHTML = files.length
+                ? files.map(function(f) { return '<li class="text-xs text-slate-600"><i class="fas fa-file mr-1 text-slate-400"></i>' + esc(f.name) + ' <span class="text-slate-400">(' + Math.round(f.size / 1024) + 'KB)</span></li>'; }).join('')
+                : '';
+        }
+        window.onEvidenceFilesChange = renderEvidenceFileList;
+
         window.openEvidenceModal = function(planId) {
             const plans = window._ncsPlans || [];
             const p = plans.find(function(x) { return x.id === planId; }) || {};
             document.getElementById('evidencePlanId').value = planId;
             document.getElementById('evidenceUnitName').textContent = p.unit_name || '능력단위';
-            document.getElementById('evidenceFileName').value = (overview.course_name || '') + ' - ' + (p.unit_name || '');
+            document.getElementById('evidenceFileName').value = ((overview && overview.course_name) || '') + ' - ' + (p.unit_name || '');
             document.getElementById('evidenceFileUrl').value = '';
             document.getElementById('evidenceComment').value = '';
+            const fi = document.getElementById('evidenceFiles');
+            if (fi) fi.value = '';
+            renderEvidenceFileList();
             const m = document.getElementById('evidenceModal');
             m.classList.remove('hidden');
             m.classList.add('flex');
@@ -1299,29 +1439,80 @@ export const studentClassroomHtml = (sessionId: string) => `
             m.classList.add('hidden');
             m.classList.remove('flex');
         };
+
+        async function uploadEvidenceFile(file, planId) {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('category', 'evidence');
+            fd.append('folder', 'ncs-evidence/' + planId);
+            const res = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: fd });
+            const json = await res.json();
+            if (!json || !json.success || !json.data || !json.data.url) {
+                throw new Error((json && json.error) || (file.name + ' 업로드에 실패했습니다.'));
+            }
+            return json.data;
+        }
+
+        function evidenceFileType(file) {
+            const t = String(file.type || '');
+            if (t.indexOf('image/') === 0) return 'image';
+            if (t.indexOf('video/') === 0) return 'video';
+            return 'document';
+        }
+
         window.submitEvidence = async function() {
             if (!currentUser || !currentUser.id) { alert('로그인 정보를 확인할 수 없습니다.'); return; }
             const planId = document.getElementById('evidencePlanId').value;
             const fileName = document.getElementById('evidenceFileName').value.trim();
             const fileUrl = document.getElementById('evidenceFileUrl').value.trim();
-            if (!fileName || !fileUrl) { alert('제목과 파일 URL을 입력하세요.'); return; }
-            const res = await fetch('/api/ncs/evidence', {
-                method: 'POST', headers: authHeaders(),
-                body: JSON.stringify({
-                    plan_id: parseInt(planId, 10),
-                    student_id: currentUser.id,
-                    file_name: fileName,
-                    file_url: fileUrl,
-                    file_type: 'link',
-                    comment: document.getElementById('evidenceComment').value.trim()
-                })
-            });
-            const json = await res.json();
-            if (json.success) {
-                closeEvidenceModal();
-                loadTab('ncs');
-            } else {
-                alert(json.error || '제출에 실패했습니다.');
+            const comment = document.getElementById('evidenceComment').value.trim();
+            const fi = document.getElementById('evidenceFiles');
+            const files = fi && fi.files ? Array.prototype.slice.call(fi.files) : [];
+            if (!fileName) { alert('제출물 제목을 입력하세요.'); return; }
+            if (!files.length && !fileUrl) { alert('파일을 첨부하거나 링크를 입력하세요.'); return; }
+
+            const btn = document.getElementById('evidenceSubmitBtn');
+            if (btn) { btn.disabled = true; btn.textContent = '제출 중…'; }
+            try {
+                const items = [];
+                for (let i = 0; i < files.length; i++) {
+                    const up = await uploadEvidenceFile(files[i], planId);
+                    items.push({ name: up.originalName || up.fileName || files[i].name, url: up.url, type: evidenceFileType(files[i]) });
+                }
+                if (fileUrl) items.push({ name: fileName, url: fileUrl, type: 'link' });
+
+                let failed = 0;
+                for (let j = 0; j < items.length; j++) {
+                    const it = items[j];
+                    const res = await fetch('/api/ncs/evidence', {
+                        method: 'POST', headers: authHeaders(),
+                        body: JSON.stringify({
+                            plan_id: parseInt(planId, 10),
+                            student_id: currentUser.id,
+                            file_name: items.length > 1 && it.type !== 'link' ? fileName + ' · ' + it.name : (it.type === 'link' ? fileName : fileName + ' · ' + it.name),
+                            file_url: it.url,
+                            file_type: it.type,
+                            comment: comment
+                        })
+                    });
+                    const json = await res.json();
+                    if (!json || !json.success) failed += 1;
+                }
+                if (failed) {
+                    alert(failed + '건 제출에 실패했습니다. 다시 시도해 주세요.');
+                } else {
+                    closeEvidenceModal();
+                    if (window._ncsExamPlanId && String(window._ncsExamPlanId) === String(planId)) {
+                        openNcsPlanExam(parseInt(planId, 10));
+                    } else {
+                        loadTab('ncs');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                alert((e && e.message) || '제출에 실패했습니다.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '제출'; }
             }
         };
     </script>

@@ -7852,15 +7852,21 @@ app.get('/evidence', async (c) => {
 });
 
 // 증빙 자료 등록
-app.post('/evidence', async (c) => {
+app.post('/evidence', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as JWTPayload;
         const body = await c.req.json();
         const { plan_id, student_id, file_name, file_url, file_type, comment } = body;
+        if (!plan_id || !String(file_name || '').trim() || !String(file_url || '').trim()) {
+            return c.json({ success: false, error: '제출물 제목과 파일(또는 링크)이 필요합니다.' }, 400);
+        }
+        // 학생은 본인 제출만 가능
+        const studentId = user.role === 'student' ? user.userId : (student_id ?? user.userId);
 
         const result = await c.env.DB.prepare(`
             INSERT INTO ncs_evidence(plan_id, student_id, file_name, file_url, file_type, comment)
         VALUES(?, ?, ?, ?, ?, ?)
-            `).bind(plan_id, student_id, file_name, file_url, file_type, comment).run();
+            `).bind(plan_id, studentId, String(file_name).trim(), String(file_url).trim(), file_type || 'file', comment || null).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
     } catch (e) {
