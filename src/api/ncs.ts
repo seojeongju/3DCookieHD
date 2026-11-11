@@ -6108,6 +6108,279 @@ function dashTypedDocsOk(payloads: Record<string, any>[], plan: Record<string, a
     return payloads.some((p) => dashTypedDocOk(p, plan));
 }
 
+/** 테이블에 컬럼이 있는지 (운영 DB 마이그레이션 누락 대비) */
+async function tableHasColumn(db: any, table: string, column: string): Promise<boolean> {
+    try {
+        const { results } = await db.prepare(`PRAGMA table_info(${table})`).all();
+        return (results || []).some((r: any) => String(r?.name || '') === column);
+    } catch {
+        return false;
+    }
+}
+
+type DashSubjectPlan = {
+    ncs_unit_id: number;
+    unit_name: string;
+    method: string;
+    type: string;
+    ability_units_json: string | null;
+};
+
+/**
+ * LMS 과정의 교과목 목록을 대시보드용 pseudo-plan으로 해석.
+ * 평가계획 화면·허브 대시보드와 같은 소스(승인과정 curriculum + session_timetable 보강)를 쓴다.
+ */
+async function resolveLmsSubjectPlans(
+    db: any,
+    courseId: number,
+    overrideSessionId: number | null
+): Promise<{ session: any | null; subjects: DashSubjectPlan[] }> {
+    const resolveCourseSessionForTimetable = async (rawId: number) => {
+        if (await isRegisteredLmsCourseId(db, rawId)) {
+            return getLatestCourseSessionRowForLmsCourseId(db, rawId);
+        }
+        const byPk = await db.prepare(
+            'SELECT id, approved_course_id, instructor_name, lms_course_id, session_number FROM course_sessions WHERE id = ?'
+        ).bind(rawId).first();
+        if (byPk) return byPk;
+        const byApproved = await db.prepare(
+            `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
+             FROM course_sessions
+             WHERE approved_course_id = ?
+             ORDER BY COALESCE(session_number, 999999) ASC, id ASC
+             LIMIT 1`
+        ).bind(rawId).first();
+        if (byApproved) return byApproved;
+        const byLms = await db.prepare(
+            `SELECT id, approved_course_id, instructor_name, lms_course_id, session_number
+             FROM course_sessions
+             WHERE lms_course_id = ?
+             ORDER BY COALESCE(session_number, 999999) ASC, id ASC
+             LIMIT 1`
+        ).bind(rawId).first();
+        return byLms || null;
+    };
+
+    const session: any = await resolveCourseSessionForTimetable(courseId);
+    if (!session) return { session: null, subjects: [] };
+
+    const registration = await db.prepare(
+        'SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ? LIMIT 1'
+    ).bind(session.approved_course_id).first();
+
+    const selectCols = `
+        c.id, c.name, c.job_name, c.type, c.ability_units_json,
+        COALESCE(NULLIF(TRIM(c.job_name), ''), r.main_job_name) as main_job_name,
+        c.evaluation_methods_json`;
+    let subjects: any[] = [];
+    if (registration && registration.id) {
+        const rows = await db.prepare(`
+            SELECT ${selectCols}
+            FROM ncs_approved_curriculum c
+            LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
+            WHERE c.registration_id = ?
+            ORDER BY c.id
+        `).bind(registration.id).all();
+        subjects = Array.isArray(rows?.results) ? rows.results : [];
+    }
+
+    // 시간표에만 있는 교과목 보강 (session_id override 가 있으면 그 회차 시간표)
+    const timetableSessionId = overrideSessionId != null && Number.isFinite(overrideSessionId) ? overrideSessionId : session.id;
+    try {
+        const ttDistinct = await db.prepare(`
+            SELECT DISTINCT subject_id FROM session_timetable
+            WHERE session_id = ? AND subject_id IS NOT NULL AND (is_excluded IS NULL OR is_excluded = 0)
+        `).bind(timetableSessionId).all();
+        const ttIds = (ttDistinct?.results || [])
+            .map((r: any) => r.subject_id)
+            .filter((id: any) => id != null && Number.isFinite(Number(id)))
+            .map((id: any) => Number(id));
+        const haveIds = new Set((subjects || []).map((s: any) => Number(s.id)));
+        const missingIds = [...new Set(ttIds)].filter((id) => !haveIds.has(id));
+        if (missingIds.length > 0) {
+            const placeholders = missingIds.map(() => '?').join(',');
+            const extra = await db.prepare(`
+                SELECT ${selectCols}
+                FROM ncs_approved_curriculum c
+                LEFT JOIN ncs_approved_registrations r ON r.id = c.registration_id
+                WHERE c.id IN (${placeholders})
+                ORDER BY c.id
+            `).bind(...missingIds).all();
+            subjects = [...(subjects || []), ...(Array.isArray(extra?.results) ? extra.results : [])];
+        }
+    } catch (_) {
+        /* ignore timetable extra lookup errors */
+    }
+
+    const plans: DashSubjectPlan[] = (Array.isArray(subjects) ? subjects : [])
+        .map((s: any) => {
+            const unit_name = String(s?.name || s?.main_job_name || s?.job_name || '교과목').trim();
+            let methodText = '';
+            const rawMethods = s?.evaluation_methods_json;
+            if (rawMethods != null && String(rawMethods).trim() !== '') {
+                let parsed: any = null;
+                try { parsed = JSON.parse(String(rawMethods)); } catch { parsed = rawMethods; }
+                if (Array.isArray(parsed)) {
+                    methodText = String(parsed.find((x) => x != null && String(x).trim() !== '') || '').trim();
+                } else if (typeof parsed === 'string') {
+                    methodText = parsed.trim();
+                }
+            }
+            return {
+                ncs_unit_id: Number(s?.id),
+                unit_name,
+                method: methodText,
+                type: String(s?.type || 'ncs'),
+                ability_units_json: s?.ability_units_json != null ? String(s.ability_units_json) : null,
+            };
+        })
+        .filter((p) => Number.isFinite(p.ncs_unit_id) && p.ncs_unit_id >= 1);
+    return { session, subjects: plans };
+}
+
+/** 교과목 전용(비NCS 등) 능력단위 행 코드 — ncs_units FK 를 지키기 위한 대체 키 */
+const CURRICULUM_UNIT_CODE_PREFIX = 'CURR-';
+
+/**
+ * 교과목(curriculum)에 대응하는 ncs_units.id 를 찾거나 만든다.
+ * 1) ability_units_json 의 첫 능력단위 코드 → ncs_units.code (없으면 생성)
+ * 2) 비NCS·코드 없음 → `CURR-<curriculum_id>` 대체 행 (없으면 생성)
+ */
+async function resolveNcsUnitIdForCurriculumSubject(db: any, subject: DashSubjectPlan): Promise<number | null> {
+    let unitCode = '';
+    let unitName = '';
+    if (subject.ability_units_json) {
+        try {
+            const parsed = JSON.parse(subject.ability_units_json) as AbilityUnitJsonEntry[];
+            for (const u of Array.isArray(parsed) ? parsed : []) {
+                const code = typeof u === 'string' ? u : String((u as { code?: string })?.code || '');
+                if (code.trim()) {
+                    unitCode = code.trim();
+                    unitName = typeof u === 'string' ? '' : String((u as { name?: string })?.name || '').trim();
+                    break;
+                }
+            }
+        } catch {
+            unitCode = '';
+        }
+    }
+    if (!unitCode) {
+        unitCode = `${CURRICULUM_UNIT_CODE_PREFIX}${subject.ncs_unit_id}`;
+        unitName = subject.unit_name;
+    }
+    const existing = await db.prepare('SELECT id FROM ncs_units WHERE code = ?').bind(unitCode).first();
+    if (existing && existing.id != null) return Number(existing.id);
+    const ins = await db.prepare(
+        'INSERT INTO ncs_units (code, name, level, category, description) VALUES (?, ?, NULL, ?, ?)'
+    ).bind(
+        unitCode,
+        unitName || subject.unit_name || '교과목',
+        unitCode.startsWith(CURRICULUM_UNIT_CODE_PREFIX) ? '교과목' : null,
+        unitCode.startsWith(CURRICULUM_UNIT_CODE_PREFIX) ? '평가계획 교과목에서 자동 생성' : null
+    ).run();
+    const id = ins?.meta?.last_row_id;
+    return id != null ? Number(id) : null;
+}
+
+/**
+ * 7단계 평가계획 문서(ncs_plan_documents) → 평가실행용 ncs_evaluation_plans 동기화.
+ * 계획 문서가 하나라도 있는 교과목마다 행을 만들거나 갱신한다 (평가일·통과점수·확정 상태).
+ * 반환: ncs_unit_id → { curriculum_id, subject_name }
+ */
+async function syncEvaluationPlansFromPlanDocuments(
+    db: any,
+    courseId: number,
+    overrideSessionId: number | null,
+    round: number,
+    hasRoundCol: boolean
+): Promise<Map<number, { curriculum_id: number; subject_name: string }>> {
+    const map = new Map<number, { curriculum_id: number; subject_name: string }>();
+    const { subjects } = await resolveLmsSubjectPlans(db, courseId, overrideSessionId);
+    if (!subjects.length) return map;
+
+    const courseIds = await resolveNcsPlanDocumentCourseIds(db, courseId);
+    const inList = (courseIds.length ? courseIds : [courseId]).filter((v) => Number.isFinite(Number(v)) && Number(v) >= 1);
+    const inPh = inList.map(() => '?').join(', ');
+    const dtPh = DASHBOARD_PLAN_DOC_TYPES.map(() => '?').join(', ');
+    const { results: docRows } = await db.prepare(`
+        SELECT evaluation_round, doc_type, payload_json, updated_at, id
+        FROM ncs_plan_documents
+        WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type IN (${dtPh})
+        ORDER BY updated_at DESC, id DESC
+    `).bind(...inList, round, ...DASHBOARD_PLAN_DOC_TYPES).all();
+    const docsByRoundType = dashGroupDocsByRoundType(docRows);
+    const P = (t: string) => dashPayloadsFor(docsByRoundType, round, t);
+    const schedulePayloads = P('schedule');
+    const rubricPayloads = P('rubric');
+
+    for (const subject of subjects) {
+        const okMap = {
+            schedule: dashScheduleOkForPlan(schedulePayloads, subject),
+            questions: dashTypedDocsOk(P('questions'), subject),
+            tools: dashTypedDocsOk(P('tools'), subject),
+            rubric: dashTypedDocsOk(rubricPayloads, subject),
+            achievement: dashTypedDocsOk(P('achievement'), subject),
+            review: dashTypedDocsOk(P('review'), subject),
+        };
+        const anyDoc = Object.values(okMap).some(Boolean);
+        if (!anyDoc) continue; // 계획 문서가 없는 교과목은 실행 목록에 올리지 않음
+
+        const unitId = await resolveNcsUnitIdForCurriculumSubject(db, subject);
+        if (!unitId) continue;
+
+        let plannedDate: string | null = null;
+        for (const sp of schedulePayloads) {
+            const rows = Array.isArray(sp?.rows) ? sp.rows : [];
+            const hit = rows.find((r: any) => dashScheduleRowMatchesPlan(r, subject) && String(r?.date ?? '').trim());
+            if (hit) { plannedDate = String(hit.date).trim(); break; }
+        }
+        let targetScore = 60;
+        for (const rp of rubricPayloads) {
+            if (!dashTypedDocOk(rp, subject)) continue;
+            const t = Number(rp?.total_target || 0);
+            if (Number.isFinite(t) && t > 0) { targetScore = t; break; }
+        }
+        const allOk = Object.values(okMap).every(Boolean);
+        const method = String(subject.method || '').trim();
+
+        const roundWhere = hasRoundCol ? 'AND evaluation_round = ?' : '';
+        const roundBind = hasRoundCol ? [round] : [];
+        const existing: any = await db.prepare(
+            `SELECT id, status, method FROM ncs_evaluation_plans WHERE course_id = ? AND ncs_unit_id = ? ${roundWhere} ORDER BY id ASC LIMIT 1`
+        ).bind(courseId, unitId, ...roundBind).first();
+
+        if (existing && existing.id != null) {
+            const keepStatus = String(existing.status || '') === 'completed';
+            await db.prepare(
+                'UPDATE ncs_evaluation_plans SET method = ?, target_score = ?, planned_date = ?, status = ? WHERE id = ?'
+            ).bind(
+                method || String(existing.method || ''),
+                targetScore,
+                plannedDate,
+                keepStatus ? 'completed' : (allOk ? 'confirmed' : 'draft'),
+                existing.id
+            ).run();
+        } else if (hasRoundCol) {
+            await db.prepare(
+                'INSERT INTO ncs_evaluation_plans (course_id, ncs_unit_id, method, target_score, planned_date, status, evaluation_round) VALUES (?, ?, ?, ?, ?, ?, ?)'
+            ).bind(courseId, unitId, method, targetScore, plannedDate, allOk ? 'confirmed' : 'draft', round).run();
+        } else if (round === 1) {
+            await db.prepare(
+                'INSERT INTO ncs_evaluation_plans (course_id, ncs_unit_id, method, target_score, planned_date, status) VALUES (?, ?, ?, ?, ?, ?)'
+            ).bind(courseId, unitId, method, targetScore, plannedDate, allOk ? 'confirmed' : 'draft').run();
+        }
+        map.set(unitId, { curriculum_id: subject.ncs_unit_id, subject_name: subject.unit_name });
+    }
+    return map;
+}
+
+/** 평가계획 완료: 회의록이 완성됐거나, 교과목이 1개 이상 있고 모든 교과목의 6단계(실시일자~검토)가 설정완료 */
+function dashPlanConfirmed(minutesPayloads: Record<string, any>[], rows: Array<Record<string, any>>): boolean {
+    if (minutesPayloads.some(dashMinutesLooksComplete)) return true;
+    if (!rows.length) return false;
+    return rows.every((r) => !!(r.schedule && r.questions && r.tools && r.rubric && r.achievement && r.review));
+}
+
 function dashProgressLabel(schedulePayloads: Record<string, any>[], plan: Record<string, any>, plannedDate: unknown): string {
     for (const schedulePayload of schedulePayloads) {
         const rows = Array.isArray(schedulePayload?.rows) ? schedulePayload.rows : [];
@@ -6903,7 +7176,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
             })();
 
         const roundsOut = [1, 2, 3].map((round) => {
-            const plan_confirmed = dashPayloadsFor(docsByRoundType, round, 'minutes').some(dashMinutesLooksComplete);
+            const minutesPayloads = dashPayloadsFor(docsByRoundType, round, 'minutes');
 
             const schedulePayloads = dashPayloadsFor(docsByRoundType, round, 'schedule');
             const questionsPayloads = dashPayloadsFor(docsByRoundType, round, 'questions');
@@ -6949,7 +7222,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
 
             return {
                 round,
-                plan_confirmed,
+                plan_confirmed: dashPlanConfirmed(minutesPayloads, rows),
                 rows,
             };
         });
@@ -7148,7 +7421,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         }).filter((p: any) => Number.isFinite(Number(p.ncs_unit_id)) && Number(p.ncs_unit_id) >= 1);
 
         const roundsOut = [1, 2, 3].map((round) => {
-            const plan_confirmed = dashPayloadsFor(docsByRoundType, round, 'minutes').some(dashMinutesLooksComplete);
+            const minutesPayloads = dashPayloadsFor(docsByRoundType, round, 'minutes');
 
             const schedulePayloads = dashPayloadsFor(docsByRoundType, round, 'schedule');
             const questionsPayloads = dashPayloadsFor(docsByRoundType, round, 'questions');
@@ -7184,7 +7457,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                 };
             });
 
-            return { round, plan_confirmed, rows };
+            return { round, plan_confirmed: dashPlanConfirmed(minutesPayloads, rows), rows };
         });
 
         return c.json({
@@ -7211,13 +7484,15 @@ app.get('/plans', authMiddleware, async (c) => {
 
         const sesOvrPlans = await resolveExplicitSessionOverride(c.env.DB, c.req.query('session_id'));
         const courseId = sesOvrPlans ? String(sesOvrPlans.lmsCourseId) : rawCourseId;
+        const courseIdNum = parseInt(String(courseId), 10);
+        if (!Number.isFinite(courseIdNum) || courseIdNum < 1) {
+            return c.json({ success: false, error: 'Invalid course id' }, 400);
+        }
 
-        // 강사인 경우 권한 확인
+        // 강사 권한: 평가계획 화면과 동일하게 담당 강사·시간표 배정 강사 모두 허용
         if (user.role === 'teacher') {
-            const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(courseId).first();
-            if (!course || course.teacher_id !== user.userId) {
-                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
-            }
+            const allowed = await ensureNcsCoursePermission(c, courseIdNum, c.req.query('session_id'));
+            if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
         }
 
         const evaluationRound = evaluationRoundRaw != null && String(evaluationRoundRaw).trim() !== ''
@@ -7227,7 +7502,28 @@ app.get('/plans', authMiddleware, async (c) => {
             return c.json({ success: false, error: 'Invalid evaluation_round' }, 400);
         }
 
-        const evaluationRoundCondition = 'AND p.evaluation_round = ?';
+        // 운영 DB에 evaluation_round 컬럼(0098)이 없을 수 있어 확인 후 조건을 구성
+        const hasRoundCol = await tableHasColumn(c.env.DB, 'ncs_evaluation_plans', 'evaluation_round');
+
+        // 7단계 평가계획 문서 → 실행용 계획 행 동기화 (실패해도 목록 조회는 계속)
+        let subjectByUnitId = new Map<number, { curriculum_id: number; subject_name: string }>();
+        try {
+            subjectByUnitId = await syncEvaluationPlansFromPlanDocuments(
+                c.env.DB,
+                courseIdNum,
+                sesOvrPlans ? sesOvrPlans.sessionId : null,
+                evaluationRound,
+                hasRoundCol
+            );
+        } catch (syncErr) {
+            console.warn('evaluation plans sync from plan documents:', syncErr);
+        }
+
+        const evaluationRoundCondition = hasRoundCol ? 'AND p.evaluation_round = ?' : '';
+        const roundBind = hasRoundCol ? [evaluationRound] : [];
+        if (!hasRoundCol && evaluationRound !== 1) {
+            return c.json({ success: true, data: [] });
+        }
 
         const { results } = await c.env.DB.prepare(`
             SELECT p.*, u.name as unit_name, u.code as unit_code, u.level as unit_level
@@ -7236,12 +7532,28 @@ app.get('/plans', authMiddleware, async (c) => {
             WHERE p.course_id = ?
             ${evaluationRoundCondition}
             ORDER BY u.code ASC
-        `).bind(courseId, evaluationRound).all();
+        `).bind(courseIdNum, ...roundBind).all();
 
-        return c.json({ success: true, data: results });
+        const data = (results || []).map((row: any) => {
+            const unitId = Number(row?.ncs_unit_id);
+            const subj = subjectByUnitId.get(unitId);
+            const code = String(row?.unit_code || '');
+            const isCurriculumUnit = code.startsWith(CURRICULUM_UNIT_CODE_PREFIX);
+            return {
+                ...row,
+                // 교과목 전용 대체 행은 코드 대신 교과목명을 보여줌
+                unit_code: isCurriculumUnit ? '' : code,
+                curriculum_id: subj ? subj.curriculum_id : (isCurriculumUnit ? parseInt(code.slice(CURRICULUM_UNIT_CODE_PREFIX.length), 10) : null),
+                subject_name: subj ? subj.subject_name : (isCurriculumUnit ? String(row?.unit_name || '') : null),
+                evaluation_round: row?.evaluation_round != null ? row.evaluation_round : evaluationRound,
+            };
+        });
+
+        return c.json({ success: true, data });
     } catch (e) {
         console.error('Failed to fetch evaluation plans:', e);
-        return c.json({ success: false, error: 'Failed to fetch evaluation plans' }, 500);
+        const detail = (e && (e as any).message) ? String((e as any).message) : '';
+        return c.json({ success: false, error: 'Failed to fetch evaluation plans' + (detail ? ` (${detail})` : '') }, 500);
     }
 });
 
@@ -7325,12 +7637,10 @@ app.get('/evaluations/:planId', authMiddleware, async (c) => {
         const plan: any = await c.env.DB.prepare("SELECT * FROM ncs_evaluation_plans WHERE id = ?").bind(planId).first();
         if (!plan) return c.json({ success: false, error: 'Plan not found' }, 404);
 
-        // 강사인 경우 권한 확인
+        // 강사 권한: 담당 강사·시간표 배정 강사 모두 허용 (평가계획 화면과 동일)
         if (user.role === 'teacher') {
-            const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(plan.course_id).first();
-            if (!course || course.teacher_id !== user.userId) {
-                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
-            }
+            const allowed = await ensureNcsCoursePermission(c, plan.course_id, c.req.query('session_id'));
+            if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
         }
 
         // 2. 수강생 목록 및 기존 성적 조회
@@ -7367,10 +7677,8 @@ app.post('/results', authMiddleware, async (c) => {
         if (!plan) return c.json({ success: false, error: 'Plan not found' }, 404);
 
         if (user.role === 'teacher') {
-            const course: any = await c.env.DB.prepare("SELECT teacher_id FROM courses WHERE id = ?").bind(plan.course_id).first();
-            if (!course || course.teacher_id !== user.userId) {
-                return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
-            }
+            const allowed = await ensureNcsCoursePermission(c, plan.course_id, c.req.query('session_id') ?? body.session_id);
+            if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
         }
 
         // Batch update is tricky in D1/SQLite without transactions or multi-statement, so we loop.

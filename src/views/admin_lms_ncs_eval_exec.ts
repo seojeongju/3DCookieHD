@@ -287,7 +287,8 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         });
         const json = await res.json();
         if (!json?.success) {
-          if (body) body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-red-500">계획을 불러오지 못했습니다.</td></tr>';
+          var errText = json && json.error ? String(json.error) : ('HTTP ' + res.status);
+          if (body) body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-red-500">계획을 불러오지 못했습니다. <span class="text-xs text-gray-400">(' + escapeHtml(errText) + ')</span></td></tr>';
           return;
         }
 
