@@ -70,6 +70,8 @@ import { adminHrdStudentJourneyHtml } from './views/admin_hrd_student_journey';
 import { adminUsersHtml } from './views/admin_users';
 import { adminSessionTimetableHtml } from './views/admin_session_timetable';
 import { adminSessionTimetablePrintHtml } from './views/admin_session_timetable_print';
+import { adminOpeningDocsHubHtml, adminOpeningDocPrintHtml } from './views/admin_opening_docs';
+import openingDocs from './api/opening_docs';
 import { adminHrdFacilitiesHtml } from './views/admin_hrd_facilities';
 import { adminHrdAttendanceHtml } from './views/admin_hrd_attendance';
 import { adminHrdAttendancePrintHtml } from './views/admin_hrd_attendance_print';
@@ -681,6 +683,7 @@ app.route('/api/courses', courses);
 app.route('/api/course-categories', courseCategories);
 app.route('/api/approved-courses', approvedCourses);
 app.route('/api/course-sessions', courseSessions);
+app.route('/api/opening-docs', openingDocs);
 app.route('/api/student/classroom', studentClassroom);
 app.route('/api/surveys', surveys);
 app.route('/api/instructor-eval', instructorEval);
@@ -796,6 +799,11 @@ app.get('/admin/courses/sessions', (c) => c.html(adminCoursesSessionsHtml()));
 app.get('/admin/courses/sessions/register', (c) => c.html(adminCoursesSessionsRegisterHtml()));
 app.get('/admin/courses/sessions/register/:id', (c) => c.html(adminCoursesSessionsRegisterHtml(c.req.param('id'))));
 app.get('/admin/courses/sessions/enrollments', (c) => c.html(adminCoursesSessionEnrollmentsHtml(c.req.query('sessionId'))));
+app.get('/admin/courses/opening-docs', (c) => c.html(adminOpeningDocsHubHtml()));
+app.get('/admin/courses/sessions/:sessionId/opening-docs', (c) => c.html(adminOpeningDocsHubHtml(c.req.param('sessionId'))));
+app.get('/admin/courses/sessions/:sessionId/opening-docs/:docCode/print', (c) =>
+  c.html(adminOpeningDocPrintHtml(c.req.param('sessionId'), c.req.param('docCode')))
+);
 app.get('/admin/courses/sessions/:sessionId/timetable', (c) => c.html(adminSessionTimetableHtml(Number(c.req.param('sessionId')))));
 app.get('/admin/courses/sessions/:sessionId/timetable/print', (c) => c.html(adminSessionTimetablePrintHtml(Number(c.req.param('sessionId')))));
 app.get('/admin/courses/sessions/:sessionId/syllabus', (c) => c.html(adminSyllabusHtml(c.req.param('sessionId'))));

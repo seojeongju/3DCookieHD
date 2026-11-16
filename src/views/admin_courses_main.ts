@@ -112,6 +112,9 @@ export function adminCoursesMainHtml(): string {
                     <a href="/admin/courses/sessions/enrollments" class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-bold text-sm hover:bg-emerald-100 transition">
                         <i class="fas fa-user-plus text-emerald-600"></i> 수강생(훈련생) 등록
                     </a>
+                    <a href="/admin/courses/opening-docs" class="inline-flex items-center gap-2 px-4 py-2.5 bg-sky-50 border border-sky-200 rounded-xl text-sky-700 font-bold text-sm hover:bg-sky-100 transition">
+                        <i class="fas fa-folder-open text-sky-600"></i> 개강서류 준비
+                    </a>
                     <a href="/admin/courses/register" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-sm hover:bg-slate-50 transition">
                         <i class="fas fa-graduation-cap text-slate-500"></i> 일반과정 등록/리스트
                     </a>
@@ -336,6 +339,7 @@ export function adminCoursesMainHtml(): string {
                                     homepageBtn +
                                     '<div class="h-4 w-[1px] bg-slate-100 mx-1"></div>' +
                                     '<a href="/admin/courses/sessions/enrollments?sessionId=' + item.id + '" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition"><i class="fas fa-user-plus mr-1"></i> 수강생 등록</a>' +
+                                    '<a href="/admin/courses/sessions/' + item.id + '/opening-docs" class="px-3 py-1.5 bg-sky-50 text-sky-700 rounded-lg text-xs font-bold hover:bg-sky-600 hover:text-white transition"><i class="fas fa-folder-open mr-1"></i> 개강서류</a>' +
                                     '<a href="/admin/courses/sessions/register/' + item.id + '" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-primary-600 hover:text-white transition">수정</a>' +
                                     '<a href="/admin/courses/sessions/' + item.id + '/timetable" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition"><i class="far fa-calendar-alt mr-1"></i> 시간표</a>' +
                                     '<a href="/admin/courses/sessions/' + item.id + '/syllabus" class="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-900 hover:text-white transition">교수계획서</a>' +

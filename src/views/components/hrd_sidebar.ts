@@ -102,6 +102,10 @@ ${sidebarMobileCss}
                     <i class="fas fa-user-plus w-6 text-sm ${activeMenu === 'courses-session-enrollments' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                     <span class="font-medium text-[13px]">수강생 등록</span>
                 </a>
+                <a data-role="admin-only" href="/admin/courses/opening-docs" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-opening-docs' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
+                    <i class="fas fa-folder-open w-6 text-sm ${activeMenu === 'courses-opening-docs' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
+                    <span class="font-medium text-[13px]">개강서류 준비</span>
+                </a>
                 <a data-role="admin-only" href="/admin/courses/copy" class="flex items-center px-4 py-2.5 ml-3 mr-2 rounded-lg transition-all duration-300 ${activeMenu === 'courses-copy' ? 'bg-slate-800 text-blue-400' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'} group relative">
                     <i class="fas fa-copy w-6 text-sm ${activeMenu === 'courses-copy' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400'} transition-colors pl-1"></i>
                     <span class="font-medium text-[13px]">회차별 과정복사</span>
