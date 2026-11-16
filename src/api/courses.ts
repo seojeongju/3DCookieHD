@@ -44,8 +44,22 @@ function toTeacherCourseStatus(effective: string): string {
   return map[effective] || effective || 'upcoming';
 }
 
-const TEACHER_RUNNING_STATUSES = ['active', 'open', 'upcoming', 'recruiting', 'in_progress', 'always_open'];
+/** 진행중 탭: 실제 개강·수업 중 (모집 전용은 recruiting 탭) */
+const TEACHER_RUNNING_STATUSES = ['active', 'open', 'in_progress'];
+/** 모집중 탭: 본인 배정 회차 중 모집·개강 전·상시모집 */
+const TEACHER_RECRUITING_STATUSES = ['upcoming', 'recruiting', 'always_open'];
 const TEACHER_COMPLETED_STATUSES = ['completed', 'closed'];
+
+/** JSON 배열에 강사 id가 포함되는지 (숫자·문자열 모두) */
+function sqlJsonArrayContainsId(col: string): string {
+  return `(
+    ${col} LIKE '%[' || ? || ']%'
+    OR ${col} LIKE '%[' || ? || ',%'
+    OR ${col} LIKE '%,' || ? || ',%'
+    OR ${col} LIKE '%,' || ? || ']%'
+    OR ${col} LIKE '%"' || ? || '"%'
+  )`;
+}
 
 /**
  * LMS courses 행을 course_sessions(개강·종료일) 기준 유효 상태로 보정.
@@ -269,16 +283,54 @@ courses.get('/', async (c) => {
       const legacyList = await getAll<any>(c.env.DB, legacyQuery, params);
       const legacyCount = legacyList.length;
 
+      // 배정 경로: 시간표 / NCS 교과목 주강사 / 회차 강사명 / LMS 과정 teacher_id
+      const teacherUser = await c.env.DB.prepare('SELECT name FROM users WHERE id = ?')
+        .bind(teacherId)
+        .first<{ name: string | null }>();
+      const teacherName = String(teacherUser?.name || '').trim();
+      const jsonIdCond = sqlJsonArrayContainsId('c.main_instructor_ids_json');
+      // bind 순서: 시간표 / NCS 주강사(5) / LMS teacher_id / (선택) 강사명 2개
+      const hrdAssignParams: any[] = [
+        teacherId,
+        teacherId, teacherId, teacherId, teacherId, String(teacherId),
+        teacherId,
+      ];
+      let instructorNameSql = '0';
+      if (teacherName) {
+        instructorNameSql = `(
+          TRIM(COALESCE(s.instructor_name, '')) = ?
+          OR (',' || REPLACE(REPLACE(COALESCE(s.instructor_name, ''), ' ', ''), '/', ',') || ',')
+             LIKE '%,' || ? || ',%'
+        )`;
+        hrdAssignParams.push(teacherName, teacherName);
+      }
+
       const hrdRows = await c.env.DB.prepare(`
         SELECT DISTINCT s.id, s.session_number, s.session_name, s.status as session_status,
                s.recruitment_status, s.training_start_date, s.training_end_date, s.lms_course_id,
                a.name as course_name, cc.name as category_name
-        FROM session_timetable st
-        INNER JOIN course_sessions s ON st.session_id = s.id
+        FROM course_sessions s
         INNER JOIN approved_courses a ON s.approved_course_id = a.id
         LEFT JOIN course_categories cc ON a.category_id = cc.id
-        WHERE st.instructor_id = ?
-      `).bind(teacherId).all();
+        WHERE
+          EXISTS (
+            SELECT 1 FROM session_timetable st
+            WHERE st.session_id = s.id AND st.instructor_id = ?
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM ncs_approved_registrations r
+            INNER JOIN ncs_approved_curriculum c ON c.registration_id = r.id
+            WHERE r.approved_course_id = s.approved_course_id
+              AND c.main_instructor_ids_json IS NOT NULL
+              AND ${jsonIdCond}
+          )
+          OR EXISTS (
+            SELECT 1 FROM courses lc
+            WHERE lc.id = s.lms_course_id AND lc.teacher_id = ?
+          )
+          OR ${instructorNameSql}
+      `).bind(...hrdAssignParams).all();
 
       const enrollmentCounts = new Map<number, number>();
       if (hrdRows.results && hrdRows.results.length > 0) {
@@ -397,6 +449,10 @@ courses.get('/', async (c) => {
           merged = merged.filter((c: any) =>
             TEACHER_RUNNING_STATUSES.includes(c.status || '')
           );
+        } else if (filter.status === 'recruiting') {
+          merged = merged.filter((c: any) =>
+            TEACHER_RECRUITING_STATUSES.includes(c.status || '')
+          );
         } else if (filter.status === 'completed') {
           merged = merged.filter((c: any) =>
             TEACHER_COMPLETED_STATUSES.includes(c.status || '')
@@ -448,6 +504,10 @@ courses.get('/', async (c) => {
       if (filter.status === 'running') {
         enriched = enriched.filter((course: any) =>
           TEACHER_RUNNING_STATUSES.includes(course.status || '')
+        );
+      } else if (filter.status === 'recruiting') {
+        enriched = enriched.filter((course: any) =>
+          TEACHER_RECRUITING_STATUSES.includes(course.status || '')
         );
       } else if (filter.status === 'completed') {
         enriched = enriched.filter((course: any) =>

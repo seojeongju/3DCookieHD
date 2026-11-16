@@ -125,26 +125,36 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                             </div>
                             <div>
                                 <h3 class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">강의 현황</h3>
-                                <div class="flex items-stretch gap-4">
-                                    <!-- 진행중 -->
-                                    <div class="flex-1 flex flex-col cursor-pointer" onclick="switchCourseTab('running')" title="진행중인 강의 탭으로 이동">
-                                        <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 진행중
+                                <div class="flex items-stretch gap-3 sm:gap-4">
+                                    <!-- 모집중 -->
+                                    <div class="flex-1 flex flex-col cursor-pointer min-w-0" onclick="switchCourseTab('recruiting')" title="모집중인 강의 탭으로 이동">
+                                        <span class="text-[9px] font-black text-sky-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span> 모집
                                         </span>
                                         <div class="flex items-baseline gap-1">
-                                            <span class="text-4xl font-outfit font-black text-neutral-900 group-hover:text-brand-600 transition-colors duration-300" id="activeCoursesCount">0</span>
+                                            <span class="text-3xl sm:text-4xl font-outfit font-black text-neutral-900 group-hover:text-brand-600 transition-colors duration-300" id="recruitingCoursesCount">0</span>
                                             <span class="text-xs font-bold text-neutral-400">개</span>
                                         </div>
                                     </div>
-                                    <!-- 구분선 -->
+                                    <div class="w-px bg-neutral-100 self-stretch"></div>
+                                    <!-- 진행중 -->
+                                    <div class="flex-1 flex flex-col cursor-pointer min-w-0" onclick="switchCourseTab('running')" title="진행중인 강의 탭으로 이동">
+                                        <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 진행
+                                        </span>
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-3xl sm:text-4xl font-outfit font-black text-neutral-900 group-hover:text-brand-600 transition-colors duration-300" id="activeCoursesCount">0</span>
+                                            <span class="text-xs font-bold text-neutral-400">개</span>
+                                        </div>
+                                    </div>
                                     <div class="w-px bg-neutral-100 self-stretch"></div>
                                     <!-- 종료 -->
-                                    <div class="flex-1 flex flex-col cursor-pointer" onclick="switchCourseTab('completed')" title="종료된 강의 탭으로 이동">
+                                    <div class="flex-1 flex flex-col cursor-pointer min-w-0" onclick="switchCourseTab('completed')" title="종료된 강의 탭으로 이동">
                                         <span class="text-[9px] font-black text-neutral-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                             <span class="w-1.5 h-1.5 rounded-full bg-neutral-400"></span> 종료
                                         </span>
                                         <div class="flex items-baseline gap-1">
-                                            <span class="text-4xl font-outfit font-black text-neutral-500" id="completedCoursesCount">0</span>
+                                            <span class="text-3xl sm:text-4xl font-outfit font-black text-neutral-500" id="completedCoursesCount">0</span>
                                             <span class="text-xs font-bold text-neutral-400">개</span>
                                         </div>
                                     </div>
@@ -227,14 +237,17 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
 
                     <!-- 강의 상태 구분 탭 (Glassmorphic Segmented Control) -->
                     <div class="mb-8 flex justify-center sm:justify-start">
-                        <div class="glass p-1.5 rounded-3xl border border-white/60 flex gap-2 w-full sm:w-auto shadow-premium transition-all duration-500">
-                            <button type="button" onclick="switchCourseTab('all')" id="tabBtn-all" class="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 bg-brand-600 text-white shadow-xl shadow-brand-100">
+                        <div class="glass p-1.5 rounded-3xl border border-white/60 flex flex-wrap gap-2 w-full sm:w-auto shadow-premium transition-all duration-500">
+                            <button type="button" onclick="switchCourseTab('all')" id="tabBtn-all" class="flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 bg-brand-600 text-white shadow-xl shadow-brand-100">
                                 <i class="fas fa-th-large text-xs"></i> 전체
                             </button>
-                            <button type="button" onclick="switchCourseTab('running')" id="tabBtn-running" class="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850">
+                            <button type="button" onclick="switchCourseTab('recruiting')" id="tabBtn-recruiting" class="flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850">
+                                <i class="fas fa-bullhorn text-xs text-sky-500"></i> 모집중인 강의
+                            </button>
+                            <button type="button" onclick="switchCourseTab('running')" id="tabBtn-running" class="flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850">
                                 <i class="fas fa-play text-xs text-emerald-500"></i> 진행중인 강의
                             </button>
-                            <button type="button" onclick="switchCourseTab('completed')" id="tabBtn-completed" class="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850">
+                            <button type="button" onclick="switchCourseTab('completed')" id="tabBtn-completed" class="flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850">
                                 <i class="fas fa-check text-xs text-neutral-400"></i> 종료된 강의
                             </button>
                         </div>
@@ -325,14 +338,14 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
 
         function switchCourseTab(tab) {
             activeStatusTab = tab;
-            const tabs = ['all', 'running', 'completed'];
+            const tabs = ['all', 'recruiting', 'running', 'completed'];
             tabs.forEach(t => {
                 const btn = document.getElementById('tabBtn-' + t);
                 if (!btn) return;
                 if (t === tab) {
-                    btn.className = "flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 bg-brand-600 text-white shadow-xl shadow-brand-100";
+                    btn.className = "flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 bg-brand-600 text-white shadow-xl shadow-brand-100";
                 } else {
-                    btn.className = "flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850";
+                    btn.className = "flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 flex items-center justify-center gap-2 text-neutral-400 hover:text-neutral-850";
                 }
             });
             loadCourses(1);
@@ -421,17 +434,22 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 const result = await res.json();
                 if (result.success) {
                     const all = result.data || [];
+                    const recruitingCount = all.filter(c =>
+                        ['upcoming', 'recruiting', 'always_open'].includes(resolveCourseStatus(c) || c.status || '')
+                    ).length;
                     const activeCount = all.filter(c =>
-                        ['active', 'open', 'upcoming', 'recruiting', 'in_progress', 'always_open'].includes(resolveCourseStatus(c) || c.status || '')
+                        ['active', 'open', 'in_progress'].includes(resolveCourseStatus(c) || c.status || '')
                     ).length;
                     const completedCount = all.filter(c =>
                         ['completed', 'closed'].includes(resolveCourseStatus(c) || c.status || '')
                     ).length;
                     const totalStudents = all.reduce((acc, c) => acc + (c.current_students || 0), 0);
 
+                    const recruitingEl = document.getElementById('recruitingCoursesCount');
                     const activeEl = document.getElementById('activeCoursesCount');
                     const completedEl = document.getElementById('completedCoursesCount');
                     const studentsEl = document.getElementById('totalStudentsCount');
+                    if (recruitingEl) recruitingEl.textContent = String(recruitingCount);
                     if (activeEl) activeEl.textContent = String(activeCount);
                     if (completedEl) completedEl.textContent = String(completedCount);
                     if (studentsEl) studentsEl.textContent = String(totalStudents);
@@ -523,13 +541,19 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
         function renderCourses(courses) {
             const container = document.getElementById('coursesContainer');
             if (!courses || courses.length === 0) {
+                const emptyTitle = activeStatusTab === 'recruiting'
+                    ? '모집중인 배정 강의가 없습니다'
+                    : '배정된 강의가 없습니다';
+                const emptyDesc = activeStatusTab === 'recruiting'
+                    ? '본인에게 배정된 모집·개강 전 회차가 없거나, 필터 조건에 맞는 강의가 없습니다.'
+                    : '현재 배정된 강의가 없거나 필터 조건에 맞는 강의를 찾을 수 없습니다.';
                 container.innerHTML = 
                     '<div class="w-full text-center py-20 bg-white rounded-2xl border border-slate-200/60 flex flex-col items-center shadow-sm">' +
                         '<div class="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 mb-6">' +
                             '<i class="fas fa-chalkboard-teacher text-3xl"></i>' +
                         '</div>' +
-                        '<h3 class="text-lg font-outfit font-black text-slate-900 mb-2 tracking-tight">배정된 강의가 없습니다</h3>' +
-                        '<p class="text-slate-500 text-sm font-medium max-w-sm mx-auto">현재 배정된 강의가 없거나 필터 조건에 맞는 강의를 찾을 수 없습니다.</p>' +
+                        '<h3 class="text-lg font-outfit font-black text-slate-900 mb-2 tracking-tight">' + emptyTitle + '</h3>' +
+                        '<p class="text-slate-500 text-sm font-medium max-w-sm mx-auto">' + emptyDesc + '</p>' +
                     '</div>';
                 return;
             }
@@ -595,7 +619,9 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                               '</div>'
                             : '') +
                         '<a href="' + escHtmlAttr(lmsUrl) + '" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-brand-600 transition-colors font-bold text-xs whitespace-nowrap">' +
-                            '<i class="fas fa-door-open text-[10px]"></i> 강의실 입장' +
+                            (status === 'upcoming' || status === 'recruiting' || status === 'always_open'
+                                ? '<i class="fas fa-clipboard-list text-[10px]"></i> 과정 준비'
+                                : '<i class="fas fa-door-open text-[10px]"></i> 강의실 입장') +
                         '</a>' +
                         '<a href="' + escHtmlAttr(lmsUrl) + '" class="w-9 h-9 inline-flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-white hover:text-brand-600 border border-slate-200 transition-colors shrink-0" title="강의실 설정">' +
                             '<i class="fas fa-cog text-xs"></i>' +
