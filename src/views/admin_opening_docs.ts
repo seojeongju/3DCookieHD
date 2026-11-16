@@ -399,9 +399,12 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         table.survey-table td.q { text-align: left; padding-left: 6px; }
         .survey-free { min-height: 90px; border: 1px solid #222; margin-top: 6px; }
         table.att-gen { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
-        table.att-gen th, table.att-gen td { border: 1px solid #222; padding: 3px 2px; text-align: center; vertical-align: middle; height: 24px; }
-        table.att-gen th { background: #f3f4f6; font-weight: 700; }
+        table.att-gen th, table.att-gen td { border: 1px solid #222; padding: 4px 3px; text-align: center; vertical-align: middle; height: 36px; min-height: 36px; box-sizing: border-box; }
+        table.att-gen tbody tr { height: 36px; }
+        table.att-gen th { background: #f3f4f6; font-weight: 700; height: auto; min-height: 22px; font-size: 9px; line-height: 1.2; }
         table.att-gen td.name { text-align: left; padding-left: 4px; font-weight: 600; }
+        table.att-gen th.sign-col, table.att-gen td.sign-col { width: 78px; min-width: 78px; }
+        table.att-gen th.sum-col, table.att-gen td.sum-col { width: 26px; min-width: 22px; padding: 2px 1px; font-size: 9px; }
         .ledger-note { font-size: 10px; line-height: 1.45; color: #334155; margin-top: 10px; word-break: keep-all; }
     </style>
 </head>
@@ -1038,28 +1041,29 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     sheet.innerHTML = html;
                     return;
                 } else if (docCode === 'D51') {
-                    /* HWP「5-1_출석부_일반수강생용」— 훈련일 5일 단위, 시작/종료·집계 */
-                    var dayChunks5 = chunkArray(trainingDays, 5);
+                    /* HWP「5-1_출석부_일반수강생용」— 시작/종료는 수기 서명용으로 넓게, 집계란은 좁게 */
+                    var dayChunks5 = chunkArray(trainingDays, 4);
                     var attRows = padRows(trainees, Math.max(trainees.length, 4));
                     var prescribed = trainingDays.length || session.training_day_count || '';
                     sheet.className = 'sheet-wrap';
                     html = (dayChunks5.length ? dayChunks5 : [[]]).map(function(days, pageIdx) {
-                        var head1 = '<tr><th rowspan="2" style="width:36px">번호</th><th rowspan="2" style="width:64px">성명</th>';
+                        var head1 = '<tr><th rowspan="2" style="width:28px">번호</th><th rowspan="2" style="width:52px">성명</th>';
                         var head2 = '<tr>';
                         days.forEach(function(d) {
                             head1 += '<th colspan="2">' + esc(formatMonthDayHeader(d)) + '</th>';
-                            head2 += '<th>시작</th><th>종료</th>';
+                            head2 += '<th class="sign-col">시작<br><span style="font-weight:500;font-size:8px">(성명)</span></th>' +
+                                '<th class="sign-col">종료<br><span style="font-weight:500;font-size:8px">(성명)</span></th>';
                         });
-                        head1 += '<th rowspan="2" style="width:48px">소정<br>출석일</th><th rowspan="2" style="width:48px">실제<br>출석일</th>' +
-                            '<th rowspan="2" style="width:36px">결석</th><th rowspan="2" style="width:36px">지각</th><th rowspan="2" style="width:36px">조퇴</th>' +
-                            '<th rowspan="2" style="width:40px">확인<br>(교사)</th><th rowspan="2" style="width:48px">기관장<br>결재</th></tr>';
+                        head1 += '<th class="sum-col" rowspan="2">소정<br>출석</th><th class="sum-col" rowspan="2">실제<br>출석</th>' +
+                            '<th class="sum-col" rowspan="2">결석</th><th class="sum-col" rowspan="2">지각</th><th class="sum-col" rowspan="2">조퇴</th>' +
+                            '<th class="sum-col" rowspan="2">확인<br>(교사)</th><th class="sum-col" rowspan="2">기관장<br>결재</th></tr>';
                         head2 += '</tr>';
                         var body = '';
                         attRows.forEach(function(t, idx) {
                             body += '<tr><td>' + (idx + 1) + '</td><td class="name">' + (t && t.name ? esc(t.name) : '&nbsp;') + '</td>';
-                            days.forEach(function() { body += '<td>&nbsp;</td><td>&nbsp;</td>'; });
-                            body += '<td>' + (pageIdx === 0 && prescribed ? esc(String(prescribed)) : '&nbsp;') + '</td>' +
-                                '<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';
+                            days.forEach(function() { body += '<td class="sign-col">&nbsp;</td><td class="sign-col">&nbsp;</td>'; });
+                            body += '<td class="sum-col">' + (pageIdx === 0 && prescribed ? esc(String(prescribed)) : '&nbsp;') + '</td>' +
+                                '<td class="sum-col">&nbsp;</td><td class="sum-col">&nbsp;</td><td class="sum-col">&nbsp;</td><td class="sum-col">&nbsp;</td><td class="sum-col">&nbsp;</td><td class="sum-col">&nbsp;</td></tr>';
                         });
                         return '<section class="pledge-page landscape-page">' +
                             brandHtml(session) + fundingBanner +
@@ -1071,7 +1075,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                             '<li><span class="bullet">훈련기간</span><span class="sep">:</span><span class="val">' + esc(formatDotDate(session.training_start_date) + ' ~ ' + formatDotDate(session.training_end_date)) + '</span></li>' +
                             '</ul>' +
                             '<table class="att-gen"><thead>' + head1 + head2 + '</thead><tbody>' + body + '</tbody></table>' +
-                            '<p class="footnote">※ 일반 수강생용. 시작·종료 및 집계는 수기 기재합니다. (원본: 5-1_출석부_일반수강생용.hwp)</p>' +
+                            '<p class="footnote">※ 일반 수강생용. 시작·종료 칸에 본인 성명을 수기로 기재합니다. (원본: 5-1_출석부_일반수강생용.hwp)</p>' +
                         '</section>';
                     }).join('');
                     sheet.innerHTML = html;
