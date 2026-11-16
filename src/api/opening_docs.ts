@@ -80,12 +80,30 @@ async function loadSessionHeader(DB: D1Database, sessionId: number): Promise<Ses
   };
 }
 
+/** HWP「구분」열용 — 양식 예시(재직자/자영업자/일반)에 가깝게 축약 */
+function categoryLabel(studentType: string, packageType: string): string {
+  const pt = String(packageType || '').toLowerCase();
+  const st = String(studentType || '').toLowerCase();
+  if (pt === 'jobholder') return '재직자';
+  if (pt === 'unemployed') return '일반\n(실업자)';
+  if (pt === 'package1') return '취업성공\n패키지1';
+  if (pt === 'package2') return '취업성공\n패키지2';
+  if (pt === 'eitc') return '근로장려금';
+  if (pt === 'general') return '일반';
+  if (st === 'worker') return '재직자';
+  if (st === 'jobseeker') return '구직자';
+  if (st === 'student') return '학생';
+  if (st === 'general') return '일반';
+  return packageType || studentType || '';
+}
+
 async function loadEnrolledTrainees(DB: D1Database, sessionId: number) {
   const { results } = await DB.prepare(
     `SELECT e.id AS enrollment_id, e.user_id, e.status AS enrollment_status, e.enrolled_at,
             u.name, u.phone, u.email, u.birthdate, u.gender, u.address,
             d.has_application, d.has_card, d.is_hrd_net_registered,
-            d.type AS student_type, d.package_type, d.status AS journey_status
+            d.type AS student_type, d.package_type, d.status AS journey_status,
+            d.payment_date, d.self_pay_amount, d.payment_method, d.status_memo
      FROM course_session_enrollments e
      INNER JOIN users u ON u.id = e.user_id
      LEFT JOIN hrd_student_details d ON d.user_id = u.id
@@ -95,25 +113,38 @@ async function loadEnrolledTrainees(DB: D1Database, sessionId: number) {
     .bind(sessionId)
     .all();
 
-  return (results || []).map((r: any, idx: number) => ({
-    no: idx + 1,
-    enrollment_id: Number(r.enrollment_id),
-    user_id: Number(r.user_id),
-    name: r.name || '',
-    phone: r.phone || '',
-    email: r.email || '',
-    birthdate: r.birthdate || '',
-    gender: r.gender || '',
-    address: r.address || '',
-    student_type: r.student_type || '',
-    package_type: r.package_type || '',
-    journey_status: r.journey_status || '',
-    enrollment_status: r.enrollment_status || '',
-    enrolled_at: r.enrolled_at || '',
-    has_application: !!r.has_application,
-    has_card: !!r.has_card,
-    is_hrd_net_registered: !!r.is_hrd_net_registered,
-  }));
+  return (results || []).map((r: any, idx: number) => {
+    const selfPay = Number(r.self_pay_amount) || 0;
+    const paymentDate = (r.payment_date || '').toString().trim();
+    const hasSelfPay = !!(paymentDate || selfPay > 0);
+    return {
+      no: idx + 1,
+      enrollment_id: Number(r.enrollment_id),
+      user_id: Number(r.user_id),
+      name: r.name || '',
+      phone: r.phone || '',
+      email: r.email || '',
+      birthdate: r.birthdate || '',
+      gender: r.gender || '',
+      address: r.address || '',
+      student_type: r.student_type || '',
+      package_type: r.package_type || '',
+      category_label: categoryLabel(r.student_type || '', r.package_type || ''),
+      journey_status: r.journey_status || '',
+      enrollment_status: r.enrollment_status || '',
+      enrolled_at: r.enrolled_at || '',
+      has_application: !!r.has_application,
+      has_card: !!r.has_card,
+      is_hrd_net_registered: !!r.is_hrd_net_registered,
+      payment_date: paymentDate,
+      self_pay_amount: selfPay,
+      payment_method: r.payment_method || '',
+      has_self_pay: hasSelfPay,
+      status_memo: r.status_memo || '',
+      /** OT참석은 아직 전용 필드 없음 — 인쇄 시 수기란 */
+      ot_attended: null as boolean | null,
+    };
+  });
 }
 
 /** GET /api/opening-docs/catalog — 서류 목록 정의 */

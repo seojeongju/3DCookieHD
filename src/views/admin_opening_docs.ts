@@ -224,14 +224,17 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         .btn-print { background: #2563eb; color: #fff; }
         .btn-close { background: #475569; color: #fff; }
         .sheet { max-width: 210mm; margin: 0 auto 24px; background: #fff; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-        .doc-title { text-align: center; font-size: 20px; font-weight: 800; margin: 0 0 14px; letter-spacing: -0.02em; }
+        .doc-title { text-align: center; font-size: 20px; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.02em; }
+        .doc-sub { text-align: center; font-size: 12px; font-weight: 600; margin: 0 0 14px; color: #222; }
         .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-bottom: 12px; font-size: 12px; }
         .meta-grid .label { display: inline-block; width: 72px; color: #555; }
         table.doc-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         table.doc-table th, table.doc-table td { border: 1px solid #222; padding: 5px 6px; text-align: center; vertical-align: middle; word-break: keep-all; }
         table.doc-table th { background: #f3f4f6; font-size: 11px; }
         table.doc-table td.name, table.doc-table td.addr { text-align: left; }
-        .mark-y { color: #166534; font-weight: 800; }
+        table.doc-table td.cat { text-align: center; font-size: 11px; line-height: 1.25; white-space: pre-line; }
+        table.checklist-table th, table.checklist-table td { height: 28px; }
+        .mark-y { color: #111; font-weight: 800; font-size: 14px; }
         .mark-n { color: #94a3b8; }
         .empty { text-align: center; padding: 40px 12px; color: #64748b; }
         .footnote { margin-top: 10px; font-size: 10px; color: #64748b; }
@@ -276,7 +279,20 @@ const sharedPrintHelpers = `
             if (g === 'F' || g === '여' || g === 'female') return '여';
             return g || '';
         }
-        function headerHtml(session, docTitle) {
+        function sessionSubtitle(session) {
+            var course = session.course_name || '';
+            var sess = session.session_number != null ? String(session.session_number) + '차' : '';
+            var ban = session.session_name ? String(session.session_name) : '';
+            var left = [course, sess].filter(Boolean).join(' + ');
+            if (ban) return '( ' + left + ' ,[' + ban + '] )';
+            return left ? '( ' + left + ' )' : '';
+        }
+        function headerHtml(session, docTitle, opts) {
+            opts = opts || {};
+            if (opts.checklistStyle) {
+                return '<h1 class="doc-title">' + esc(docTitle) + '</h1>' +
+                    '<p class="doc-sub">' + esc(sessionSubtitle(session)) + '</p>';
+            }
             var period = ((session.training_start_date || '-').toString().slice(0, 10)) + ' ~ ' + ((session.training_end_date || '-').toString().slice(0, 10));
             var course = (session.course_name || '') + (session.session_number != null ? ' (' + session.session_number + '회차)' : '');
             return '<h1 class="doc-title">' + esc(docTitle) + '</h1>' +
@@ -289,6 +305,8 @@ const sharedPrintHelpers = `
                 '<div><span class="label">배정인원</span> <span id="metaCount"></span>명</div>' +
                 '</div>';
         }
+        function markO(v) { return v ? '<span class="mark-y">○</span>' : ''; }
+        function nl2br(s) { return esc(s).replace(/\\n/g, '<br>'); }
         async function fetchDoc(sessionId, docCode) {
             var res = await fetch('/api/opening-docs/' + sessionId + '/docs/' + docCode, {
                 headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
@@ -319,32 +337,44 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 var session = data.session || {};
                 var trainees = data.trainees || [];
                 var docTitle = (data.doc && data.doc.title) || ${JSON.stringify(title)};
-                var html = headerHtml(session, docTitle);
+                var html = headerHtml(session, docTitle, { checklistStyle: docCode === 'D00' });
 
                 if (docCode === 'D00') {
-                    html += '<table class="doc-table">' +
+                    /* HWP「0_훈련생 등록현황 체크리스트」컬럼: NO·구분·성명·연락처·OT참석·교육신청서·자부담 결제·비고 */
+                    html += '<table class="doc-table checklist-table">' +
                         '<thead><tr>' +
-                        '<th style="width:36px">No</th><th style="width:72px">성명</th><th style="width:100px">연락처</th>' +
-                        '<th>신청서</th><th>내일배움카드</th><th>HRD-Net</th>' +
-                        '<th>서약서</th><th>개인정보</th><th>촬영동의</th><th>비고</th>' +
+                        '<th style="width:36px">NO</th>' +
+                        '<th style="width:78px">구분</th>' +
+                        '<th style="width:72px">성명</th>' +
+                        '<th style="width:110px">연락처</th>' +
+                        '<th style="width:56px">OT참석</th>' +
+                        '<th style="width:72px">교육신청서</th>' +
+                        '<th style="width:72px">자부담 결제</th>' +
+                        '<th>비고</th>' +
                         '</tr></thead><tbody>';
-                    if (!trainees.length) {
-                        html += '<tr><td colspan="10" class="empty">배정된 훈련생이 없습니다.</td></tr>';
-                    } else {
-                        trainees.forEach(function(t) {
+                    var rowCount = Math.max(trainees.length, 15);
+                    for (var i = 0; i < rowCount; i++) {
+                        var t = trainees[i];
+                        if (t) {
                             html += '<tr>' +
                                 '<td>' + t.no + '</td>' +
+                                '<td class="cat">' + nl2br(t.category_label || '') + '</td>' +
                                 '<td class="name">' + esc(t.name) + '</td>' +
                                 '<td>' + esc(t.phone) + '</td>' +
-                                '<td>' + yn(t.has_application) + '</td>' +
-                                '<td>' + yn(t.has_card) + '</td>' +
-                                '<td>' + yn(t.is_hrd_net_registered) + '</td>' +
-                                '<td></td><td></td><td></td><td></td>' +
+                                '<td>' + (t.ot_attended === true ? markO(true) : '') + '</td>' +
+                                '<td>' + markO(t.has_application) + '</td>' +
+                                '<td>' + markO(t.has_self_pay) + '</td>' +
+                                '<td class="addr">' + esc(t.status_memo || '') + '</td>' +
                             '</tr>';
-                        });
+                        } else {
+                            html += '<tr>' +
+                                '<td>' + (i + 1) + '</td>' +
+                                '<td></td><td></td><td></td><td></td><td></td><td></td><td></td>' +
+                            '</tr>';
+                        }
                     }
                     html += '</tbody></table>' +
-                        '<p class="footnote">※ 신청서·내일배움카드·HRD-Net은 수강생관리 등록 정보를 반영합니다. 서약서·개인정보·촬영동의는 수거 후 수기 체크하세요.</p>';
+                        '<p class="footnote">※ OT참석은 수기 체크 · 교육신청서/자부담 결제는 수강생관리 등록 정보를 ○로 표시합니다. (원본: 0_훈련생 등록현황 체크리스트.hwp)</p>';
                 } else if (docCode === 'D01') {
                     html += '<table class="doc-table">' +
                         '<thead><tr>' +

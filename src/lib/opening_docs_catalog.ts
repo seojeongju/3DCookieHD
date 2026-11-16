@@ -18,7 +18,7 @@ export const OPENING_DOCS: OpeningDocDef[] = [
     code: 'D00',
     order: 0,
     title: '훈련생 등록현황 체크리스트',
-    description: '신청서·내일배움카드·HRD-Net 등 등록 준비 현황을 확인합니다.',
+    description: '구분·성명·연락처·OT참석·교육신청서·자부담 결제 현황을 확인합니다.',
     status: 'ready',
   },
   {
