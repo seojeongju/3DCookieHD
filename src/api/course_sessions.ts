@@ -1531,7 +1531,7 @@ app.get('/:id/enrollment-candidates', authMiddleware, requireRole('admin', 'teac
     if (isNaN(id)) return c.json({ success: false, error: '잘못된 회차 ID' }, 400);
     const { DB } = c.env;
     const { results } = await DB.prepare(
-      `SELECT u.id, u.name, u.phone, u.email, u.status AS account_status, d.status AS journey_status,
+      `SELECT u.id, u.name, u.phone, u.email, u.created_at, u.status AS account_status, d.status AS journey_status,
               (SELECT a.name || ' ' || cs.session_number || '회차'
                  FROM course_session_enrollments cse
                  JOIN course_sessions cs ON cs.id = cse.session_id
@@ -1546,7 +1546,7 @@ app.get('/:id/enrollment-candidates', authMiddleware, requireRole('admin', 'teac
            SELECT 1 FROM course_session_enrollments x
            WHERE x.session_id = ? AND x.user_id = u.id AND x.status IN ('enrolled', 'approved', 'dropped')
          )
-       ORDER BY u.name ASC, u.id ASC`
+       ORDER BY u.created_at DESC, u.id DESC`
     ).bind(id).all();
     return c.json({ success: true, data: results || [] });
   } catch (e) {

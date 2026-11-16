@@ -11,6 +11,8 @@ import {
   getOpeningDoc,
   openingDocExternalLink,
   openingDocPrintPath,
+  resolveOpeningDocFunding,
+  type OpeningDocAudience,
 } from '../lib/opening_docs_catalog';
 import { getEffectiveSessionStatus } from '../utils/course_session_status';
 import {
@@ -346,7 +348,10 @@ function filterTraineesByAudience(
   trainees: Awaited<ReturnType<typeof loadEnrolledTrainees>>,
   audience?: string
 ) {
-  if (!audience || audience === 'all') return trainees;
+  if (!audience || audience === 'all') {
+    return trainees.map((t, idx) => ({ ...t, no: idx + 1 }));
+  }
+  if (audience === 'none') return [];
   const filtered = trainees.filter((t) => t.funding_category === audience);
   return filtered.map((t, idx) => ({ ...t, no: idx + 1 }));
 }
@@ -370,23 +375,54 @@ openingDocs.get('/:sessionId/pack', authMiddleware, requireStaff, async (c) => {
     const header = await loadSessionHeader(c.env.DB, sessionId);
     if (!header) return notFoundResponse(c, '회차를 찾을 수 없습니다');
 
+    const fundingParam = String(c.req.query('funding') || 'all').trim().toLowerCase();
+    const hubFunding: OpeningDocAudience =
+      fundingParam === 'gov' || fundingParam === 'general' ? fundingParam : 'all';
+
     const trainees = await loadEnrolledTrainees(c.env.DB, sessionId);
     const govCount = trainees.filter((t) => t.funding_category === 'gov').length;
     const generalCount = trainees.filter((t) => t.funding_category === 'general').length;
     const docs = OPENING_DOCS.map((doc) => {
       const external = openingDocExternalLink(sessionId, doc.linkType);
-      const audience = doc.audience || 'all';
-      const scoped = filterTraineesByAudience(trainees, audience);
+      const audience = (doc.audience || 'all') as OpeningDocAudience;
+      const effective = resolveOpeningDocFunding(audience, hubFunding);
+      const scoped = filterTraineesByAudience(trainees, effective);
+      const countGov = filterTraineesByAudience(
+        trainees,
+        resolveOpeningDocFunding(audience, 'gov')
+      ).length;
+      const countGeneral = filterTraineesByAudience(
+        trainees,
+        resolveOpeningDocFunding(audience, 'general')
+      ).length;
+      const readyHref =
+        doc.status === 'ready'
+          ? openingDocPrintPath(sessionId, doc.code, hubFunding === 'all' ? null : hubFunding)
+          : null;
       return {
         ...doc,
         audience,
+        effective_audience: effective,
         href:
-          doc.status === 'ready'
+          readyHref ||
+          (doc.status === 'link' && external ? external : null),
+        href_gov:
+          doc.status === 'ready' && audience !== 'general'
+            ? openingDocPrintPath(sessionId, doc.code, 'gov')
+            : null,
+        href_general:
+          doc.status === 'ready' && audience !== 'gov'
+            ? openingDocPrintPath(sessionId, doc.code, 'general')
+            : null,
+        href_all:
+          doc.status === 'ready' && audience === 'all'
             ? openingDocPrintPath(sessionId, doc.code)
-            : doc.status === 'link' && external
-              ? external
-              : null,
+            : audience === 'all'
+              ? null
+              : readyHref,
         trainee_count: scoped.length,
+        trainee_count_gov: countGov,
+        trainee_count_general: countGeneral,
       };
     });
 
@@ -394,6 +430,7 @@ openingDocs.get('/:sessionId/pack', authMiddleware, requireStaff, async (c) => {
 
     return successResponse(c, {
       session: header,
+      funding_filter: hubFunding,
       trainee_count: trainees.length,
       trainee_count_gov: govCount,
       trainee_count_general: generalCount,
@@ -434,8 +471,10 @@ openingDocs.get('/:sessionId/docs/:docCode', authMiddleware, requireStaff, async
     const header = await loadSessionHeader(c.env.DB, sessionId);
     if (!header) return notFoundResponse(c, '회차를 찾을 수 없습니다');
 
+    const fundingParam = String(c.req.query('funding') || 'all').trim().toLowerCase();
+    const effectiveFunding = resolveOpeningDocFunding(def.audience, fundingParam);
     const allTrainees = await loadEnrolledTrainees(c.env.DB, sessionId);
-    const trainees = filterTraineesByAudience(allTrainees, def.audience || 'all');
+    const trainees = filterTraineesByAudience(allTrainees, effectiveFunding);
     const textbookNames = await loadTextbookNames(c.env.DB, header.textbook_ids_json);
     const trainingDates = await getSessionTrainingDatesForLogs(
       c.env.DB,
@@ -456,7 +495,12 @@ openingDocs.get('/:sessionId/docs/:docCode', authMiddleware, requireStaff, async
       (dayCount ? dayCount * 4 : null);
 
     return successResponse(c, {
-      doc: def,
+      doc: {
+        ...def,
+        audience: def.audience || 'all',
+        effective_audience: effectiveFunding,
+      },
+      funding_filter: effectiveFunding === 'none' ? fundingParam : effectiveFunding,
       session: {
         ...header,
         textbook_names: textbookNames,
@@ -468,6 +512,8 @@ openingDocs.get('/:sessionId/docs/:docCode', authMiddleware, requireStaff, async
         attendance_rules: attendanceRules,
       },
       trainees,
+      trainee_count_gov: allTrainees.filter((t) => t.funding_category === 'gov').length,
+      trainee_count_general: allTrainees.filter((t) => t.funding_category === 'general').length,
       training_dates: trainingDates,
       training_days: trainingDays,
       printed_at: new Date().toISOString(),

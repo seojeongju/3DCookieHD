@@ -143,8 +143,31 @@ export function getOpeningDoc(code: string): OpeningDocDef | undefined {
   return OPENING_DOCS.find((d) => d.code === code);
 }
 
-export function openingDocPrintPath(sessionId: number, code: string): string {
-  return `/admin/courses/sessions/${sessionId}/opening-docs/${code}/print`;
+export function openingDocPrintPath(
+  sessionId: number,
+  code: string,
+  funding?: OpeningDocAudience | null
+): string {
+  const base = `/admin/courses/sessions/${sessionId}/opening-docs/${code}/print`;
+  if (funding === 'gov' || funding === 'general') {
+    return `${base}?funding=${funding}`;
+  }
+  return base;
+}
+
+/** 서류 고정 audience와 요청 funding을 교차해 실제 필터 결정 */
+export function resolveOpeningDocFunding(
+  docAudience: OpeningDocAudience | undefined,
+  requestFunding?: string | null
+): OpeningDocAudience | 'none' {
+  const doc = docAudience || 'all';
+  const req = String(requestFunding || 'all').trim().toLowerCase();
+  const funding: OpeningDocAudience =
+    req === 'gov' || req === 'general' ? req : 'all';
+  if (doc === 'all') return funding;
+  if (funding === 'all') return doc;
+  if (doc !== funding) return 'none';
+  return doc;
 }
 
 export function openingDocExternalLink(sessionId: number, linkType?: string): string | null {

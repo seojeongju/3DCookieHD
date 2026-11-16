@@ -62,12 +62,20 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                                 </div>
                                 <button type="button" id="btnChangeSession" class="shrink-0 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">회차 변경</button>
                             </div>
-                            <div class="flex flex-wrap gap-3 text-[11px] font-bold text-slate-600">
+                            <div class="flex flex-wrap gap-3 text-[11px] font-bold text-slate-600 mb-4">
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-user-tie text-slate-400"></i><span id="packInstructor">—</span></span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-map-marker-alt text-slate-400"></i><span id="packLocation">—</span></span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700"><i class="fas fa-users"></i> 배정 <span id="packTraineeCount">0</span>명</span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-700">국비 <span id="packGovCount">0</span></span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600">일반 <span id="packGeneralCount">0</span></span>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">대상 구분 필터</p>
+                                <div id="fundingFilterGroup" class="inline-flex flex-wrap gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
+                                    <button type="button" data-funding="all" class="funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black bg-slate-900 text-white shadow-sm">전체</button>
+                                    <button type="button" data-funding="gov" class="funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black text-slate-600 hover:bg-white/80">국비지원대상</button>
+                                    <button type="button" data-funding="general" class="funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black text-slate-600 hover:bg-white/80">일반</button>
+                                </div>
                             </div>
                         </div>
                         <div class="lg:col-span-4 bg-slate-900 text-white rounded-[2.5rem] shadow-sm p-5 sm:p-6 flex flex-col justify-between">
@@ -88,6 +96,8 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
         (function() {
             var fixedSessionId = ${sessionId ? JSON.stringify(String(sessionId)) : 'null'};
             var token = localStorage.getItem('token') || '';
+            var fundingFilter = 'all';
+            var lastPackData = null;
 
             function authHeaders() {
                 return { 'Authorization': 'Bearer ' + token };
@@ -109,6 +119,77 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                 if (doc.status === 'ready') return '미리보기·인쇄';
                 if (doc.status === 'link') return '연결 화면 열기';
                 return '추후 구현';
+            }
+
+            function syncFundingFilterButtons() {
+                document.querySelectorAll('.funding-filter-btn').forEach(function(btn) {
+                    var on = btn.getAttribute('data-funding') === fundingFilter;
+                    btn.className = 'funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black ' +
+                        (on ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-white/80');
+                });
+            }
+
+            function audienceBadge(audience) {
+                if (audience === 'gov') return '<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-black">국비지원</span>';
+                if (audience === 'general') return '<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black">일반</span>';
+                if (audience === 'none') return '<span class="px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 text-[10px] font-black">대상없음</span>';
+                return '<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-black">전체</span>';
+            }
+
+            function renderDocsGrid(data) {
+                var grid = document.getElementById('docsGrid');
+                if (!grid) return;
+                grid.innerHTML = (data.docs || []).map(function(doc) {
+                    var aud = doc.audience || 'all';
+                    var effective = doc.effective_audience || aud;
+                    var incompatible = effective === 'none';
+                    var disabled = doc.status === 'planned' || (!doc.href && doc.status !== 'ready') || incompatible;
+                    var orderLabel = String(doc.order).padStart(2, '0');
+                    var cnt = (doc.trainee_count != null) ? doc.trainee_count : 0;
+                    var cntGov = doc.trainee_count_gov != null ? doc.trainee_count_gov : 0;
+                    var cntGen = doc.trainee_count_general != null ? doc.trainee_count_general : 0;
+                    var actions = '';
+                    if (doc.status === 'planned') {
+                        actions = '<button type="button" disabled class="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed">' + actionLabel(doc) + '</button>';
+                    } else if (doc.status === 'link' && doc.href) {
+                        actions = '<a href="' + esc(doc.href) + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-blue-600 transition">' +
+                            '<i class="fas fa-external-link-alt text-[10px]"></i> ' + actionLabel(doc) + '</a>';
+                    } else if (doc.status === 'ready' && incompatible) {
+                        actions = '<button type="button" disabled class="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed">현재 필터와 대상이 다름</button>';
+                    } else if (doc.status === 'ready') {
+                        if (fundingFilter === 'all' && aud === 'all') {
+                            actions = '<div class="grid grid-cols-3 gap-1.5">' +
+                                '<a href="' + esc(doc.href_all || doc.href || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black hover:bg-blue-600 transition">전체 ' + cnt + '</a>' +
+                                '<a href="' + esc(doc.href_gov || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-amber-500 text-white text-[10px] font-black hover:bg-amber-600 transition">국비 ' + cntGov + '</a>' +
+                                '<a href="' + esc(doc.href_general || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-slate-500 text-white text-[10px] font-black hover:bg-slate-600 transition">일반 ' + cntGen + '</a>' +
+                            '</div>';
+                        } else if (fundingFilter === 'all' && aud === 'gov') {
+                            actions = '<a href="' + esc(doc.href_gov || doc.href || '#') + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition">' +
+                                '<i class="fas fa-print text-[10px]"></i> 국비 ' + cntGov + '명 인쇄</a>';
+                        } else if (fundingFilter === 'all' && aud === 'general') {
+                            actions = '<a href="' + esc(doc.href_general || doc.href || '#') + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-600 text-white text-xs font-bold hover:bg-slate-700 transition">' +
+                                '<i class="fas fa-print text-[10px]"></i> 일반 ' + cntGen + '명 인쇄</a>';
+                        } else {
+                            var href = doc.href || '#';
+                            var label = fundingFilter === 'gov' ? ('국비 ' + cnt + '명') : fundingFilter === 'general' ? ('일반 ' + cnt + '명') : actionLabel(doc);
+                            actions = '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-blue-600 transition">' +
+                                '<i class="fas fa-print text-[10px]"></i> ' + label + ' 인쇄</a>';
+                        }
+                    } else {
+                        actions = '<button type="button" disabled class="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed">' + actionLabel(doc) + '</button>';
+                    }
+
+                    return '<article class="bento-card bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 transition-all duration-300 ' + (disabled ? 'opacity-70' : '') + '">' +
+                        '<div class="flex items-start justify-between gap-2 mb-3">' +
+                            '<span class="text-[10px] font-black text-slate-400 tracking-widest">' + orderLabel + ' · ' + esc(doc.code) + '</span>' +
+                            '<div class="flex items-center gap-1.5 flex-wrap justify-end">' + audienceBadge(aud) + statusBadge(doc.status) + '</div>' +
+                        '</div>' +
+                        '<h3 class="text-sm font-black text-slate-900 leading-snug mb-2">' + esc(doc.title) + '</h3>' +
+                        '<p class="text-[11px] text-slate-500 font-medium leading-relaxed mb-2 min-h-[2.5rem]">' + esc(doc.description) + '</p>' +
+                        '<p class="text-[10px] font-bold text-slate-400 mb-4">대상 인원 ' + cnt + '명 · 국비 ' + cntGov + ' · 일반 ' + cntGen + '</p>' +
+                        actions +
+                    '</article>';
+                }).join('');
             }
 
             async function loadSessionOptions() {
@@ -136,10 +217,12 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                 var packPanel = document.getElementById('packPanel');
                 var picker = document.getElementById('sessionPickerPanel');
                 try {
-                    var res = await fetch('/api/opening-docs/' + sessionId + '/pack', { headers: authHeaders() });
+                    var q = fundingFilter && fundingFilter !== 'all' ? ('?funding=' + encodeURIComponent(fundingFilter)) : '';
+                    var res = await fetch('/api/opening-docs/' + sessionId + '/pack' + q, { headers: authHeaders() });
                     var json = await res.json();
                     if (!json.success) throw new Error(json.error || '팩 조회 실패');
                     var data = json.data;
+                    lastPackData = data;
                     var s = data.session || {};
                     var title = (s.course_name || '') + (s.session_number != null ? ' (' + s.session_number + '회차)' : '') + (s.session_name ? ' - ' + s.session_name : '');
                     document.getElementById('packCourseTitle').textContent = title || '회차';
@@ -155,35 +238,8 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                     if (genEl) genEl.textContent = String(data.trainee_count_general != null ? data.trainee_count_general : 0);
                     document.getElementById('packReadyCount').textContent = String((data.progress && data.progress.implemented) || 0);
                     document.getElementById('packTotalCount').textContent = String((data.progress && data.progress.total) || 0);
-
-                    function audienceBadge(audience) {
-                        if (audience === 'gov') return '<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-black">국비지원</span>';
-                        if (audience === 'general') return '<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black">일반</span>';
-                        return '<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-black">전체</span>';
-                    }
-
-                    var grid = document.getElementById('docsGrid');
-                    grid.innerHTML = (data.docs || []).map(function(doc) {
-                        var disabled = doc.status === 'planned' || !doc.href;
-                        var href = doc.href || '#';
-                        var orderLabel = String(doc.order).padStart(2, '0');
-                        var aud = doc.audience || 'all';
-                        var cnt = (doc.trainee_count != null) ? doc.trainee_count : 0;
-                        return '<article class="bento-card bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 transition-all duration-300 ' + (disabled ? 'opacity-70' : '') + '">' +
-                            '<div class="flex items-start justify-between gap-2 mb-3">' +
-                                '<span class="text-[10px] font-black text-slate-400 tracking-widest">' + orderLabel + ' · ' + esc(doc.code) + '</span>' +
-                                '<div class="flex items-center gap-1.5 flex-wrap justify-end">' + audienceBadge(aud) + statusBadge(doc.status) + '</div>' +
-                            '</div>' +
-                            '<h3 class="text-sm font-black text-slate-900 leading-snug mb-2">' + esc(doc.title) + '</h3>' +
-                            '<p class="text-[11px] text-slate-500 font-medium leading-relaxed mb-2 min-h-[2.5rem]">' + esc(doc.description) + '</p>' +
-                            '<p class="text-[10px] font-bold text-slate-400 mb-4">대상 인원 ' + cnt + '명</p>' +
-                            (disabled
-                                ? '<button type="button" disabled class="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed">' + actionLabel(doc) + '</button>'
-                                : '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-blue-600 transition">' +
-                                    '<i class="fas fa-print text-[10px]"></i> ' + actionLabel(doc) +
-                                  '</a>') +
-                        '</article>';
-                    }).join('');
+                    syncFundingFilterButtons();
+                    renderDocsGrid(data);
 
                     if (picker) picker.classList.add('hidden');
                     if (packPanel) packPanel.classList.remove('hidden');
@@ -207,6 +263,16 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                 document.getElementById('packPanel').classList.add('hidden');
                 document.getElementById('sessionPickerPanel').classList.remove('hidden');
                 if (history.replaceState) history.replaceState(null, '', '/admin/courses/opening-docs');
+            });
+
+            document.getElementById('fundingFilterGroup').addEventListener('click', function(e) {
+                var btn = e.target && e.target.closest ? e.target.closest('.funding-filter-btn') : null;
+                if (!btn) return;
+                var next = btn.getAttribute('data-funding') || 'all';
+                if (next === fundingFilter) return;
+                fundingFilter = next;
+                syncFundingFilterButtons();
+                if (fixedSessionId) loadPack(fixedSessionId);
             });
 
             loadSessionOptions().then(function() {
@@ -343,6 +409,10 @@ function openingDocPrintShell(title: string, bodyScript: string) {
     <div class="toolbar no-print">
         <button type="button" class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> 인쇄하기</button>
         <button type="button" class="btn-close" onclick="window.close()">닫기</button>
+        <span style="margin-left:8px;align-self:center;font-size:11px;font-weight:700;color:#64748b;">대상</span>
+        <button type="button" class="btn-close" style="background:#0f172a" onclick="(function(){var u=new URL(location.href);u.searchParams.delete('funding');location.href=u.toString();})()">전체</button>
+        <button type="button" class="btn-close" style="background:#d97706" onclick="(function(){var u=new URL(location.href);u.searchParams.set('funding','gov');location.href=u.toString();})()">국비</button>
+        <button type="button" class="btn-close" style="background:#64748b" onclick="(function(){var u=new URL(location.href);u.searchParams.set('funding','general');location.href=u.toString();})()">일반</button>
     </div>
     <div class="sheet" id="sheet">
         <div class="empty" id="loading">불러오는 중…</div>
@@ -639,8 +709,27 @@ const sharedPrintHelpers = `
                 '<div class="pledge-sign">서약자&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
             '</section>';
         }
+        function fundingFromQuery() {
+            var f = (qs('funding') || 'all').toLowerCase();
+            return (f === 'gov' || f === 'general') ? f : 'all';
+        }
+        function fundingFilterLabel(f) {
+            if (f === 'gov') return '국비지원대상';
+            if (f === 'general') return '일반';
+            if (f === 'none') return '대상 없음';
+            return '전체';
+        }
+        function fundingBannerHtml(funding) {
+            var label = fundingFilterLabel(funding);
+            var color = funding === 'gov' ? '#b45309' : funding === 'general' ? '#475569' : '#047857';
+            var bg = funding === 'gov' ? '#fffbeb' : funding === 'general' ? '#f8fafc' : '#ecfdf5';
+            return '<p class="doc-period" style="background:' + bg + ';border-color:' + color + '33;color:' + color + '">' +
+                '<span class="label">대상구분</span>' + esc(label) + '</p>';
+        }
         async function fetchDoc(sessionId, docCode) {
-            var res = await fetch('/api/opening-docs/' + sessionId + '/docs/' + docCode, {
+            var funding = fundingFromQuery();
+            var q = funding !== 'all' ? ('?funding=' + encodeURIComponent(funding)) : '';
+            var res = await fetch('/api/opening-docs/' + sessionId + '/docs/' + docCode + q, {
                 headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
             });
             var json = await res.json();
@@ -682,6 +771,8 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 var trainees = data.trainees || [];
                 var trainingDays = data.training_days || [];
                 var docTitle = (data.doc && data.doc.title) || ${JSON.stringify(title)};
+                var activeFunding = (data.funding_filter || fundingFromQuery() || 'all');
+                var fundingBanner = fundingBannerHtml(activeFunding);
 
                 function chunkArray(arr, size) {
                     var out = [];
@@ -704,9 +795,9 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 if (docCode === 'D22') {
                     if (!trainees.length) {
                         sheet.className = 'sheet';
-                        sheet.innerHTML = brandHtml(session) +
+                        sheet.innerHTML = brandHtml(session) + fundingBanner +
                             '<h1 class="doc-title">[ 국민내일배움 훈련과정] 훈련생 서약서</h1>' +
-                            '<div class="empty">배정된 훈련생이 없습니다. 수강생 등록 후 다시 출력하세요.</div>';
+                            '<div class="empty">국비지원대상 훈련생이 없습니다. 대상 구분 확인 후 다시 출력하세요.</div>';
                         return;
                     }
                     sheet.className = 'sheet-wrap';
@@ -716,7 +807,10 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 if (docCode === 'D40') {
                     sheet.className = 'sheet-wrap';
                     if (!trainees.length) {
-                        sheet.innerHTML = mediaConsentPageHtml(session, null);
+                        sheet.className = 'sheet';
+                        sheet.innerHTML = brandHtml(session) + fundingBanner +
+                            '<h1 class="doc-title">미디어 촬영 동의서</h1>' +
+                            '<div class="empty">선택한 대상구분의 훈련생이 없습니다.</div>';
                         return;
                     }
                     sheet.innerHTML = trainees.map(function(t) { return mediaConsentPageHtml(session, t); }).join('');
@@ -729,17 +823,18 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         sheet.className = 'sheet-wrap';
                         sheet.innerHTML = trainees.map(function(t) {
                             return '<section class="pledge-page">' +
-                                brandHtml(session) +
+                                brandHtml(session) + fundingBanner +
                                 '<h1 class="doc-title">' + otTitle + '</h1>' +
                                 '<p class="doc-sub">훈련과정명 : ' + esc(courseNameWithSession(session)) + '</p>' +
                                 orientationBodyHtml(session, { collect: true }) +
-                                '<p style="margin-top:8px;font-size:11px;">수강생: <strong>' + esc(t.name || '') + '</strong> / ' + esc(t.phone || '') + '</p>' +
+                                '<p style="margin-top:8px;font-size:11px;">수강생: <strong>' + esc(t.name || '') + '</strong> / ' + esc(t.phone || '') +
+                                ' · ' + esc(t.funding_label || fundingFilterLabel(t.funding_category)) + '</p>' +
                             '</section>';
                         }).join('');
                         return;
                     }
                     sheet.className = 'sheet';
-                    sheet.innerHTML = brandHtml(session) +
+                    sheet.innerHTML = brandHtml(session) + fundingBanner +
                         '<h1 class="doc-title">' + otTitle + (collect ? ' (수거용)' : ' (배포용)') + '</h1>' +
                         '<p class="doc-sub">훈련과정명 : ' + esc(courseNameWithSession(session)) + '</p>' +
                         orientationBodyHtml(session, { collect: collect }) +
@@ -748,8 +843,8 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 }
 
                 var html = docCode === 'D01'
-                    ? (brandHtml(session) + '<h1 class="doc-title spaced">' + esc(docTitle) + '</h1>' + rosterInfoHtml(session))
-                    : headerHtml(session, docTitle, { checklistStyle: docCode === 'D00' });
+                    ? (brandHtml(session) + fundingBanner + '<h1 class="doc-title spaced">' + esc(docTitle) + '</h1>' + rosterInfoHtml(session))
+                    : (headerHtml(session, docTitle, { checklistStyle: docCode === 'D00' }) + fundingBanner);
 
                 if (docCode === 'D00') {
                     /* HWP「0_훈련생 등록현황 체크리스트」컬럼: NO·구분·성명·연락처·OT참석·교육신청서·자부담 결제·비고 */
@@ -788,10 +883,11 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     html += '</tbody></table>' +
                         '<p class="footnote">※ OT참석은 수기 체크 · 교육신청서/자부담 결제는 수강생관리 등록 정보를 ○로 표시합니다. (원본: 0_훈련생 등록현황 체크리스트.hwp)</p>';
                 } else if (docCode === 'D01') {
-                    /* HWP「1_훈련생명단-훈련교사관리」: NO·성명·전화번호·생년월일·비고 */
+                    /* HWP「1_훈련생명단-훈련교사관리」: NO·대상구분·성명·전화번호·생년월일·비고 */
                     html += '<table class="doc-table checklist-table">' +
                         '<thead><tr>' +
                         '<th style="width:40px">NO</th>' +
+                        '<th style="width:72px">대상구분</th>' +
                         '<th style="width:90px">성명</th>' +
                         '<th style="width:120px">전화번호</th>' +
                         '<th style="width:130px">생년월일</th>' +
@@ -803,6 +899,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         if (row) {
                             html += '<tr>' +
                                 '<td>' + row.no + '</td>' +
+                                '<td>' + esc(row.funding_label || fundingFilterLabel(row.funding_category)) + '</td>' +
                                 '<td class="name">' + esc(row.name) + '</td>' +
                                 '<td>' + esc(row.phone) + '</td>' +
                                 '<td>' + esc(formatBirthKr(row.birthdate)) + '</td>' +
@@ -811,16 +908,16 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         } else {
                             html += '<tr>' +
                                 '<td>' + (r + 1) + '</td>' +
-                                '<td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td>' +
+                                '<td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td>' +
                             '</tr>';
                         }
                     }
                     html += '</tbody></table>' +
-                        '<p class="footnote">※ 생년월일은 수강생 등록 정보를 「YY년 MM월 DD일」 형식으로 표시합니다. (원본: 1_훈련생명단-훈련교사관리.hwp)</p>';
+                        '<p class="footnote">※ 대상구분은 수강생 등록의 국비지원/일반 구분을 반영합니다. (원본: 1_훈련생명단-훈련교사관리.hwp)</p>';
                 } else if (docCode === 'D23') {
                     /* HWP「2-3_개인정보활용동의서_일반」 */
                     var inst = session.institution_name || '와우쓰리디홍대센터';
-                    html = brandHtml(session) +
+                    html = brandHtml(session) + fundingBanner +
                         '<h1 class="doc-title">개인정보 수집·이용 / 제공 동의서</h1>' +
                         '<div class="consent-body">' +
                         '<p class="to">3D쿠키 홍대센터( ' + esc(inst) + ' )귀하</p>' +
@@ -848,7 +945,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '<p class="footnote">※ 원본: 2-3_개인정보활용동의서_일반.hwp</p>';
                 } else if (docCode === 'D33') {
                     /* HWP「3-3_오리엔테이션참여자명단」 */
-                    html = brandHtml(session) +
+                    html = brandHtml(session) + fundingBanner +
                         '<h1 class="doc-title">오리엔테이션 참여자 명단</h1>' +
                         '<ul class="info-list">' +
                         '<li><span class="bullet">￭ 훈련과정명</span><span class="sep">:</span><span class="val">' + esc(courseNameWithSession(session)) + '</span></li>' +
@@ -858,14 +955,14 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</ul>' +
                         '<table class="doc-table checklist-table">' +
                         '<thead><tr>' +
-                        '<th style="width:40px">NO</th><th style="width:90px">성명</th><th style="width:120px">전화번호</th>' +
-                        '<th style="width:130px">생년월일</th><th>참여자서명</th>' +
+                        '<th style="width:40px">NO</th><th style="width:72px">대상구분</th><th style="width:90px">성명</th><th style="width:120px">전화번호</th>' +
+                        '<th style="width:120px">생년월일</th><th>참여자서명</th>' +
                         '</tr></thead><tbody>';
                     padRows(trainees, 15).forEach(function(t, idx) {
                         if (t) {
-                            html += '<tr><td>' + t.no + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + esc(formatBirthKr(t.birthdate) || blankCell()) + '</td><td>' + blankCell() + '</td></tr>';
+                            html += '<tr><td>' + t.no + '</td><td>' + esc(t.funding_label || fundingFilterLabel(t.funding_category)) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + esc(formatBirthKr(t.birthdate) || blankCell()) + '</td><td>' + blankCell() + '</td></tr>';
                         } else {
-                            html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
+                            html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
                     });
                     html += '</tbody></table>' +
@@ -877,7 +974,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         var m = String(session.training_start_date || '').slice(0, 10).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
                         return m ? (m[1] + '. ' + m[2] + '. ' + m[3]) : formatDotDate(session.training_start_date);
                     })();
-                    html = brandHtml(session) +
+                    html = brandHtml(session) + fundingBanner +
                         '<h1 class="doc-title">교재지급확인서 관리대장</h1>' +
                         '<ul class="info-list">' +
                         '<li><span class="bullet">￭ 훈련과정명</span><span class="sep">:</span><span class="val">' + esc(courseNameWithSession(session)) + '</span></li>' +
@@ -887,14 +984,14 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</ul>' +
                         '<table class="doc-table checklist-table">' +
                         '<thead><tr>' +
-                        '<th style="width:40px">NO</th><th style="width:90px">성명</th><th style="width:120px">전화번호</th>' +
-                        '<th style="width:120px">확인(정자체)</th><th>비고</th>' +
+                        '<th style="width:40px">NO</th><th style="width:72px">대상구분</th><th style="width:90px">성명</th><th style="width:110px">전화번호</th>' +
+                        '<th style="width:110px">확인(정자체)</th><th>비고</th>' +
                         '</tr></thead><tbody>';
                     padRows(trainees, 15).forEach(function(t, idx) {
                         if (t) {
-                            html += '<tr><td>' + t.no + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + blankCell() + '</td><td class="addr">' + (t.status_memo ? esc(t.status_memo) : blankCell()) + '</td></tr>';
+                            html += '<tr><td>' + t.no + '</td><td>' + esc(t.funding_label || fundingFilterLabel(t.funding_category)) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + blankCell() + '</td><td class="addr">' + (t.status_memo ? esc(t.status_memo) : blankCell()) + '</td></tr>';
                         } else {
-                            html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
+                            html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
                     });
                     html += '</tbody></table>' +
@@ -922,7 +1019,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                             body += emptyCell + '</tr>';
                         });
                         return '<section class="pledge-page landscape-page">' +
-                            brandHtml(session) +
+                            brandHtml(session) + fundingBanner +
                             '<h1 class="doc-title">SD카드 지급 / 반납 확인서 관리대장</h1>' +
                             '<ul class="info-list">' +
                             '<li><span class="bullet">￭ 훈련과정명</span><span class="sep">:</span><span class="val">' + esc(courseNameWithSession(session)) + '</span></li>' +
@@ -965,7 +1062,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                                 '<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';
                         });
                         return '<section class="pledge-page landscape-page">' +
-                            brandHtml(session) +
+                            brandHtml(session) + fundingBanner +
                             '<h1 class="doc-title spaced">출 석 부</h1>' +
                             '<div style="display:flex;justify-content:flex-end;gap:24px;font-size:11px;margin:-4px 0 8px;"><span>훈련교사</span><span>원장</span></div>' +
                             '<ul class="info-list">' +
@@ -981,7 +1078,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     return;
                 } else if (docCode === 'D53') {
                     /* HWP「5-3_출석입력요청대장(별지 제16호)」 */
-                    html = brandHtml(session) +
+                    html = brandHtml(session) + fundingBanner +
                         '<p style="text-align:right;font-size:11px;margin:0 0 4px;">■ 국민내일배움카드 운영규정 [별지 제16호서식]</p>' +
                         '<h1 class="doc-title">출석입력요청대장</h1>' +
                         '<p class="doc-sub">( ' + esc(session.institution_name || '') + ' )</p>' +
@@ -1026,7 +1123,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '담당하신 강의 내용이 훈련생들에게 유익하다고 생각합니까?',
                         '훈련생들이 수업 목표를 어느정도 달성하였다고 생각합니까?'
                     ];
-                    html = brandHtml(session) +
+                    html = brandHtml(session) + fundingBanner +
                         '<div class="eval-head">' +
                         '<h1 class="doc-title" style="margin:0;text-align:left;font-size:18px;">수업평가 (평가자: 본인)</h1>' +
                         '<table><tr><th colspan="2">결 재</th></tr><tr><th style="width:52px">원 장</th><th style="width:52px">팀 장</th></tr>' +
@@ -1078,7 +1175,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     var pages = [];
                     for (var si = 0; si < surveyCount; si++) {
                         pages.push('<section class="pledge-page">' +
-                            brandHtml(session) +
+                            brandHtml(session) + fundingBanner +
                             '<h1 class="doc-title">강의 후 설문지</h1>' +
                             '<p class="survey-intro">수고하셨습니다. 이 설문지는 오늘 교육과정에 대한 전반적인 사항을 객관적으로 파악하고, 이를 토대로 앞으로 교육을 하는데 기초 자료로 활용하고자 하는 것이 목적입니다. 여러분의 솔직하고 진지한 평가가 차후 보다 나은 교육으로 반영될 것입니다.</p>' +
                             '<div class="survey-meta">' +
