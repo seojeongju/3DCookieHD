@@ -35,7 +35,11 @@ export const adminHrdAttendancePrintHtml = `
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">훈련생 출석부</h1>
                 <p class="text-gray-600"><span id="yearDisplay"></span>년 <span id="monthDisplay"></span>월 | 과정명: <span id="courseTitle" class="font-bold"></span></p>
             </div>
-            <div class="no-print flex gap-2">
+            <div class="no-print flex flex-wrap items-center gap-2">
+                <label class="text-xs font-bold text-gray-500">출력월
+                    <input type="month" id="printMonthInput" class="ml-1 px-2 py-1.5 border border-gray-200 rounded-lg text-sm font-bold text-gray-800">
+                </label>
+                <button type="button" id="btnReloadMonth" class="px-3 py-2 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 font-bold text-sm">조회</button>
                 <button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold">
                     <i class="fas fa-print mr-2"></i> 인쇄하기
                 </button>
@@ -79,27 +83,93 @@ export const adminHrdAttendancePrintHtml = `
     </div>
 
     <script>
+        let state = { courseId: null, year: null, month: null, type: 'hrd', courseTitle: '' };
+
+        function authHeaders() {
+            return { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') };
+        }
+
+        function pad2(n) { return String(n).padStart(2, '0'); }
+
+        function applyHeader() {
+            document.getElementById('yearDisplay').textContent = state.year;
+            document.getElementById('monthDisplay').textContent = state.month;
+            document.getElementById('courseTitle').textContent = state.courseTitle || '과정명 미지정';
+            document.getElementById('printDate').textContent = new Date().toLocaleString();
+            const monthInput = document.getElementById('printMonthInput');
+            if (monthInput && state.year && state.month) {
+                monthInput.value = state.year + '-' + pad2(state.month);
+            }
+        }
+
+        async function resolveFromSession(sessionId) {
+            const res = await fetch('/api/hrd/attendance/print-form?sessionId=' + encodeURIComponent(sessionId), { headers: authHeaders() });
+            const json = await res.json();
+            if (!json.success || !json.data) throw new Error(json.error || '회차 정보를 불러오지 못했습니다.');
+            const info = json.data.info || {};
+            const days = json.data.trainingDays || [];
+            const firstDate = (days[0] && days[0].date) || '';
+            const period = String(info.trainingPeriod || '');
+            const m = firstDate.match(/^(\\d{4})-(\\d{2})/) || period.match(/(\\d{4})[.](\\d{2})/);
+            return {
+                courseId: String(sessionId),
+                courseTitle: info.courseTitle || '과정명 미지정',
+                year: m ? m[1] : String(new Date().getFullYear()),
+                month: m ? String(parseInt(m[2], 10)) : String(new Date().getMonth() + 1),
+                type: 'hrd'
+            };
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const courseId = urlParams.get('courseId');
-            const year = urlParams.get('year');
-            const month = urlParams.get('month');
-            const courseTitle = urlParams.get('courseTitle'); // Pass title from parent to avoid extra fetch
+            let courseId = urlParams.get('courseId') || urlParams.get('sessionId');
+            let year = urlParams.get('year');
+            let month = urlParams.get('month');
+            let courseTitle = urlParams.get('courseTitle') ? decodeURIComponent(urlParams.get('courseTitle')) : '';
+            let type = (urlParams.get('type') || '').trim().toLowerCase();
+            const sessionId = urlParams.get('sessionId');
 
-            if (!courseId || !year || !month) {
-                alert('잘못된 접근입니다.');
-                window.close();
+            if (!courseId) {
+                alert('잘못된 접근입니다. 회차 또는 과정 정보가 필요합니다.');
                 return;
             }
 
-            document.getElementById('yearDisplay').textContent = year;
-            document.getElementById('monthDisplay').textContent = month;
-            document.getElementById('courseTitle').textContent = decodeURIComponent(courseTitle || '과정명 미지정');
-            document.getElementById('printDate').textContent = new Date().toLocaleString();
+            try {
+                if (sessionId && (!year || !month || !courseTitle)) {
+                    const resolved = await resolveFromSession(sessionId);
+                    courseId = resolved.courseId;
+                    courseTitle = courseTitle || resolved.courseTitle;
+                    year = year || resolved.year;
+                    month = month || resolved.month;
+                    if (!type) type = 'hrd';
+                }
+                if (!type && sessionId) type = 'hrd';
+                if (!type) type = 'hrd';
 
-            await loadData(courseId, year, month);
+                if (!year || !month) {
+                    alert('출력할 년·월 정보가 없습니다.');
+                    return;
+                }
 
-            // Fetch institution name
+                state = { courseId: String(courseId), year: String(year), month: String(parseInt(month, 10)), type, courseTitle };
+                applyHeader();
+                await loadData(state.courseId, state.year, state.month, state.type);
+
+                document.getElementById('btnReloadMonth').addEventListener('click', async () => {
+                    const v = document.getElementById('printMonthInput').value;
+                    if (!v) { alert('출력월을 선택하세요.'); return; }
+                    const parts = v.split('-');
+                    state.year = parts[0];
+                    state.month = String(parseInt(parts[1], 10));
+                    applyHeader();
+                    await loadData(state.courseId, state.year, state.month, state.type);
+                });
+            } catch (e) {
+                console.error(e);
+                alert(e.message || '출석부 정보를 불러오지 못했습니다.');
+                return;
+            }
+
             try {
                 const res = await fetch('/api/settings/institution_name');
                 const result = await res.json();
@@ -112,19 +182,45 @@ export const adminHrdAttendancePrintHtml = `
             }
         });
 
-        async function loadData(courseId, year, month) {
+        async function loadData(courseId, year, month, type) {
             try {
-                const response = await fetch(\`/api/hrd/attendance/monthly?courseId=\${courseId}&year=\${year}&month=\${month}&type=hrd\`, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+                const tbody = document.getElementById('attendanceBody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="40" class="text-center py-10 text-gray-400">불러오는 중…</td></tr>';
+                // thead day cells may already exist from previous load — rebuild from original structure
+                resetDayHeader();
+                const typeQ = type ? ('&type=' + encodeURIComponent(type)) : '';
+                const response = await fetch('/api/hrd/attendance/monthly?courseId=' + encodeURIComponent(courseId) +
+                    '&year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month) + typeQ,
+                    { headers: authHeaders() });
                 const result = await response.json();
 
                 if (result.success) {
-                    renderTable(result.data, parseInt(year), parseInt(month));
+                    renderTable(result.data, parseInt(year, 10), parseInt(month, 10));
                 } else {
-                    alert('데이터를 불러오는데 실패했습니다.');
+                    alert(result.error || '데이터를 불러오는데 실패했습니다.');
                 }
             } catch (e) {
                 console.error(e);
                 alert('오류가 발생했습니다.');
+            }
+        }
+
+        function resetDayHeader() {
+            const theadTr = document.querySelector('thead tr');
+            if (!theadTr) return;
+            // Keep NO, 성명, then summary cols; remove day ths
+            const cells = Array.from(theadTr.children);
+            cells.forEach(function(cell, idx) {
+                if (idx >= 2 && idx < cells.length - 3) cell.remove();
+            });
+            // Ensure placeholder exists before summary cols
+            let daysHeader = document.getElementById('daysHeader');
+            if (!daysHeader) {
+                daysHeader = document.createElement('th');
+                daysHeader.id = 'daysHeader';
+                daysHeader.className = 'p-0 border border-gray-300 text-center';
+                const attendanceCol = theadTr.children[2];
+                theadTr.insertBefore(daysHeader, attendanceCol);
             }
         }
 

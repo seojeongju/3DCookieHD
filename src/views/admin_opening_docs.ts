@@ -646,6 +646,33 @@ const sharedPrintHelpers = `
             html += '</div>';
             return html;
         }
+        /** HWP「2-3_개인정보활용동의서_일반」수강생 1장 */
+        function privacyConsentPageHtml(session, t) {
+            var inst = session.institution_name || '와우쓰리디홍대센터';
+            return '<section class="pledge-page">' +
+                brandHtml(session) +
+                '<h1 class="doc-title">개인정보 수집·이용 / 제공 동의서</h1>' +
+                '<div class="consent-body">' +
+                '<p class="to">3D쿠키 홍대센터( ' + esc(inst) + ' )귀하</p>' +
+                '<p>본인과 관련하여 귀사가 본인의 개인정보를 수집·이용·제공하고자 하는 경우에는「개인정보 보호법」제15조 제1항 제1호, 제17조 제1항 제1호, 제24조 제1항 제1호에 따라 본인의 동의를 얻어야 합니다. 이에 본인은 아래의 내용과 같이 본인의 개인정보를 수집·이용·제공하는 것에 동의합니다.</p>' +
+                '<p class="section-title">￭ 수집·이용 목적</p>' +
+                '<p class="indent">‐ 귀하의 개인정보는 3D쿠키 홍대센터 교육지원사업의 효율적 수행을 위한 활용에 귀하의 개인정보를 제공하기 위한 목적으로 수집·이용됩니다.</p>' +
+                '<p class="section-title">￭ 개인정보의 수집항목</p>' +
+                '<p class="indent">‐ 수강생 개인식별 정보(성명, 생년월일, 전화번호 등)</p>' +
+                '<p class="section-title">￭ 보유 및 이용 기간</p>' +
+                '<p class="indent">‐ 귀하의 개인정보는 수집·이용에 관한 동의일로부터 3년까지 보유·이용됩니다.</p>' +
+                '<p class="consent-agree">본인은 귀사에 위의 목적으로 본인의 개인정보를 수집·이용 및 제공하는 것에 동의합니다.</p>' +
+                '</div>' +
+                '<table class="pledge-id" style="margin-top:16px"><tbody>' +
+                '<tr><th>신 청 인</th><td>' + esc(t.name || '') + '</td><th>연 락 처</th><td>' + esc(t.phone || '') + '</td></tr>' +
+                '<tr><th>생년월일</th><td>' + esc(formatBirthKr(t.birthdate) || '') + '</td><th>서    명</th><td style="height:42px">&nbsp;</td></tr>' +
+                '</tbody></table>' +
+                '<div class="pledge-date">' + esc(formatPledgeDate(session.training_start_date)) + '</div>' +
+                '<div class="pledge-sign">신청인&nbsp;&nbsp;&nbsp;&nbsp;' + esc(t.name || '') +
+                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
+                '<p class="footnote">※ 원본: 2-3_개인정보활용동의서_일반.hwp</p>' +
+            '</section>';
+        }
         function mediaConsentPageHtml(session, t) {
             var inst = session.institution_name || '와우쓰리디홍대센터';
             return '<section class="pledge-page">' +
@@ -918,34 +945,17 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     html += '</tbody></table>' +
                         '<p class="footnote">※ 대상구분은 수강생 등록의 국비지원/일반 구분을 반영합니다. (원본: 1_훈련생명단-훈련교사관리.hwp)</p>';
                 } else if (docCode === 'D23') {
-                    /* HWP「2-3_개인정보활용동의서_일반」 */
-                    var inst = session.institution_name || '와우쓰리디홍대센터';
-                    html = brandHtml(session) + fundingBanner +
-                        '<h1 class="doc-title">개인정보 수집·이용 / 제공 동의서</h1>' +
-                        '<div class="consent-body">' +
-                        '<p class="to">3D쿠키 홍대센터( ' + esc(inst) + ' )귀하</p>' +
-                        '<p>본인과 관련하여 귀사가 본인의 개인정보를 수집·이용·제공하고자 하는 경우에는「개인정보 보호법」제15조 제1항 제1호, 제17조 제1항 제1호, 제24조 제1항 제1호에 따라 본인의 동의를 얻어야 합니다. 이에 본인은 아래의 내용과 같이 본인의 개인정보를 수집·이용·제공하는 것에 동의합니다.</p>' +
-                        '<p class="section-title">￭ 수집·이용 목적</p>' +
-                        '<p class="indent">‐ 귀하의 개인정보는 3D쿠키 홍대센터 교육지원사업의 효율적 수행을 위한 활용에 귀하의 개인정보를 제공하기 위한 목적으로 수집·이용됩니다.</p>' +
-                        '<p class="section-title">￭ 개인정보의 수집항목</p>' +
-                        '<p class="indent">‐ 수강생 개인식별 정보(성명, 생년월일, 전화번호 등)</p>' +
-                        '<p class="section-title">￭ 보유 및 이용 기간</p>' +
-                        '<p class="indent">‐ 귀하의 개인정보는 수집·이용에 관한 동의일로부터 3년까지 보유·이용됩니다.</p>' +
-                        '<p class="consent-agree">본인은 귀사에 위의 목적으로 본인의 개인정보를 수집·이용 및 제공하는 것에 동의합니다.</p>' +
-                        '<div class="pledge-date">' + esc(formatPledgeDate(session.training_start_date)) + '</div>' +
-                        '</div>' +
-                        '<table class="doc-table checklist-table" style="margin-top:14px">' +
-                        '<thead><tr><th style="width:40px">No.</th><th style="width:100px">신 청 인</th><th style="width:120px">연 락 처</th><th>서    명</th></tr></thead><tbody>';
-                    var consentRows = padRows(trainees, Math.max(trainees.length, 6));
-                    consentRows.forEach(function(t, idx) {
-                        if (t) {
-                            html += '<tr><td>' + (idx + 1) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + blankCell() + '</td></tr>';
-                        } else {
-                            html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
-                        }
-                    });
-                    html += '</tbody></table>' +
-                        '<p class="footnote">※ 원본: 2-3_개인정보활용동의서_일반.hwp</p>';
+                    /* HWP「2-3_개인정보활용동의서_일반」— 일반 수강생별 1장 */
+                    if (!trainees.length) {
+                        sheet.className = 'sheet';
+                        sheet.innerHTML = brandHtml(session) + fundingBanner +
+                            '<h1 class="doc-title">개인정보 수집·이용 / 제공 동의서</h1>' +
+                            '<div class="empty">일반 대상 수강생이 없습니다. 대상 구분을 확인한 뒤 다시 출력하세요.</div>';
+                        return;
+                    }
+                    sheet.className = 'sheet-wrap';
+                    sheet.innerHTML = trainees.map(function(t) { return privacyConsentPageHtml(session, t); }).join('');
+                    return;
                 } else if (docCode === 'D33') {
                     /* HWP「3-3_오리엔테이션참여자명단」 */
                     html = brandHtml(session) + fundingBanner +

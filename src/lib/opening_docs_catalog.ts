@@ -178,7 +178,7 @@ export function openingDocExternalLink(sessionId: number, linkType?: string): st
     return `/admin/attendance/print/trainee?sessionId=${sessionId}`;
   }
   if (linkType === 'attendance_monthly') {
-    return `/admin/attendance/print?sessionId=${sessionId}`;
+    return `/admin/attendance/print?sessionId=${sessionId}&type=hrd`;
   }
   return null;
 }
