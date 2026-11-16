@@ -4,9 +4,9 @@
 export function changePasswordModalHtml(): string {
   return `
 <div id="changePasswordModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-  <div class="bg-white w-full max-w-md rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden">
+  <div class="bg-white w-full max-w-md rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200 overflow-hidden">
     <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
-      <h3 class="text-lg font-black text-slate-900 tracking-tight">비밀번호 변경</h3>
+      <h3 class="text-[15px] font-medium text-slate-900">비밀번호 변경</h3>
       <button type="button" onclick="closeChangePasswordModal()" class="w-9 h-9 rounded-full hover:bg-white text-slate-400 hover:text-slate-700 transition flex items-center justify-center">
         <i class="fas fa-times"></i>
       </button>
@@ -14,23 +14,23 @@ export function changePasswordModalHtml(): string {
     <form id="changePasswordForm" class="p-6 space-y-4" onsubmit="submitChangePassword(event)">
       <p class="text-xs text-slate-500 font-medium leading-relaxed">현재 비밀번호 확인 후 새 비밀번호를 설정합니다. (8자 이상)</p>
       <div>
-        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">현재 비밀번호</label>
+        <label class="block text-[13px] text-slate-600 mb-1.5">현재 비밀번호</label>
         <input type="password" id="cpCurrent" required autocomplete="current-password"
           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-300" />
       </div>
       <div>
-        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">새 비밀번호</label>
+        <label class="block text-[13px] text-slate-600 mb-1.5">새 비밀번호</label>
         <input type="password" id="cpNew" required minlength="8" autocomplete="new-password"
           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-300" />
       </div>
       <div>
-        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">새 비밀번호 확인</label>
+        <label class="block text-[13px] text-slate-600 mb-1.5">새 비밀번호 확인</label>
         <input type="password" id="cpConfirm" required minlength="8" autocomplete="new-password"
           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-300" />
       </div>
       <p id="cpError" class="hidden text-xs font-bold text-red-500"></p>
       <button type="submit" id="cpSubmitBtn"
-        class="w-full py-3.5 bg-slate-900 text-white rounded-xl text-sm font-black hover:bg-blue-600 transition shadow-lg">
+        class="w-full py-3.5 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors duration-150">
         변경하기
       </button>
     </form>

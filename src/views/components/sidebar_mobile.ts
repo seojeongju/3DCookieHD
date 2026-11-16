@@ -8,7 +8,7 @@ export const sidebarMobileBar = (toggleId: string, barId: string, homeHref: stri
   <button type="button" id="${toggleId}" aria-label="메뉴 열기" class="w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-[#0f172a] text-white shadow-sm hover:bg-slate-800 active:bg-slate-950 transition touch-manipulation">
     <i class="fas fa-bars"></i>
   </button>
-  <a href="${homeHref}" class="sidebar-mobile-title min-w-0 flex-1 truncate text-sm font-black tracking-tight text-slate-800">${label}</a>
+  <a href="${homeHref}" class="sidebar-mobile-title min-w-0 flex-1 truncate text-sm font-medium text-slate-800">${label}</a>
 </div>
 <script>
 (function () {
