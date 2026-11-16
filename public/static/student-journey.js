@@ -349,6 +349,8 @@
                 document.getElementById('stdPhone').value = student.phone || '';
                 document.getElementById('stdEmail').value = student.email || '';
                 document.getElementById('stdCourseId').value = student.course_id || '';
+                var fundingEl = document.getElementById('stdFundingCategory');
+                if (fundingEl) fundingEl.value = (student.funding_category === 'general') ? 'general' : 'gov';
                 document.getElementById('stdType').value = student.type || 'jobseeker';
                 document.getElementById('stdGender').value = student.gender || 'M';
                 document.getElementById('stdStatus').value = student.status || 'consulting';
@@ -374,6 +376,8 @@
                 loadPayments(student.id);
 
                 document.getElementById('sidebarStdStatus').textContent = translateStatus(student.status);
+                var fundingBadge = document.getElementById('sidebarStdFunding');
+                if (fundingBadge) fundingBadge.textContent = (student.funding_category === 'general') ? '일반' : '국비지원';
                 document.getElementById('sidebarStdType').textContent = translateType(student.type);
 
                 var attEl = document.getElementById('sidebarAttendanceRate');
@@ -641,6 +645,7 @@
             phone: document.getElementById('stdPhone').value.trim(),
             email: document.getElementById('stdEmail').value.trim() || null,
             course_id: document.getElementById('stdCourseId').value || null,
+            funding_category: (document.getElementById('stdFundingCategory') && document.getElementById('stdFundingCategory').value) || 'gov',
             type: document.getElementById('stdType').value,
             gender: document.getElementById('stdGender').value,
             status: document.getElementById('stdStatus').value || 'consulting',

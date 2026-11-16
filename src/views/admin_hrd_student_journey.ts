@@ -100,8 +100,9 @@ export const adminHrdStudentJourneyHtml = (studentId: string, opts?: StudentJour
                                 <input type="file" id="stdImageFile" class="hidden" onchange="handleStdImage(this)">
                                 <h4 class="text-lg font-bold text-gray-900" id="sidebarStdName">-</h4>
                                 <p class="text-xs text-gray-400 font-medium" id="sidebarStdCourse">-</p>
-                                <div class="flex gap-2 mt-4">
+                                <div class="flex flex-wrap justify-center gap-2 mt-4">
                                     <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase" id="sidebarStdStatus">상담중</span>
+                                    <span class="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-black uppercase" id="sidebarStdFunding">국비지원</span>
                                     <span class="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase" id="sidebarStdType">구직자</span>
                                 </div>
                                 <div class="mt-8 grid grid-cols-2 gap-3 border-t border-gray-50 pt-6 w-full">
@@ -130,6 +131,13 @@ export const adminHrdStudentJourneyHtml = (studentId: string, opts?: StudentJour
                             <div class="space-y-4">
                                 <h5 class="text-xs font-black text-gray-400 uppercase tracking-widest"><i class="fas fa-graduation-cap mr-2"></i> 교육 대상 구분</h5>
                                 <div class="space-y-3">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">대상 구분</label>
+                                        <select id="stdFundingCategory" required class="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm outline-none">
+                                            <option value="gov">국비지원대상</option>
+                                            <option value="general">일반</option>
+                                        </select>
+                                    </div>
                                     <select id="stdCourseId" class="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm outline-none cursor-pointer"><option value="">과정 선택</option></select>
                                     <div class="grid grid-cols-2 gap-3">
                                         <select id="stdType" required class="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm outline-none">

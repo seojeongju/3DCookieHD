@@ -66,6 +66,8 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-user-tie text-slate-400"></i><span id="packInstructor">—</span></span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-map-marker-alt text-slate-400"></i><span id="packLocation">—</span></span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700"><i class="fas fa-users"></i> 배정 <span id="packTraineeCount">0</span>명</span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-700">국비 <span id="packGovCount">0</span></span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600">일반 <span id="packGeneralCount">0</span></span>
                             </div>
                         </div>
                         <div class="lg:col-span-4 bg-slate-900 text-white rounded-[2.5rem] shadow-sm p-5 sm:p-6 flex flex-col justify-between">
@@ -147,21 +149,34 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                     document.getElementById('packInstructor').textContent = s.instructor_name || '강사 미지정';
                     document.getElementById('packLocation').textContent = s.location || '장소 미지정';
                     document.getElementById('packTraineeCount').textContent = String(data.trainee_count || 0);
+                    var govEl = document.getElementById('packGovCount');
+                    var genEl = document.getElementById('packGeneralCount');
+                    if (govEl) govEl.textContent = String(data.trainee_count_gov != null ? data.trainee_count_gov : 0);
+                    if (genEl) genEl.textContent = String(data.trainee_count_general != null ? data.trainee_count_general : 0);
                     document.getElementById('packReadyCount').textContent = String((data.progress && data.progress.implemented) || 0);
                     document.getElementById('packTotalCount').textContent = String((data.progress && data.progress.total) || 0);
+
+                    function audienceBadge(audience) {
+                        if (audience === 'gov') return '<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-black">국비지원</span>';
+                        if (audience === 'general') return '<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black">일반</span>';
+                        return '<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-black">전체</span>';
+                    }
 
                     var grid = document.getElementById('docsGrid');
                     grid.innerHTML = (data.docs || []).map(function(doc) {
                         var disabled = doc.status === 'planned' || !doc.href;
                         var href = doc.href || '#';
                         var orderLabel = String(doc.order).padStart(2, '0');
+                        var aud = doc.audience || 'all';
+                        var cnt = (doc.trainee_count != null) ? doc.trainee_count : 0;
                         return '<article class="bento-card bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 transition-all duration-300 ' + (disabled ? 'opacity-70' : '') + '">' +
                             '<div class="flex items-start justify-between gap-2 mb-3">' +
                                 '<span class="text-[10px] font-black text-slate-400 tracking-widest">' + orderLabel + ' · ' + esc(doc.code) + '</span>' +
-                                statusBadge(doc.status) +
+                                '<div class="flex items-center gap-1.5 flex-wrap justify-end">' + audienceBadge(aud) + statusBadge(doc.status) + '</div>' +
                             '</div>' +
                             '<h3 class="text-sm font-black text-slate-900 leading-snug mb-2">' + esc(doc.title) + '</h3>' +
-                            '<p class="text-[11px] text-slate-500 font-medium leading-relaxed mb-4 min-h-[2.5rem]">' + esc(doc.description) + '</p>' +
+                            '<p class="text-[11px] text-slate-500 font-medium leading-relaxed mb-2 min-h-[2.5rem]">' + esc(doc.description) + '</p>' +
+                            '<p class="text-[10px] font-bold text-slate-400 mb-4">대상 인원 ' + cnt + '명</p>' +
                             (disabled
                                 ? '<button type="button" disabled class="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed">' + actionLabel(doc) + '</button>'
                                 : '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-blue-600 transition">' +
@@ -261,11 +276,12 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         .sd-notes { font-size: 11px; color: #333; margin: 6px 0 10px; line-height: 1.45; }
         .sd-notes p { margin: 2px 0; }
         table.sd-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
-        table.sd-table th, table.sd-table td { border: 1px solid #222; padding: 2px 2px; text-align: center; vertical-align: middle; }
-        table.sd-table th { background: #f3f4f6; font-weight: 700; }
-        table.sd-table .name-col { width: 56px; }
+        table.sd-table th, table.sd-table td { border: 1px solid #222; padding: 4px 2px; text-align: center; vertical-align: middle; height: 26px; min-height: 26px; line-height: 1.2; box-sizing: border-box; }
+        table.sd-table tbody tr { height: 26px; }
+        table.sd-table th { background: #f3f4f6; font-weight: 700; height: auto; min-height: 22px; }
+        table.sd-table .name-col { width: 64px; }
         table.sd-table .memo-col { width: 48px; }
-        table.sd-table td.name { text-align: left; padding-left: 4px; font-weight: 600; }
+        table.sd-table td.name { text-align: left; padding-left: 4px; font-weight: 600; white-space: nowrap; }
         .sd-footer { margin-top: 10px; display: flex; justify-content: flex-end; gap: 28px; font-size: 12px; font-weight: 700; }
         .landscape-page { max-width: 297mm; }
         .doc-sub { text-align: center; font-size: 12px; font-weight: 600; margin: 0 0 14px; color: #222; }
@@ -282,12 +298,45 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         table.doc-table th { background: #f3f4f6; font-size: 11px; }
         table.doc-table td.name, table.doc-table td.addr { text-align: left; }
         table.doc-table td.cat { text-align: center; font-size: 11px; line-height: 1.25; white-space: pre-line; }
-        table.checklist-table th, table.checklist-table td { height: 28px; }
+        table.checklist-table th, table.checklist-table td { height: 28px; min-height: 28px; box-sizing: border-box; }
+        table.checklist-table tbody tr { height: 28px; }
         .mark-y { color: #111; font-weight: 800; font-size: 14px; }
         .mark-n { color: #94a3b8; }
         .empty { text-align: center; padding: 40px 12px; color: #64748b; }
         .footnote { margin-top: 10px; font-size: 10px; color: #64748b; }
         .sign-row { margin-top: 28px; display: flex; justify-content: flex-end; gap: 40px; font-size: 12px; }
+        .ot-wrap { font-size: 12px; line-height: 1.55; word-break: keep-all; }
+        .ot-wrap h2 { font-size: 15px; margin: 14px 0 8px; border-left: 4px solid #0f172a; padding-left: 8px; }
+        .ot-wrap p { margin: 0 0 8px; }
+        .ot-wrap .bullet-line { margin: 0 0 6px; }
+        table.ot-table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; table-layout: fixed; }
+        table.ot-table th, table.ot-table td { border: 1px solid #222; padding: 5px 6px; font-size: 11px; vertical-align: middle; }
+        table.ot-table th { background: #f3f4f6; text-align: center; font-weight: 700; }
+        table.ot-table td.l { text-align: left; }
+        table.ot-table td.c { text-align: center; }
+        .ot-confirm { margin-top: 18px; padding: 12px; border: 1px solid #222; }
+        .ot-confirm .ask { font-weight: 700; margin-bottom: 10px; }
+        .eval-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+        .eval-head table { border-collapse: collapse; }
+        .eval-head th, .eval-head td { border: 1px solid #222; padding: 4px 8px; font-size: 11px; text-align: center; }
+        table.eval-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        table.eval-table th, table.eval-table td { border: 1px solid #222; padding: 5px 6px; font-size: 11px; }
+        table.eval-table th { background: #f3f4f6; }
+        table.eval-table td.q { text-align: left; }
+        table.eval-table td.score { text-align: center; width: 28px; }
+        .survey-intro { font-size: 12px; line-height: 1.55; margin: 0 0 12px; word-break: keep-all; }
+        .survey-meta { margin: 0 0 10px; font-size: 12px; }
+        .survey-meta div { margin: 3px 0; }
+        table.survey-table { width: 100%; border-collapse: collapse; margin: 0 0 12px; }
+        table.survey-table th, table.survey-table td { border: 1px solid #222; padding: 5px 4px; font-size: 11px; text-align: center; }
+        table.survey-table th { background: #f3f4f6; }
+        table.survey-table td.q { text-align: left; padding-left: 6px; }
+        .survey-free { min-height: 90px; border: 1px solid #222; margin-top: 6px; }
+        table.att-gen { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
+        table.att-gen th, table.att-gen td { border: 1px solid #222; padding: 3px 2px; text-align: center; vertical-align: middle; height: 24px; }
+        table.att-gen th { background: #f3f4f6; font-weight: 700; }
+        table.att-gen td.name { text-align: left; padding-left: 4px; font-weight: 600; }
+        .ledger-note { font-size: 10px; line-height: 1.45; color: #334155; margin-top: 10px; word-break: keep-all; }
     </style>
 </head>
 <body>
@@ -371,7 +420,8 @@ const sharedPrintHelpers = `
                 '<div><span class="label">배정인원</span> <span id="metaCount"></span>명</div>' +
                 '</div>';
         }
-        function markO(v) { return v ? '<span class="mark-y">○</span>' : ''; }
+        function markO(v) { return v ? '<span class="mark-y">○</span>' : '&nbsp;'; }
+        function blankCell() { return '&nbsp;'; }
         function nl2br(s) { return esc(s).replace(/\\n/g, '<br>'); }
         function formatDotDate(d) {
             if (!d) return '-';
@@ -459,6 +509,96 @@ const sharedPrintHelpers = `
             var pt = String(t.package_type || '').toLowerCase();
             return st === 'jobseeker' || pt === 'unemployed' || pt === 'package1' || pt === 'package2';
         }
+        function formatShortDot(d) {
+            var m = String(d || '').slice(0, 10).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+            if (!m) return String(d || '');
+            return m[1].slice(2) + '.' + m[2] + '.' + m[3];
+        }
+        function formatMonthDayHeader(day) {
+            var m = String(day.date || '').match(/^\\d{4}-(\\d{2})-(\\d{2})$/);
+            if (!m) return day.dateShort || '';
+            return m[1] + '월 ' + m[2] + '일';
+        }
+        /** HWP 3-1/3-2 오리엔테이션 출결·인정일수 본문 */
+        function orientationBodyHtml(session, opts) {
+            opts = opts || {};
+            var rules = session.attendance_rules || {};
+            var units = session.unit_periods || [];
+            var dayCount = session.training_day_count || session.total_days || units.reduce(function(a, u) { return a + (u.training_days || 0); }, 0) || '';
+            var hourCount = session.training_hour_count || session.total_hours || '';
+            var period = formatDotDate(session.training_start_date) + ' ~ ' + formatDotDate(session.training_end_date);
+            var unitRows = units.map(function(u) {
+                return '<tr>' +
+                    '<td class="c">' + u.unit + '단위</td>' +
+                    '<td class="c">' + esc(formatShortDot(u.start_date) + ' ~ ' + formatShortDot(u.end_date)) + '</td>' +
+                    '<td class="c">' + u.training_days + '일 ( ' + u.allowed_absences + '일 )</td>' +
+                    '<td class="c">지각 또는 조퇴 1회</td>' +
+                '</tr>';
+            }).join('');
+            if (!unitRows) {
+                unitRows = '<tr><td class="c">1단위</td><td class="c">' + esc(formatShortDot(session.training_start_date) + ' ~ ' + formatShortDot(session.training_end_date)) + '</td><td class="c">' + esc(String(dayCount || '')) + '일</td><td class="c">지각 또는 조퇴 1회</td></tr>';
+            }
+            var html = '<div class="ot-wrap">' +
+                '<p class="bullet-line"><strong>출결기준</strong></p>' +
+                '<p>○ 훈련기간이 ' + esc(period.replace(/\\./g, '. ')) + ' 총 ' + esc(String(dayCount)) + '일 ' + esc(String(hourCount)) +
+                '시간 수업으로 훈련(일)의 100분의 80%이상 출석하셔야 수료가 되는 과정입니다.</p>' +
+                '<table class="ot-table"><thead><tr><th style="width:70px">단위기간</th><th>훈련기간</th><th>총수업일수(인정결석일)</th><th style="width:120px">비고</th></tr></thead><tbody>' +
+                unitRows + '</tbody></table>' +
+                '<p>○ 지각, 조퇴 또는 외출 3회는 1일 결석 처리됩니다. 조퇴 또는 외출로 인하여 출석시간이 1일 소정훈련시간의 100분의 50미만인 경우 결석처리 됩니다.</p>' +
+                '<table class="ot-table">' +
+                '<tr><th style="width:90px">정상수업시간</th><td class="l">' + esc(rules.normal_time_label || formatTimeRange(session.training_time_start, session.training_time_end)) + '</td></tr>' +
+                '<tr><th>지 각</th><td class="l">' + esc(rules.late_rule || '') + '</td></tr>' +
+                '<tr><th>조 퇴</th><td class="l">' + esc(rules.early_rule || '') + '</td></tr>' +
+                '<tr><th>외 출</th><td class="l">' + esc(rules.outing_rule || '') + '</td></tr>' +
+                '</table>' +
+                '<p>○ 총 훈련시간이 10일 이상의 훈련의 경우 훈련과 관련한 시험, 면접, 결혼, 사망, 출산 등의 사유로 훈련을 받지 못하는 경우 [출석인정일수]에 따라 훈련을 받은 것으로 인정됩니다.</p>' +
+                '<p class="bullet-line"><strong>출석인정일수</strong></p>' +
+                '<table class="ot-table">' +
+                '<thead><tr><th style="width:110px">구 분</th><th>대 상</th><th style="width:70px">일 수</th></tr></thead><tbody>' +
+                '<tr><td class="c">훈련 및 시험, 공민원</td><td class="l">예비군훈련, 민방위훈련, 징병검사, 취업/훈련관련시험(자격증), 입사시험(면접), 기능경기대회 출전, 선거권(기타 공인권)행사</td><td class="c">소요일수</td></tr>' +
+                '<tr><td class="c">결혼</td><td class="l">본인 5일 / 자녀 1일</td><td class="c">해당일수</td></tr>' +
+                '<tr><td class="c">사망</td><td class="l">배우자·본인 및 배우자의 부모 5일 / 조부모·외조부모 2일 / 자녀와 그 배우자 2일 / 형제자매 1일</td><td class="c">해당일수</td></tr>' +
+                '<tr><td class="c">출산</td><td class="l">배우자</td><td class="c">5일</td></tr>' +
+                '<tr><td class="c">질병/입원</td><td class="l">본인, 자녀 (진단서·진료확인서·입원확인서·질병확인서 등 증빙) ※ 처방전만으로는 인정되지 않을 수 있음</td><td class="c">증빙일수</td></tr>' +
+                '</tbody></table>' +
+                '<p>○ 출석인정은 관련 증빙서류를 제출한 경우에 한하며, 사전·사후 신고 절차를 따릅니다.</p>' +
+                '<p>○ HRD-Net 출결 단말기(또는 지정 출결 방식)로 입·퇴실을 확인하고, 부정출석·대리출석은 관련 법령에 따라 불이익을 받을 수 있습니다.</p>';
+            if (opts.collect) {
+                html += '<div class="ot-confirm">' +
+                    '<p class="ask">위 출결기준 및 출석인정일수 안내를 충분히 확인하였습니다.</p>' +
+                    '<div class="pledge-date">' + esc(formatPledgeDate(session.training_start_date)) + '</div>' +
+                    '<div class="pledge-sign">확인자(수강생)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
+                '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+        function mediaConsentPageHtml(session, t) {
+            var inst = session.institution_name || '와우쓰리디홍대센터';
+            return '<section class="pledge-page">' +
+                brandHtml(session) +
+                '<h1 class="doc-title">미디어 촬영 동의서</h1>' +
+                '<p style="font-weight:700;margin:8px 0 6px;">■ 촬영 정보</p>' +
+                '<table class="ot-table"><tbody>' +
+                '<tr><th style="width:160px">수집하는 정보 항목</th><td class="l">학원내 영상정보처리기기(CCTV) 촬영</td></tr>' +
+                '<tr><th>개인정보의 수집 및 이용목적</th><td class="l">수강생의 안전, 분쟁소지 및 입·퇴실 정보 제공을 위한 자료 확보</td></tr>' +
+                '<tr><th>보관기간</th><td class="l">수료일로부터 30일</td></tr>' +
+                '<tr><th>보관장소</th><td class="l">행정실</td></tr>' +
+                '</tbody></table>' +
+                '<p style="font-weight:700;margin:12px 0 6px;">■ ' + esc(inst) + ' CCTV 설치현황 (현재)</p>' +
+                '<table class="ot-table"><thead><tr><th>시설물명</th><th>위치</th><th style="width:50px">대수</th><th>촬영범위</th><th style="width:60px">비고</th></tr></thead><tbody>' +
+                '<tr><td class="l" rowspan="4">' + esc(inst) + '</td><td class="c">제1강의실</td><td class="c">1</td><td class="l">강의실내부</td><td></td></tr>' +
+                '<tr><td class="c">3D프린팅실 및 휴게실</td><td class="c">1</td><td class="l">휴게공간 및 프린팅실</td><td></td></tr>' +
+                '<tr><td class="c">원장실 및 상담실</td><td class="c">1</td><td class="l">입구</td><td></td></tr>' +
+                '<tr><td class="c">계</td><td class="c">3대</td><td class="c">-</td><td></td></tr>' +
+                '</tbody></table>' +
+                '<p style="margin-top:12px;">[공공기관의 개인정보보호에 관한 법률] 제15조, 제18조 및 제19조의 규정과 [개인정보 보호를 위한 공공기관의 CCTV 설치·운영 지침]에 의거, CCTV 촬영에 동의합니다.</p>' +
+                '<p>개인정보 제공자가 동의한 내용 외의 다른 목적으로 활용하지 않으며, 제공된 개인정보의 이용을 거부하고자 할 때에는 개인정보 관리책임자를 통해 열람, 정정, 삭제를 요구할 수 있습니다.</p>' +
+                (t ? ('<p style="margin-top:10px;">성명: <strong>' + esc(t.name || '') + '</strong> &nbsp; 연락처: ' + esc(t.phone || '') + '</p>') : '') +
+                '<div class="pledge-date">' + esc(formatPledgeDate(session.training_start_date)) + ' 확인자</div>' +
+                '<div class="pledge-sign">(서명 또는 인)</div>' +
+            '</section>';
+        }
         /** HWP「2-2_내일배움_훈련생서약서」수강생 1장 */
         function pledgePageHtml(session, t) {
             var inst = session.institution_name || '와우쓰리디홍대센터';
@@ -516,9 +656,16 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
     D01: '훈 련 생 명 단',
     D22: '[ 국민내일배움 훈련과정] 훈련생 서약서',
     D23: '개인정보 수집·이용 / 제공 동의서',
+    D31: '직업능력개발훈련 오리엔테이션 자료(수거용)',
+    D32: '직업능력개발훈련 오리엔테이션 자료(배포용)',
     D33: '오리엔테이션 참여자 명단',
+    D40: '미디어 촬영 동의서',
+    D51: '출 석 부',
+    D53: '출석입력요청대장',
     D70: '교재지급확인서 관리대장',
     D80: 'SD카드 지급 / 반납 확인서 관리대장',
+    D90: '수업평가 (평가자: 본인)',
+    D91: '강의 후 설문지',
   };
   const title = titleMap[code] || '개강서류';
 
@@ -566,6 +713,39 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     sheet.innerHTML = trainees.map(function(t) { return pledgePageHtml(session, t); }).join('');
                     return;
                 }
+                if (docCode === 'D40') {
+                    sheet.className = 'sheet-wrap';
+                    if (!trainees.length) {
+                        sheet.innerHTML = mediaConsentPageHtml(session, null);
+                        return;
+                    }
+                    sheet.innerHTML = trainees.map(function(t) { return mediaConsentPageHtml(session, t); }).join('');
+                    return;
+                }
+                if (docCode === 'D31' || docCode === 'D32') {
+                    var otTitle = '직업능력개발훈련 오리엔테이션 자료';
+                    var collect = docCode === 'D31';
+                    if (collect && trainees.length) {
+                        sheet.className = 'sheet-wrap';
+                        sheet.innerHTML = trainees.map(function(t) {
+                            return '<section class="pledge-page">' +
+                                brandHtml(session) +
+                                '<h1 class="doc-title">' + otTitle + '</h1>' +
+                                '<p class="doc-sub">훈련과정명 : ' + esc(courseNameWithSession(session)) + '</p>' +
+                                orientationBodyHtml(session, { collect: true }) +
+                                '<p style="margin-top:8px;font-size:11px;">수강생: <strong>' + esc(t.name || '') + '</strong> / ' + esc(t.phone || '') + '</p>' +
+                            '</section>';
+                        }).join('');
+                        return;
+                    }
+                    sheet.className = 'sheet';
+                    sheet.innerHTML = brandHtml(session) +
+                        '<h1 class="doc-title">' + otTitle + (collect ? ' (수거용)' : ' (배포용)') + '</h1>' +
+                        '<p class="doc-sub">훈련과정명 : ' + esc(courseNameWithSession(session)) + '</p>' +
+                        orientationBodyHtml(session, { collect: collect }) +
+                        '<p class="footnote">※ 원본: 3-' + (collect ? '1_오리엔테이션_수거용' : '2_오리엔테이션_배포용') + '.hwp</p>';
+                    return;
+                }
 
                 var html = docCode === 'D01'
                     ? (brandHtml(session) + '<h1 class="doc-title spaced">' + esc(docTitle) + '</h1>' + rosterInfoHtml(session))
@@ -593,15 +773,15 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                                 '<td class="cat">' + nl2br(t.category_label || '') + '</td>' +
                                 '<td class="name">' + esc(t.name) + '</td>' +
                                 '<td>' + esc(t.phone) + '</td>' +
-                                '<td>' + (t.ot_attended === true ? markO(true) : '') + '</td>' +
+                                '<td>' + (t.ot_attended === true ? markO(true) : blankCell()) + '</td>' +
                                 '<td>' + markO(t.has_application) + '</td>' +
                                 '<td>' + markO(t.has_self_pay) + '</td>' +
-                                '<td class="addr">' + esc(t.status_memo || '') + '</td>' +
+                                '<td class="addr">' + (t.status_memo ? esc(t.status_memo) : blankCell()) + '</td>' +
                             '</tr>';
                         } else {
                             html += '<tr>' +
                                 '<td>' + (i + 1) + '</td>' +
-                                '<td></td><td></td><td></td><td></td><td></td><td></td><td></td>' +
+                                '<td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td>' +
                             '</tr>';
                         }
                     }
@@ -626,12 +806,12 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                                 '<td class="name">' + esc(row.name) + '</td>' +
                                 '<td>' + esc(row.phone) + '</td>' +
                                 '<td>' + esc(formatBirthKr(row.birthdate)) + '</td>' +
-                                '<td class="addr">' + esc(row.status_memo || '') + '</td>' +
+                                '<td class="addr">' + (row.status_memo ? esc(row.status_memo) : blankCell()) + '</td>' +
                             '</tr>';
                         } else {
                             html += '<tr>' +
                                 '<td>' + (r + 1) + '</td>' +
-                                '<td></td><td></td><td></td><td></td>' +
+                                '<td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td>' +
                             '</tr>';
                         }
                     }
@@ -659,9 +839,9 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     var consentRows = padRows(trainees, Math.max(trainees.length, 6));
                     consentRows.forEach(function(t, idx) {
                         if (t) {
-                            html += '<tr><td>' + (idx + 1) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td></td></tr>';
+                            html += '<tr><td>' + (idx + 1) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + blankCell() + '</td></tr>';
                         } else {
-                            html += '<tr><td>' + (idx + 1) + '</td><td></td><td></td><td></td></tr>';
+                            html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
                     });
                     html += '</tbody></table>' +
@@ -683,9 +863,9 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</tr></thead><tbody>';
                     padRows(trainees, 15).forEach(function(t, idx) {
                         if (t) {
-                            html += '<tr><td>' + t.no + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + esc(formatBirthKr(t.birthdate)) + '</td><td></td></tr>';
+                            html += '<tr><td>' + t.no + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + esc(formatBirthKr(t.birthdate) || blankCell()) + '</td><td>' + blankCell() + '</td></tr>';
                         } else {
-                            html += '<tr><td>' + (idx + 1) + '</td><td></td><td></td><td></td><td></td></tr>';
+                            html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
                     });
                     html += '</tbody></table>' +
@@ -712,9 +892,9 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</tr></thead><tbody>';
                     padRows(trainees, 15).forEach(function(t, idx) {
                         if (t) {
-                            html += '<tr><td>' + t.no + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td></td><td class="addr">' + esc(t.status_memo || '') + '</td></tr>';
+                            html += '<tr><td>' + t.no + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + blankCell() + '</td><td class="addr">' + (t.status_memo ? esc(t.status_memo) : blankCell()) + '</td></tr>';
                         } else {
-                            html += '<tr><td>' + (idx + 1) + '</td><td></td><td></td><td></td><td></td></tr>';
+                            html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
                     });
                     html += '</tbody></table>' +
@@ -735,10 +915,11 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         head1 += '<th class="memo-col" rowspan="2">비고</th></tr>';
                         head2 += '</tr>';
                         var body = '';
-                        sdRows.forEach(function(t, idx) {
-                            body += '<tr><td class="name">' + (t ? esc(t.name) : '') + '</td>';
-                            days.forEach(function() { body += '<td></td><td></td><td></td>'; });
-                            body += '<td></td></tr>';
+                        var emptyCell = '<td>&nbsp;</td>';
+                        sdRows.forEach(function(t) {
+                            body += '<tr><td class="name">' + (t && t.name ? esc(t.name) : '&nbsp;') + '</td>';
+                            days.forEach(function() { body += emptyCell + emptyCell + emptyCell; });
+                            body += emptyCell + '</tr>';
                         });
                         return '<section class="pledge-page landscape-page">' +
                             brandHtml(session) +
@@ -758,6 +939,162 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</section>';
                     }).join('');
                     sheet.innerHTML = html;
+                    return;
+                } else if (docCode === 'D51') {
+                    /* HWP「5-1_출석부_일반수강생용」— 훈련일 5일 단위, 시작/종료·집계 */
+                    var dayChunks5 = chunkArray(trainingDays, 5);
+                    var attRows = padRows(trainees, Math.max(trainees.length, 4));
+                    var prescribed = trainingDays.length || session.training_day_count || '';
+                    sheet.className = 'sheet-wrap';
+                    html = (dayChunks5.length ? dayChunks5 : [[]]).map(function(days, pageIdx) {
+                        var head1 = '<tr><th rowspan="2" style="width:36px">번호</th><th rowspan="2" style="width:64px">성명</th>';
+                        var head2 = '<tr>';
+                        days.forEach(function(d) {
+                            head1 += '<th colspan="2">' + esc(formatMonthDayHeader(d)) + '</th>';
+                            head2 += '<th>시작</th><th>종료</th>';
+                        });
+                        head1 += '<th rowspan="2" style="width:48px">소정<br>출석일</th><th rowspan="2" style="width:48px">실제<br>출석일</th>' +
+                            '<th rowspan="2" style="width:36px">결석</th><th rowspan="2" style="width:36px">지각</th><th rowspan="2" style="width:36px">조퇴</th>' +
+                            '<th rowspan="2" style="width:40px">확인<br>(교사)</th><th rowspan="2" style="width:48px">기관장<br>결재</th></tr>';
+                        head2 += '</tr>';
+                        var body = '';
+                        attRows.forEach(function(t, idx) {
+                            body += '<tr><td>' + (idx + 1) + '</td><td class="name">' + (t && t.name ? esc(t.name) : '&nbsp;') + '</td>';
+                            days.forEach(function() { body += '<td>&nbsp;</td><td>&nbsp;</td>'; });
+                            body += '<td>' + (pageIdx === 0 && prescribed ? esc(String(prescribed)) : '&nbsp;') + '</td>' +
+                                '<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';
+                        });
+                        return '<section class="pledge-page landscape-page">' +
+                            brandHtml(session) +
+                            '<h1 class="doc-title spaced">출 석 부</h1>' +
+                            '<div style="display:flex;justify-content:flex-end;gap:24px;font-size:11px;margin:-4px 0 8px;"><span>훈련교사</span><span>원장</span></div>' +
+                            '<ul class="info-list">' +
+                            '<li><span class="bullet">훈련기관명</span><span class="sep">:</span><span class="val">' + esc(session.institution_name || '') + '</span></li>' +
+                            '<li><span class="bullet">훈련과정명</span><span class="sep">:</span><span class="val">' + esc(courseNameWithSession(session)) + '</span></li>' +
+                            '<li><span class="bullet">훈련기간</span><span class="sep">:</span><span class="val">' + esc(formatDotDate(session.training_start_date) + ' ~ ' + formatDotDate(session.training_end_date)) + '</span></li>' +
+                            '</ul>' +
+                            '<table class="att-gen"><thead>' + head1 + head2 + '</thead><tbody>' + body + '</tbody></table>' +
+                            '<p class="footnote">※ 일반 수강생용. 시작·종료 및 집계는 수기 기재합니다. (원본: 5-1_출석부_일반수강생용.hwp)</p>' +
+                        '</section>';
+                    }).join('');
+                    sheet.innerHTML = html;
+                    return;
+                } else if (docCode === 'D53') {
+                    /* HWP「5-3_출석입력요청대장(별지 제16호)」 */
+                    html = brandHtml(session) +
+                        '<p style="text-align:right;font-size:11px;margin:0 0 4px;">■ 국민내일배움카드 운영규정 [별지 제16호서식]</p>' +
+                        '<h1 class="doc-title">출석입력요청대장</h1>' +
+                        '<p class="doc-sub">( ' + esc(session.institution_name || '') + ' )</p>' +
+                        '<table class="ot-table" style="margin-bottom:10px"><tbody>' +
+                        '<tr><th style="width:110px">①훈련과정명</th><td class="l" colspan="3">' + esc(courseNameWithSession(session)) + '</td></tr>' +
+                        '<tr><th>②훈련기간</th><td class="l">' + esc(formatDotDate(session.training_start_date) + '~' + formatDotDate(session.training_end_date)) +
+                        '</td><th style="width:90px">③훈련시간</th><td class="l">' + esc(formatTimeRange(session.training_time_start, session.training_time_end)) + '</td></tr>' +
+                        '<tr><th>④ 대장관리자</th><td class="l" colspan="3">' + esc(session.instructor_name || '') + '</td></tr>' +
+                        '</tbody></table>' +
+                        '<table class="doc-table checklist-table" style="font-size:10px">' +
+                        '<thead><tr>' +
+                        '<th style="width:36px">⑤일련<br>번호</th><th style="width:70px">⑥발생일</th><th style="width:70px">⑦신청일</th>' +
+                        '<th style="width:70px">⑧훈련생<br>성명</th><th>⑨사유</th>' +
+                        '<th style="width:72px">⑩입실시간<br>(외출시간)</th><th style="width:72px">⑪퇴실시간<br>(귀원시간)</th>' +
+                        '<th style="width:64px">⑫훈련생<br>서명</th><th style="width:64px">⑬관리자<br>서명</th>' +
+                        '</tr></thead><tbody>';
+                    for (var li = 1; li <= 15; li++) {
+                        html += '<tr><td>' + li + '</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';
+                    }
+                    html += '</tbody></table>' +
+                        '<div class="ledger-note"><strong>작성요령</strong><br>' +
+                        '1. 대장은 훈련기관에서 전담자를 두어 별도 작성·관리하여야 하고, 훈련생은 사유발생일 당일에 훈련이 종료된 이후 관리자가 기재한 내용을 확인한 후 훈련생이 직접 본인의 성명을 자필로 정확하게 작성(사인, 특수문자 등은 기재할 수 없음)<br>' +
+                        '2. ⑥란 발생일자는 직권입력사유 발생 해당일자 / ⑧란 성명은 전담관리자가 직접 기재 / ⑨란 사유는 카드 분실·훼손, 정전, 단말기 고장, 카드발급 지연 등<br>' +
+                        '3. ⑩·⑪란은 직권사유 발생 훈련생의 입실(외출)·퇴실(귀원) 시간을 기재합니다.</div>' +
+                        '<p class="footnote">※ 원본: 5-3_출석입력요청대장(별지서식제16호).hwp</p>';
+                } else if (docCode === 'D90') {
+                    /* HWP「업무수행평가」수업평가(본인) */
+                    var evalQs = [
+                        '수업시간에 출결사항을 정확히 확인하였습니까?',
+                        '수업을 수업계획서에 의해 성실히 진행하였습니까?',
+                        '수업목표를 명확히 제시하였습니까?',
+                        '수업시간을 정확히 준수하였습니까?',
+                        '수업에 임하는 자세가 성실하였습니까?',
+                        '수업 운영 방법은 적절하였습니까?',
+                        '보조자료를 적절히 사용하였습니까?',
+                        '수업 종료시 마다 다음 시간 수업 내용을 예시 하였습니까?',
+                        '과제물 부여와 평가는 적절하였습니까?',
+                        '개인별 학생의 학습적응을 수시로 점검하였습니까?',
+                        '실습시 관련 이론을 충분히 설명 하였습니까?',
+                        '실습도구를 이용하여 수업진행을 잘 하였습니까?',
+                        '실습도구에 문제 발생시 해결 방안은 적절하였습니까?',
+                        '담당하신 강의 내용이 훈련생들에게 유익하다고 생각합니까?',
+                        '훈련생들이 수업 목표를 어느정도 달성하였다고 생각합니까?'
+                    ];
+                    html = brandHtml(session) +
+                        '<div class="eval-head">' +
+                        '<h1 class="doc-title" style="margin:0;text-align:left;font-size:18px;">수업평가 (평가자: 본인)</h1>' +
+                        '<table><tr><th colspan="2">결 재</th></tr><tr><th style="width:52px">원 장</th><th style="width:52px">팀 장</th></tr>' +
+                        '<tr><td style="height:36px">&nbsp;</td><td>&nbsp;</td></tr></table></div>' +
+                        '<table class="ot-table" style="margin-bottom:8px"><tbody>' +
+                        '<tr><th style="width:70px">소속</th><td class="l">' + esc(session.institution_name || '') +
+                        '</td><th style="width:70px">성명</th><td class="l">' + esc(session.instructor_name || '') + '</td></tr>' +
+                        '</tbody></table>' +
+                        '<table class="eval-table"><thead><tr><th class="q">평 가 내 용</th><th colspan="5">긍정화정도 (강함⇔약함)</th></tr>' +
+                        '<tr><th></th><th class="score">5</th><th class="score">4</th><th class="score">3</th><th class="score">2</th><th class="score">1</th></tr></thead><tbody>';
+                    evalQs.forEach(function(q, qi) {
+                        html += '<tr><td class="q">' + (qi + 1) + '. ' + esc(q) + '</td>' +
+                            '<td class="score">&nbsp;</td><td class="score">&nbsp;</td><td class="score">&nbsp;</td><td class="score">&nbsp;</td><td class="score">&nbsp;</td></tr>';
+                    });
+                    html += '<tr><td class="q">건의사항</td><td colspan="4" style="height:48px">&nbsp;</td><td class="score">총점<br>점</td></tr></tbody></table>' +
+                        '<p style="margin-top:12px;font-size:12px;">*' + esc(courseNameWithSession(session)) + '</p>' +
+                        '<div class="pledge-date">' + esc(formatPledgeDate(session.training_end_date || session.training_start_date)) + '</div>' +
+                        '<div class="pledge-sign">작성자&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
+                        '<p class="footnote">※ 원본: 업무수행평가.hwp</p>';
+                } else if (docCode === 'D91') {
+                    /* HWP「강의후설문조사」— 수강생 수만큼(최소 1) */
+                    var surveyCount = Math.max(trainees.length, 1);
+                    var satQs = [
+                        '교육과정에 대해 전반적으로 만족한다.',
+                        '교육 내용이 쉽게 구성되었으며, 전반적으로 이해 하였다',
+                        '본 교육의 전반적인 만족도는 ?'
+                    ];
+                    var teacherQs = [
+                        '강의 내용을 알기 쉽게 설명 했는가?',
+                        '교수는 강의의 중요성을 잘 짚어주었는가?',
+                        '교수가 전체적으로 분위기를 잘 이끌었는가?'
+                    ];
+                    var contentQs = [
+                        '강의에 포함된 내용이 흥미로웠는가?',
+                        '왕성한 의욕을 갖도록 동기유발을 잘 하였는가?',
+                        '교육목표에 적합한 교육계획을 수립하였는가?',
+                        '강의 내용이 실력향상에 도움이 되었는가?'
+                    ];
+                    function surveyBlock(title, qs) {
+                        var h = '<p style="font-weight:800;margin:12px 0 4px;">' + title +
+                            ' <span style="font-weight:600;font-size:10px;">5(매우 그렇다) 4(그렇다) 3(보통) 2(아니다) 1(매우 아니다)</span></p>' +
+                            '<table class="survey-table"><thead><tr><th style="width:36px">No</th><th>문항</th><th style="width:28px">5</th><th style="width:28px">4</th><th style="width:28px">3</th><th style="width:28px">2</th><th style="width:28px">1</th></tr></thead><tbody>';
+                        qs.forEach(function(q, i) {
+                            h += '<tr><td>' + (i + 1) + '</td><td class="q">' + esc(q) + '</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';
+                        });
+                        return h + '</tbody></table>';
+                    }
+                    sheet.className = 'sheet-wrap';
+                    var pages = [];
+                    for (var si = 0; si < surveyCount; si++) {
+                        pages.push('<section class="pledge-page">' +
+                            brandHtml(session) +
+                            '<h1 class="doc-title">강의 후 설문지</h1>' +
+                            '<p class="survey-intro">수고하셨습니다. 이 설문지는 오늘 교육과정에 대한 전반적인 사항을 객관적으로 파악하고, 이를 토대로 앞으로 교육을 하는데 기초 자료로 활용하고자 하는 것이 목적입니다. 여러분의 솔직하고 진지한 평가가 차후 보다 나은 교육으로 반영될 것입니다.</p>' +
+                            '<div class="survey-meta">' +
+                            '<div><strong>교육과정</strong> : ' + esc(courseNameWithSession(session)) + '</div>' +
+                            '<div><strong>교육과목</strong> : ________________ / 훈련교사 - ' + esc(session.instructor_name || '') + '</div>' +
+                            '<div><strong>설문작성일</strong> : ____ 년 __ 월 __ 일</div>' +
+                            '</div>' +
+                            surveyBlock('교육만족도', satQs) +
+                            surveyBlock('솔루션 평가 및 강사 평가', teacherQs) +
+                            surveyBlock('교육내용평가', contentQs) +
+                            '<p style="font-weight:700;margin:8px 0 4px;">전반적인 교육 소감을 구체적으로 작성하여 주시기 바랍니다.</p>' +
+                            '<div class="survey-free">&nbsp;</div>' +
+                            '<p class="footnote">※ 원본: 강의후설문조사.hwp</p>' +
+                        '</section>');
+                    }
+                    sheet.innerHTML = pages.join('');
                     return;
                 } else {
                     html += '<div class="empty">이 서류 인쇄 템플릿은 아직 준비되지 않았습니다.</div>';

@@ -73,6 +73,14 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                                 <option value="dropout">중도탈락</option>
                             </select>
                         </div>
+                        <div class="w-[150px]">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">대상 구분</label>
+                            <select id="fundingFilter" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/30 text-sm cursor-pointer outline-none">
+                                <option value="">전체</option>
+                                <option value="gov">국비지원대상</option>
+                                <option value="general">일반</option>
+                            </select>
+                        </div>
                         <div class="w-[140px]">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">교육 대상</label>
                             <select id="typeFilter" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/30 text-sm cursor-pointer outline-none">
@@ -203,6 +211,21 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                     </select>
                 </div>
 
+                <!-- 대상 구분 (국비/일반) -->
+                <div>
+                    <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">대상 구분 <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:border-blue-300 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:text-blue-600">
+                            <input type="radio" name="newStdFunding" value="gov" checked class="sr-only">
+                            <span class="text-xs font-bold">국비지원대상</span>
+                        </label>
+                        <label class="flex items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:border-blue-300 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500 has-[:checked]:text-blue-600">
+                            <input type="radio" name="newStdFunding" value="general" class="sr-only">
+                            <span class="text-xs font-bold">일반</span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- 훈련생 유형 -->
                 <div>
                     <label class="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">훈련생 유형 <span class="text-red-500">*</span></label>
@@ -319,8 +342,9 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                             <p class="text-xs text-gray-400 font-medium" id="sidebarStdCourse">-</p>
                             <p class="text-[10px] text-gray-400 font-medium mt-1" id="sidebarStdCreatedAt">가입일: -</p>
                             
-                            <div class="flex gap-2 mt-4">
+                            <div class="flex flex-wrap justify-center gap-2 mt-4">
                                 <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-wider" id="sidebarStdStatus">상담중</span>
+                                <span class="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-wider" id="sidebarStdFunding">국비지원</span>
                                 <span class="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase tracking-wider" id="sidebarStdType">구직자</span>
                             </div>
                         </div>
@@ -376,6 +400,13 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                                 <i class="fas fa-graduation-cap mr-2"></i> 교육 대상 구분
                             </h5>
                             <div class="space-y-3">
+                                <div>
+                                    <label class="text-[10px] font-bold text-gray-400 ml-1 mb-1 block">대상 구분</label>
+                                    <select id="stdFundingCategory" required class="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm outline-none">
+                                        <option value="gov">국비지원대상</option>
+                                        <option value="general">일반</option>
+                                    </select>
+                                </div>
                                 <select id="stdCourseId" class="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm outline-none appearance-none cursor-pointer">
                                     <option value="">과정 선택</option>
                                 </select>
@@ -601,6 +632,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             return {
                 search: (document.getElementById('searchInput') && document.getElementById('searchInput').value) ? document.getElementById('searchInput').value.trim() : '',
                 status: (document.getElementById('statusFilter') && document.getElementById('statusFilter').value) || '',
+                funding: (document.getElementById('fundingFilter') && document.getElementById('fundingFilter').value) || '',
                 type: (document.getElementById('typeFilter') && document.getElementById('typeFilter').value) || '',
                 sort: (document.getElementById('sortFilter') && document.getElementById('sortFilter').value) || 'created_desc'
             };
@@ -615,10 +647,12 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
         window.resetFilters = function() {
             const searchInput = document.getElementById('searchInput');
             const statusFilter = document.getElementById('statusFilter');
+            const fundingFilter = document.getElementById('fundingFilter');
             const typeFilter = document.getElementById('typeFilter');
             const sortFilter = document.getElementById('sortFilter');
             if (searchInput) searchInput.value = '';
             if (statusFilter) statusFilter.value = '';
+            if (fundingFilter) fundingFilter.value = '';
             if (typeFilter) typeFilter.value = '';
             if (sortFilter) sortFilter.value = 'created_desc';
             currentPage = 1;
@@ -635,8 +669,10 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             if (f.search) chips.push({ label: '검색: \"' + f.search + '\"', key: 'search' });
             const statusLabels = { consulting: '초기 상담', registered: '등록·발급', learning: '집중 훈련', completed: '수료 완료', employed: '취업·성공', dropout: '중도탈락' };
             if (f.status) chips.push({ label: '여정: ' + (statusLabels[f.status] || f.status), key: 'status' });
+            const fundingLabels = { gov: '국비지원대상', general: '일반' };
+            if (f.funding) chips.push({ label: '구분: ' + (fundingLabels[f.funding] || f.funding), key: 'funding' });
             const typeLabels = { jobseeker: '구직자', worker: '재직자', general: '일반', student: '학생' };
-            if (f.type) chips.push({ label: '대상: ' + (typeLabels[f.type] || f.type), key: 'type' });
+            if (f.type) chips.push({ label: '유형: ' + (typeLabels[f.type] || f.type), key: 'type' });
             if (f.sort && f.sort !== 'created_desc') chips.push({ label: '정렬: ' + (f.sort === 'name_asc' ? '이름순' : '가입일 오래된순'), key: 'sort' });
             if (chips.length === 0) {
                 wrap.classList.add('hidden');
@@ -652,6 +688,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
         window.removeFilterChip = function(key) {
             if (key === 'search') { var el = document.getElementById('searchInput'); if (el) el.value = ''; }
             if (key === 'status') { var el = document.getElementById('statusFilter'); if (el) el.value = ''; }
+            if (key === 'funding') { var el = document.getElementById('fundingFilter'); if (el) el.value = ''; }
             if (key === 'type') { var el = document.getElementById('typeFilter'); if (el) el.value = ''; }
             if (key === 'sort') { var el = document.getElementById('sortFilter'); if (el) el.value = 'created_desc'; }
             currentPage = 1;
@@ -668,6 +705,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                 let url = '/api/hrd/students?page=' + currentPage + '&limit=' + pageSize + '&';
                 if (f.search) url += 'search=' + encodeURIComponent(f.search) + '&';
                 if (f.status) url += 'status=' + encodeURIComponent(f.status) + '&';
+                if (f.funding) url += 'funding_category=' + encodeURIComponent(f.funding) + '&';
                 if (f.type) url += 'type=' + encodeURIComponent(f.type) + '&';
                 if (f.sort) url += 'sort=' + encodeURIComponent(f.sort) + '&';
 
@@ -815,7 +853,10 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                                 <img src="\${s.profile_image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.name)}" data-fallback="https://ui-avatars.com/api/?name=\${encodeURIComponent(s.name || '')}" onerror="this.onerror=null;this.src=this.dataset.fallback||''" class="w-full h-full object-cover">
                             </div>
                             <div>
-                                <h4 class="text-sm font-bold text-gray-900">\${s.name}</h4>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="text-sm font-bold text-gray-900">\${s.name}</h4>
+                                    <span class="px-2 py-0.5 rounded-md text-[9px] font-black \${(s.funding_category === 'general') ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'}">\${(s.funding_category === 'general') ? '일반' : '국비'}</span>
+                                </div>
                                 <p class="text-[10px] text-gray-400 font-medium tracking-tight">\${s.birthdate || '-'} (\${s.gender === 'M' ? '남' : '여'})</p>
                             </div>
                         </div>
@@ -930,6 +971,8 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             document.getElementById('stdPhone').value = student.phone || '';
             document.getElementById('stdEmail').value = student.email || '';
             document.getElementById('stdCourseId').value = student.course_id || '';
+            var fundingEl = document.getElementById('stdFundingCategory');
+            if (fundingEl) fundingEl.value = (student.funding_category === 'general') ? 'general' : 'gov';
             document.getElementById('stdType').value = student.type || 'jobseeker';
             document.getElementById('stdGender').value = student.gender || 'M';
             document.getElementById('stdStatus').value = student.status || 'consulting';
@@ -954,6 +997,8 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             document.getElementById('stdIsRegistered').checked = !!student.is_hrd_net_registered;
             
             document.getElementById('sidebarStdStatus').textContent = translateStatus(student.status);
+            var fundingBadge = document.getElementById('sidebarStdFunding');
+            if (fundingBadge) fundingBadge.textContent = (student.funding_category === 'general') ? '일반' : '국비지원';
             document.getElementById('sidebarStdType').textContent = translateType(student.type);
 
             updateStepper(student.status);
@@ -1063,6 +1108,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                 phone: document.getElementById('stdPhone').value.trim(),
                 email: document.getElementById('stdEmail').value.trim() || null,
                 course_id: document.getElementById('stdCourseId').value || null,
+                funding_category: (document.getElementById('stdFundingCategory') && document.getElementById('stdFundingCategory').value) || 'gov',
                 type: document.getElementById('stdType').value,
                 gender: document.getElementById('stdGender').value,
                 status: document.getElementById('stdStatus').value || 'consulting',
@@ -1244,6 +1290,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
             const gender = document.getElementById('newStdGender').value;
             const course_id = document.getElementById('newStdCourse').value || null;
             const type = document.querySelector('input[name="newStdType"]:checked')?.value || 'jobseeker';
+            const funding_category = document.querySelector('input[name="newStdFunding"]:checked')?.value || 'gov';
             
             if (!name || !phone) {
                 alert('이름과 연락처는 필수 입력 항목입니다.');
@@ -1258,6 +1305,7 @@ export const adminHrdStudentsHtml = (activeMenu: string = 'students') => `
                 gender,
                 course_id,
                 type,
+                funding_category,
                 status: 'consulting' // 신규 등록 시 기본 상태는 '상담중'
             };
             

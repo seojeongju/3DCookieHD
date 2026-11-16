@@ -51,6 +51,27 @@ function normalizePackageType(v: string | null | undefined): string | null {
     return null;
 }
 
+/** 훈련생 대상구분: 국비지원대상(gov) / 일반(general) */
+function normalizeFundingCategory(v: string | null | undefined): 'gov' | 'general' {
+    const s = String(v || '').trim().toLowerCase();
+    if (s === 'general' || s === '일반') return 'general';
+    return 'gov';
+}
+
+async function ensureFundingCategoryColumn(DB: D1Database): Promise<void> {
+    try {
+        await DB.prepare(
+            `ALTER TABLE hrd_student_details ADD COLUMN funding_category TEXT DEFAULT 'gov'`
+        ).run();
+    } catch (e) {
+        const msg = String((e as Error)?.message ?? e);
+        if (!/duplicate column|already exists/i.test(msg)) {
+            // 컬럼이 이미 있으면 무시, 그 외는 로그만
+            if (!/no such table/i.test(msg)) console.warn('ensureFundingCategoryColumn:', msg);
+        }
+    }
+}
+
 // 회차/과정 ID → LMS 과정 ID (과제·훈련일지·시험 등과 동일 로직: 풀네임·1:1)
 async function resolveLmsCourseId(DB: any, id: any): Promise<number | null> {
     return resolveSessionToLmsCourseId(DB, id);
@@ -689,9 +710,12 @@ app.get('/students', authMiddleware, requireCounselingStaff, async (c) => {
         // 목록·상태 필터가 최신 여정 상태를 보도록 조회 전에 수료 전환을 반영
         await syncStudentCompletionStatus(c.env.DB);
 
+        await ensureFundingCategoryColumn(c.env.DB);
+
         const search = (c.req.query('search') || '').trim();
         const status = c.req.query('status');
         const type = c.req.query('type');
+        const fundingCategory = (c.req.query('funding_category') || '').trim().toLowerCase();
         const sort = ['created_asc', 'name_asc'].includes(c.req.query('sort') || '') ? c.req.query('sort') : 'created_desc';
         const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
         const limit = Math.min(50, Math.max(10, parseInt(c.req.query('limit') || '15', 10)));
@@ -713,6 +737,13 @@ app.get('/students', authMiddleware, requireCounselingStaff, async (c) => {
             whereClause.push("d.type = ?");
             params.push(type);
         }
+        if (fundingCategory === 'gov' || fundingCategory === 'general') {
+            if (fundingCategory === 'general') {
+                whereClause.push("LOWER(COALESCE(d.funding_category, 'gov')) = 'general'");
+            } else {
+                whereClause.push("LOWER(COALESCE(d.funding_category, 'gov')) != 'general'");
+            }
+        }
 
         const whereSql = ' WHERE ' + whereClause.join(' AND ');
         const orderSql = sort === 'name_asc' ? ' ORDER BY u.name ASC, u.id ASC' : sort === 'created_asc' ? ' ORDER BY u.created_at ASC, u.id ASC' : ' ORDER BY u.created_at DESC, u.id DESC';
@@ -728,7 +759,7 @@ app.get('/students', authMiddleware, requireCounselingStaff, async (c) => {
             SELECT 
                 u.id, u.name, u.phone, u.email, u.created_at,
                 u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
-                d.course_id, d.status, d.type, d.last_consult,
+                d.course_id, d.status, d.type, d.last_consult, d.funding_category,
                 d.package_type, d.payment_method, d.payment_method_note, d.payment_date, d.self_pay_amount,
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
                 (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')' || ${DROPPED_SUFFIX_SQL})
@@ -782,6 +813,7 @@ app.get('/students', authMiddleware, requireCounselingStaff, async (c) => {
             current_courses: currentCoursesByUser[r.id] || [],
             status: r.status || 'consulting',
             type: r.type || 'jobseeker',
+            funding_category: normalizeFundingCategory(r.funding_category),
             last_consult: r.last_consult || null,
             has_application: !!r.has_application,
             has_card: !!r.has_card,
@@ -806,12 +838,13 @@ app.get('/students', authMiddleware, requireCounselingStaff, async (c) => {
 app.get('/students/:id', authMiddleware, requireCounselingStaff, async (c) => {
     try {
         const id = c.req.param('id');
+        await ensureFundingCategoryColumn(c.env.DB);
         await syncStudentCompletionStatus(c.env.DB, [id]);
         const query = `
             SELECT 
                 u.id, u.name, u.phone, u.email, u.created_at,
                 u.address, u.birthdate, u.gender, u.education, u.certifications, u.profile_image,
-                d.course_id, d.status, d.type, d.last_consult,
+                d.course_id, d.status, d.type, d.last_consult, d.funding_category,
                 d.package_type, d.payment_method, d.payment_method_note, d.payment_date, d.self_pay_amount,
                 d.has_application, d.has_card, d.is_hrd_net_registered, d.status_memo,
                 (SELECT (a.name || ' (' || cs.session_number || '회차' || CASE WHEN cs.session_name IS NOT NULL AND TRIM(cs.session_name) <> '' THEN ' - ' || cs.session_name ELSE '' END || ')' || ${DROPPED_SUFFIX_SQL})
@@ -1046,6 +1079,7 @@ app.get('/students/:id', authMiddleware, requireCounselingStaff, async (c) => {
             current_courses: current_courses,
             status: r.status || 'consulting',
             type: r.type || 'jobseeker',
+            funding_category: normalizeFundingCategory(r.funding_category),
             last_consult: r.last_consult || null,
             has_application: !!r.has_application,
             has_card: !!r.has_card,
@@ -1074,12 +1108,13 @@ app.get('/db-check', authMiddleware, requireRole('admin'), async (c) => {
 // 훈련생 등록
 app.post('/students', authMiddleware, requireCounselingStaff, async (c) => {
     try {
+        await ensureFundingCategoryColumn(c.env.DB);
         const body = await c.req.json();
         const {
             name, email, phone, birthdate, gender, address, education,
             certifications, type, status, course_id, package_type, payment_method, payment_method_note,
             payment_date, self_pay_amount, has_application, has_card,
-            is_hrd_net_registered, status_memo, profile_image
+            is_hrd_net_registered, status_memo, profile_image, funding_category
         } = body;
 
         if (!name || !phone) {
@@ -1125,6 +1160,7 @@ app.post('/students', authMiddleware, requireCounselingStaff, async (c) => {
         // 기본값 처리
         const valStatus = status || 'consulting';
         const valType = type || 'jobseeker';
+        const valFundingCategory = normalizeFundingCategory(funding_category);
         const valPackageType = normalizePackageType(package_type);
         const valPaymentMethod = normalizePaymentMethod(payment_method);
         const valPaymentMethodNote = (payment_method_note != null && String(payment_method_note).trim() !== '') ? String(payment_method_note).trim() : null;
@@ -1135,21 +1171,21 @@ app.post('/students', authMiddleware, requireCounselingStaff, async (c) => {
         // 2. HRD 상세 정보 등록/업데이트
         await c.env.DB.prepare(`
             INSERT INTO hrd_student_details(
-                        user_id, course_id, status, type, package_type, payment_method, payment_method_note, payment_date,
+                        user_id, course_id, status, type, funding_category, package_type, payment_method, payment_method_note, payment_date,
                         self_pay_amount, has_application, has_card, is_hrd_net_registered,
                         status_memo
-                    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
-                    course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?, payment_method_note = ?,
+                    course_id = ?, status = ?, type = ?, funding_category = ?, package_type = ?, payment_method = ?, payment_method_note = ?,
                         payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?,
                         is_hrd_net_registered = ?, status_memo = ?,
                         updated_at = CURRENT_TIMESTAMP
                             `).bind(
-            userId, hrdCourseId, valStatus, valType, (valPackageType ?? ''), (valPaymentMethod ?? ''), valPaymentMethodNote, valPaymentDate,
+            userId, hrdCourseId, valStatus, valType, valFundingCategory, (valPackageType ?? ''), (valPaymentMethod ?? ''), valPaymentMethodNote, valPaymentDate,
             valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, valStatusMemo,
             // UPDATE values
-            hrdCourseId, valStatus, valType, (valPackageType ?? ''), (valPaymentMethod ?? ''), valPaymentMethodNote, valPaymentDate,
+            hrdCourseId, valStatus, valType, valFundingCategory, (valPackageType ?? ''), (valPaymentMethod ?? ''), valPaymentMethodNote, valPaymentDate,
             valSelfPayAmount, has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, valStatusMemo
         ).run();
@@ -1164,12 +1200,13 @@ app.post('/students', authMiddleware, requireCounselingStaff, async (c) => {
 // 훈련생 수정
 app.put('/students', authMiddleware, requireCounselingStaff, async (c) => {
     try {
+        await ensureFundingCategoryColumn(c.env.DB);
         const body = await c.req.json();
         const {
             id, name, email, phone, birthdate, gender, address, education,
             certifications, type, status, course_id, package_type, payment_method, payment_method_note,
             payment_date, self_pay_amount, has_application, has_card,
-            is_hrd_net_registered, status_memo, profile_image
+            is_hrd_net_registered, status_memo, profile_image, funding_category
         } = body;
 
         if (!id) return c.json({ success: false, error: 'ID가 필요합니다.' }, 400);
@@ -1181,6 +1218,7 @@ app.put('/students', authMiddleware, requireCounselingStaff, async (c) => {
         const valEducation = education || null;
         const valCertifications = certifications || null;
         const valProfileImage = profile_image || null;
+        const valFundingCategory = normalizeFundingCategory(funding_category);
 
         // 1. 사용자 기본 정보 업데이트 (profile_image 포함)
         await c.env.DB.prepare("UPDATE users SET name = ?, phone = ?, email = ?, birthdate = ?, gender = ?, address = ?, education = ?, certifications = ?, profile_image = ? WHERE id = ?")
@@ -1192,20 +1230,20 @@ app.put('/students', authMiddleware, requireCounselingStaff, async (c) => {
         // 2. HRD 상세 정보 업데이트 (레코드가 없을 경우를 대비해 UPSERT 수행)
         await c.env.DB.prepare(`
             INSERT INTO hrd_student_details(
-                                user_id, course_id, status, type, package_type, payment_method, payment_method_note,
+                                user_id, course_id, status, type, funding_category, package_type, payment_method, payment_method_note,
                                 payment_date, self_pay_amount, has_application, has_card,
                                 is_hrd_net_registered, status_memo
-                            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
-                    course_id = ?, status = ?, type = ?, package_type = ?, payment_method = ?, payment_method_note = ?,
+                    course_id = ?, status = ?, type = ?, funding_category = ?, package_type = ?, payment_method = ?, payment_method_note = ?,
                         payment_date = ?, self_pay_amount = ?, has_application = ?, has_card = ?,
                         is_hrd_net_registered = ?, status_memo = ?,
                         updated_at = CURRENT_TIMESTAMP
                             `).bind(
-            id, hrdCourseId, status || 'consulting', type || 'jobseeker', (normalizePackageType(package_type) ?? ''), (normalizePaymentMethod(payment_method) ?? ''), valPaymentMethodNote, payment_date || null,
+            id, hrdCourseId, status || 'consulting', type || 'jobseeker', valFundingCategory, (normalizePackageType(package_type) ?? ''), (normalizePaymentMethod(payment_method) ?? ''), valPaymentMethodNote, payment_date || null,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, status_memo || null,
-            hrdCourseId, status || 'consulting', type || 'jobseeker', (normalizePackageType(package_type) ?? ''), (normalizePaymentMethod(payment_method) ?? ''), valPaymentMethodNote, payment_date || null,
+            hrdCourseId, status || 'consulting', type || 'jobseeker', valFundingCategory, (normalizePackageType(package_type) ?? ''), (normalizePaymentMethod(payment_method) ?? ''), valPaymentMethodNote, payment_date || null,
             parseInt(self_pay_amount || 0), has_application ? 1 : 0, has_card ? 1 : 0,
             is_hrd_net_registered ? 1 : 0, status_memo || null
         ).run();

@@ -2,6 +2,9 @@
 
 export type OpeningDocImplStatus = 'ready' | 'link' | 'planned';
 
+/** 개강서류 대상: 전체 / 국비지원 / 일반 */
+export type OpeningDocAudience = 'all' | 'gov' | 'general';
+
 export type OpeningDocDef = {
   code: string;
   order: number;
@@ -11,6 +14,8 @@ export type OpeningDocDef = {
   status: OpeningDocImplStatus;
   /** link일 때 연결 종류 */
   linkType?: 'timetable' | 'attendance_trainee' | 'attendance_monthly';
+  /** 서류 대상 수강생 구분 (기본 all) */
+  audience?: OpeningDocAudience;
 };
 
 export const OPENING_DOCS: OpeningDocDef[] = [
@@ -40,29 +45,31 @@ export const OPENING_DOCS: OpeningDocDef[] = [
     code: 'D22',
     order: 3,
     title: '내일배움 훈련생서약서',
-    description: '국민내일배움 훈련과정 수강생별 서약서(일괄 인쇄)를 출력합니다.',
+    description: '국비지원대상 수강생용 — 국민내일배움 훈련과정 서약서(일괄 인쇄)를 출력합니다.',
     status: 'ready',
+    audience: 'gov',
   },
   {
     code: 'D23',
     order: 4,
     title: '개인정보활용동의서(일반)',
-    description: '개인정보 수집·이용 동의 본문과 신청인 서명란을 출력합니다.',
+    description: '일반 수강생용 — 개인정보 수집·이용 동의 본문과 신청인 서명란을 출력합니다.',
     status: 'ready',
+    audience: 'general',
   },
   {
     code: 'D31',
     order: 5,
     title: '오리엔테이션 수거용',
-    description: 'OT 수거용 안내·서명 (추후 구현)',
-    status: 'planned',
+    description: '출결·인정일수 안내와 수강생 확인 서명란(수거용)을 출력합니다.',
+    status: 'ready',
   },
   {
     code: 'D32',
     order: 6,
     title: '오리엔테이션 배포용',
-    description: 'OT 배포용 안내문 (추후 구현)',
-    status: 'planned',
+    description: '출결·인정일수 안내문(수강생 배포용)을 출력합니다.',
+    status: 'ready',
   },
   {
     code: 'D33',
@@ -75,16 +82,16 @@ export const OPENING_DOCS: OpeningDocDef[] = [
     code: 'D40',
     order: 8,
     title: '미디어 촬영 동의서',
-    description: '촬영 동의서 (추후 구현)',
-    status: 'planned',
+    description: 'CCTV·영상정보 촬영 동의서(수강생별)를 출력합니다.',
+    status: 'ready',
   },
   {
     code: 'D51',
     order: 9,
     title: '출석부(일반수강생용)',
-    description: '기존 훈련생 출석부 인쇄로 이동합니다.',
-    status: 'link',
-    linkType: 'attendance_trainee',
+    description: '일반 수강생용 출석부(훈련일·시작/종료·집계란)를 출력합니다.',
+    status: 'ready',
+    audience: 'general',
   },
   {
     code: 'D52',
@@ -98,8 +105,9 @@ export const OPENING_DOCS: OpeningDocDef[] = [
     code: 'D53',
     order: 11,
     title: '출석입력요청대장(별지 제16호)',
-    description: '출석 입력 요청 대장 (추후 구현)',
-    status: 'planned',
+    description: '국민내일배움카드 운영규정 별지 제16호 출석입력요청대장을 출력합니다.',
+    status: 'ready',
+    audience: 'gov',
   },
   {
     code: 'D70',
@@ -113,6 +121,20 @@ export const OPENING_DOCS: OpeningDocDef[] = [
     order: 13,
     title: 'SD카드 지급·반납 확인서 관리대장',
     description: '훈련일별 지급·반납·출력중 체크 대장을 출력합니다.',
+    status: 'ready',
+  },
+  {
+    code: 'D90',
+    order: 14,
+    title: '업무수행평가(수업평가)',
+    description: '훈련교사 본인 수업평가(15문항·건의사항·결재란)를 출력합니다.',
+    status: 'ready',
+  },
+  {
+    code: 'D91',
+    order: 15,
+    title: '강의 후 설문조사',
+    description: '교육만족도·강사·교육내용 평가 설문지(수강생 배포용)를 출력합니다.',
     status: 'ready',
   },
 ];
