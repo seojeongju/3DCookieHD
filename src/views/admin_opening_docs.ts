@@ -41,7 +41,7 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                                     <option value="">회차를 선택하세요</option>
                                 </select>
                             </div>
-                            <button type="button" id="btnLoadSession" class="min-h-[44px] px-6 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black hover:bg-blue-600 transition shadow-sm">
+                            <button type="button" id="btnLoadSession" class="min-h-[44px] px-6 py-3 rounded-2xl bg-slate-700 text-white text-xs font-black hover:bg-slate-800 transition shadow-sm">
                                 서류 목록 보기
                             </button>
                         </div>
@@ -72,7 +72,7 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                             <div>
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">대상 구분 필터</p>
                                 <div id="fundingFilterGroup" class="inline-flex flex-wrap gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200/80">
-                                    <button type="button" data-funding="all" class="funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black bg-slate-900 text-white shadow-sm">전체</button>
+                                    <button type="button" data-funding="all" class="funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black bg-slate-700 text-white shadow-sm">전체</button>
                                     <button type="button" data-funding="gov" class="funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black text-slate-600 hover:bg-white/80">국비지원대상</button>
                                     <button type="button" data-funding="general" class="funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black text-slate-600 hover:bg-white/80">일반</button>
                                 </div>
@@ -166,15 +166,15 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                 if (!pdfHref) return '';
                 if ((doc.code === 'D02' || doc.code === 'D03') && d && d.xlsx) {
                     return '<div class="grid grid-cols-2 gap-1.5 mt-1.5">' +
-                        '<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-rose-600 text-white text-[10px] font-black hover:bg-rose-700 transition"><i class="fas fa-file-pdf"></i> PDF</a>' +
-                        '<button type="button" data-dl="' + esc(d.xlsx) + '" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-emerald-600 text-white text-[10px] font-black hover:bg-emerald-700 transition"><i class="fas fa-file-excel mr-1"></i>Excel</button>' +
-                        '<button type="button" data-dl="' + esc(d.gsheet) + '" data-gsheet="1" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-green-600 text-white text-[10px] font-black hover:bg-green-700 transition"><i class="fas fa-table mr-1"></i>구글시트</button>' +
-                        '<a href="' + esc(printHrefWithQuery(doc, 'autodownload=1')) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900 transition"><i class="fas fa-download"></i> HTML</a>' +
+                        '<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200/80 text-[10px] font-black hover:bg-rose-100 transition"><i class="fas fa-file-pdf"></i> PDF</a>' +
+                        '<button type="button" data-dl="' + esc(d.xlsx) + '" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-black hover:bg-emerald-100 transition"><i class="fas fa-file-excel mr-1"></i>Excel</button>' +
+                        '<button type="button" data-dl="' + esc(d.gsheet) + '" data-gsheet="1" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-teal-50 text-teal-700 border border-teal-200/80 text-[10px] font-black hover:bg-teal-100 transition"><i class="fas fa-table mr-1"></i>구글시트</button>' +
+                        '<a href="' + esc(printHrefWithQuery(doc, 'autodownload=1')) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-black hover:bg-slate-100 transition"><i class="fas fa-download"></i> HTML</a>' +
                     '</div>';
                 }
                 return '<div class="grid grid-cols-2 gap-1.5 mt-1.5">' +
-                    '<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-rose-600 text-white text-[10px] font-black hover:bg-rose-700 transition"><i class="fas fa-file-pdf"></i> PDF 다운로드</a>' +
-                    '<a href="' + esc(printHrefWithQuery(doc, 'autodownload=1')) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl border border-slate-200 text-slate-700 text-[10px] font-black hover:bg-slate-50 transition"><i class="fas fa-download"></i> HTML</a>' +
+                    '<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200/80 text-[10px] font-black hover:bg-rose-100 transition"><i class="fas fa-file-pdf"></i> PDF 다운로드</a>' +
+                    '<a href="' + esc(printHrefWithQuery(doc, 'autodownload=1')) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-black hover:bg-slate-100 transition"><i class="fas fa-download"></i> HTML</a>' +
                 '</div>';
             }
 
@@ -182,7 +182,7 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                 document.querySelectorAll('.funding-filter-btn').forEach(function(btn) {
                     var on = btn.getAttribute('data-funding') === fundingFilter;
                     btn.className = 'funding-filter-btn px-3.5 py-2 rounded-xl text-xs font-black ' +
-                        (on ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-white/80');
+                        (on ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-600 hover:bg-white/80');
                 });
             }
 
@@ -209,27 +209,30 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                     if (doc.status === 'planned') {
                         actions = '<button type="button" disabled class="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed">' + actionLabel(doc) + '</button>';
                     } else if (doc.status === 'link' && doc.href) {
-                        actions = '<a href="' + esc(doc.href) + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-blue-600 transition">' +
+                        actions = '<a href="' + esc(doc.href) + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold hover:bg-slate-200/80 transition">' +
                             '<i class="fas fa-external-link-alt text-[10px]"></i> ' + actionLabel(doc) + '</a>';
                     } else if (doc.status === 'ready' && incompatible) {
                         actions = '<button type="button" disabled class="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed">현재 필터와 대상이 다름</button>';
                     } else if (doc.status === 'ready') {
                         if (fundingFilter === 'all' && aud === 'all') {
                             actions = '<div class="grid grid-cols-3 gap-1.5">' +
-                                '<a href="' + esc(doc.href_all || doc.href || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black hover:bg-blue-600 transition">전체 ' + cnt + '</a>' +
-                                '<a href="' + esc(doc.href_gov || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-amber-500 text-white text-[10px] font-black hover:bg-amber-600 transition">국비 ' + cntGov + '</a>' +
-                                '<a href="' + esc(doc.href_general || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-slate-500 text-white text-[10px] font-black hover:bg-slate-600 transition">일반 ' + cntGen + '</a>' +
+                                '<a href="' + esc(doc.href_all || doc.href || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-black hover:bg-slate-200/80 transition">전체 ' + cnt + '</a>' +
+                                '<a href="' + esc(doc.href_gov || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200/80 text-[10px] font-black hover:bg-amber-100 transition">국비 ' + cntGov + '</a>' +
+                                '<a href="' + esc(doc.href_general || '#') + '" target="_blank" rel="noopener" class="min-h-[40px] inline-flex items-center justify-center px-2 py-2 rounded-xl bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-black hover:bg-slate-100 transition">일반 ' + cntGen + '</a>' +
                             '</div>';
                         } else if (fundingFilter === 'all' && aud === 'gov') {
-                            actions = '<a href="' + esc(doc.href_gov || doc.href || '#') + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition">' +
+                            actions = '<a href="' + esc(doc.href_gov || doc.href || '#') + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200/80 text-xs font-bold hover:bg-amber-100 transition">' +
                                 '<i class="fas fa-print text-[10px]"></i> 국비 ' + cntGov + '명 인쇄</a>';
                         } else if (fundingFilter === 'all' && aud === 'general') {
-                            actions = '<a href="' + esc(doc.href_general || doc.href || '#') + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-600 text-white text-xs font-bold hover:bg-slate-700 transition">' +
+                            actions = '<a href="' + esc(doc.href_general || doc.href || '#') + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold hover:bg-slate-200/80 transition">' +
                                 '<i class="fas fa-print text-[10px]"></i> 일반 ' + cntGen + '명 인쇄</a>';
                         } else {
                             var href = doc.href || '#';
                             var label = fundingFilter === 'gov' ? ('국비 ' + cnt + '명') : fundingFilter === 'general' ? ('일반 ' + cnt + '명') : actionLabel(doc);
-                            actions = '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-blue-600 transition">' +
+                            var printCls = fundingFilter === 'gov'
+                                ? 'bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100'
+                                : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200/80';
+                            actions = '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="w-full min-h-[40px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl ' + printCls + ' text-xs font-bold transition">' +
                                 '<i class="fas fa-print text-[10px]"></i> ' + label + ' 인쇄</a>';
                         }
                     } else {
@@ -372,14 +375,23 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         }
         body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; font-size: 12px; color: #111; background: #f1f5f9; margin: 0; }
         .toolbar { max-width: 297mm; margin: 12px auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-        .toolbar button, .toolbar a.btn-dl { padding: 8px 14px; border: 0; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-print { background: #2563eb; color: #fff; }
-        .btn-close { background: #475569; color: #fff; }
-        .btn-xlsx { background: #15803d; color: #fff; }
-        .btn-gsheet { background: #0f9d58; color: #fff; }
-        .btn-html { background: #0f172a; color: #fff; }
-        .btn-pdf { background: #b91c1c; color: #fff; }
+        .toolbar button, .toolbar a.btn-dl { padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: background .15s ease, border-color .15s ease; }
+        .btn-print { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+        .btn-print:hover { background: #e0e7ff; }
+        .btn-close { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+        .btn-close:hover { background: #f1f5f9; }
+        .btn-xlsx { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .btn-xlsx:hover { background: #d1fae5; }
+        .btn-gsheet { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
+        .btn-gsheet:hover { background: #ccfbf1; }
+        .btn-html { background: #f8fafc; color: #334155; border: 1px solid #e2e8f0; }
+        .btn-html:hover { background: #f1f5f9; }
+        .btn-pdf { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
+        .btn-pdf:hover { background: #ffe4e6; }
         .btn-pdf:disabled { opacity: .65; cursor: wait; }
+        .btn-fund-all { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+        .btn-fund-gov { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .btn-fund-gen { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
         .sheet { max-width: 210mm; margin: 0 auto 24px; background: #fff; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
         .sheet.sheet-tt { max-width: 297mm; padding: 14px 16px; }
         table.tt-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 6px 0 10px; }
@@ -520,9 +532,9 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         <button type="button" class="btn-gsheet" id="btnDlGsheet" style="display:none"><i class="fas fa-table"></i> 구글시트</button>
         <button type="button" class="btn-close" onclick="window.close()">닫기</button>
         <span style="margin-left:8px;align-self:center;font-size:11px;font-weight:700;color:#64748b;">대상</span>
-        <button type="button" class="btn-close" style="background:#0f172a" onclick="(function(){var u=new URL(location.href);u.searchParams.delete('funding');location.href=u.toString();})()">전체</button>
-        <button type="button" class="btn-close" style="background:#d97706" onclick="(function(){var u=new URL(location.href);u.searchParams.set('funding','gov');location.href=u.toString();})()">국비</button>
-        <button type="button" class="btn-close" style="background:#64748b" onclick="(function(){var u=new URL(location.href);u.searchParams.set('funding','general');location.href=u.toString();})()">일반</button>
+        <button type="button" class="btn-fund-all" onclick="(function(){var u=new URL(location.href);u.searchParams.delete('funding');location.href=u.toString();})()">전체</button>
+        <button type="button" class="btn-fund-gov" onclick="(function(){var u=new URL(location.href);u.searchParams.set('funding','gov');location.href=u.toString();})()">국비</button>
+        <button type="button" class="btn-fund-gen" onclick="(function(){var u=new URL(location.href);u.searchParams.set('funding','general');location.href=u.toString();})()">일반</button>
     </div>
     <div class="sheet" id="sheet">
         <div class="empty" id="loading">불러오는 중…</div>
