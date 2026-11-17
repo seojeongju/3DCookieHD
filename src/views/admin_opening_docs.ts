@@ -494,16 +494,22 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         .footnote { margin-top: 10px; font-size: 10px; color: #64748b; }
         .sign-row { margin-top: 28px; display: flex; justify-content: flex-end; gap: 40px; font-size: 12px; }
         .ot-wrap { font-size: 12px; line-height: 1.55; word-break: keep-all; }
-        .ot-wrap h2 { font-size: 15px; margin: 14px 0 8px; border-left: 4px solid #0f172a; padding-left: 8px; }
-        .ot-wrap p { margin: 0 0 8px; }
+        .ot-wrap h2 { font-size: 14px; margin: 16px 0 8px; border-left: 4px solid #0f172a; padding-left: 8px; }
+        .ot-wrap h3 { font-size: 12.5px; margin: 10px 0 6px; font-weight: 800; }
+        .ot-wrap p { margin: 0 0 6px; }
         .ot-wrap .bullet-line { margin: 0 0 6px; }
+        .ot-wrap .indent { margin: 0 0 6px 14px; }
         table.ot-table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; table-layout: fixed; }
         table.ot-table th, table.ot-table td { border: 1px solid #222; padding: 5px 6px; font-size: 11px; vertical-align: middle; }
         table.ot-table th { background: #f3f4f6; text-align: center; font-weight: 700; }
         table.ot-table td.l { text-align: left; }
         table.ot-table td.c { text-align: center; }
-        .ot-confirm { margin-top: 18px; padding: 12px; border: 1px solid #222; }
-        .ot-confirm .ask { font-weight: 700; margin-bottom: 10px; }
+        .ot-confirm { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid #222; background: #fafafa; }
+        .ot-confirm .ask { font-weight: 700; margin-bottom: 8px; }
+        .ot-confirm-inline { margin: 8px 0 14px; font-size: 12px; font-weight: 700; }
+        .ot-confirm-inline .box { display: inline-block; width: 14px; height: 14px; border: 1px solid #222; margin-left: 8px; vertical-align: -2px; }
+        .ot-sign-line { margin: 10px 0 4px; text-align: right; font-size: 12px; font-weight: 600; padding-right: 8px; }
+        .ot-page-break { page-break-before: always; break-before: page; }
         .eval-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
         .eval-head table { border-collapse: collapse; }
         .eval-head th, .eval-head td { border: 1px solid #222; padding: 4px 8px; font-size: 11px; text-align: center; }
@@ -745,13 +751,31 @@ const sharedPrintHelpers = `
             if (!m) return day.dateShort || '';
             return m[1] + '월 ' + m[2] + '일';
         }
-        /** HWP 3-1/3-2 오리엔테이션 출결·인정일수 본문 */
+        /** HWP 3-1(수거용) / 3-2(배포용) 오리엔테이션 전체 본문 — 학생별 복제가 아닌 단일 문서 + 수기 서명란 */
+        function orientationConfirmCheck() {
+            return '<p class="ot-confirm-inline">상기내용에 대하여 안내 받았으며 내용을 확인하였습니다. 확인 <span class="box"></span></p>';
+        }
+        function orientationConfirmSign(session) {
+            return '<div class="ot-confirm">' +
+                '<p class="ask">상기내용에 대하여 안내 받았으며 내용을 확인하였습니다.</p>' +
+                '<div class="ot-sign-line">' + esc(formatPledgeDate(session.training_start_date)) +
+                '&nbsp;&nbsp;확인자 :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명)</div>' +
+            '</div>';
+        }
         function orientationBodyHtml(session, opts) {
             opts = opts || {};
+            var collect = !!opts.collect;
             var rules = session.attendance_rules || {};
             var units = session.unit_periods || [];
             var dayCount = session.training_day_count || session.total_days || units.reduce(function(a, u) { return a + (u.training_days || 0); }, 0) || '';
             var hourCount = session.training_hour_count || session.total_hours || '';
+            var dailyHours = Number(session.daily_hours || 0);
+            if (!dailyHours && session.training_time_start && session.training_time_end) {
+                // 시간 문자열로 대략 계산하지 않고 기본 4시간 가정
+                dailyHours = 4;
+            }
+            var stipendRate = dailyHours >= 5 ? 5800 : 2500;
+            var stipendCap = dailyHours >= 5 ? 116000 : 50000;
             var period = formatDotDate(session.training_start_date) + ' ~ ' + formatDotDate(session.training_end_date);
             var unitRows = units.map(function(u) {
                 return '<tr>' +
@@ -762,11 +786,23 @@ const sharedPrintHelpers = `
                 '</tr>';
             }).join('');
             if (!unitRows) {
-                unitRows = '<tr><td class="c">1단위</td><td class="c">' + esc(formatShortDot(session.training_start_date) + ' ~ ' + formatShortDot(session.training_end_date)) + '</td><td class="c">' + esc(String(dayCount || '')) + '일</td><td class="c">지각 또는 조퇴 1회</td></tr>';
+                unitRows = '<tr><td class="c">1단위</td><td class="c">' + esc(formatShortDot(session.training_start_date) + ' ~ ' + formatShortDot(session.training_end_date)) +
+                    '</td><td class="c">' + esc(String(dayCount || '')) + '일</td><td class="c">지각 또는 조퇴 1회</td></tr>';
             }
+            var stipendRows = (units.length ? units : [{ unit: 1, start_date: session.training_start_date, end_date: session.training_end_date, training_days: dayCount || '' }]).map(function(u) {
+                return '<tr>' +
+                    '<td class="c">' + u.unit + '단위</td>' +
+                    '<td class="c">' + esc(formatShortDot(u.start_date) + ' ~ ' + formatShortDot(u.end_date)) + '</td>' +
+                    '<td class="c">' + esc(String(u.training_days || '')) + '일</td>' +
+                    '<td class="c">단위 종료 후<br>신청 안내</td>' +
+                    '<td class="c">신청 후<br>약 2주</td>' +
+                    '<td class="c">출석일수×' + stipendRate.toLocaleString('ko-KR') + '원</td>' +
+                '</tr>';
+            }).join('');
+            var contact = session.contact_phone || '02-3144-3137';
             var html = '<div class="ot-wrap">' +
-                '<p class="bullet-line"><strong>출결기준</strong></p>' +
-                '<p>○ 훈련기간이 ' + esc(period.replace(/\\./g, '. ')) + ' 총 ' + esc(String(dayCount)) + '일 ' + esc(String(hourCount)) +
+                '<h2>출결기준</h2>' +
+                '<p>○ 훈련기간이 ' + esc(period) + ' 총 ' + esc(String(dayCount)) + '일 ' + esc(String(hourCount)) +
                 '시간 수업으로 훈련(일)의 100분의 80%이상 출석하셔야 수료가 되는 과정입니다.</p>' +
                 '<table class="ot-table"><thead><tr><th style="width:70px">단위기간</th><th>훈련기간</th><th>총수업일수(인정결석일)</th><th style="width:120px">비고</th></tr></thead><tbody>' +
                 unitRows + '</tbody></table>' +
@@ -778,25 +814,140 @@ const sharedPrintHelpers = `
                 '<tr><th>외 출</th><td class="l">' + esc(rules.outing_rule || '') + '</td></tr>' +
                 '</table>' +
                 '<p>○ 총 훈련시간이 10일 이상의 훈련의 경우 훈련과 관련한 시험, 면접, 결혼, 사망, 출산 등의 사유로 훈련을 받지 못하는 경우 [출석인정일수]에 따라 훈련을 받은 것으로 인정됩니다.</p>' +
-                '<p class="bullet-line"><strong>출석인정일수</strong></p>' +
+                '<h3>출석인정일수</h3>' +
                 '<table class="ot-table">' +
                 '<thead><tr><th style="width:110px">구 분</th><th>대 상</th><th style="width:70px">일 수</th></tr></thead><tbody>' +
                 '<tr><td class="c">훈련 및 시험, 공민원</td><td class="l">예비군훈련, 민방위훈련, 징병검사, 취업/훈련관련시험(자격증), 입사시험(면접), 기능경기대회 출전, 선거권(기타 공인권)행사</td><td class="c">소요일수</td></tr>' +
                 '<tr><td class="c">결혼</td><td class="l">본인 5일 / 자녀 1일</td><td class="c">해당일수</td></tr>' +
                 '<tr><td class="c">사망</td><td class="l">배우자·본인 및 배우자의 부모 5일 / 조부모·외조부모 2일 / 자녀와 그 배우자 2일 / 형제자매 1일</td><td class="c">해당일수</td></tr>' +
                 '<tr><td class="c">출산</td><td class="l">배우자</td><td class="c">5일</td></tr>' +
-                '<tr><td class="c">질병/입원</td><td class="l">본인, 자녀 (진단서·진료확인서·입원확인서·질병확인서 등 증빙) ※ 처방전만으로는 인정되지 않을 수 있음</td><td class="c">증빙일수</td></tr>' +
+                '<tr><td class="c">질병/입원</td><td class="l">본인, 자녀 (진단서·진료확인서·입원확인서·질병확인서 증빙가능)<br>※ 처방전, 약국봉투, 영수증, 건강검진은 인정되지 않음</td><td class="c">단위기간의<br>10%</td></tr>' +
                 '</tbody></table>' +
-                '<p>○ 출석인정은 관련 증빙서류를 제출한 경우에 한하며, 사전·사후 신고 절차를 따릅니다.</p>' +
-                '<p>○ HRD-Net 출결 단말기(또는 지정 출결 방식)로 입·퇴실을 확인하고, 부정출석·대리출석은 관련 법령에 따라 불이익을 받을 수 있습니다.</p>';
-            if (opts.collect) {
-                html += '<div class="ot-confirm">' +
-                    '<p class="ask">위 출결기준 및 출석인정일수 안내를 충분히 확인하였습니다.</p>' +
-                    '<div class="pledge-date">' + esc(formatPledgeDate(session.training_start_date)) + '</div>' +
-                    '<div class="pledge-sign">확인자(수강생)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
-                '</div>';
-            }
-            html += '</div>';
+                '<p>○ 질병 등 불가피한 사유 없이 해당 훈련과정을 수료하지 않거나 중도탈락 또는 제적된 경우에는 계좌 지원한도에서 1회차는 20만원(훈련비별도), 2회차에는 50만원(훈련비별도), 3회차에는 100만원(훈련비별도)이 차감됩니다.(단, 부정출결, 부정발급 시 전액 차감)</p>' +
+                (collect ? orientationConfirmCheck() : '') +
+
+                '<h2>출결체크</h2>' +
+                '<p>○ 훈련생은 훈련일마다 훈련과정 시작과 종료시에 국민내일배움카드/QR/비콘을 사용하여 출석체크를 하여야 합니다.</p>' +
+                '<p>○ 카드로 입실시 카드로 퇴실, QR로 입실시 QR로 퇴실, 비콘으로 입실시 비콘으로 퇴실 하여야 합니다.</p>' +
+                '<p>○ 아래와 같은 훈련생 부주의로 인한 경우 당일 훈련은 결석처리 됩니다.</p>' +
+                '<p class="indent">- 훈련과정의 시작(입실)만 체크하고 종료(퇴실)는 체크하지 않은 경우 또는 시작(입실)은 체크하지 않고, 종료(퇴실)만 체크한 경우</p>' +
+                '<p>○ 복수 훈련과정을 동시에 수강하는 경우 훈련과정별로 입실과 퇴실을 각각 체크해야 출석으로 인정됩니다.</p>' +
+                '<p>○ 교육생의 카드분실/파손, 휴대폰의 분실 및 파손 등의 사유 또는 출결관리시스템의 고장 등으로 출석체크를 할 수 없는 경우 담당자에게 문의하여 직권입력요청대장에 사유 및 시간을 기재 후 입/퇴실 시 본인 이름을 정자로 서명하셔야 출석으로 인정됩니다.</p>' +
+                '<p>○ 외출을 할 때에도 담당자에게 문의하여 직권입력요청대장에 사유 및 시간을 기재 후 본인 이름을 정자로 서명하셔야 합니다.</p>' +
+                (collect ? orientationConfirmSign(session) : '') +
+
+                '<h2 class="ot-page-break">훈련장려금</h2>' +
+                '<h3>기 준</h3>' +
+                '<p>○ 총 수업시간이 140시간 이상의 수업의 경우 실업자 및 근로장려금 수급자/무급휴직자와, 140시간 미만의 수업은 국민취업지원제도, 취성패1 참여자에 대해서만 지급이 됩니다.</p>' +
+                '<p>○ 단위기간 소정출석일수의 80%이상을 출석시 단위기간별로 훈련장려금을 지원받을 수 있습니다.</p>' +
+                '<p>○ 1일 훈련시간이 5시간 미만은 1일 기준액 2,500원(월 50,000원 한도), 1일 훈련시간이 5시간 이상은 1일 기준액 5,800원(월 116,000원 한도)으로 단위기간 중 출석한 일수를 곱한 금액을 지원합니다.</p>' +
+                '<p>○ 본 과정 기준액: 1일 ' + stipendRate.toLocaleString('ko-KR') + '원 (월 ' + stipendCap.toLocaleString('ko-KR') + '원 한도)</p>' +
+                '<p>○ 훈련장려금 및 훈련장려금 추가비용은 확정된 날(훈련 종료일이 해당 월 초일부터 15일까지인 경우에는 다음 달 초일부터 3일 이내에 산정하고, 훈련종료일이 해당 월 16일부터 말일까지인 경우에는 다음달 16일부터 3일 이내에 마감하여 산정한다.)로부터 15일 이내에 직업능력개발계좌 카드와 연계된 본인의 은행 계좌로 입금됩니다.</p>' +
+                '<table class="ot-table"><thead><tr>' +
+                '<th style="width:56px">단위기간</th><th>훈련기간</th><th style="width:56px">수업일수</th><th style="width:80px">신청기간</th><th style="width:72px">지급일</th><th style="width:110px">지급금액</th>' +
+                '</tr></thead><tbody>' + stipendRows + '</tbody></table>' +
+                '<p>○ 복수의 훈련과정을 동시에 수강하여 훈련수강일이 겹치는 날의 교통비 또는 식비는 1일 기준액만 지급합니다.</p>' +
+                '<p>○ 훈련장려금을 지원하지 아니한 경우</p>' +
+                '<p class="indent">- 훈련 중 취업 또는 창업한 이후에도 해당 계좌적합훈련과정을 계속 수강하는 사람</p>' +
+                '<p class="indent">- 구직급여를 지급받는 사람 다만, 구직급여 지급기간이 종료한 경우 종료일 다음날부터는 지원 받을 수 있습니다</p>' +
+                '<p class="indent">- 수강평 입력기간 내에 직업능력개발훈련정보망(고용24)을 통해 수강평을 입력하지 않은 사람</p>' +
+                (collect ? orientationConfirmCheck() : '') +
+
+                '<h2>훈련수강평 입력</h2>' +
+                '<p>○ 훈련생은 과정을 수료하거나 수강을 포기한 경우에 익일부터 30일 이내에 직업능력개발훈련정보망(고용24)을 통하여 해당 훈련과정에 대한 수강평을 입력하여야 합니다. (훈련장려금 지급대상자의 경우 신청기간까지는 수강평을 입력하여야 마지막 단위기간의 훈련장려금을 받을 수 있습니다.)</p>' +
+                '<p class="indent">www.work24.go.kr → 로그인 → My 서비스 → 훈련생수강평가</p>' +
+                (collect ? orientationConfirmCheck() : '') +
+
+                '<h2>훈련과정 수강</h2>' +
+                '<p>○ 훈련과정 수강 중에 취업 또는 창업한 경우에도 해당 훈련과정의 훈련종료일까지 계속 수강할 수 있습니다.</p>' +
+                (collect ? orientationConfirmCheck() : '') +
+
+                '<h2>제 적</h2>' +
+                '<p>○ 단위기간의 100분의 50을 초과하여 결석하는 훈련생</p>' +
+                '<p>○ 총 소정훈련일수의 100분의 20을 초과하여 결석하는 훈련생</p>' +
+                '<p>○ 수강태도가 매우 불량하여 계속하여 훈련대상으로 인정하면 해당 훈련과정을 정상적으로 운영할 수 없다고 판단되는 경우</p>' +
+                '<p>○ 대리출석 체크 또는 대리수강을 한 경우 (대리체크를 한 훈련생과 부탁한 훈련생 모두 해당)</p>' +
+                '<p>○ 훈련기관 및 교사에게 행선지를 밝히지 않고 무단 외출 및 조퇴시 경고 후 누적시 제적처리</p>' +
+                (collect ? orientationConfirmCheck() : '') +
+
+                '<h2>취업 및 자격증 취득</h2>' +
+                '<p>○ 본원은 훈련생이 해당 훈련직종과 관련있는 분야에 취업할 수 있도록 훈련종료일부터 6개월동안 밴드/오픈채팅방에서 고용정보 제공 및 취업알선 등을 지원합니다.</p>' +
+                '<p>○ 교육수강 중 또는 교육수료 후 취업시에는 담당선생님에게 통보 후 취업관련서류를 본원에 반드시 제출하여야 합니다. 예)재직증명서, 근로계약서, 취업확인서, 사업자등록증 등</p>' +
+                '<p>※ 교육수강 중이나, 교육후 취업시 고용보험 가입일이 수강일 이후로 적용되어야 하며, 수강일 이전으로 소급적용 될 경우 부정수급이 되는 점 유의하시기 바랍니다.</p>' +
+                '<p>○ 자격증 취득시에는 담당선생님에게 통보 후 자격증사본을 본원에 반드시 제출하여야 합니다.</p>' +
+                (collect ? orientationConfirmCheck() : '') +
+
+                '<h2>제증명 발급</h2>' +
+                '<p>○ 소정훈련일수의 100분의 80이상을 출석한 훈련생에게 수료증이 발급됩니다.</p>' +
+                '<p>○ 실업급여를 받고 계신 교육생은 본원에서 발급하는 교육수강증명서로 구직활동 등 노력을 대신 할 수 있습니다.</p>' +
+                (collect ? orientationConfirmSign(session) : '') +
+
+                '<h2 class="ot-page-break">평가일정</h2>' +
+                '<p>○ 훈련생은 훈련 중 교육과정의 훈련일정 중 평가일정에 맞추어 평가에 참여하여야 합니다.</p>' +
+                '<h3>1. 사전평가 및 설문조사</h3>' +
+                '<table class="ot-table"><thead><tr><th>평가방법</th><th style="width:120px">평가일</th></tr></thead><tbody>' +
+                '<tr><td class="l">객관식시험(사전평가)</td><td class="c">' + esc(formatDotDate(session.training_start_date)) + '</td></tr>' +
+                '<tr><td class="l">기초설문조사(자가진단)</td><td class="c">' + esc(formatDotDate(session.training_start_date)) + '</td></tr>' +
+                '<tr><td class="l">교과목 만족도조사</td><td class="c">과정 일정에 따라 실시</td></tr>' +
+                '</tbody></table>' +
+                '<h3>2. 정기평가</h3>' +
+                '<table class="ot-table"><thead><tr><th>교과목</th><th>능력단위/단원</th><th style="width:100px">평가방법</th><th style="width:100px">평가일</th></tr></thead><tbody>' +
+                '<tr><td class="l" colspan="4" style="text-align:left;padding:8px">※ 교과목·능력단위·평가일은 회차 시간표·평가계획에 따라 운영하며, OT 당일 별도 안내합니다.</td></tr>' +
+                '</tbody></table>' +
+                orientationConfirmCheck() +
+
+                '<h2>환불규정</h2>' +
+                '<p>○ 수업개시전: 교육청 교습비 반환기준 [제18조 제2항 제3호의 반환사유]에 의거하여 전액 취소 후 결제</p>' +
+                '<p>○ 수업개시후</p>' +
+                '<p class="indent">- 수강철회 기간이내: [수업시간 × 단위수업료]를 본인이 부담후 수강철회 가능</p>' +
+                '<p class="indent">- 자부담이 없는 경우도 국비지원을 철회하는 것이므로 교육비를 본인이 전액 부담하여야 합니다.</p>' +
+                '<p class="indent">- 수강철회 기간이후: 교육청 교습비 반환기준 [제18조 제2항 제3호의 반환사유]에 의거하여 환불</p>' +
+                '<p>○ 교재는 총 훈련일수의 80% 이수를 조건으로 무료지급하나, 그 이전에 수강철회, 중도탈락, 개인사유로 인한 수업과정 이수를 못할 경우 교재비를 부담해야 합니다.</p>' +
+                '<h3>교습비등 반환기준 게시표</h3>' +
+                '<table class="ot-table">' +
+                '<thead><tr><th style="width:28%">구 분</th><th style="width:28%">반환사유 발생일</th><th>반환금액</th></tr></thead><tbody>' +
+                '<tr><td class="l" rowspan="1">제18조제2항제1호 및 제2호</td><td class="l">교습을 할 수 없거나 교습 장소를 제공할 수 없게 된 날</td><td class="l">이미 납부한 교습비등을 일할 계산한 금액</td></tr>' +
+                '<tr><td class="l" rowspan="5">제18조제2항제3호<br>(교습기간 1개월 이내)</td><td class="l">교습 시작 전</td><td class="l">이미 납부한 교습비등의 전액</td></tr>' +
+                '<tr><td class="l">총 교습시간의 1/3 경과 전</td><td class="l">이미 납부한 교습비등의 2/3</td></tr>' +
+                '<tr><td class="l">총 교습시간의 1/2 경과 전</td><td class="l">이미 납부한 교습비등의 1/2</td></tr>' +
+                '<tr><td class="l">총 교습시간의 1/2 경과 후</td><td class="l">반환하지 않음</td></tr>' +
+                '<tr><td class="l" colspan="2">교습기간이 1개월을 초과하는 경우: 교습 시작 전 전액 / 시작 후는 해당 월분(1개월 이내 기준) + 나머지 월분 전액</td></tr>' +
+                '</tbody></table>' +
+                (collect ? orientationConfirmSign(session) : '') +
+
+                '<h2>문의사항</h2>' +
+                '<p>○ 교육훈련과 관련하여 기타 문의사항이 있으신 분은 본원 교육행정실로 연락주시기 바랍니다.</p>' +
+                '<p>○ 문의처 : ' + esc(contact) + (collect ? '' : ' (내선 2)') + '</p>' +
+
+                '<h2>안전관리 및 긴급상황대비 매뉴얼</h2>' +
+                '<h3>화재상황 발생</h3>' +
+                '<p><strong>화재 발생시 대비 수칙</strong></p>' +
+                '<p>○ 다른 사람들에게 화재가 발생했음을 큰소리로 알린다.</p>' +
+                '<p>○ 강사는 훈련생들을 인솔하여 질서있게 신속히 밖으로 대피시킨다. 강사는 강의실에 남아있는 훈련생이 있는지 확인한다.</p>' +
+                '<p>○ 대피 이후 강사와 관리자는 훈련생의 안전을 확인하고 적절한 조치를 취한다.</p>' +
+                '<p><strong>화재 발생시 주의사항</strong></p>' +
+                '<p>○ 연기 속을 통과할 때는 물에 적신 수건이나 옷으로 입과 코를 막고 몸을 낮추어 벽을 더듬으며 대피한다.</p>' +
+                '<p>○ 문을 열기 전에 문을 손등으로 대어보거나 손잡이를 만져서 뜨거우면 열지 않는다.</p>' +
+                '<p>○ 소지품을 가지러 다시 화재 장소로 들어가지 않는다.</p>' +
+                '<p><strong>소화기 사용법</strong></p>' +
+                '<p>○ 소화기를 불이 난 곳으로 옮긴 후 손잡이 부분의 봉인 줄을 제거하고 안전핀을 뽑습니다.</p>' +
+                '<p>○ 바람을 등지고 서서 노즐을 빼서 잡고 불쪽으로 향하게 합니다.</p>' +
+                '<p>○ 가까이 접근하여 손잡이를 힘껏 움켜쥐고, 빗자루로 쓸 듯이 분말(소화약제)을 골고루 쏩니다.</p>' +
+                '<h3>긴급상황 신고센터</h3>' +
+                '<table class="ot-table"><thead><tr><th style="width:120px">기관</th><th style="width:110px">연락처</th><th>내용</th></tr></thead><tbody>' +
+                '<tr><td class="c">응급정보센터</td><td class="c">1339(국번없이)</td><td class="l">질병증상 및 응급처치 상담, 구급차 연결, 병원응급실 안내</td></tr>' +
+                '<tr><td class="c">중앙119구조대</td><td class="c">119(국번없이)</td><td class="l">응급환자 병원이송</td></tr>' +
+                '<tr><td class="c">보건복지부</td><td class="c">-</td><td class="l">질환 대처방법 동영상 정보제공</td></tr>' +
+                '<tr><td class="c">국민안전처</td><td class="c">044-200-2114</td><td class="l">www.npss.go.kr · 폭염 대응·국민행동요령</td></tr>' +
+                '</tbody></table>' +
+                (collect
+                    ? orientationConfirmSign(session)
+                    : ('<div class="ot-confirm">' +
+                        '<p class="ask">상기 오리엔테이션 안내 내용을 확인하였습니다.</p>' +
+                        '<div class="ot-sign-line">성명:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +
+                        '&nbsp;&nbsp;서명:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>' +
+                    '</div>')) +
+            '</div>';
             return html;
         }
         /** HWP「2-3_개인정보활용동의서_일반」수강생 1장 */
@@ -1217,7 +1368,8 @@ const sharedPrintHelpers = `
                 });
                 var targets = collectPdfTargets(sheetEl);
                 // 단일 시트(D02 등)는 인쇄처럼 1장 맞춤, 수강생별 다장은 장마다 1장
-                var fitSingle = targets.length === 1;
+                // D31/D32 오리엔테이션은 장문이라 세로 분할(여러 페이지)
+                var fitSingle = targets.length === 1 && docCode !== 'D31' && docCode !== 'D32';
                 for (var i = 0; i < targets.length; i++) {
                     if (i > 0) pdf.addPage();
                     var canvas = await captureElementForPdf(targets[i], landscape);
@@ -1473,29 +1625,16 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     return;
                 }
                 if (docCode === 'D31' || docCode === 'D32') {
+                    // 수거용·배포용 모두 단일 문서(수강생별 복제 없음). 수기 성명·서명란 포함.
                     var otTitle = '직업능력개발훈련 오리엔테이션 자료';
                     var collect = docCode === 'D31';
-                    if (collect && trainees.length) {
-                        sheet.className = 'sheet-wrap';
-                        sheet.innerHTML = trainees.map(function(t) {
-                            return '<section class="pledge-page">' +
-                                brandHtml(session) + fundingBanner +
-                                '<h1 class="doc-title">' + otTitle + '</h1>' +
-                                '<p class="doc-sub">훈련과정명 : ' + esc(courseNameWithSession(session)) + '</p>' +
-                                orientationBodyHtml(session, { collect: true }) +
-                                '<p style="margin-top:8px;font-size:11px;">수강생: <strong>' + esc(t.name || '') + '</strong> / ' + esc(t.phone || '') +
-                                ' · ' + esc(t.funding_label || fundingFilterLabel(t.funding_category)) + '</p>' +
-                            '</section>';
-                        }).join('');
-                        maybeAutodownload();
-                        return;
-                    }
                     sheet.className = 'sheet';
                     sheet.innerHTML = brandHtml(session) + fundingBanner +
                         '<h1 class="doc-title">' + otTitle + (collect ? ' (수거용)' : ' (배포용)') + '</h1>' +
                         '<p class="doc-sub">훈련과정명 : ' + esc(courseNameWithSession(session)) + '</p>' +
                         orientationBodyHtml(session, { collect: collect }) +
-                        '<p class="footnote">※ 원본: 3-' + (collect ? '1_오리엔테이션_수거용' : '2_오리엔테이션_배포용') + '.hwp</p>';
+                        '<p class="footnote">※ 원본: 3-' + (collect ? '1_오리엔테이션_수거용' : '2_오리엔테이션_배포용') +
+                        '.hwp · 학생별 복제 없이 안내 전문 + 수기 확인/서명란</p>';
                     maybeAutodownload();
                     return;
                 }

@@ -67,14 +67,14 @@ export const OPENING_DOCS: OpeningDocDef[] = [
     code: 'D31',
     order: 6,
     title: '오리엔테이션 수거용',
-    description: '출결·인정일수 안내와 수강생 확인 서명란(수거용)을 출력합니다.',
+    description: '출결·장려금·제적·환불·안전 등 OT 안내 전문과 수기 확인·서명란(수거용, 학생별 복제 없음)을 출력합니다.',
     status: 'ready',
   },
   {
     code: 'D32',
     order: 7,
     title: '오리엔테이션 배포용',
-    description: '출결·인정일수 안내문(수강생 배포용)을 출력합니다.',
+    description: 'OT 안내 전문(배포용)과 수기 성명·서명란을 출력합니다. 학생별 복제 없이 과정 단위 1부입니다.',
     status: 'ready',
   },
   {
