@@ -237,13 +237,13 @@ cbt.get('/course-ability-units', authMiddleware, async (c) => {
         };
 
         if (session?.approved_course_id) {
-            const { results: regs } = await c.env.DB.prepare(
-                'SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ? ORDER BY id DESC'
-            ).bind(session.approved_course_id).all() as { results: { id: number }[] };
+            const reg: any = await c.env.DB.prepare(
+                'SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ? ORDER BY id DESC LIMIT 1'
+            ).bind(session.approved_course_id).first();
 
-            for (const reg of regs || []) {
+            if (reg?.id) {
                 const { results: rows } = await c.env.DB.prepare(
-                    'SELECT id, type, name, ability_units_json, units_json FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+                    'SELECT id, type, name FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
                 ).bind(reg.id).all();
                 for (const r of rows || []) pushCurrRow(r);
             }
@@ -252,7 +252,7 @@ cbt.get('/course-ability-units', authMiddleware, async (c) => {
         if (session?.id) {
             try {
                 const { results: ttRows } = await c.env.DB.prepare(
-                    `SELECT DISTINCT c.id, c.type, c.name, c.ability_units_json, c.units_json
+                    `SELECT DISTINCT c.id, c.type, c.name
                      FROM session_timetable st
                      JOIN ncs_approved_curriculum c ON c.id = st.subject_id
                      WHERE st.session_id = ? AND st.subject_id IS NOT NULL AND (st.is_excluded IS NULL OR st.is_excluded = 0)
@@ -262,22 +262,15 @@ cbt.get('/course-ability-units', authMiddleware, async (c) => {
             } catch (_) { /* ignore */ }
         }
 
-        // 배정된 교과목명을 우선 모두 추가 (사전평가 문제 등록/수정 시 교과목 전체 노출)
+        // 사전평가용: 세부 NCS 능력단위는 제외하고 과정에 배정된 교과목명만 노출
         for (const row of curriculumRows) {
             if (row.name && String(row.name).trim()) {
                 addUnit('CURR-' + row.id, String(row.name).trim());
             }
         }
-        // 세부 NCS 능력단위(ability_units_json / units_json)도 함께 보강
-        for (const row of curriculumRows) {
-            const addedFromAbility = parseUnitsJson(row.ability_units_json);
-            if (!addedFromAbility) {
-                parseUnitsJson(row.units_json);
-            }
-        }
 
-        // 2) course_ncs_units 테이블에 연결된 능력단위 보강
-        if (lmsCourseId != null) {
+        // 배정된 교과목이 전혀 없는 일반 과정 등에 한해 course_ncs_units 폴백
+        if (map.size === 0 && lmsCourseId != null) {
             try {
                 const { results: cnuRows } = await c.env.DB.prepare(
                     `SELECT u.code, u.name

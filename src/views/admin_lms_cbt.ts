@@ -160,7 +160,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                         <option value="low">하</option>
                     </select>
                     <select id="ncsUnitFilter" class="border rounded-lg px-3 py-2 text-sm min-w-[180px]" onchange="applyQuestionFilters()">
-                        <option value="">전체 NCS 능력단위</option>
+                        <option value="">전체 교과목</option>
                     </select>
                 </div>
                 <div class="flex gap-2 flex-wrap">
@@ -355,7 +355,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">NCS 능력단위</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">교과목</label>
                             <select name="ncs_ability_unit" id="ncsAbilityUnitSelect" class="w-full border rounded-lg px-3 py-2">
                                 <option value="">선택 안 함</option>
                             </select>
@@ -1097,7 +1097,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 const ncsSelect = document.getElementById('ncsUnitFilter');
                 if (ncsSelect) {
                     const opts = [...new Set(allQuestions.map(q => q.ncs_ability_unit_name).filter(Boolean))].filter(n => String(n) !== 'undefined').sort();
-                    ncsSelect.innerHTML = '<option value="">전체 NCS 능력단위</option>' + opts.map(n => \`<option value="\${escapeHtml(n)}">\${escapeHtml(n)}</option>\`).join('');
+                    ncsSelect.innerHTML = '<option value="">전체 교과목</option>' + opts.map(n => \`<option value="\${escapeHtml(n)}">\${escapeHtml(n)}</option>\`).join('');
                 }
                 applyQuestionFilters();
                 renderPreAssessmentQuestionList();
