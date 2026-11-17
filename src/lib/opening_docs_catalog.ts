@@ -88,7 +88,7 @@ export const OPENING_DOCS: OpeningDocDef[] = [
     code: 'D40',
     order: 9,
     title: '미디어 촬영 동의서',
-    description: 'CCTV·영상정보 촬영 동의서(수강생별)를 출력합니다.',
+    description: 'CCTV·영상정보 촬영 동의서(과정 단위 1부, 수기 성명·서명란)를 출력합니다.',
     status: 'ready',
   },
   {

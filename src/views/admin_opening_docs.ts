@@ -372,12 +372,23 @@ function openingDocPrintShell(title: string, bodyScript: string) {
     <title>${title}</title>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* 제본용 여백(상단·왼쪽 확보) — 미리보기·인쇄·PDF 캡처 공통 */
+        :root {
+            --bind-pad-top: 18mm;
+            --bind-pad-right: 12mm;
+            --bind-pad-bottom: 12mm;
+            --bind-pad-left: 22mm;
+            --bind-pad-top-ls: 14mm;
+            --bind-pad-right-ls: 10mm;
+            --bind-pad-bottom-ls: 10mm;
+            --bind-pad-left-ls: 18mm;
+        }
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            /* 제본용: 상단·왼쪽 여백을 더 확보 (top right bottom left) */
-            @page { size: A4 portrait; margin: 18mm 12mm 12mm 22mm; }
-            @page landscape-sheet { size: A4 landscape; margin: 14mm 10mm 10mm 18mm; }
+            /* 여백은 본문 padding으로 통일(@page는 0 — 브라우저 인쇄 설정에 덜 흔들림) */
+            @page { size: A4 portrait; margin: 0; }
+            @page landscape-sheet { size: A4 landscape; margin: 0; }
             .landscape-page { page: landscape-sheet; }
         }
         body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; font-size: 12px; color: #111; background: #f1f5f9; margin: 0; }
@@ -399,8 +410,15 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         .btn-fund-all { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
         .btn-fund-gov { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
         .btn-fund-gen { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
-        .sheet { max-width: 210mm; margin: 0 auto 24px; background: #fff; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-        .sheet.sheet-tt { max-width: 297mm; padding: 14px 16px; }
+        .sheet {
+            max-width: 210mm; margin: 0 auto 24px; background: #fff;
+            padding: var(--bind-pad-top) var(--bind-pad-right) var(--bind-pad-bottom) var(--bind-pad-left);
+            box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+        }
+        .sheet.sheet-tt, .sheet.landscape-page {
+            max-width: 297mm;
+            padding: var(--bind-pad-top-ls) var(--bind-pad-right-ls) var(--bind-pad-bottom-ls) var(--bind-pad-left-ls);
+        }
         table.tt-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 6px 0 10px; }
         table.tt-table th, table.tt-table td { border: 1px solid #222; padding: 5px 4px; text-align: center; vertical-align: middle; font-size: 11px; word-break: keep-all; }
         table.tt-table th { background: #f3f4f6; font-weight: 700; }
@@ -436,10 +454,24 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         .hrd-page { margin-bottom: 18px; page-break-after: always; break-after: page; }
         .hrd-page:last-child { page-break-after: auto; break-after: auto; }
         .sheet-wrap { max-width: 210mm; margin: 0 auto 24px; }
-        .pledge-page { background: #fff; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px; page-break-after: always; break-after: page; }
+        .pledge-page {
+            background: #fff;
+            padding: var(--bind-pad-top) var(--bind-pad-right) var(--bind-pad-bottom) var(--bind-pad-left);
+            box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            margin-bottom: 16px; page-break-after: always; break-after: page;
+        }
+        .pledge-page.landscape-page {
+            max-width: 297mm;
+            padding: var(--bind-pad-top-ls) var(--bind-pad-right-ls) var(--bind-pad-bottom-ls) var(--bind-pad-left-ls);
+        }
         .pledge-page:last-child { page-break-after: auto; break-after: auto; margin-bottom: 0; }
+        /* sheet 안의 hrd-page는 sheet 제본 여백을 따름(중첩 padding 방지) */
+        .sheet .hrd-page { padding: 0; }
         @media print {
-            .sheet, .pledge-page { box-shadow: none; margin: 0; }
+            .sheet, .pledge-page {
+                box-shadow: none; margin: 0 !important;
+                max-width: none !important; width: 100% !important;
+            }
             body { background: #fff; }
         }
         .doc-brand { display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
@@ -984,10 +1016,10 @@ const sharedPrintHelpers = `
                 '<p class="footnote">※ 원본: 2-3_개인정보활용동의서_일반.hwp</p>' +
             '</section>';
         }
-        function mediaConsentPageHtml(session, t) {
+        /** 미디어 촬영 동의서 — 과정 단위 1부(수강생별 복제 없음), 수기 성명·서명란 */
+        function mediaConsentHtml(session) {
             var inst = session.institution_name || '와우쓰리디홍대센터';
-            return '<section class="pledge-page">' +
-                brandHtml(session) +
+            return brandHtml(session) +
                 '<h1 class="doc-title">미디어 촬영 동의서</h1>' +
                 '<p style="font-weight:700;margin:8px 0 6px;">■ 촬영 정보</p>' +
                 '<table class="ot-table"><tbody>' +
@@ -1005,10 +1037,12 @@ const sharedPrintHelpers = `
                 '</tbody></table>' +
                 '<p style="margin-top:12px;">[공공기관의 개인정보보호에 관한 법률] 제15조, 제18조 및 제19조의 규정과 [개인정보 보호를 위한 공공기관의 CCTV 설치·운영 지침]에 의거, CCTV 촬영에 동의합니다.</p>' +
                 '<p>개인정보 제공자가 동의한 내용 외의 다른 목적으로 활용하지 않으며, 제공된 개인정보의 이용을 거부하고자 할 때에는 개인정보 관리책임자를 통해 열람, 정정, 삭제를 요구할 수 있습니다.</p>' +
-                (t ? ('<p style="margin-top:10px;">성명: <strong>' + esc(t.name || '') + '</strong> &nbsp; 연락처: ' + esc(t.phone || '') + '</p>') : '') +
-                '<div class="pledge-date">' + esc(formatPledgeDate(session.training_start_date)) + ' 확인자</div>' +
-                '<div class="pledge-sign">(서명 또는 인)</div>' +
-            '</section>';
+                '<div class="ot-confirm" style="margin-top:16px">' +
+                '<div class="ot-sign-line">' + esc(formatPledgeDate(session.training_start_date)) +
+                '&nbsp;&nbsp;성명:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +
+                '&nbsp;&nbsp;확인자:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
+                '</div>' +
+                '<p class="footnote">※ 원본: 4_미디어 촬영 동의서.hwp · 학생별 복제 없이 수기 성명·서명</p>';
         }
         /** HWP「2-2_내일배움_훈련생서약서」수강생 1장 */
         function pledgePageHtml(session, t) {
@@ -1201,10 +1235,10 @@ const sharedPrintHelpers = `
             }
         }
         function resolvePdfMargins(marginSpec, landscape) {
-            // 인쇄 @page와 동일: 제본용 상단·왼쪽 여백
+            // 제본 여백은 .sheet/.pledge-page padding에 이미 포함 → PDF 바깥 여백은 최소만
             var defaults = landscape
-                ? { top: 14, right: 10, bottom: 10, left: 18 }
-                : { top: 18, right: 12, bottom: 12, left: 22 };
+                ? { top: 4, right: 4, bottom: 4, left: 4 }
+                : { top: 4, right: 4, bottom: 4, left: 4 };
             if (marginSpec == null) return defaults;
             if (typeof marginSpec === 'number') {
                 return { top: marginSpec, right: marginSpec, bottom: marginSpec, left: marginSpec };
@@ -1289,11 +1323,15 @@ const sharedPrintHelpers = `
                 'visibility:hidden'
             ].join(';');
             var clone = sourceEl.cloneNode(true);
+            // 제본용 상단·왼쪽 여백을 PDF 캡처에도 동일 적용 (A4 794/1123px 기준)
+            var bindPad = landscape
+                ? '14mm 10mm 10mm 18mm'
+                : '18mm 12mm 12mm 22mm';
             clone.style.cssText = [
                 'max-width:none',
                 'width:100%',
                 'margin:0',
-                'padding:10px 12px',
+                'padding:' + bindPad,
                 'box-shadow:none',
                 'background:#ffffff',
                 'box-sizing:border-box',
@@ -1618,16 +1656,9 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     return;
                 }
                 if (docCode === 'D40') {
-                    sheet.className = 'sheet-wrap';
-                    if (!trainees.length) {
-                        sheet.className = 'sheet';
-                        sheet.innerHTML = brandHtml(session) + fundingBanner +
-                            '<h1 class="doc-title">미디어 촬영 동의서</h1>' +
-                            '<div class="empty">선택한 대상구분의 훈련생이 없습니다.</div>';
-                        maybeAutodownload();
-                        return;
-                    }
-                    sheet.innerHTML = trainees.map(function(t) { return mediaConsentPageHtml(session, t); }).join('');
+                    // 과정 단위 1부(수강생별 복제 없음)
+                    sheet.className = 'sheet';
+                    sheet.innerHTML = fundingBanner + mediaConsentHtml(session);
                     maybeAutodownload();
                     return;
                 }
@@ -1775,9 +1806,12 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '<li><span class="bullet">￭ 교재배포일</span><span class="sep">:</span><span class="val">' + esc(deployDate) + '</span></li>' +
                         '</ul>' +
                         '<table class="doc-table checklist-table">' +
+                        '<colgroup>' +
+                        '<col style="width:36px"><col style="width:100px"><col style="width:84px"><col style="width:136px"><col style="width:78px"><col style="width:96px">' +
+                        '</colgroup>' +
                         '<thead><tr>' +
-                        '<th style="width:40px">NO</th><th style="width:72px">대상구분</th><th style="width:90px">성명</th><th style="width:110px">전화번호</th>' +
-                        '<th style="width:110px">확인(정자체)</th><th>비고</th>' +
+                        '<th>NO</th><th>대상구분</th><th>성명</th><th>전화번호</th>' +
+                        '<th>확인(정자체)</th><th>비고</th>' +
                         '</tr></thead><tbody>';
                     padRows(trainees, 15).forEach(function(t, idx) {
                         if (t) {
