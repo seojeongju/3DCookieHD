@@ -369,8 +369,9 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            @page { size: A4 portrait; margin: 10mm; }
-            @page landscape-sheet { size: A4 landscape; margin: 8mm; }
+            /* 제본용: 상단·왼쪽 여백을 더 확보 (top right bottom left) */
+            @page { size: A4 portrait; margin: 18mm 12mm 12mm 22mm; }
+            @page landscape-sheet { size: A4 landscape; margin: 14mm 10mm 10mm 18mm; }
             .landscape-page { page: landscape-sheet; }
         }
         body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; font-size: 12px; color: #111; background: #f1f5f9; margin: 0; }
@@ -404,22 +405,28 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         .tt-period { text-align: center; font-size: 11px; font-weight: 700; margin: 0 0 10px; padding: 8px; background: #eef6ff; border: 1px solid #cbd5e1; white-space: pre-line; line-height: 1.45; }
         .tt-footer { margin-top: 8px; padding: 10px 12px; border: 1px solid #222; font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: keep-all; }
         .hrd-meta { width: 100%; border-collapse: collapse; margin-bottom: 8px; table-layout: fixed; }
-        .hrd-meta th, .hrd-meta td { border: 1px solid #222; padding: 4px 6px; font-size: 11px; vertical-align: middle; }
-        .hrd-meta th { width: 72px; background: #f3f4f6; text-align: center; font-weight: 700; }
+        .hrd-meta col.c-label { width: 72px; }
+        .hrd-meta col.c-a { width: 16%; }
+        .hrd-meta col.c-label2 { width: 72px; }
+        .hrd-meta col.c-b { width: auto; }
+        .hrd-meta col.c-side { width: 30%; }
+        .hrd-meta th, .hrd-meta td { border: 1px solid #222; padding: 5px 8px; font-size: 11px; vertical-align: middle; text-align: center; }
+        .hrd-meta th { background: #f3f4f6; font-weight: 700; }
+        .hrd-meta td.meta-val { text-align: left; }
+        .hrd-meta td.meta-val.center { text-align: center; }
         .hrd-banner { text-align: center; font-weight: 800; font-size: 12px; padding: 6px; margin: 8px 0; background: #fff7ed; border: 1px solid #222; }
-        .hrd-title-side { text-align: center; font-weight: 800; font-size: 13px; background: #e0f2fe; border: 1px solid #222; padding: 10px 8px; }
+        .hrd-title-side { text-align: center; font-weight: 800; font-size: 13px; background: #e0f2fe; border: 1px solid #222; padding: 10px 8px; vertical-align: middle; }
         table.hrd-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9px; margin-top: 6px; }
         table.hrd-table th, table.hrd-table td { border: 1px solid #222; padding: 3px 2px; text-align: center; vertical-align: middle; word-break: keep-all; }
         table.hrd-table th { background: #f3f4f6; font-weight: 700; }
         table.hrd-table .pnum { width: 28px; font-weight: 800; }
-        table.hrd-table .ptime { width: 72px; font-size: 8px; line-height: 1.35; }
-        table.hrd-table td.hrd-slot { padding: 0; vertical-align: top; height: auto; }
-        .hrd-slot-inner { display: flex; width: 100%; min-height: 54px; align-items: stretch; }
-        .hrd-slot-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-        .hrd-slot-main .subj { background: #fff7ed; font-weight: 700; font-size: 8.5px; line-height: 1.35; padding: 4px 3px; border-bottom: 1px solid #222; word-break: keep-all; }
-        .hrd-slot-main .unit { font-size: 8px; line-height: 1.35; padding: 4px 3px; border-bottom: 1px solid #222; word-break: keep-all; color: #334155; }
-        .hrd-slot-main .loc { background: #e0f2fe; font-size: 8px; line-height: 1.35; padding: 4px 3px; word-break: keep-all; color: #0f172a; }
-        .hrd-slot-inner .inst { flex: 0 0 22%; width: 22%; max-width: 42px; display: flex; align-items: center; justify-content: center; border-left: 1px solid #222; font-size: 8.5px; font-weight: 700; line-height: 1.3; padding: 3px 2px; word-break: keep-all; }
+        table.hrd-table .ptime { width: 68px; font-size: 8px; line-height: 1.35; }
+        table.hrd-table .hrd-day { width: auto; }
+        table.hrd-table .hrd-inst-col { width: 28px; }
+        table.hrd-table td.hrd-subj { background: #fff7ed; font-weight: 700; font-size: 8.5px; line-height: 1.3; height: 26px; padding: 3px 2px; }
+        table.hrd-table td.hrd-unit { font-size: 8px; line-height: 1.3; color: #334155; height: 24px; padding: 3px 2px; }
+        table.hrd-table td.hrd-loc { background: #e0f2fe; font-size: 8px; line-height: 1.3; color: #0f172a; height: 20px; padding: 3px 2px; }
+        table.hrd-table td.hrd-inst { font-size: 8.5px; font-weight: 700; line-height: 1.3; padding: 2px 1px; vertical-align: middle; }
         .hrd-page { margin-bottom: 18px; page-break-after: always; break-after: page; }
         .hrd-page:last-child { page-break-after: auto; break-after: auto; }
         .sheet-wrap { max-width: 210mm; margin: 0 auto 24px; }
@@ -429,9 +436,9 @@ function openingDocPrintShell(title: string, bodyScript: string) {
             .sheet, .pledge-page { box-shadow: none; margin: 0; }
             body { background: #fff; }
         }
-        .doc-brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
-        .doc-brand img { height: 40px; width: auto; max-width: 180px; object-fit: contain; }
-        .doc-brand .brand-name { font-size: 12px; font-weight: 700; color: #334155; text-align: right; line-height: 1.35; }
+        .doc-brand { display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+        .doc-brand img.brand-logo { height: 36px; width: auto; max-width: 140px; object-fit: contain; flex-shrink: 0; display: block; }
+        .doc-brand .brand-name { font-size: 13px; font-weight: 700; color: #334155; text-align: left; line-height: 1.35; }
         .doc-period { margin: 0 0 10px; padding: 6px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; font-weight: 700; color: #0f172a; text-align: center; }
         .doc-period .label { color: #64748b; font-weight: 700; margin-right: 8px; }
         .doc-title { text-align: center; font-size: 20px; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.02em; }
@@ -584,11 +591,11 @@ const sharedPrintHelpers = `
             return '<p class="doc-period"><span class="label">교육기간</span>' + esc(educationPeriodText(session)) + '</p>';
         }
         function brandHtml(session) {
-            var logo = session.logo_url || '/static/logo.png';
+            var logo = (session.logo_url && String(session.logo_url).trim()) || '/static/logo.png';
             var name = session.institution_name || '와우쓰리디홍대센터';
             return '<div class="doc-brand">' +
-                '<img src="' + esc(logo) + '" alt="' + esc(name) + '" onerror="this.remove()">' +
-                '<div class="brand-name">' + esc(name) + '<br><span style="font-weight:500;color:#64748b;font-size:10px;">교육센터 개강서류</span></div>' +
+                '<img class="brand-logo" src="' + esc(logo) + '" alt="' + esc(name) + '" onerror="this.onerror=null;this.src=\\'/static/logo.png\\';">' +
+                '<div class="brand-name">' + esc(name) + '</div>' +
             '</div>' +
             educationPeriodLine(session);
         }
@@ -1035,13 +1042,30 @@ const sharedPrintHelpers = `
                 return canvas;
             }
         }
-        function addCanvasToPdf(pdf, canvas, marginMm, opts) {
+        function resolvePdfMargins(marginSpec, landscape) {
+            // 인쇄 @page와 동일: 제본용 상단·왼쪽 여백
+            var defaults = landscape
+                ? { top: 14, right: 10, bottom: 10, left: 18 }
+                : { top: 18, right: 12, bottom: 12, left: 22 };
+            if (marginSpec == null) return defaults;
+            if (typeof marginSpec === 'number') {
+                return { top: marginSpec, right: marginSpec, bottom: marginSpec, left: marginSpec };
+            }
+            return {
+                top: marginSpec.top != null ? marginSpec.top : defaults.top,
+                right: marginSpec.right != null ? marginSpec.right : defaults.right,
+                bottom: marginSpec.bottom != null ? marginSpec.bottom : defaults.bottom,
+                left: marginSpec.left != null ? marginSpec.left : defaults.left
+            };
+        }
+        function addCanvasToPdf(pdf, canvas, marginSpec, opts) {
             opts = opts || {};
             canvas = trimCanvasBottomWhitespace(canvas);
+            var m = resolvePdfMargins(marginSpec, opts.landscape);
             var pageW = pdf.internal.pageSize.getWidth();
             var pageH = pdf.internal.pageSize.getHeight();
-            var usableW = pageW - marginMm * 2;
-            var usableH = pageH - marginMm * 2;
+            var usableW = pageW - m.left - m.right;
+            var usableH = pageH - m.top - m.bottom;
             var imgW = usableW;
             var imgH = (canvas.height * imgW) / canvas.width;
             // 인쇄 미리보기처럼 한 장에 맞춤 (비율 유지 축소)
@@ -1051,8 +1075,8 @@ const sharedPrintHelpers = `
                     imgH = usableH;
                     imgW = (canvas.width * imgH) / canvas.height;
                 }
-                var x = marginMm + Math.max(0, (usableW - imgW) / 2);
-                var y = marginMm;
+                var x = m.left + Math.max(0, (usableW - imgW) / 2);
+                var y = m.top;
                 pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', x, y, imgW, imgH);
                 return;
             }
@@ -1081,7 +1105,7 @@ const sharedPrintHelpers = `
                     continue;
                 }
                 var sliceImgH = (slice.height * imgW) / canvas.width;
-                pdf.addImage(slice.toDataURL('image/jpeg', 0.98), 'JPEG', marginMm, marginMm, imgW, sliceImgH);
+                pdf.addImage(slice.toDataURL('image/jpeg', 0.98), 'JPEG', m.left, m.top, imgW, sliceImgH);
                 srcY += sliceH;
             }
         }
@@ -1191,14 +1215,13 @@ const sharedPrintHelpers = `
                     format: 'a4',
                     compress: true
                 });
-                var marginMm = 8;
                 var targets = collectPdfTargets(sheetEl);
                 // 단일 시트(D02 등)는 인쇄처럼 1장 맞춤, 수강생별 다장은 장마다 1장
                 var fitSingle = targets.length === 1;
                 for (var i = 0; i < targets.length; i++) {
                     if (i > 0) pdf.addPage();
                     var canvas = await captureElementForPdf(targets[i], landscape);
-                    addCanvasToPdf(pdf, canvas, marginMm, { fitSinglePage: fitSingle });
+                    addCanvasToPdf(pdf, canvas, null, { fitSinglePage: fitSingle, landscape: landscape });
                 }
                 pdf.save(filename);
             } finally {
@@ -1275,40 +1298,46 @@ const sharedPrintHelpers = `
             if (!pages.length) return '<div class="empty">등록된 훈련일이 없습니다.</div>';
             return pages.map(function(page, pi) {
                 var days = page.days || [];
-                var meta = '<table class="hrd-meta"><tr>' +
-                    '<th>교육과정</th><td colspan="3" style="font-weight:800;white-space:pre-line">' + esc(hrd.course_name || '') + '</td>' +
-                    '<td rowspan="2" class="hrd-title-side" style="width:34%">' + esc(hrd.sheet_title || '훈련시간표') + '</td></tr>' +
-                    '<tr><th>훈련기간</th><td colspan="3">' + esc(hrd.period_label || '') + '</td></tr>' +
-                    '<tr><th>훈련회차</th><td style="width:18%">' + esc(hrd.session_number != null ? String(hrd.session_number) : '') + '</td>' +
-                    '<th style="width:72px">훈련시간</th><td>' + esc(hrd.time_range_label || '') + '</td><td rowspan="3" class="hrd-title-side">' + esc(hrd.institution_name || '') + '</td></tr>' +
-                    '<tr><th>훈련강사</th><td colspan="3">' + esc(hrd.instructor_label || '') + '</td></tr>' +
-                    '<tr><th>훈련장소</th><td colspan="3">' + esc(hrd.location_label || '') + '</td></tr></table>';
+                var meta = '<table class="hrd-meta">' +
+                    '<colgroup><col class="c-label"><col class="c-a"><col class="c-label2"><col class="c-b"><col class="c-side"></colgroup>' +
+                    '<tr><th>교육과정</th><td class="meta-val" colspan="3" style="font-weight:800;white-space:pre-line">' + esc(hrd.course_name || '') + '</td>' +
+                    '<td rowspan="2" class="hrd-title-side">' + esc(hrd.sheet_title || '훈련시간표') + '</td></tr>' +
+                    '<tr><th>훈련기간</th><td class="meta-val center" colspan="3">' + esc(hrd.period_label || '') + '</td></tr>' +
+                    '<tr><th>훈련회차</th><td class="meta-val center">' + esc(hrd.session_number != null ? String(hrd.session_number) : '') + '</td>' +
+                    '<th>훈련시간</th><td class="meta-val center">' + esc(hrd.time_range_label || '') + '</td>' +
+                    '<td rowspan="3" class="hrd-title-side">' + esc(hrd.institution_name || '') + '</td></tr>' +
+                    '<tr><th>훈련강사</th><td class="meta-val center" colspan="3">' + esc(hrd.instructor_label || '') + '</td></tr>' +
+                    '<tr><th>훈련장소</th><td class="meta-val center" colspan="3">' + esc(hrd.location_label || '') + '</td></tr></table>';
+                var colgroup = '<colgroup><col class="pnum"><col class="ptime">' +
+                    days.map(function() { return '<col class="hrd-day"><col class="hrd-inst-col">'; }).join('') +
+                    '</colgroup>';
                 var dayHead = days.map(function(d) {
                     return '<th colspan="2">' + esc(String(d.day_no)) + '</th>';
                 }).join('');
                 var dateHead = days.map(function(d) {
                     return '<th colspan="2" style="background:#e2efda;font-size:8px">' + esc(d.date_display || '') + '</th>';
                 }).join('');
+                // 엑셀과 동일: 교시당 3행(과목/능력단위/장소) + 강사 세로병합 → 가로 띠가 일자 간 정렬
                 var body = periods.map(function(p) {
-                    var block = '';
+                    var subjRow = '';
+                    var unitRow = '';
+                    var locRow = '';
                     days.forEach(function(d) {
                         var s = (d.slots && d.slots[p.period_number]) ? d.slots[p.period_number] : null;
-                        block += '<td colspan="2" class="hrd-slot">' +
-                            '<div class="hrd-slot-inner">' +
-                            '<div class="hrd-slot-main">' +
-                            '<div class="subj">' + esc(s && s.subject_name ? s.subject_name : '') + '</div>' +
-                            '<div class="unit">' + esc(s && s.ability_unit_name ? s.ability_unit_name : '') + '</div>' +
-                            '<div class="loc">' + esc(s && s.location ? s.location : '') + '</div>' +
-                            '</div>' +
-                            '<div class="inst">' + esc(s && s.instructor_name ? s.instructor_name : '') + '</div>' +
-                            '</div></td>';
+                        subjRow += '<td class="hrd-subj">' + esc(s && s.subject_name ? s.subject_name : '') + '</td>' +
+                            '<td class="hrd-inst" rowspan="3">' + esc(s && s.instructor_name ? s.instructor_name : '') + '</td>';
+                        unitRow += '<td class="hrd-unit">' + esc(s && s.ability_unit_name ? s.ability_unit_name : '') + '</td>';
+                        locRow += '<td class="hrd-loc">' + esc(s && s.location ? s.location : '') + '</td>';
                     });
-                    return '<tr><td class="pnum">' + p.period_number + '</td>' +
-                        '<td class="ptime">' + esc((p.start_time || '') + ' ~ ' + (p.end_time || '')) + '</td>' + block + '</tr>';
+                    return '<tr><td class="pnum" rowspan="3">' + p.period_number + '</td>' +
+                        '<td class="ptime" rowspan="3">' + esc((p.start_time || '') + ' ~ ' + (p.end_time || '')) + '</td>' +
+                        subjRow + '</tr>' +
+                        '<tr>' + unitRow + '</tr>' +
+                        '<tr>' + locRow + '</tr>';
                 }).join('');
                 return '<section class="hrd-page">' + meta +
                     '<div class="hrd-banner">' + esc(hrd.banner_title || '') + '</div>' +
-                    '<table class="hrd-table"><thead>' +
+                    '<table class="hrd-table">' + colgroup + '<thead>' +
                     '<tr><th class="pnum">교시</th><th class="ptime">시간</th>' + dayHead + '</tr>' +
                     '<tr><th></th><th></th>' + dateHead + '</tr></thead><tbody>' + body + '</tbody></table>' +
                     (pi === pages.length - 1 ? '<p class="footnote">※ 원본 양식: HRD 신고용 훈련시간표.xlsx · Excel/구글시트 다운로드 가능</p>' : '') +
