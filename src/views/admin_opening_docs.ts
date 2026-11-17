@@ -1077,18 +1077,22 @@ const sharedPrintHelpers = `
             var widthPx = landscape ? 1123 : 794; // 인쇄 A4와 동일 기준
             var host = document.createElement('div');
             host.setAttribute('data-pdf-capture-host', '1');
+            host.setAttribute('aria-hidden', 'true');
+            // 화면 밖에 배치해 캡처 중 깜빡임/미리보기 노출 방지
             host.style.cssText = [
                 'position:fixed',
-                'left:0',
+                'left:-10000px',
                 'top:0',
                 'width:' + widthPx + 'px',
                 'padding:0',
                 'margin:0',
                 'background:#ffffff',
-                'z-index:2147483646',
+                'z-index:-1',
+                'opacity:0',
                 'box-sizing:border-box',
                 'overflow:visible',
-                'pointer-events:none'
+                'pointer-events:none',
+                'visibility:hidden'
             ].join(';');
             var clone = sourceEl.cloneNode(true);
             clone.style.cssText = [
@@ -1100,14 +1104,20 @@ const sharedPrintHelpers = `
                 'background:#ffffff',
                 'box-sizing:border-box',
                 '-webkit-print-color-adjust:exact',
-                'print-color-adjust:exact'
+                'print-color-adjust:exact',
+                'visibility:visible',
+                'opacity:1'
             ].join(';');
             clone.classList.remove('sheet-wrap');
             host.appendChild(clone);
             document.body.appendChild(host);
             try {
-                await new Promise(function(r) { setTimeout(r, 100); });
+                await new Promise(function(r) { setTimeout(r, 60); });
                 var captureH = Math.max(clone.scrollHeight, clone.offsetHeight, 1);
+                // visibility:hidden 호스트는 일부 브라우저에서 빈 캡처가 될 수 있어
+                // 캡처 직전만 레이아웃용으로 보이게 하되 화면 밖 유지
+                host.style.visibility = 'visible';
+                host.style.opacity = '1';
                 var canvas = await window.html2canvas(clone, {
                     scale: 2,
                     useCORS: true,
@@ -1123,6 +1133,14 @@ const sharedPrintHelpers = `
                     onclone: function(clonedDoc) {
                         var toolbar = clonedDoc.querySelectorAll('.no-print, .toolbar');
                         Array.prototype.forEach.call(toolbar, function(n) { n.style.display = 'none'; });
+                        var hostClone = clonedDoc.querySelector('[data-pdf-capture-host]');
+                        if (hostClone) {
+                            hostClone.style.left = '0';
+                            hostClone.style.top = '0';
+                            hostClone.style.opacity = '1';
+                            hostClone.style.visibility = 'visible';
+                            hostClone.style.zIndex = '0';
+                        }
                         Array.prototype.forEach.call(clonedDoc.querySelectorAll('.sheet, .pledge-page, .hrd-page, table, td, th, div'), function(n) {
                             n.style.boxShadow = 'none';
                             n.style.webkitPrintColorAdjust = 'exact';
@@ -1150,12 +1168,8 @@ const sharedPrintHelpers = `
                 pdfBtn.disabled = true;
                 pdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PDF 생성 중…';
             }
-            var prevScrollX = window.scrollX || 0;
-            var prevScrollY = window.scrollY || 0;
             try {
                 await loadPdfLibs();
-                window.scrollTo(0, 0);
-                await new Promise(function(r) { setTimeout(r, 50); });
                 var landscape = isLandscapeDoc(docCode, sheetEl);
                 var filename = buildOpeningDocFilename('pdf', docCode);
                 var jsPDF = window.jspdf.jsPDF;
@@ -1176,7 +1190,6 @@ const sharedPrintHelpers = `
                 }
                 pdf.save(filename);
             } finally {
-                window.scrollTo(prevScrollX, prevScrollY);
                 if (pdfBtn) {
                     pdfBtn.disabled = false;
                     pdfBtn.innerHTML = prevLabel || '<i class="fas fa-file-pdf"></i> PDF 저장';
