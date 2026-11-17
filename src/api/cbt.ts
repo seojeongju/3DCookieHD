@@ -262,11 +262,17 @@ cbt.get('/course-ability-units', authMiddleware, async (c) => {
             } catch (_) { /* ignore */ }
         }
 
+        // 배정된 교과목명을 우선 모두 추가 (사전평가 문제 등록/수정 시 교과목 전체 노출)
+        for (const row of curriculumRows) {
+            if (row.name && String(row.name).trim()) {
+                addUnit('CURR-' + row.id, String(row.name).trim());
+            }
+        }
+        // 세부 NCS 능력단위(ability_units_json / units_json)도 함께 보강
         for (const row of curriculumRows) {
             const addedFromAbility = parseUnitsJson(row.ability_units_json);
-            const addedFromUnits = addedFromAbility ? false : parseUnitsJson(row.units_json);
-            if (!addedFromAbility && !addedFromUnits && row.name && String(row.name).trim()) {
-                addUnit('CURR-' + row.id, String(row.name).trim());
+            if (!addedFromAbility) {
+                parseUnitsJson(row.units_json);
             }
         }
 
@@ -299,7 +305,14 @@ cbt.get('/course-ability-units', authMiddleware, async (c) => {
             }
         }
 
-        const list = codes.map((code) => ({ code, name: map.get(code) || code }));
+        const seenNames = new Set<string>();
+        const list: { code: string; name: string }[] = [];
+        for (const code of codes) {
+            const name = (map.get(code) || code).trim();
+            if (seenNames.has(name)) continue;
+            seenNames.add(name);
+            list.push({ code, name });
+        }
         return successResponse(c, list);
     } catch (e: any) {
         console.error('GET /api/cbt/course-ability-units error:', e);
