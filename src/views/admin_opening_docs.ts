@@ -386,9 +386,9 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            /* 여백은 본문 padding으로 통일(@page는 0 — 브라우저 인쇄 설정에 덜 흔들림) */
-            @page { size: A4 portrait; margin: 0; }
-            @page landscape-sheet { size: A4 landscape; margin: 0; }
+            /* 매 장(@page)에 제본 여백 — 2장 이후에도 상·하단 여백 유지 */
+            @page { size: A4 portrait; margin: 18mm 12mm 12mm 22mm; }
+            @page landscape-sheet { size: A4 landscape; margin: 14mm 10mm 10mm 18mm; }
             .landscape-page { page: landscape-sheet; }
         }
         body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; font-size: 12px; color: #111; background: #f1f5f9; margin: 0; }
@@ -471,6 +471,8 @@ function openingDocPrintShell(title: string, bodyScript: string) {
             .sheet, .pledge-page {
                 box-shadow: none; margin: 0 !important;
                 max-width: none !important; width: 100% !important;
+                /* @page 여백과 중복되지 않도록 인쇄 시 본문 padding 제거 */
+                padding: 0 !important;
             }
             body { background: #fff; }
         }
@@ -1233,10 +1235,10 @@ const sharedPrintHelpers = `
             }
         }
         function resolvePdfMargins(marginSpec, landscape) {
-            // 제본 여백은 .sheet/.pledge-page padding에 이미 포함 → PDF 바깥 여백은 최소만
+            // 장마다 제본 여백(인쇄 @page와 동일) — 다중 분할 시 2장 이후 상단 여백 유지
             var defaults = landscape
-                ? { top: 4, right: 4, bottom: 4, left: 4 }
-                : { top: 4, right: 4, bottom: 4, left: 4 };
+                ? { top: 14, right: 10, bottom: 10, left: 18 }
+                : { top: 18, right: 12, bottom: 12, left: 22 };
             if (marginSpec == null) return defaults;
             if (typeof marginSpec === 'number') {
                 return { top: marginSpec, right: marginSpec, bottom: marginSpec, left: marginSpec };
@@ -1321,15 +1323,12 @@ const sharedPrintHelpers = `
                 'visibility:hidden'
             ].join(';');
             var clone = sourceEl.cloneNode(true);
-            // 제본용 상단·왼쪽 여백을 PDF 캡처에도 동일 적용 (A4 794/1123px 기준)
-            var bindPad = landscape
-                ? '14mm 10mm 10mm 18mm'
-                : '18mm 12mm 12mm 22mm';
+            // 여백은 PDF 페이지 margin으로 매 장 적용 → 캡처 본문은 padding 없이 채움
             clone.style.cssText = [
                 'max-width:none',
                 'width:100%',
                 'margin:0',
-                'padding:' + bindPad,
+                'padding:0',
                 'box-shadow:none',
                 'background:#ffffff',
                 'box-sizing:border-box',
@@ -1378,6 +1377,7 @@ const sharedPrintHelpers = `
                         });
                         Array.prototype.forEach.call(clonedDoc.querySelectorAll('.sheet, .pledge-page, .hrd-page'), function(n) {
                             n.style.margin = '0';
+                            n.style.padding = '0';
                             n.style.maxWidth = 'none';
                             n.style.width = '100%';
                         });
