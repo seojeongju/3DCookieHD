@@ -151,22 +151,31 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                 }
             }
 
+            function printHrefWithQuery(doc, extraQuery) {
+                var printHref = doc.href || doc.href_all || '';
+                if (!printHref) return '';
+                var sep = printHref.indexOf('?') >= 0 ? '&' : '?';
+                return printHref + sep + extraQuery;
+            }
+
             function downloadActionsHtml(doc) {
                 var d = doc.downloads || null;
-                if (!d) return '';
-                if ((doc.code === 'D02' || doc.code === 'D03') && d.xlsx) {
-                    return '<div class="grid grid-cols-3 gap-1.5 mt-1.5">' +
+                if (!d && doc.status !== 'ready') return '';
+                if (doc.status !== 'ready') return '';
+                var pdfHref = printHrefWithQuery(doc, 'autopdf=1');
+                if (!pdfHref) return '';
+                if ((doc.code === 'D02' || doc.code === 'D03') && d && d.xlsx) {
+                    return '<div class="grid grid-cols-2 gap-1.5 mt-1.5">' +
+                        '<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-rose-600 text-white text-[10px] font-black hover:bg-rose-700 transition"><i class="fas fa-file-pdf"></i> PDF</a>' +
                         '<button type="button" data-dl="' + esc(d.xlsx) + '" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-emerald-600 text-white text-[10px] font-black hover:bg-emerald-700 transition"><i class="fas fa-file-excel mr-1"></i>Excel</button>' +
                         '<button type="button" data-dl="' + esc(d.gsheet) + '" data-gsheet="1" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-green-600 text-white text-[10px] font-black hover:bg-green-700 transition"><i class="fas fa-table mr-1"></i>구글시트</button>' +
-                        '<button type="button" data-dl="' + esc(d.html) + '" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900 transition"><i class="fas fa-download mr-1"></i>HTML</button>' +
+                        '<a href="' + esc(printHrefWithQuery(doc, 'autodownload=1')) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900 transition"><i class="fas fa-download"></i> HTML</a>' +
                     '</div>';
                 }
-                if (doc.status === 'ready' && (doc.href || doc.href_all)) {
-                    var printHref = doc.href || doc.href_all || '#';
-                    var sep = printHref.indexOf('?') >= 0 ? '&' : '?';
-                    return '<a href="' + esc(printHref + sep + 'autodownload=1') + '" target="_blank" rel="noopener" class="w-full mt-1.5 min-h-[36px] inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-[10px] font-black hover:bg-slate-50 transition"><i class="fas fa-download text-[10px]"></i> HTML 다운로드</a>';
-                }
-                return '';
+                return '<div class="grid grid-cols-2 gap-1.5 mt-1.5">' +
+                    '<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl bg-rose-600 text-white text-[10px] font-black hover:bg-rose-700 transition"><i class="fas fa-file-pdf"></i> PDF 다운로드</a>' +
+                    '<a href="' + esc(printHrefWithQuery(doc, 'autodownload=1')) + '" target="_blank" rel="noopener" class="min-h-[36px] inline-flex items-center justify-center gap-1 px-2 py-2 rounded-xl border border-slate-200 text-slate-700 text-[10px] font-black hover:bg-slate-50 transition"><i class="fas fa-download"></i> HTML</a>' +
+                '</div>';
             }
 
             function syncFundingFilterButtons() {
@@ -369,6 +378,8 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         .btn-xlsx { background: #15803d; color: #fff; }
         .btn-gsheet { background: #0f9d58; color: #fff; }
         .btn-html { background: #0f172a; color: #fff; }
+        .btn-pdf { background: #b91c1c; color: #fff; }
+        .btn-pdf:disabled { opacity: .65; cursor: wait; }
         .sheet { max-width: 210mm; margin: 0 auto 24px; background: #fff; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
         .sheet.sheet-tt { max-width: 297mm; padding: 14px 16px; }
         table.tt-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 6px 0 10px; }
@@ -500,6 +511,7 @@ function openingDocPrintShell(title: string, bodyScript: string) {
 <body>
     <div class="toolbar no-print">
         <button type="button" class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> 인쇄하기</button>
+        <button type="button" class="btn-pdf" id="btnDlPdf"><i class="fas fa-file-pdf"></i> PDF 저장</button>
         <button type="button" class="btn-html" id="btnDlHtml"><i class="fas fa-download"></i> HTML 저장</button>
         <button type="button" class="btn-xlsx" id="btnDlXlsx" style="display:none"><i class="fas fa-file-excel"></i> Excel</button>
         <button type="button" class="btn-gsheet" id="btnDlGsheet" style="display:none"><i class="fas fa-table"></i> 구글시트</button>
@@ -910,8 +922,76 @@ const sharedPrintHelpers = `
             a.remove();
             URL.revokeObjectURL(url);
         }
+        function loadHtml2Pdf() {
+            if (window.html2pdf) return Promise.resolve(window.html2pdf);
+            return new Promise(function(resolve, reject) {
+                var s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                s.async = true;
+                s.onload = function() {
+                    if (window.html2pdf) resolve(window.html2pdf);
+                    else reject(new Error('PDF 라이브러리 로드 실패'));
+                };
+                s.onerror = function() { reject(new Error('PDF 라이브러리를 불러오지 못했습니다')); };
+                document.head.appendChild(s);
+            });
+        }
+        function isLandscapeDoc(docCode, sheetEl) {
+            if (docCode === 'D03' || docCode === 'D51' || docCode === 'D80' || docCode === 'D02') return true;
+            if (!sheetEl) return false;
+            return !!(sheetEl.querySelector('.landscape-page') || sheetEl.classList.contains('sheet-tt'));
+        }
+        async function downloadRenderedPdf(docCode) {
+            var sheetEl = document.getElementById('sheet');
+            if (!sheetEl) throw new Error('인쇄 영역이 없습니다');
+            if (sheetEl.querySelector('#loading')) throw new Error('서류가 아직 로드되지 않았습니다');
+            var pdfBtn = document.getElementById('btnDlPdf');
+            var prevLabel = pdfBtn ? pdfBtn.innerHTML : '';
+            if (pdfBtn) {
+                pdfBtn.disabled = true;
+                pdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PDF 생성 중…';
+            }
+            try {
+                var html2pdf = await loadHtml2Pdf();
+                var landscape = isLandscapeDoc(docCode, sheetEl);
+                var filename = docCode + '_개강서류.pdf';
+                var opt = {
+                    margin: [8, 8, 8, 8],
+                    filename: filename,
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: sheetEl.scrollWidth
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: landscape ? 'landscape' : 'portrait' },
+                    pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'img'] }
+                };
+                // 그림자·배경 제거해 PDF 품질 향상
+                var prevBox = sheetEl.style.boxShadow;
+                var prevBg = document.body.style.background;
+                sheetEl.style.boxShadow = 'none';
+                document.body.style.background = '#fff';
+                var pages = sheetEl.querySelectorAll('.pledge-page, .hrd-page');
+                pages.forEach(function(p) { p.style.boxShadow = 'none'; });
+                await html2pdf().set(opt).from(sheetEl).save();
+                sheetEl.style.boxShadow = prevBox;
+                document.body.style.background = prevBg;
+            } finally {
+                if (pdfBtn) {
+                    pdfBtn.disabled = false;
+                    pdfBtn.innerHTML = prevLabel || '<i class="fas fa-file-pdf"></i> PDF 저장';
+                }
+            }
+        }
         function wireDownloadButtons(sessionId, docCode) {
             var htmlBtn = document.getElementById('btnDlHtml');
+            var pdfBtn = document.getElementById('btnDlPdf');
             var xlsxBtn = document.getElementById('btnDlXlsx');
             var gsheetBtn = document.getElementById('btnDlGsheet');
             if (htmlBtn) htmlBtn.onclick = function() {
@@ -919,6 +999,11 @@ const sharedPrintHelpers = `
                 catch (e) {
                     downloadDocFile(sessionId, docCode, 'html').catch(function(err) { alert(err.message || '다운로드 실패'); });
                 }
+            };
+            if (pdfBtn) pdfBtn.onclick = function() {
+                downloadRenderedPdf(docCode).catch(function(e) {
+                    alert(e.message || 'PDF 저장 실패');
+                });
             };
             if (docCode === 'D02' || docCode === 'D03') {
                 if (xlsxBtn) {
@@ -1049,6 +1134,14 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 var fundingBanner = fundingBannerHtml(activeFunding);
                 wireDownloadButtons(sessionId, docCode);
                 function maybeAutodownload() {
+                    if (qs('autopdf') === '1') {
+                        setTimeout(function() {
+                            downloadRenderedPdf(docCode).catch(function(e) {
+                                alert(e.message || 'PDF 저장 실패');
+                            });
+                        }, 400);
+                        return;
+                    }
                     if (qs('autodownload') === '1') {
                         setTimeout(function() { downloadRenderedHtml(docCode); }, 250);
                     }
