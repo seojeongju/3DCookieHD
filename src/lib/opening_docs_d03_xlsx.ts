@@ -199,9 +199,9 @@ function writePageBlock(
       merges.push(`${colLetter(cInst)}${blockStart}:${colLetter(cInst)}${blockEnd}`);
     }
 
-    rowHeights[blockStart] = 22;
-    rowHeights[blockStart + 1] = 20;
-    rowHeights[blockStart + 2] = 16;
+    rowHeights[blockStart] = 26;
+    rowHeights[blockStart + 1] = 24;
+    rowHeights[blockStart + 2] = 20;
     r = blockEnd + 1;
   }
 

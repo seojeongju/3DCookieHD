@@ -399,12 +399,15 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         table.hrd-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9px; margin-top: 6px; }
         table.hrd-table th, table.hrd-table td { border: 1px solid #222; padding: 3px 2px; text-align: center; vertical-align: middle; word-break: keep-all; }
         table.hrd-table th { background: #f3f4f6; font-weight: 700; }
-        table.hrd-table td.subj { background: #fff7ed; font-weight: 700; font-size: 9px; line-height: 1.25; }
-        table.hrd-table td.unit { font-size: 8px; line-height: 1.2; }
-        table.hrd-table td.loc { background: #e0f2fe; font-size: 8px; }
-        table.hrd-table td.inst { font-size: 9px; font-weight: 600; }
         table.hrd-table .pnum { width: 28px; font-weight: 800; }
-        table.hrd-table .ptime { width: 72px; font-size: 8px; }
+        table.hrd-table .ptime { width: 72px; font-size: 8px; line-height: 1.35; }
+        table.hrd-table td.hrd-slot { padding: 0; vertical-align: top; height: auto; }
+        .hrd-slot-inner { display: flex; width: 100%; min-height: 54px; align-items: stretch; }
+        .hrd-slot-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+        .hrd-slot-main .subj { background: #fff7ed; font-weight: 700; font-size: 8.5px; line-height: 1.35; padding: 4px 3px; border-bottom: 1px solid #222; word-break: keep-all; }
+        .hrd-slot-main .unit { font-size: 8px; line-height: 1.35; padding: 4px 3px; border-bottom: 1px solid #222; word-break: keep-all; color: #334155; }
+        .hrd-slot-main .loc { background: #e0f2fe; font-size: 8px; line-height: 1.35; padding: 4px 3px; word-break: keep-all; color: #0f172a; }
+        .hrd-slot-inner .inst { flex: 0 0 22%; width: 22%; max-width: 42px; display: flex; align-items: center; justify-content: center; border-left: 1px solid #222; font-size: 8.5px; font-weight: 700; line-height: 1.3; padding: 3px 2px; word-break: keep-all; }
         .hrd-page { margin-bottom: 18px; page-break-after: always; break-after: page; }
         .hrd-page:last-child { page-break-after: auto; break-after: auto; }
         .sheet-wrap { max-width: 210mm; margin: 0 auto 24px; }
@@ -981,35 +984,77 @@ const sharedPrintHelpers = `
             }
         }
         function isLandscapeDoc(docCode, sheetEl) {
-            if (docCode === 'D03' || docCode === 'D51' || docCode === 'D80' || docCode === 'D02') return true;
+            // 인쇄 미리보기와 동일: D02는 세로, 가로 전용 서류만 landscape
+            if (docCode === 'D03' || docCode === 'D51' || docCode === 'D80') return true;
             if (!sheetEl) return false;
-            return !!(sheetEl.querySelector('.landscape-page') || sheetEl.classList.contains('sheet-tt'));
+            if (docCode === 'D02') return false;
+            return !!sheetEl.querySelector('.landscape-page');
         }
         function collectPdfTargets(sheetEl) {
             var pages = sheetEl.querySelectorAll('.pledge-page, .hrd-page');
             if (pages && pages.length) return Array.prototype.slice.call(pages);
             return [sheetEl];
         }
-        function addCanvasToPdf(pdf, canvas, marginMm) {
+        function trimCanvasBottomWhitespace(canvas) {
+            try {
+                var ctx = canvas.getContext('2d');
+                var w = canvas.width;
+                var h = canvas.height;
+                var data = ctx.getImageData(0, 0, w, h).data;
+                var bottom = h - 1;
+                function rowHasInk(y) {
+                    var step = Math.max(1, Math.floor(w / 200));
+                    for (var x = 0; x < w; x += step) {
+                        var i = (y * w + x) * 4;
+                        // 거의 흰색이 아니면 콘텐츠로 판단
+                        if (data[i] < 248 || data[i + 1] < 248 || data[i + 2] < 248) return true;
+                    }
+                    return false;
+                }
+                while (bottom > 0 && !rowHasInk(bottom)) bottom -= 1;
+                bottom = Math.min(h - 1, bottom + 6);
+                if (bottom >= h - 2) return canvas;
+                var trimmed = document.createElement('canvas');
+                trimmed.width = w;
+                trimmed.height = Math.max(1, bottom + 1);
+                trimmed.getContext('2d').drawImage(canvas, 0, 0);
+                return trimmed;
+            } catch (e) {
+                return canvas;
+            }
+        }
+        function addCanvasToPdf(pdf, canvas, marginMm, opts) {
+            opts = opts || {};
+            canvas = trimCanvasBottomWhitespace(canvas);
             var pageW = pdf.internal.pageSize.getWidth();
             var pageH = pdf.internal.pageSize.getHeight();
             var usableW = pageW - marginMm * 2;
             var usableH = pageH - marginMm * 2;
             var imgW = usableW;
             var imgH = (canvas.height * imgW) / canvas.width;
-            // 한 페이지에 들어가면 그대로
-            if (imgH <= usableH + 0.5) {
-                pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', marginMm, marginMm, imgW, imgH);
+            // 인쇄 미리보기처럼 한 장에 맞춤 (비율 유지 축소)
+            var fitSingle = opts.fitSinglePage !== false;
+            if (fitSingle || imgH <= usableH + 0.5) {
+                if (imgH > usableH) {
+                    imgH = usableH;
+                    imgW = (canvas.width * imgH) / canvas.height;
+                }
+                var x = marginMm + Math.max(0, (usableW - imgW) / 2);
+                var y = marginMm;
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', x, y, imgW, imgH);
                 return;
             }
-            // 세로로만 분할 (가로 잘림 방지)
+            // 다중 장만 세로 분할
             var pxPerPage = Math.max(1, Math.floor((usableH / imgH) * canvas.height));
             var srcY = 0;
             var first = true;
             while (srcY < canvas.height) {
+                var remain = canvas.height - srcY;
+                // 남은 영역이 거의 빈 여백이면 중단
+                if (!first && remain < Math.max(24, Math.floor(pxPerPage * 0.04))) break;
                 if (!first) pdf.addPage();
                 first = false;
-                var sliceH = Math.min(pxPerPage, canvas.height - srcY);
+                var sliceH = Math.min(pxPerPage, remain);
                 var slice = document.createElement('canvas');
                 slice.width = canvas.width;
                 slice.height = sliceH;
@@ -1017,13 +1062,19 @@ const sharedPrintHelpers = `
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, slice.width, slice.height);
                 ctx.drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-                var sliceImgH = (sliceH * imgW) / canvas.width;
-                pdf.addImage(slice.toDataURL('image/jpeg', 0.96), 'JPEG', marginMm, marginMm, imgW, sliceImgH);
+                slice = trimCanvasBottomWhitespace(slice);
+                // 완전 빈 슬라이스 스킵
+                if (slice.height < 8) {
+                    srcY += sliceH;
+                    continue;
+                }
+                var sliceImgH = (slice.height * imgW) / canvas.width;
+                pdf.addImage(slice.toDataURL('image/jpeg', 0.98), 'JPEG', marginMm, marginMm, imgW, sliceImgH);
                 srcY += sliceH;
             }
         }
         async function captureElementForPdf(sourceEl, landscape) {
-            var widthPx = landscape ? 1123 : 794; // A4 96dpi 근사
+            var widthPx = landscape ? 1123 : 794; // 인쇄 A4와 동일 기준
             var host = document.createElement('div');
             host.setAttribute('data-pdf-capture-host', '1');
             host.style.cssText = [
@@ -1031,7 +1082,8 @@ const sharedPrintHelpers = `
                 'left:0',
                 'top:0',
                 'width:' + widthPx + 'px',
-                'padding:12px',
+                'padding:0',
+                'margin:0',
                 'background:#ffffff',
                 'z-index:2147483646',
                 'box-sizing:border-box',
@@ -1043,17 +1095,19 @@ const sharedPrintHelpers = `
                 'max-width:none',
                 'width:100%',
                 'margin:0',
-                'padding:12px',
+                'padding:10px 12px',
                 'box-shadow:none',
                 'background:#ffffff',
-                'box-sizing:border-box'
+                'box-sizing:border-box',
+                '-webkit-print-color-adjust:exact',
+                'print-color-adjust:exact'
             ].join(';');
             clone.classList.remove('sheet-wrap');
             host.appendChild(clone);
             document.body.appendChild(host);
             try {
-                // 폰트·레이아웃 안정화
-                await new Promise(function(r) { setTimeout(r, 80); });
+                await new Promise(function(r) { setTimeout(r, 100); });
+                var captureH = Math.max(clone.scrollHeight, clone.offsetHeight, 1);
                 var canvas = await window.html2canvas(clone, {
                     scale: 2,
                     useCORS: true,
@@ -1062,24 +1116,26 @@ const sharedPrintHelpers = `
                     logging: false,
                     scrollX: 0,
                     scrollY: 0,
+                    width: widthPx,
+                    height: captureH,
                     windowWidth: widthPx,
-                    windowHeight: Math.max(clone.scrollHeight, clone.offsetHeight) + 40,
+                    windowHeight: captureH,
                     onclone: function(clonedDoc) {
                         var toolbar = clonedDoc.querySelectorAll('.no-print, .toolbar');
                         Array.prototype.forEach.call(toolbar, function(n) { n.style.display = 'none'; });
-                        var root = clonedDoc.querySelector('[data-pdf-capture-host]') || clonedDoc.body;
-                        if (root) {
-                            root.style.background = '#ffffff';
-                        }
-                        Array.prototype.forEach.call(clonedDoc.querySelectorAll('.sheet, .pledge-page, .hrd-page'), function(n) {
+                        Array.prototype.forEach.call(clonedDoc.querySelectorAll('.sheet, .pledge-page, .hrd-page, table, td, th, div'), function(n) {
                             n.style.boxShadow = 'none';
+                            n.style.webkitPrintColorAdjust = 'exact';
+                            n.style.printColorAdjust = 'exact';
+                        });
+                        Array.prototype.forEach.call(clonedDoc.querySelectorAll('.sheet, .pledge-page, .hrd-page'), function(n) {
                             n.style.margin = '0';
                             n.style.maxWidth = 'none';
                             n.style.width = '100%';
                         });
                     }
                 });
-                return canvas;
+                return trimCanvasBottomWhitespace(canvas);
             } finally {
                 if (host.parentNode) host.parentNode.removeChild(host);
             }
@@ -1109,12 +1165,14 @@ const sharedPrintHelpers = `
                     format: 'a4',
                     compress: true
                 });
-                var marginMm = 6;
+                var marginMm = 8;
                 var targets = collectPdfTargets(sheetEl);
+                // 단일 시트(D02 등)는 인쇄처럼 1장 맞춤, 수강생별 다장은 장마다 1장
+                var fitSingle = targets.length === 1;
                 for (var i = 0; i < targets.length; i++) {
                     if (i > 0) pdf.addPage();
                     var canvas = await captureElementForPdf(targets[i], landscape);
-                    addCanvasToPdf(pdf, canvas, marginMm);
+                    addCanvasToPdf(pdf, canvas, marginMm, { fitSinglePage: fitSingle });
                 }
                 pdf.save(filename);
             } finally {
@@ -1210,12 +1268,15 @@ const sharedPrintHelpers = `
                     var block = '';
                     days.forEach(function(d) {
                         var s = (d.slots && d.slots[p.period_number]) ? d.slots[p.period_number] : null;
-                        block += '<td colspan="2" style="padding:0;border:1px solid #222">' +
-                            '<table style="width:100%;border-collapse:collapse;table-layout:fixed"><tr>' +
-                            '<td class="subj" style="width:78%;border:none;border-bottom:1px solid #222;border-right:1px solid #222">' + esc(s && s.subject_name ? s.subject_name : '') + '</td>' +
-                            '<td class="inst" rowspan="3" style="border:none;width:22%">' + esc(s && s.instructor_name ? s.instructor_name : '') + '</td></tr>' +
-                            '<tr><td class="unit" style="border:none;border-bottom:1px solid #222;border-right:1px solid #222">' + esc(s && s.ability_unit_name ? s.ability_unit_name : '') + '</td></tr>' +
-                            '<tr><td class="loc" style="border:none;border-right:1px solid #222">' + esc(s && s.location ? s.location : '') + '</td></tr></table></td>';
+                        block += '<td colspan="2" class="hrd-slot">' +
+                            '<div class="hrd-slot-inner">' +
+                            '<div class="hrd-slot-main">' +
+                            '<div class="subj">' + esc(s && s.subject_name ? s.subject_name : '') + '</div>' +
+                            '<div class="unit">' + esc(s && s.ability_unit_name ? s.ability_unit_name : '') + '</div>' +
+                            '<div class="loc">' + esc(s && s.location ? s.location : '') + '</div>' +
+                            '</div>' +
+                            '<div class="inst">' + esc(s && s.instructor_name ? s.instructor_name : '') + '</div>' +
+                            '</div></td>';
                     });
                     return '<tr><td class="pnum">' + p.period_number + '</td>' +
                         '<td class="ptime">' + esc((p.start_time || '') + ' ~ ' + (p.end_time || '')) + '</td>' + block + '</tr>';

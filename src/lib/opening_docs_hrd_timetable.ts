@@ -197,6 +197,19 @@ export function buildHrdReportTimetable(input: {
     slotMap.set(`${d}|${p}`, s);
   }
 
+  // 실제 편성된 교시만 유지 (내용 없는 교시 행 제거)
+  const usedPeriodNums = new Set<number>();
+  for (const s of input.slots || []) {
+    if (s.is_excluded) continue;
+    if (s.period_number == null || !Number.isFinite(Number(s.period_number))) continue;
+    if (!String(s.subject_name || '').trim() && !String(s.ability_unit_name || '').trim()) continue;
+    usedPeriodNums.add(Number(s.period_number));
+  }
+  if (usedPeriodNums.size > 0) {
+    const filtered = periods.filter((p) => usedPeriodNums.has(p.period_number));
+    if (filtered.length) periods = filtered;
+  }
+
   const dayColumns: HrdDayColumn[] = dates.map((date, idx) => {
     const slots: Record<number, HrdTimetableSlot | null> = {};
     for (const p of periods) {
