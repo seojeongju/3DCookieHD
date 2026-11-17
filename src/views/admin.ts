@@ -30,13 +30,15 @@ export const adminDashboardHtml = `
         .num { font-variant-numeric: tabular-nums; }
         .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-        /* 일정 분류 색 — 이 화면에서 여러 색이 의미를 갖는 유일한 곳 */
-        .fc-event { cursor: pointer; border-radius: 4px; border: none; font-size: 11px; line-height: 16px; padding: 1px 4px; }
-        .fc-event-course { background-color: #2563eb !important; color: #fff !important; }
-        .fc-event-facility { background-color: #16a34a !important; color: #fff !important; }
-        .fc-event-consultation-inquiry { background-color: #d97706 !important; color: #fff !important; }
-        .fc-event-consultation-hrd { background-color: #dc2626 !important; color: #fff !important; }
-        .fc-event-schedule { background-color: #64748b !important; color: #fff !important; }
+        /* 일정 분류 색 — 톤다운된 파스텔/소프트 필 팔레트 */
+        .fc-event { cursor: pointer; border-radius: 5px; font-size: 11px; line-height: 16px; padding: 1px 5px; font-weight: 500; transition: filter 0.15s ease; }
+        .fc-event:hover { filter: brightness(0.96); }
+        .fc-event .fc-event-main, .fc-event .fc-event-title { color: inherit !important; }
+        .fc-event-course { background-color: #eff6ff !important; border: 1px solid #bfdbfe !important; color: #1e40af !important; }
+        .fc-event-facility { background-color: #ecfdf5 !important; border: 1px solid #a7f3d0 !important; color: #065f46 !important; }
+        .fc-event-consultation-inquiry { background-color: #fffbeb !important; border: 1px solid #fde68a !important; color: #92400e !important; }
+        .fc-event-consultation-hrd { background-color: #fef2f2 !important; border: 1px solid #fecaca !important; color: #991b1b !important; }
+        .fc-event-schedule { background-color: #f1f5f9 !important; border: 1px solid #cbd5e1 !important; color: #334155 !important; }
         body.hide-course .fc-event-course { display: none !important; }
         body.hide-facility .fc-event-facility { display: none !important; }
         body.hide-consultation-inquiry .fc-event-consultation-inquiry { display: none !important; }
@@ -141,11 +143,11 @@ export const adminDashboardHtml = `
                                 <i id="calToggleIcon" class="fas fa-chevron-up text-[11px] text-[#737373] transition-transform duration-150"></i>
                             </button>
                             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-[#525252]">
-                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('course')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#2563eb]"></span>과정</label>
-                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('facility')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#16a34a]"></span>시설</label>
-                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('consultation-inquiry')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#d97706]"></span>상담</label>
-                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('consultation-hrd')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#dc2626]"></span>면담</label>
-                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('general')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#64748b]"></span>일반</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('course')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#60a5fa]"></span>과정</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('facility')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#34d399]"></span>시설</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('consultation-inquiry')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#fbbf24]"></span>상담</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('consultation-hrd')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#f87171]"></span>면담</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked onchange="toggleCalFilter('general')" class="rounded border-[#171717]/20 text-[#2563eb] focus:ring-[#2563eb]/30"><span class="w-2 h-2 rounded-full bg-[#94a3b8]"></span>일반</label>
                             </div>
                         </div>
                         <a href="/admin/schedule" class="focus-ring rounded text-[13px] text-[#1d4ed8] hover:underline">전체 일정 보기</a>

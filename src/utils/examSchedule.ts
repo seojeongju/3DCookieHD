@@ -30,3 +30,20 @@ export function getExamScheduleStatus(
   return 'open';
 }
 
+export function hasExamSchedule(startTime?: string | null, endTime?: string | null): boolean {
+  return !!(normalizeExamDateTime(startTime) || normalizeExamDateTime(endTime));
+}
+
+/** 실행일시가 설정된 경우 현재 시각(KST) 기준으로 자동 활성 여부(1: 진행중, 0: 대기/마감) 반환 */
+export function getEffectiveExamActive(
+  isActive: unknown,
+  startTime?: string | null,
+  endTime?: string | null,
+  nowKst: string = getNowKstIso()
+): number {
+  if (hasExamSchedule(startTime, endTime)) {
+    return getExamScheduleStatus(startTime, endTime, nowKst) === 'open' ? 1 : 0;
+  }
+  return Number(isActive) ? 1 : 0;
+}
+

@@ -71,15 +71,15 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     </div>
                     <div class="lg:col-span-1">
                         <label class="block text-xs font-bold text-gray-600 mb-1.5"><span class="text-red-500 mr-0.5">*</span>실행일 (실시일자)</label>
-                        <input type="date" id="preEvalExecDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                        <input type="date" id="preEvalExecDate" onchange="previewPreEvalAutoStatus()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
                     </div>
                     <div class="lg:col-span-1">
                         <label class="block text-xs font-bold text-gray-600 mb-1.5"><span class="text-red-500 mr-0.5">*</span>실행 시작시간</label>
-                        <input type="time" id="preEvalStartTime" onchange="syncPreEvalDurationFromTimes()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                        <input type="time" id="preEvalStartTime" onchange="syncPreEvalDurationFromTimes(); previewPreEvalAutoStatus();" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
                     </div>
                     <div class="lg:col-span-1">
                         <label class="block text-xs font-bold text-gray-600 mb-1.5"><span class="text-red-500 mr-0.5">*</span>실행 종료시간</label>
-                        <input type="time" id="preEvalEndTime" onchange="syncPreEvalDurationFromTimes()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                        <input type="time" id="preEvalEndTime" onchange="syncPreEvalDurationFromTimes(); previewPreEvalAutoStatus();" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
                     </div>
                     <div class="grid grid-cols-2 gap-2 lg:col-span-1">
                         <div>
@@ -87,8 +87,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             <input type="number" id="preEvalTimeLimit" value="60" min="1" class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1.5">응시 상태</label>
-                            <select id="preEvalIsActive" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5" title="실행일시 기준으로 자동 전환됩니다">응시 상태 <span class="text-[10px] font-normal text-indigo-600">(자동)</span></label>
+                            <select id="preEvalIsActive" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-slate-50">
                                 <option value="1">진행중</option>
                                 <option value="0">대기/마감</option>
                             </select>
@@ -683,6 +683,29 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             let diff = (eh * 60 + em) - (sh * 60 + sm);
             if (diff > 0) limitEl.value = String(diff);
         }
+        function getLocalKstNowIso() {
+            return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 19);
+        }
+        function computeScheduleStatusClient(startVal, endVal) {
+            const st = toDatetimeLocal(startVal);
+            const et = toDatetimeLocal(endVal);
+            const now = getLocalKstNowIso();
+            if (st && now < (st + ':00')) return 'upcoming';
+            if (et && now > (et + ':00')) return 'ended';
+            return 'open';
+        }
+        function previewPreEvalAutoStatus() {
+            const dateEl = document.getElementById('preEvalExecDate');
+            const stEl = document.getElementById('preEvalStartTime');
+            const etEl = document.getElementById('preEvalEndTime');
+            const activeEl = document.getElementById('preEvalIsActive');
+            if (!dateEl || !dateEl.value || !activeEl) return;
+            const st = stEl && stEl.value ? (dateEl.value + 'T' + stEl.value) : '';
+            const et = etEl && etEl.value ? (dateEl.value + 'T' + etEl.value) : '';
+            if (!st && !et) return;
+            const status = computeScheduleStatusClient(st, et);
+            activeEl.value = status === 'open' ? '1' : '0';
+        }
         function syncPreEvalScheduleForm() {
             const primaryExam = examListCache.find(e => e.type === 'practice') || examListCache[0] || null;
             const badgeEl = document.getElementById('preEvalScheduleSummaryBadge');
@@ -702,9 +725,6 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 if (limitEl && primaryExam.time_limit_minutes != null) {
                     limitEl.value = String(primaryExam.time_limit_minutes);
                 }
-                if (activeEl) {
-                    activeEl.value = primaryExam.is_active ? '1' : '0';
-                }
                 const st = parseDateAndTime(primaryExam.start_time);
                 const et = parseDateAndTime(primaryExam.end_time);
                 if (dateEl && (st.date || et.date)) dateEl.value = st.date || et.date;
@@ -713,11 +733,20 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
 
                 const schedText = formatExamScheduleDisplay(primaryExam.start_time, primaryExam.end_time);
                 const isRegistered = schedText && schedText !== '-';
+                const schedStatus = primaryExam.schedule_status || computeScheduleStatusClient(primaryExam.start_time, primaryExam.end_time);
+                const effectiveActive = isRegistered ? (schedStatus === 'open' ? 1 : 0) : (primaryExam.is_active ? 1 : 0);
+                if (activeEl) {
+                    activeEl.value = effectiveActive ? '1' : '0';
+                }
                 if (badgeEl) {
                     if (isRegistered) {
-                        const statusTxt = primaryExam.is_active ? '진행중' : '대기/마감';
+                        const statusTxt = schedStatus === 'open' ? '진행중' : (schedStatus === 'upcoming' ? '대기' : '마감');
                         badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ' +
-                            (primaryExam.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200');
+                            (schedStatus === 'open'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : schedStatus === 'upcoming'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : 'bg-slate-100 text-slate-600 border border-slate-200');
                         badgeEl.innerHTML = '<i class="far fa-calendar-check text-[11px]"></i><span>실행일시: ' + escapeHtml(schedText) + ' (' + (primaryExam.time_limit_minutes || 60) + '분 · ' + statusTxt + ')</span>';
                     } else {
                         badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200';
@@ -775,6 +804,9 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
 
             const startDateTime = execDate + 'T' + startTime;
             const endDateTime = execDate + 'T' + endTime;
+            const autoStatus = computeScheduleStatusClient(startDateTime, endDateTime);
+            const autoIsActive = autoStatus === 'open' ? 1 : 0;
+            if (activeEl) activeEl.value = String(autoIsActive);
             const btn = document.getElementById('preEvalSaveScheduleBtn');
             if (btn) btn.disabled = true;
 
@@ -800,7 +832,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                                 time_limit_minutes: timeLimit,
                                 start_time: startDateTime,
                                 end_time: endDateTime,
-                                is_active: isActive
+                                is_active: autoIsActive
                             })
                         });
                         const json = await res.json();
@@ -819,7 +851,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                         time_limit_minutes: timeLimit,
                         start_time: startDateTime,
                         end_time: endDateTime,
-                        is_active: isActive
+                        is_active: autoIsActive
                     };
                     if (sessionIdQ) payload.session_id = sessionIdQ;
                     const res = await fetch('/api/cbt/exams', {

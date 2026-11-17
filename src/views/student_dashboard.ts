@@ -983,7 +983,7 @@ export const studentDashboardHtml = () => `
                 });
                 const exams = await response.json();
                 const examList = Array.isArray(exams) ? exams : (exams.data || []);
-                const preExams = examList.filter(e => e.type === 'practice' && e.is_active);
+                const preExams = examList.filter(e => e.type === 'practice' && (e.is_active || e.start_time || e.end_time));
                 const container = document.getElementById('contentArea');
                 if (preExams.length === 0) {
                     container.innerHTML = \`

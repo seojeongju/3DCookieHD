@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Bindings, JWTPayload } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { attendanceKindSql } from '../utils/attendance_enrollment';
-import { getExamScheduleStatus, getNowKstIso } from '../utils/examSchedule';
+import { getEffectiveExamActive, getExamScheduleStatus, getNowKstIso } from '../utils/examSchedule';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 app.use('*', authMiddleware);
@@ -474,12 +474,13 @@ app.get('/:sessionId/exams', async (c) => {
                 e.time_limit_minutes, e.is_active, e.course_id,
                 (SELECT 1 FROM exam_submissions WHERE exam_id = e.id AND student_id = ? LIMIT 1) as has_submitted
          FROM exams e
-         WHERE e.course_id = ? AND IFNULL(e.is_active, 0) = 1
+         WHERE e.course_id = ? AND (IFNULL(e.is_active, 0) = 1 OR e.start_time IS NOT NULL OR e.end_time IS NOT NULL)
          ORDER BY e.created_at DESC`
     ).bind(userId, courseId).all();
     const nowKst = getNowKstIso();
     const enriched = (results || []).map((row: any) => ({
         ...row,
+        is_active: getEffectiveExamActive(row.is_active, row.start_time, row.end_time, nowKst),
         schedule_status: getExamScheduleStatus(row.start_time, row.end_time, nowKst)
     }));
     return c.json({ success: true, data: enriched });

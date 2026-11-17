@@ -4,7 +4,7 @@ import { successResponse, errorResponse, notFoundResponse } from '../utils/respo
 import { authMiddleware } from '../middleware/auth';
 import { getAll, execute } from '../utils/database';
 import { lmsCourseIdForSessionOrCreate, resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
-import { getExamScheduleStatus, getNowKstIso } from '../utils/examSchedule';
+import { getEffectiveExamActive, getExamScheduleStatus, getNowKstIso, hasExamSchedule } from '../utils/examSchedule';
 
 const exams = new Hono<{ Bindings: Bindings }>();
 
@@ -169,7 +169,9 @@ exams.get('/', async (c) => {
         const nowKst = getNowKstIso();
         const enriched = (results || []).map((row: any) => ({
             ...row,
-            schedule_status: getExamScheduleStatus(row.start_time, row.end_time, nowKst)
+            is_active: getEffectiveExamActive(row.is_active, row.start_time, row.end_time, nowKst),
+            schedule_status: getExamScheduleStatus(row.start_time, row.end_time, nowKst),
+            has_schedule: hasExamSchedule(row.start_time, row.end_time)
         }));
         return successResponse(c, enriched);
     } catch (e: any) {
@@ -313,9 +315,9 @@ exams.get('/student/pre-assessment-combined', async (c) => {
         }
 
         const sqlExams = `
-            SELECT e.id, e.title, e.time_limit_minutes, e.course_id, e.start_time, e.end_time
+            SELECT e.id, e.title, e.time_limit_minutes, e.course_id, e.start_time, e.end_time, e.is_active
             FROM exams e
-            WHERE e.course_id = ? AND e.type = 'practice' AND e.is_active = 1
+            WHERE e.course_id = ? AND e.type = 'practice' AND (IFNULL(e.is_active, 0) = 1 OR e.start_time IS NOT NULL OR e.end_time IS NOT NULL)
             AND e.course_id IN (
                 SELECT course_id FROM enrollments WHERE user_id = ? AND status = 'approved'
                 UNION
@@ -325,18 +327,18 @@ exams.get('/student/pre-assessment-combined', async (c) => {
             )
             ORDER BY e.created_at ASC
         `;
-        let { results: exams } = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number; start_time?: string | null; end_time?: string | null }[] };
+        let { results: exams } = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number; start_time?: string | null; end_time?: string | null; is_active?: number }[] };
         // course_id로 시험이 없으면 파라미터를 회차(session) ID로 해석해 LMS 과정 ID로 재조회
         if ((!exams || exams.length === 0) && courseIdParam && !sessionIdParam) {
             const resolved = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
             if (resolved != null && resolved !== courseId) {
                 courseId = resolved;
-                const next = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number; start_time?: string | null; end_time?: string | null }[] };
+                const next = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number; start_time?: string | null; end_time?: string | null; is_active?: number }[] };
                 exams = next.results || [];
             }
         }
         const nowKst = getNowKstIso();
-        exams = (exams || []).filter((ex) => getExamScheduleStatus(ex.start_time, ex.end_time, nowKst) === 'open');
+        exams = (exams || []).filter((ex) => getEffectiveExamActive(ex.is_active, ex.start_time, ex.end_time, nowKst) === 1);
 
         const courseRow: any = await c.env.DB.prepare('SELECT title FROM courses WHERE id = ?').bind(courseId).first();
         const course_title = courseRow?.title || '';
@@ -622,15 +624,17 @@ exams.get('/:id/take', async (c) => {
         const exam: any = await c.env.DB.prepare('SELECT * FROM exams WHERE id = ?').bind(id).first();
         if (!exam) return notFoundResponse(c, 'Exam not found');
 
-        if (exam.is_active != null && Number(exam.is_active) === 0) {
-            return errorResponse(c, '현재 응시 가능한 상태가 아닙니다.', 403);
-        }
+        const hasSched = hasExamSchedule(exam.start_time, exam.end_time);
         const schedStatus = getExamScheduleStatus(exam.start_time, exam.end_time);
-        if (schedStatus === 'upcoming') {
-            return errorResponse(c, '응시 기간이 아직 시작되지 않았습니다.', 403);
-        }
-        if (schedStatus === 'ended') {
-            return errorResponse(c, '응시 기간이 종료되어 문제를 열람할 수 없습니다.', 403);
+        if (hasSched) {
+            if (schedStatus === 'upcoming') {
+                return errorResponse(c, '응시 기간이 아직 시작되지 않았습니다.', 403);
+            }
+            if (schedStatus === 'ended') {
+                return errorResponse(c, '응시 기간이 종료되어 문제를 열람할 수 없습니다.', 403);
+            }
+        } else if (exam.is_active != null && Number(exam.is_active) === 0) {
+            return errorResponse(c, '현재 응시 가능한 상태가 아닙니다.', 403);
         }
 
         // 정답을 제외하고 문제 목록 반환
@@ -673,15 +677,17 @@ exams.post('/:id/submit', async (c) => {
         // 시험 활성 상태 및 응시 기간 검증 (기간 외 제출 차단)
         const examMeta: any = await c.env.DB.prepare('SELECT id, is_active, start_time, end_time FROM exams WHERE id = ?').bind(examId).first();
         if (!examMeta) return notFoundResponse(c, '시험을 찾을 수 없습니다');
-        if (examMeta.is_active != null && Number(examMeta.is_active) === 0) {
-            return errorResponse(c, '현재 응시 가능한 상태가 아닙니다.', 403);
-        }
+        const hasSched = hasExamSchedule(examMeta.start_time, examMeta.end_time);
         const schedStatus = getExamScheduleStatus(examMeta.start_time, examMeta.end_time);
-        if (schedStatus === 'upcoming') {
-            return errorResponse(c, '응시 기간이 시작되지 않아 제출할 수 없습니다.', 403);
-        }
-        if (schedStatus === 'ended') {
-            return errorResponse(c, '응시 기간이 종료되어 제출할 수 없습니다.', 403);
+        if (hasSched) {
+            if (schedStatus === 'upcoming') {
+                return errorResponse(c, '응시 기간이 시작되지 않아 제출할 수 없습니다.', 403);
+            }
+            if (schedStatus === 'ended') {
+                return errorResponse(c, '응시 기간이 종료되어 제출할 수 없습니다.', 403);
+            }
+        } else if (examMeta.is_active != null && Number(examMeta.is_active) === 0) {
+            return errorResponse(c, '현재 응시 가능한 상태가 아닙니다.', 403);
         }
 
         // Get correct answers and types

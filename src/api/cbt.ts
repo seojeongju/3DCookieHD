@@ -3,6 +3,7 @@ import type { Bindings } from '../types';
 import { successResponse, errorResponse } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
 import { lmsCourseIdForSession, lmsCourseIdForSessionOrCreate, resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { getEffectiveExamActive, getExamScheduleStatus, getNowKstIso, hasExamSchedule } from '../utils/examSchedule';
 
 const cbt = new Hono<{ Bindings: Bindings }>();
 
@@ -32,7 +33,19 @@ cbt.get('/exams', authMiddleware, async (c) => {
             ORDER BY created_at DESC
         `).bind(courseId).all();
 
-        return successResponse(c, results || []);
+        const nowKst = getNowKstIso();
+        const enriched = (results || []).map((row: any) => {
+            const schedStatus = getExamScheduleStatus(row.start_time, row.end_time, nowKst);
+            const effectiveActive = getEffectiveExamActive(row.is_active, row.start_time, row.end_time, nowKst);
+            return {
+                ...row,
+                is_active: effectiveActive,
+                schedule_status: schedStatus,
+                has_schedule: hasExamSchedule(row.start_time, row.end_time),
+            };
+        });
+
+        return successResponse(c, enriched);
     } catch (e: any) {
         console.error('GET /api/cbt/exams error:', e);
         return errorResponse(c, e.message, 500);
@@ -67,6 +80,7 @@ cbt.post('/exams', authMiddleware, async (c) => {
         // type 유효성 검사
         const validTypes = ['midterm', 'final', 'mock', 'practice'];
         const examType = validTypes.includes(type) ? type : 'practice';
+        const effectiveActive = getEffectiveExamActive(is_active, start_time || null, end_time || null);
 
         const result = await c.env.DB.prepare(`
             INSERT INTO exams (course_id, title, description, type, time_limit_minutes, start_time, end_time, is_active, created_at, updated_at)
@@ -79,7 +93,7 @@ cbt.post('/exams', authMiddleware, async (c) => {
             time_limit_minutes || 60,
             start_time || null,
             end_time || null,
-            is_active
+            effectiveActive
         ).run();
 
         const examId = result.meta.last_row_id;
@@ -102,6 +116,7 @@ cbt.put('/exams/:id', authMiddleware, async (c) => {
 
         const validTypes = ['midterm', 'final', 'mock', 'practice'];
         const examType = validTypes.includes(type) ? type : 'practice';
+        const effectiveActive = getEffectiveExamActive(is_active ?? 1, start_time || null, end_time || null);
 
         await c.env.DB.prepare(`
             UPDATE exams
@@ -111,7 +126,7 @@ cbt.put('/exams/:id', authMiddleware, async (c) => {
         `).bind(
             title, description || null, examType,
             time_limit_minutes || 60, start_time || null, end_time || null,
-            is_active ?? 1, id
+            effectiveActive, id
         ).run();
 
         return successResponse(c, { id }, '시험이 수정되었습니다');
