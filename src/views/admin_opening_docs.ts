@@ -652,6 +652,33 @@ const sharedPrintHelpers = `
             var sess = session.session_number != null ? String(session.session_number) + '차' : '';
             return [course, sess].filter(Boolean).join(' + ');
         }
+        var __openingDocPrintMeta = { session: null, docTitle: '', docCode: '' };
+        function safeDownloadBaseName(raw) {
+            var s = String(raw || '')
+                .replace(/[\\/:*?"<>|]+/g, '_')
+                .replace(/[\\r\\n\\t]+/g, ' ')
+                .replace(/\\s+/g, ' ')
+                .replace(/^\\.+|\\.+$/g, '')
+                .trim();
+            if (!s) s = '개강서류';
+            if (s.length > 120) s = s.slice(0, 120).trim();
+            return s;
+        }
+        function buildOpeningDocFilename(ext, fallbackCode) {
+            var session = __openingDocPrintMeta.session || {};
+            var course = String(session.course_name || '').trim();
+            var sessNo = session.session_number != null ? (String(session.session_number) + '차') : '';
+            var docTitle = String(__openingDocPrintMeta.docTitle || '').trim();
+            var code = String(__openingDocPrintMeta.docCode || fallbackCode || '').trim();
+            var parts = [];
+            if (course) parts.push(course);
+            if (sessNo) parts.push(sessNo);
+            if (docTitle) parts.push(docTitle);
+            else if (code) parts.push(code);
+            var base = safeDownloadBaseName(parts.join('_') || (code || '개강서류'));
+            var e = String(ext || 'pdf').replace(/^\\./, '');
+            return base + '.' + e;
+        }
         function rosterInfoHtml(session) {
             var period = formatDotDate(session.training_start_date) + ' ~' + formatDotDate(session.training_end_date);
             return '<ul class="info-list">' +
@@ -922,24 +949,140 @@ const sharedPrintHelpers = `
             a.remove();
             URL.revokeObjectURL(url);
         }
-        function loadHtml2Pdf() {
-            if (window.html2pdf) return Promise.resolve(window.html2pdf);
+        function loadScriptOnce(src, globalCheck) {
+            if (globalCheck()) return Promise.resolve();
             return new Promise(function(resolve, reject) {
+                var existed = document.querySelector('script[data-pdf-lib="' + src + '"]');
+                if (existed) {
+                    existed.addEventListener('load', function() { resolve(); });
+                    existed.addEventListener('error', function() { reject(new Error('스크립트 로드 실패')); });
+                    return;
+                }
                 var s = document.createElement('script');
-                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                s.src = src;
                 s.async = true;
-                s.onload = function() {
-                    if (window.html2pdf) resolve(window.html2pdf);
-                    else reject(new Error('PDF 라이브러리 로드 실패'));
-                };
-                s.onerror = function() { reject(new Error('PDF 라이브러리를 불러오지 못했습니다')); };
+                s.setAttribute('data-pdf-lib', src);
+                s.onload = function() { resolve(); };
+                s.onerror = function() { reject(new Error('스크립트 로드 실패: ' + src)); };
                 document.head.appendChild(s);
             });
+        }
+        async function loadPdfLibs() {
+            await loadScriptOnce(
+                'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+                function() { return !!window.html2canvas; }
+            );
+            await loadScriptOnce(
+                'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+                function() { return !!(window.jspdf && window.jspdf.jsPDF); }
+            );
+            if (!window.html2canvas || !(window.jspdf && window.jspdf.jsPDF)) {
+                throw new Error('PDF 라이브러리를 불러오지 못했습니다');
+            }
         }
         function isLandscapeDoc(docCode, sheetEl) {
             if (docCode === 'D03' || docCode === 'D51' || docCode === 'D80' || docCode === 'D02') return true;
             if (!sheetEl) return false;
             return !!(sheetEl.querySelector('.landscape-page') || sheetEl.classList.contains('sheet-tt'));
+        }
+        function collectPdfTargets(sheetEl) {
+            var pages = sheetEl.querySelectorAll('.pledge-page, .hrd-page');
+            if (pages && pages.length) return Array.prototype.slice.call(pages);
+            return [sheetEl];
+        }
+        function addCanvasToPdf(pdf, canvas, marginMm) {
+            var pageW = pdf.internal.pageSize.getWidth();
+            var pageH = pdf.internal.pageSize.getHeight();
+            var usableW = pageW - marginMm * 2;
+            var usableH = pageH - marginMm * 2;
+            var imgW = usableW;
+            var imgH = (canvas.height * imgW) / canvas.width;
+            // 한 페이지에 들어가면 그대로
+            if (imgH <= usableH + 0.5) {
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', marginMm, marginMm, imgW, imgH);
+                return;
+            }
+            // 세로로만 분할 (가로 잘림 방지)
+            var pxPerPage = Math.max(1, Math.floor((usableH / imgH) * canvas.height));
+            var srcY = 0;
+            var first = true;
+            while (srcY < canvas.height) {
+                if (!first) pdf.addPage();
+                first = false;
+                var sliceH = Math.min(pxPerPage, canvas.height - srcY);
+                var slice = document.createElement('canvas');
+                slice.width = canvas.width;
+                slice.height = sliceH;
+                var ctx = slice.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, slice.width, slice.height);
+                ctx.drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+                var sliceImgH = (sliceH * imgW) / canvas.width;
+                pdf.addImage(slice.toDataURL('image/jpeg', 0.96), 'JPEG', marginMm, marginMm, imgW, sliceImgH);
+                srcY += sliceH;
+            }
+        }
+        async function captureElementForPdf(sourceEl, landscape) {
+            var widthPx = landscape ? 1123 : 794; // A4 96dpi 근사
+            var host = document.createElement('div');
+            host.setAttribute('data-pdf-capture-host', '1');
+            host.style.cssText = [
+                'position:fixed',
+                'left:0',
+                'top:0',
+                'width:' + widthPx + 'px',
+                'padding:12px',
+                'background:#ffffff',
+                'z-index:2147483646',
+                'box-sizing:border-box',
+                'overflow:visible',
+                'pointer-events:none'
+            ].join(';');
+            var clone = sourceEl.cloneNode(true);
+            clone.style.cssText = [
+                'max-width:none',
+                'width:100%',
+                'margin:0',
+                'padding:12px',
+                'box-shadow:none',
+                'background:#ffffff',
+                'box-sizing:border-box'
+            ].join(';');
+            clone.classList.remove('sheet-wrap');
+            host.appendChild(clone);
+            document.body.appendChild(host);
+            try {
+                // 폰트·레이아웃 안정화
+                await new Promise(function(r) { setTimeout(r, 80); });
+                var canvas = await window.html2canvas(clone, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: widthPx,
+                    windowHeight: Math.max(clone.scrollHeight, clone.offsetHeight) + 40,
+                    onclone: function(clonedDoc) {
+                        var toolbar = clonedDoc.querySelectorAll('.no-print, .toolbar');
+                        Array.prototype.forEach.call(toolbar, function(n) { n.style.display = 'none'; });
+                        var root = clonedDoc.querySelector('[data-pdf-capture-host]') || clonedDoc.body;
+                        if (root) {
+                            root.style.background = '#ffffff';
+                        }
+                        Array.prototype.forEach.call(clonedDoc.querySelectorAll('.sheet, .pledge-page, .hrd-page'), function(n) {
+                            n.style.boxShadow = 'none';
+                            n.style.margin = '0';
+                            n.style.maxWidth = 'none';
+                            n.style.width = '100%';
+                        });
+                    }
+                });
+                return canvas;
+            } finally {
+                if (host.parentNode) host.parentNode.removeChild(host);
+            }
         }
         async function downloadRenderedPdf(docCode) {
             var sheetEl = document.getElementById('sheet');
@@ -951,38 +1094,31 @@ const sharedPrintHelpers = `
                 pdfBtn.disabled = true;
                 pdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PDF 생성 중…';
             }
+            var prevScrollX = window.scrollX || 0;
+            var prevScrollY = window.scrollY || 0;
             try {
-                var html2pdf = await loadHtml2Pdf();
+                await loadPdfLibs();
+                window.scrollTo(0, 0);
+                await new Promise(function(r) { setTimeout(r, 50); });
                 var landscape = isLandscapeDoc(docCode, sheetEl);
-                var filename = docCode + '_개강서류.pdf';
-                var opt = {
-                    margin: [8, 8, 8, 8],
-                    filename: filename,
-                    image: { type: 'jpeg', quality: 0.95 },
-                    html2canvas: {
-                        scale: 2,
-                        useCORS: true,
-                        allowTaint: true,
-                        logging: false,
-                        backgroundColor: '#ffffff',
-                        scrollX: 0,
-                        scrollY: 0,
-                        windowWidth: sheetEl.scrollWidth
-                    },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: landscape ? 'landscape' : 'portrait' },
-                    pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'img'] }
-                };
-                // 그림자·배경 제거해 PDF 품질 향상
-                var prevBox = sheetEl.style.boxShadow;
-                var prevBg = document.body.style.background;
-                sheetEl.style.boxShadow = 'none';
-                document.body.style.background = '#fff';
-                var pages = sheetEl.querySelectorAll('.pledge-page, .hrd-page');
-                pages.forEach(function(p) { p.style.boxShadow = 'none'; });
-                await html2pdf().set(opt).from(sheetEl).save();
-                sheetEl.style.boxShadow = prevBox;
-                document.body.style.background = prevBg;
+                var filename = buildOpeningDocFilename('pdf', docCode);
+                var jsPDF = window.jspdf.jsPDF;
+                var pdf = new jsPDF({
+                    orientation: landscape ? 'landscape' : 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
+                var marginMm = 6;
+                var targets = collectPdfTargets(sheetEl);
+                for (var i = 0; i < targets.length; i++) {
+                    if (i > 0) pdf.addPage();
+                    var canvas = await captureElementForPdf(targets[i], landscape);
+                    addCanvasToPdf(pdf, canvas, marginMm);
+                }
+                pdf.save(filename);
             } finally {
+                window.scrollTo(prevScrollX, prevScrollY);
                 if (pdfBtn) {
                     pdfBtn.disabled = false;
                     pdfBtn.innerHTML = prevLabel || '<i class="fas fa-file-pdf"></i> PDF 저장';
@@ -1132,6 +1268,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 var docTitle = (data.doc && data.doc.title) || ${JSON.stringify(title)};
                 var activeFunding = (data.funding_filter || fundingFromQuery() || 'all');
                 var fundingBanner = fundingBannerHtml(activeFunding);
+                __openingDocPrintMeta = { session: session, docTitle: docTitle, docCode: docCode };
                 wireDownloadButtons(sessionId, docCode);
                 function maybeAutodownload() {
                     if (qs('autopdf') === '1') {
