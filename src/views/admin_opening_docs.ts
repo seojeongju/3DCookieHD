@@ -1094,12 +1094,9 @@ const sharedPrintHelpers = `
             if (f === 'none') return '대상 없음';
             return '전체';
         }
-        function fundingBannerHtml(funding) {
-            var label = fundingFilterLabel(funding);
-            var color = funding === 'gov' ? '#b45309' : funding === 'general' ? '#475569' : '#047857';
-            var bg = funding === 'gov' ? '#fffbeb' : funding === 'general' ? '#f8fafc' : '#ecfdf5';
-            return '<p class="doc-period" style="background:' + bg + ';border-color:' + color + '33;color:' + color + '">' +
-                '<span class="label">대상구분</span>' + esc(label) + '</p>';
+        function fundingBannerHtml(_funding) {
+            // 인쇄·PDF 문서에는 대상구분 배너를 넣지 않음(명단 표의 대상구분 열은 유지)
+            return '';
         }
         async function fetchDoc(sessionId, docCode) {
             var funding = fundingFromQuery();
