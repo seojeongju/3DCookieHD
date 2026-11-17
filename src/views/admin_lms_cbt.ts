@@ -519,20 +519,9 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 if (ansEl) ansEl.value = q.correct_answer || '';
             }
             toggleOptionsField();
-            var ncsSelect = document.getElementById('ncsAbilityUnitSelect');
-            if (ncsSelect) {
-                ncsSelect.innerHTML = '<option value="">선택 안 함</option>';
-                var ncsVal = (q.ncs_ability_unit_code || '') + '::' + (q.ncs_ability_unit_name || '');
-                if (q.ncs_ability_unit_name || q.ncs_ability_unit_code) {
-                    var opt = document.createElement('option');
-                    opt.value = ncsVal.trim() ? ncsVal : '';
-                    opt.textContent = q.ncs_ability_unit_name || q.ncs_ability_unit_code || '';
-                    opt.selected = true;
-                    ncsSelect.appendChild(opt);
-                }
-            }
             document.getElementById('questionFormExamId').value = '';
             document.getElementById('questionModal').classList.remove('hidden');
+            populateNcsAbilityUnitSelect(q.ncs_ability_unit_code, q.ncs_ability_unit_name);
         }
         async function deleteQuestionFromExamModal(questionId) {
             if (!confirm('이 문제를 삭제할까요?')) return;
@@ -564,6 +553,41 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             }
         }
 
+        async function populateNcsAbilityUnitSelect(selectedCode, selectedName) {
+            const selectEl = document.getElementById('ncsAbilityUnitSelect');
+            if (!selectEl) return;
+            selectEl.innerHTML = '<option value="">선택 안 함</option>';
+            const targetCode = String(selectedCode || '').trim();
+            const targetName = String(selectedName || '').trim();
+            let matched = false;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(\`/api/cbt/course-ability-units?course_id=\${courseId}\${sessionQs}\`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const json = await res.json();
+                if (json.success && Array.isArray(json.data)) {
+                    json.data.forEach(function(u) {
+                        const code = String(u.code || '').trim();
+                        const name = String(u.name || '').trim();
+                        const opt = document.createElement('option');
+                        opt.value = code + '::' + name;
+                        opt.textContent = name || code;
+                        if ((targetCode && code === targetCode) || (targetName && name === targetName)) {
+                            opt.selected = true;
+                            matched = true;
+                        }
+                        selectEl.appendChild(opt);
+                    });
+                }
+            } catch (e) { console.error('NCS 능력단위 목록 로드 실패:', e); }
+            if (!matched && (targetCode || targetName)) {
+                const opt = document.createElement('option');
+                opt.value = targetCode + '::' + targetName;
+                opt.textContent = targetName || targetCode;
+                opt.selected = true;
+                selectEl.appendChild(opt);
+            }
+        }
+
         async function openQuestionModal() {
             document.getElementById('questionIdInput').value = '';
             document.getElementById('questionModalTitle').textContent = '문제 등록';
@@ -573,23 +597,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             if (qExamId) qExamId.value = '';
             toggleOptionsField();
             document.getElementById('questionModal').classList.remove('hidden');
-            const selectEl = document.getElementById('ncsAbilityUnitSelect');
-            if (selectEl) {
-                selectEl.innerHTML = '<option value="">선택 안 함</option>';
-                try {
-                    const token = localStorage.getItem('token');
-                    const res = await fetch(\`/api/cbt/course-ability-units?course_id=\${courseId}\`, { headers: { 'Authorization': 'Bearer ' + token } });
-                    const json = await res.json();
-                    if (json.success && Array.isArray(json.data)) {
-                        json.data.forEach(function(u) {
-                            const opt = document.createElement('option');
-                            opt.value = (u.code || '') + '::' + (u.name || '');
-                            opt.textContent = (u.name || u.code || '');
-                            selectEl.appendChild(opt);
-                        });
-                    }
-                } catch (e) { console.error('NCS 능력단위 목록 로드 실패:', e); }
-            }
+            await populateNcsAbilityUnitSelect('', '');
         }
         function openEditQuestion(questionId) {
             const q = allQuestions.find(function(x) { return x.id === parseInt(String(questionId), 10); });
@@ -613,26 +621,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 document.querySelector('input[name="correct_answer_text"]').value = q.correct_answer || '';
             }
             toggleOptionsField();
-            const ncsSelect = document.getElementById('ncsAbilityUnitSelect');
-            if (ncsSelect) {
-                ncsSelect.innerHTML = '<option value="">선택 안 함</option>';
-                const ncsVal = (q.ncs_ability_unit_code || '') + '::' + (q.ncs_ability_unit_name || '');
-                if (q.ncs_ability_unit_name || q.ncs_ability_unit_code) {
-                    const opt = document.createElement('option');
-                    opt.value = ncsVal.trim() ? ncsVal : '';
-                    opt.textContent = q.ncs_ability_unit_name || q.ncs_ability_unit_code || '';
-                    opt.selected = true;
-                    ncsSelect.appendChild(opt);
-                }
-                const otherOpts = [...new Set(allQuestions.map(function(x) { return (x.ncs_ability_unit_name || ''); }).filter(Boolean))].filter(function(n) { return n !== (q.ncs_ability_unit_name || ''); }).sort();
-                otherOpts.forEach(function(n) {
-                    const o = document.createElement('option');
-                    o.textContent = n;
-                    o.value = n;
-                    ncsSelect.appendChild(o);
-                });
-            }
             document.getElementById('questionModal').classList.remove('hidden');
+            populateNcsAbilityUnitSelect(q.ncs_ability_unit_code, q.ncs_ability_unit_name);
         }
 
         function closeModal(id) {

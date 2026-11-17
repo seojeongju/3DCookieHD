@@ -143,56 +143,147 @@ cbt.delete('/exams/:id', authMiddleware, async (c) => {
 });
 
 // ============================================================
-// /api/cbt/course-ability-units  - 해당 과정(회차)에 포함된 NCS 능력단위 목록
+// /api/cbt/course-ability-units  - 해당 과정(회차)에 포함된 NCS 능력단위 전체 목록
 // ============================================================
 cbt.get('/course-ability-units', authMiddleware, async (c) => {
     try {
-        const courseIdParam = c.req.query('session_id') || c.req.query('course_id');
-        if (!courseIdParam) {
+        const explicitSidParam = c.req.query('session_id');
+        const courseIdParam = c.req.query('course_id') || explicitSidParam;
+        if (!courseIdParam && !explicitSidParam) {
             return errorResponse(c, 'course_id 파라미터가 필요합니다', 400);
         }
-        const sessionId = parseInt(String(courseIdParam), 10);
-        if (isNaN(sessionId)) {
-            return successResponse(c, []);
+
+        let session: any = null;
+        if (explicitSidParam && String(explicitSidParam).trim() !== '') {
+            const sid = parseInt(String(explicitSidParam), 10);
+            if (!isNaN(sid) && sid > 0) {
+                session = await c.env.DB.prepare(
+                    'SELECT id, approved_course_id, lms_course_id FROM course_sessions WHERE id = ?'
+                ).bind(sid).first();
+            }
+        }
+        if (!session && courseIdParam) {
+            const cid = parseInt(String(courseIdParam), 10);
+            if (!isNaN(cid) && cid > 0) {
+                session = await c.env.DB.prepare(
+                    'SELECT id, approved_course_id, lms_course_id FROM course_sessions WHERE lms_course_id = ? ORDER BY id DESC LIMIT 1'
+                ).bind(cid).first();
+                if (!session) {
+                    session = await c.env.DB.prepare(
+                        'SELECT id, approved_course_id, lms_course_id FROM course_sessions WHERE id = ?'
+                    ).bind(cid).first();
+                }
+            }
         }
 
-        const session: any = await c.env.DB.prepare(
-            'SELECT approved_course_id FROM course_sessions WHERE id = ?'
-        ).bind(sessionId).first();
-        if (!session?.approved_course_id) {
-            return successResponse(c, []);
-        }
+        const rawNum = courseIdParam ? parseInt(String(courseIdParam), 10) : NaN;
+        const lmsCourseId: number | null =
+            (session?.lms_course_id != null && Number(session.lms_course_id) > 0)
+                ? Number(session.lms_course_id)
+                : (!isNaN(rawNum) && rawNum > 0 ? rawNum : null);
 
-        const reg: any = await c.env.DB.prepare(
-            'SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ? LIMIT 1'
-        ).bind(session.approved_course_id).first();
-        if (!reg?.id) {
-            return successResponse(c, []);
-        }
-
-        const { results: curriculumRows } = await c.env.DB.prepare(
-            'SELECT id, ability_units_json FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
-        ).bind(reg.id).all() as { results: { id: number; ability_units_json?: string }[] };
-
-        type UnitEntry = { code: string; name: string };
         const map = new Map<string, string>();
+        const addUnit = (codeRaw: unknown, nameRaw?: unknown) => {
+            const code = String(codeRaw || '').trim();
+            if (!code) return;
+            const name = String(nameRaw || '').trim();
+            if (!map.has(code)) {
+                map.set(code, name);
+            } else if (!map.get(code) && name) {
+                map.set(code, name);
+            }
+        };
 
-        for (const row of curriculumRows || []) {
-            if (!row.ability_units_json) continue;
+        const parseUnitsJson = (rawJson: unknown): boolean => {
+            if (!rawJson) return false;
+            let added = false;
             try {
-                const parsed = JSON.parse(row.ability_units_json) as (string | { code?: string; name?: string })[];
-                if (!Array.isArray(parsed)) continue;
+                const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+                if (!Array.isArray(parsed)) return false;
                 for (const u of parsed) {
-                    const code = typeof u === 'string' ? u : (u?.code || '');
-                    if (!code) continue;
-                    const name = typeof u === 'object' && u?.name ? String(u.name).trim() : '';
-                    if (!map.has(code)) {
-                        map.set(code, name || '');
+                    if (typeof u === 'string') {
+                        if (u.trim()) {
+                            addUnit(u.trim(), '');
+                            added = true;
+                        }
+                    } else if (u && typeof u === 'object') {
+                        const obj = u as Record<string, unknown>;
+                        const code = obj.code ?? obj.unit_code ?? obj.ncs_unit_code ?? obj.id ?? '';
+                        const name = obj.name ?? obj.unit_name ?? obj.ncs_unit_name ?? obj.title ?? '';
+                        if (String(code).trim()) {
+                            addUnit(code, name);
+                            added = true;
+                        } else if (String(name).trim()) {
+                            addUnit('NAME-' + String(name).trim(), name);
+                            added = true;
+                        }
                     }
                 }
             } catch (_) {
                 /* ignore */
             }
+            return added;
+        };
+
+        // 1) 승인과정 NCS 편성 교과목(ncs_approved_curriculum) + 시간표 배정 교과목
+        const curriculumRows: any[] = [];
+        const seenCurrIds = new Set<number>();
+        const pushCurrRow = (row: any) => {
+            if (!row || row.id == null) return;
+            const id = Number(row.id);
+            if (seenCurrIds.has(id)) return;
+            seenCurrIds.add(id);
+            curriculumRows.push(row);
+        };
+
+        if (session?.approved_course_id) {
+            const { results: regs } = await c.env.DB.prepare(
+                'SELECT id FROM ncs_approved_registrations WHERE approved_course_id = ? ORDER BY id DESC'
+            ).bind(session.approved_course_id).all() as { results: { id: number }[] };
+
+            for (const reg of regs || []) {
+                const { results: rows } = await c.env.DB.prepare(
+                    'SELECT id, type, name, ability_units_json, units_json FROM ncs_approved_curriculum WHERE registration_id = ? ORDER BY sort_order ASC, id ASC'
+                ).bind(reg.id).all();
+                for (const r of rows || []) pushCurrRow(r);
+            }
+        }
+
+        if (session?.id) {
+            try {
+                const { results: ttRows } = await c.env.DB.prepare(
+                    `SELECT DISTINCT c.id, c.type, c.name, c.ability_units_json, c.units_json
+                     FROM session_timetable st
+                     JOIN ncs_approved_curriculum c ON c.id = st.subject_id
+                     WHERE st.session_id = ? AND st.subject_id IS NOT NULL AND (st.is_excluded IS NULL OR st.is_excluded = 0)
+                     ORDER BY c.sort_order ASC, c.id ASC`
+                ).bind(session.id).all();
+                for (const r of ttRows || []) pushCurrRow(r);
+            } catch (_) { /* ignore */ }
+        }
+
+        for (const row of curriculumRows) {
+            const addedFromAbility = parseUnitsJson(row.ability_units_json);
+            const addedFromUnits = addedFromAbility ? false : parseUnitsJson(row.units_json);
+            if (!addedFromAbility && !addedFromUnits && row.name && String(row.name).trim()) {
+                addUnit('CURR-' + row.id, String(row.name).trim());
+            }
+        }
+
+        // 2) course_ncs_units 테이블에 연결된 능력단위 보강
+        if (lmsCourseId != null) {
+            try {
+                const { results: cnuRows } = await c.env.DB.prepare(
+                    `SELECT u.code, u.name
+                     FROM course_ncs_units cnu
+                     JOIN ncs_units u ON u.id = cnu.ncs_unit_id
+                     WHERE cnu.course_id = ?
+                     ORDER BY u.code ASC`
+                ).bind(lmsCourseId).all() as { results: { code?: string; name?: string }[] };
+                for (const r of cnuRows || []) {
+                    addUnit(r.code, r.name);
+                }
+            } catch (_) { /* ignore */ }
         }
 
         const codes = [...map.keys()];
