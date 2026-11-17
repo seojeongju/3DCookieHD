@@ -121,6 +121,54 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                 return '추후 구현';
             }
 
+            async function downloadByUrl(url, openGsheet) {
+                var res = await fetch(url, { headers: authHeaders() });
+                if (!res.ok) {
+                    var errJson = null;
+                    try { errJson = await res.json(); } catch (e) {}
+                    throw new Error((errJson && errJson.error) || ('다운로드 실패 (' + res.status + ')'));
+                }
+                var blob = await res.blob();
+                var dispo = res.headers.get('Content-Disposition') || '';
+                var filename = 'download';
+                var m = dispo.match(/filename\*=UTF-8''([^;]+)/i) || dispo.match(/filename=\"?([^\";]+)\"?/i);
+                if (m && m[1]) {
+                    try { filename = decodeURIComponent(m[1]); } catch (e) { filename = m[1]; }
+                }
+                var obj = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = obj;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(obj);
+                if (openGsheet) {
+                    setTimeout(function() {
+                        window.open('https://docs.google.com/spreadsheets/u/0/', '_blank', 'noopener');
+                        alert('CSV가 다운로드되었습니다.\\n구글 시트에서 [파일 → 가져오기 → 업로드]로 불러오세요.');
+                    }, 400);
+                }
+            }
+
+            function downloadActionsHtml(doc) {
+                var d = doc.downloads || null;
+                if (!d) return '';
+                if ((doc.code === 'D02' || doc.code === 'D03') && d.xlsx) {
+                    return '<div class="grid grid-cols-3 gap-1.5 mt-1.5">' +
+                        '<button type="button" data-dl="' + esc(d.xlsx) + '" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-emerald-600 text-white text-[10px] font-black hover:bg-emerald-700 transition"><i class="fas fa-file-excel mr-1"></i>Excel</button>' +
+                        '<button type="button" data-dl="' + esc(d.gsheet) + '" data-gsheet="1" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-green-600 text-white text-[10px] font-black hover:bg-green-700 transition"><i class="fas fa-table mr-1"></i>구글시트</button>' +
+                        '<button type="button" data-dl="' + esc(d.html) + '" class="js-dl min-h-[36px] px-2 py-2 rounded-xl bg-slate-800 text-white text-[10px] font-black hover:bg-slate-900 transition"><i class="fas fa-download mr-1"></i>HTML</button>' +
+                    '</div>';
+                }
+                if (doc.status === 'ready' && (doc.href || doc.href_all)) {
+                    var printHref = doc.href || doc.href_all || '#';
+                    var sep = printHref.indexOf('?') >= 0 ? '&' : '?';
+                    return '<a href="' + esc(printHref + sep + 'autodownload=1') + '" target="_blank" rel="noopener" class="w-full mt-1.5 min-h-[36px] inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-[10px] font-black hover:bg-slate-50 transition"><i class="fas fa-download text-[10px]"></i> HTML 다운로드</a>';
+                }
+                return '';
+            }
+
             function syncFundingFilterButtons() {
                 document.querySelectorAll('.funding-filter-btn').forEach(function(btn) {
                     var on = btn.getAttribute('data-funding') === fundingFilter;
@@ -188,8 +236,20 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                         '<p class="text-[11px] text-slate-500 font-medium leading-relaxed mb-2 min-h-[2.5rem]">' + esc(doc.description) + '</p>' +
                         '<p class="text-[10px] font-bold text-slate-400 mb-4">대상 인원 ' + cnt + '명 · 국비 ' + cntGov + ' · 일반 ' + cntGen + '</p>' +
                         actions +
+                        (incompatible || doc.status === 'planned' ? '' : downloadActionsHtml(doc)) +
                     '</article>';
                 }).join('');
+
+                grid.querySelectorAll('.js-dl').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var url = btn.getAttribute('data-dl');
+                        if (!url) return;
+                        var openGsheet = btn.getAttribute('data-gsheet') === '1';
+                        downloadByUrl(url, openGsheet).catch(function(e) {
+                            alert(e.message || '다운로드 실패');
+                        });
+                    });
+                });
             }
 
             async function loadSessionOptions() {
@@ -302,11 +362,40 @@ function openingDocPrintShell(title: string, bodyScript: string) {
             .landscape-page { page: landscape-sheet; }
         }
         body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; font-size: 12px; color: #111; background: #f1f5f9; margin: 0; }
-        .toolbar { max-width: 210mm; margin: 12px auto; display: flex; gap: 8px; }
-        .toolbar button { padding: 8px 14px; border: 0; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .toolbar { max-width: 297mm; margin: 12px auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .toolbar button, .toolbar a.btn-dl { padding: 8px 14px; border: 0; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
         .btn-print { background: #2563eb; color: #fff; }
         .btn-close { background: #475569; color: #fff; }
+        .btn-xlsx { background: #15803d; color: #fff; }
+        .btn-gsheet { background: #0f9d58; color: #fff; }
+        .btn-html { background: #0f172a; color: #fff; }
         .sheet { max-width: 210mm; margin: 0 auto 24px; background: #fff; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .sheet.sheet-tt { max-width: 297mm; padding: 14px 16px; }
+        table.tt-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 6px 0 10px; }
+        table.tt-table th, table.tt-table td { border: 1px solid #222; padding: 5px 4px; text-align: center; vertical-align: middle; font-size: 11px; word-break: keep-all; }
+        table.tt-table th { background: #f3f4f6; font-weight: 700; }
+        table.tt-table td.subj { white-space: pre-line; font-size: 10px; line-height: 1.35; height: 48px; }
+        table.tt-table .time-col { width: 92px; font-size: 10px; }
+        .tt-title { text-align: center; font-size: 18px; font-weight: 800; margin: 0 0 6px; white-space: pre-line; line-height: 1.35; }
+        .tt-room { text-align: center; font-size: 14px; font-weight: 700; margin: 0 0 6px; }
+        .tt-period { text-align: center; font-size: 11px; font-weight: 700; margin: 0 0 10px; padding: 8px; background: #eef6ff; border: 1px solid #cbd5e1; white-space: pre-line; line-height: 1.45; }
+        .tt-footer { margin-top: 8px; padding: 10px 12px; border: 1px solid #222; font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: keep-all; }
+        .hrd-meta { width: 100%; border-collapse: collapse; margin-bottom: 8px; table-layout: fixed; }
+        .hrd-meta th, .hrd-meta td { border: 1px solid #222; padding: 4px 6px; font-size: 11px; vertical-align: middle; }
+        .hrd-meta th { width: 72px; background: #f3f4f6; text-align: center; font-weight: 700; }
+        .hrd-banner { text-align: center; font-weight: 800; font-size: 12px; padding: 6px; margin: 8px 0; background: #fff7ed; border: 1px solid #222; }
+        .hrd-title-side { text-align: center; font-weight: 800; font-size: 13px; background: #e0f2fe; border: 1px solid #222; padding: 10px 8px; }
+        table.hrd-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9px; margin-top: 6px; }
+        table.hrd-table th, table.hrd-table td { border: 1px solid #222; padding: 3px 2px; text-align: center; vertical-align: middle; word-break: keep-all; }
+        table.hrd-table th { background: #f3f4f6; font-weight: 700; }
+        table.hrd-table td.subj { background: #fff7ed; font-weight: 700; font-size: 9px; line-height: 1.25; }
+        table.hrd-table td.unit { font-size: 8px; line-height: 1.2; }
+        table.hrd-table td.loc { background: #e0f2fe; font-size: 8px; }
+        table.hrd-table td.inst { font-size: 9px; font-weight: 600; }
+        table.hrd-table .pnum { width: 28px; font-weight: 800; }
+        table.hrd-table .ptime { width: 72px; font-size: 8px; }
+        .hrd-page { margin-bottom: 18px; page-break-after: always; break-after: page; }
+        .hrd-page:last-child { page-break-after: auto; break-after: auto; }
         .sheet-wrap { max-width: 210mm; margin: 0 auto 24px; }
         .pledge-page { background: #fff; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px; page-break-after: always; break-after: page; }
         .pledge-page:last-child { page-break-after: auto; break-after: auto; margin-bottom: 0; }
@@ -411,6 +500,9 @@ function openingDocPrintShell(title: string, bodyScript: string) {
 <body>
     <div class="toolbar no-print">
         <button type="button" class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> 인쇄하기</button>
+        <button type="button" class="btn-html" id="btnDlHtml"><i class="fas fa-download"></i> HTML 저장</button>
+        <button type="button" class="btn-xlsx" id="btnDlXlsx" style="display:none"><i class="fas fa-file-excel"></i> Excel</button>
+        <button type="button" class="btn-gsheet" id="btnDlGsheet" style="display:none"><i class="fas fa-table"></i> 구글시트</button>
         <button type="button" class="btn-close" onclick="window.close()">닫기</button>
         <span style="margin-left:8px;align-self:center;font-size:11px;font-weight:700;color:#64748b;">대상</span>
         <button type="button" class="btn-close" style="background:#0f172a" onclick="(function(){var u=new URL(location.href);u.searchParams.delete('funding');location.href=u.toString();})()">전체</button>
@@ -766,6 +858,156 @@ const sharedPrintHelpers = `
             if (!json.success) throw new Error(json.error || '조회 실패');
             return json.data;
         }
+        async function downloadDocFile(sessionId, docCode, format) {
+            var funding = fundingFromQuery();
+            var q = '?format=' + encodeURIComponent(format);
+            if (funding !== 'all') q += '&funding=' + encodeURIComponent(funding);
+            var res = await fetch('/api/opening-docs/' + sessionId + '/docs/' + docCode + '/download' + q, {
+                headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
+            });
+            if (!res.ok) {
+                var errJson = null;
+                try { errJson = await res.json(); } catch (e) {}
+                throw new Error((errJson && errJson.error) || ('다운로드 실패 (' + res.status + ')'));
+            }
+            var blob = await res.blob();
+            var dispo = res.headers.get('Content-Disposition') || '';
+            var filename = docCode + '_' + format;
+            var m = dispo.match(/filename\\*=UTF-8''([^;]+)/i) || dispo.match(/filename=\"?([^\";]+)\"?/i);
+            if (m && m[1]) {
+                try { filename = decodeURIComponent(m[1]); } catch (e) { filename = m[1]; }
+            }
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            if (format === 'gsheet' || format === 'csv') {
+                setTimeout(function() {
+                    window.open('https://docs.google.com/spreadsheets/u/0/', '_blank', 'noopener');
+                    alert('CSV 파일이 다운로드되었습니다.\\n구글 시트에서 [파일 → 가져오기 → 업로드]로 방금 받은 CSV를 불러오세요.');
+                }, 400);
+            }
+        }
+        function downloadRenderedHtml(docCode) {
+            var sheetEl = document.getElementById('sheet');
+            var bodyHtml = sheetEl ? sheetEl.innerHTML : '';
+            var styles = Array.prototype.map.call(document.querySelectorAll('style'), function(s) { return s.outerHTML; }).join('\\n');
+            var html = '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/><title>' +
+                esc(docCode) + '</title>' + styles +
+                '<style>body{background:#fff!important}.no-print,.toolbar{display:none!important}</style></head><body>' +
+                bodyHtml + '</body></html>';
+            var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = docCode + '_개강서류.html';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+        function wireDownloadButtons(sessionId, docCode) {
+            var htmlBtn = document.getElementById('btnDlHtml');
+            var xlsxBtn = document.getElementById('btnDlXlsx');
+            var gsheetBtn = document.getElementById('btnDlGsheet');
+            if (htmlBtn) htmlBtn.onclick = function() {
+                try { downloadRenderedHtml(docCode); }
+                catch (e) {
+                    downloadDocFile(sessionId, docCode, 'html').catch(function(err) { alert(err.message || '다운로드 실패'); });
+                }
+            };
+            if (docCode === 'D02' || docCode === 'D03') {
+                if (xlsxBtn) {
+                    xlsxBtn.style.display = '';
+                    xlsxBtn.onclick = function() {
+                        downloadDocFile(sessionId, docCode, 'xlsx').catch(function(e) { alert(e.message || '다운로드 실패'); });
+                    };
+                }
+                if (gsheetBtn) {
+                    gsheetBtn.style.display = '';
+                    gsheetBtn.onclick = function() {
+                        downloadDocFile(sessionId, docCode, 'gsheet').catch(function(e) { alert(e.message || '다운로드 실패'); });
+                    };
+                }
+            }
+        }
+        function renderStudentTimetableHtml(tt) {
+            if (!tt) return '<div class="empty">시간표 데이터가 없습니다.</div>';
+            var blocks = tt.blocks || [];
+            var colors = tt.subject_colors || {};
+            var html = '<div class="tt-title">' + esc(tt.title_lines ? tt.title_lines.join('\\n') : '') + '</div>' +
+                '<div class="tt-room">' + esc(tt.classroom_label || '') + '</div>' +
+                '<div class="tt-period">' + esc(tt.period_summary || '') + '</div>';
+            blocks.forEach(function(block) {
+                var days = block.days || [];
+                var cols = Math.max(days.length, 1);
+                var dayNo = days.map(function(d) { return '<td>' + esc(d.day_no_label) + '</td>'; }).join('');
+                var dates = days.map(function(d) { return '<td>' + esc(d.date_display) + '</td>'; }).join('');
+                var subjs = days.map(function(d) {
+                    var bg = colors[d.subject_name] || 'FFC000';
+                    return '<td class="subj" style="background:#' + bg + '">' + esc(d.subject_name || '') + '</td>';
+                }).join('');
+                var teachers = days.map(function(d) { return '<td>' + esc(d.instructor_name || '') + '</td>'; }).join('');
+                while (days.length < 6) { /* visual pad not required */ break; }
+                html += '<table class="tt-table"><colgroup><col class="time-col"/>' +
+                    new Array(cols + 1).join('<col/>') + '</colgroup>' +
+                    '<tr><td style="border:none"></td>' + dayNo + '</tr>' +
+                    '<tr><th>시간</th>' + dates + '</tr>' +
+                    '<tr><th class="time-col">' + esc(tt.time_label || '') + '</th>' + subjs + '</tr>' +
+                    '<tr><th>훈련교사</th>' + teachers + '</tr></table>';
+            });
+            html += '<div class="tt-footer">' + esc(tt.footer_notes || '') + '</div>';
+            html += '<p class="footnote">※ 원본 양식: 02수강생배포용시간표.xlsx · Excel/구글시트 다운로드 가능</p>';
+            return html;
+        }
+        function renderHrdTimetableHtml(hrd) {
+            if (!hrd) return '<div class="empty">HRD 신고용 시간표 데이터가 없습니다.</div>';
+            var pages = hrd.pages || [];
+            var periods = hrd.periods || [];
+            if (!pages.length) return '<div class="empty">등록된 훈련일이 없습니다.</div>';
+            return pages.map(function(page, pi) {
+                var days = page.days || [];
+                var meta = '<table class="hrd-meta"><tr>' +
+                    '<th>교육과정</th><td colspan="3" style="font-weight:800;white-space:pre-line">' + esc(hrd.course_name || '') + '</td>' +
+                    '<td rowspan="2" class="hrd-title-side" style="width:34%">' + esc(hrd.sheet_title || '훈련시간표') + '</td></tr>' +
+                    '<tr><th>훈련기간</th><td colspan="3">' + esc(hrd.period_label || '') + '</td></tr>' +
+                    '<tr><th>훈련회차</th><td style="width:18%">' + esc(hrd.session_number != null ? String(hrd.session_number) : '') + '</td>' +
+                    '<th style="width:72px">훈련시간</th><td>' + esc(hrd.time_range_label || '') + '</td><td rowspan="3" class="hrd-title-side">' + esc(hrd.institution_name || '') + '</td></tr>' +
+                    '<tr><th>훈련강사</th><td colspan="3">' + esc(hrd.instructor_label || '') + '</td></tr>' +
+                    '<tr><th>훈련장소</th><td colspan="3">' + esc(hrd.location_label || '') + '</td></tr></table>';
+                var dayHead = days.map(function(d) {
+                    return '<th colspan="2">' + esc(String(d.day_no)) + '</th>';
+                }).join('');
+                var dateHead = days.map(function(d) {
+                    return '<th colspan="2" style="background:#e2efda;font-size:8px">' + esc(d.date_display || '') + '</th>';
+                }).join('');
+                var body = periods.map(function(p) {
+                    var block = '';
+                    days.forEach(function(d) {
+                        var s = (d.slots && d.slots[p.period_number]) ? d.slots[p.period_number] : null;
+                        block += '<td colspan="2" style="padding:0;border:1px solid #222">' +
+                            '<table style="width:100%;border-collapse:collapse;table-layout:fixed"><tr>' +
+                            '<td class="subj" style="width:78%;border:none;border-bottom:1px solid #222;border-right:1px solid #222">' + esc(s && s.subject_name ? s.subject_name : '') + '</td>' +
+                            '<td class="inst" rowspan="3" style="border:none;width:22%">' + esc(s && s.instructor_name ? s.instructor_name : '') + '</td></tr>' +
+                            '<tr><td class="unit" style="border:none;border-bottom:1px solid #222;border-right:1px solid #222">' + esc(s && s.ability_unit_name ? s.ability_unit_name : '') + '</td></tr>' +
+                            '<tr><td class="loc" style="border:none;border-right:1px solid #222">' + esc(s && s.location ? s.location : '') + '</td></tr></table></td>';
+                    });
+                    return '<tr><td class="pnum">' + p.period_number + '</td>' +
+                        '<td class="ptime">' + esc((p.start_time || '') + ' ~ ' + (p.end_time || '')) + '</td>' + block + '</tr>';
+                }).join('');
+                return '<section class="hrd-page">' + meta +
+                    '<div class="hrd-banner">' + esc(hrd.banner_title || '') + '</div>' +
+                    '<table class="hrd-table"><thead>' +
+                    '<tr><th class="pnum">교시</th><th class="ptime">시간</th>' + dayHead + '</tr>' +
+                    '<tr><th></th><th></th>' + dateHead + '</tr></thead><tbody>' + body + '</tbody></table>' +
+                    (pi === pages.length - 1 ? '<p class="footnote">※ 원본 양식: HRD 신고용 훈련시간표.xlsx · Excel/구글시트 다운로드 가능</p>' : '') +
+                '</section>';
+            }).join('');
+        }
 `;
 
 export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => {
@@ -773,6 +1015,8 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
   const titleMap: Record<string, string> = {
     D00: '훈련생 등록현황 체크리스트',
     D01: '훈 련 생 명 단',
+    D02: '수강생 배포용 시간표',
+    D03: 'HRD 신고용 시간표',
     D22: '[ 국민내일배움 훈련과정] 훈련생 서약서',
     D23: '개인정보 수집·이용 / 제공 동의서',
     D31: '직업능력개발훈련 오리엔테이션 자료(수거용)',
@@ -803,6 +1047,39 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 var docTitle = (data.doc && data.doc.title) || ${JSON.stringify(title)};
                 var activeFunding = (data.funding_filter || fundingFromQuery() || 'all');
                 var fundingBanner = fundingBannerHtml(activeFunding);
+                wireDownloadButtons(sessionId, docCode);
+                function maybeAutodownload() {
+                    if (qs('autodownload') === '1') {
+                        setTimeout(function() { downloadRenderedHtml(docCode); }, 250);
+                    }
+                }
+
+                if (docCode === 'D02') {
+                    sheet.className = 'sheet sheet-tt';
+                    var tt = data.student_timetable || null;
+                    if (!tt || !(tt.days && tt.days.length)) {
+                        sheet.innerHTML = brandHtml(session) +
+                            '<h1 class="doc-title">수강생 배포용 시간표</h1>' +
+                            '<div class="empty">등록된 훈련일/시간표가 없습니다. 회차 시간표를 먼저 작성하세요.</div>';
+                        return;
+                    }
+                    sheet.innerHTML = renderStudentTimetableHtml(tt);
+                    maybeAutodownload();
+                    return;
+                }
+                if (docCode === 'D03') {
+                    sheet.className = 'sheet sheet-tt landscape-page';
+                    var hrd = data.hrd_timetable || null;
+                    if (!hrd || !(hrd.pages && hrd.pages.length) || !(hrd.total_days > 0)) {
+                        sheet.innerHTML = brandHtml(session) +
+                            '<h1 class="doc-title">HRD 신고용 시간표</h1>' +
+                            '<div class="empty">등록된 훈련일/시간표가 없습니다. 회차 시간표를 먼저 작성하세요.</div>';
+                        return;
+                    }
+                    sheet.innerHTML = renderHrdTimetableHtml(hrd);
+                    maybeAutodownload();
+                    return;
+                }
 
                 function chunkArray(arr, size) {
                     var out = [];
@@ -828,10 +1105,12 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         sheet.innerHTML = brandHtml(session) + fundingBanner +
                             '<h1 class="doc-title">[ 국민내일배움 훈련과정] 훈련생 서약서</h1>' +
                             '<div class="empty">국비지원대상 훈련생이 없습니다. 대상 구분 확인 후 다시 출력하세요.</div>';
+                        maybeAutodownload();
                         return;
                     }
                     sheet.className = 'sheet-wrap';
                     sheet.innerHTML = trainees.map(function(t) { return pledgePageHtml(session, t); }).join('');
+                    maybeAutodownload();
                     return;
                 }
                 if (docCode === 'D40') {
@@ -841,9 +1120,11 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         sheet.innerHTML = brandHtml(session) + fundingBanner +
                             '<h1 class="doc-title">미디어 촬영 동의서</h1>' +
                             '<div class="empty">선택한 대상구분의 훈련생이 없습니다.</div>';
+                        maybeAutodownload();
                         return;
                     }
                     sheet.innerHTML = trainees.map(function(t) { return mediaConsentPageHtml(session, t); }).join('');
+                    maybeAutodownload();
                     return;
                 }
                 if (docCode === 'D31' || docCode === 'D32') {
@@ -861,6 +1142,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                                 ' · ' + esc(t.funding_label || fundingFilterLabel(t.funding_category)) + '</p>' +
                             '</section>';
                         }).join('');
+                        maybeAutodownload();
                         return;
                     }
                     sheet.className = 'sheet';
@@ -869,6 +1151,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '<p class="doc-sub">훈련과정명 : ' + esc(courseNameWithSession(session)) + '</p>' +
                         orientationBodyHtml(session, { collect: collect }) +
                         '<p class="footnote">※ 원본: 3-' + (collect ? '1_오리엔테이션_수거용' : '2_오리엔테이션_배포용') + '.hwp</p>';
+                    maybeAutodownload();
                     return;
                 }
 
@@ -951,10 +1234,12 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         sheet.innerHTML = brandHtml(session) + fundingBanner +
                             '<h1 class="doc-title">개인정보 수집·이용 / 제공 동의서</h1>' +
                             '<div class="empty">일반 대상 수강생이 없습니다. 대상 구분을 확인한 뒤 다시 출력하세요.</div>';
+                        maybeAutodownload();
                         return;
                     }
                     sheet.className = 'sheet-wrap';
                     sheet.innerHTML = trainees.map(function(t) { return privacyConsentPageHtml(session, t); }).join('');
+                    maybeAutodownload();
                     return;
                 } else if (docCode === 'D33') {
                     /* HWP「3-3_오리엔테이션참여자명단」 */
@@ -1049,6 +1334,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</section>';
                     }).join('');
                     sheet.innerHTML = html;
+                    maybeAutodownload();
                     return;
                 } else if (docCode === 'D51') {
                     /* HWP「5-1_출석부_일반수강생용」— 시작/종료는 수기 서명용으로 넓게, 집계란은 좁게 */
@@ -1089,6 +1375,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</section>';
                     }).join('');
                     sheet.innerHTML = html;
+                    maybeAutodownload();
                     return;
                 } else if (docCode === 'D53') {
                     /* HWP「5-3_출석입력요청대장(별지 제16호)」 */
@@ -1206,6 +1493,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</section>');
                     }
                     sheet.innerHTML = pages.join('');
+                    maybeAutodownload();
                     return;
                 } else {
                     html += '<div class="empty">이 서류 인쇄 템플릿은 아직 준비되지 않았습니다.</div>';
@@ -1214,6 +1502,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                 sheet.innerHTML = html;
                 var cnt = document.getElementById('metaCount');
                 if (cnt) cnt.textContent = String(trainees.length);
+                maybeAutodownload();
             } catch (e) {
                 sheet.innerHTML = '<div class="empty">' + esc(e.message || '오류') + '</div>';
             }

@@ -19,6 +19,13 @@ import {
   datesToTrainingDayLabels,
   getSessionTrainingDatesForLogs,
 } from '../utils/session_training_dates';
+import { buildStudentDistributionTimetable } from '../lib/opening_docs_student_timetable';
+import { buildD02Csv, buildD02Workbook } from '../lib/opening_docs_d02_xlsx';
+import {
+  buildHrdReportTimetable,
+  extractAbilityUnitLabel,
+} from '../lib/opening_docs_hrd_timetable';
+import { buildD03Csv, buildD03Workbook } from '../lib/opening_docs_d03_xlsx';
 
 const openingDocs = new Hono<{ Bindings: Bindings }>();
 const requireStaff = requireRole('admin', 'teacher', 'instructor');
@@ -356,6 +363,180 @@ function filterTraineesByAudience(
   return filtered.map((t, idx) => ({ ...t, no: idx + 1 }));
 }
 
+async function resolveAbilityUnitNames(
+  DB: D1Database,
+  codes: string[]
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const uniq = [...new Set(codes.map((c) => String(c || '').trim()).filter(Boolean))];
+  for (let i = 0; i < uniq.length; i += 40) {
+    const chunk = uniq.slice(i, i + 40);
+    const ph = chunk.map(() => '?').join(',');
+    try {
+      const { results } = await DB.prepare(
+        `SELECT code, name FROM ncs_units WHERE code IN (${ph})`
+      )
+        .bind(...chunk)
+        .all();
+      for (const r of (results || []) as any[]) {
+        if (r.code && r.name) map.set(String(r.code), String(r.name));
+      }
+    } catch {
+      /* ncs_units 없을 수 있음 */
+    }
+  }
+  return map;
+}
+
+async function loadTimetableSlotRows(DB: D1Database, sessionId: number) {
+  const { results } = await DB.prepare(
+    `SELECT st.training_date, st.period_number, st.subject_id, st.instructor_id, st.location, st.is_excluded,
+            c.name AS subject_name, c.ability_units_json, c.units_json, u.name AS instructor_name
+     FROM session_timetable st
+     LEFT JOIN ncs_approved_curriculum c ON c.id = st.subject_id
+     LEFT JOIN users u ON u.id = st.instructor_id
+     WHERE st.session_id = ?
+     ORDER BY st.training_date ASC, st.period_number ASC`
+  )
+    .bind(sessionId)
+    .all();
+
+  const rows = (results || []).map((r: any) => {
+    let abilityLabel = extractAbilityUnitLabel(r.ability_units_json, r.units_json);
+    return {
+      training_date: String(r.training_date || '').slice(0, 10),
+      period_number: r.period_number != null ? Number(r.period_number) : null,
+      subject_id: r.subject_id != null ? Number(r.subject_id) : null,
+      subject_name: r.subject_name || null,
+      ability_units_json: r.ability_units_json || null,
+      units_json: r.units_json || null,
+      ability_unit_name: abilityLabel || null,
+      instructor_id: r.instructor_id != null ? Number(r.instructor_id) : null,
+      instructor_name: r.instructor_name || null,
+      location: r.location || null,
+      is_excluded: r.is_excluded != null ? Number(r.is_excluded) : 0,
+    };
+  });
+
+  // 코드만 있는 능력단위 → ncs_units 명칭 보강
+  const codeLike = rows
+    .map((r) => r.ability_unit_name || '')
+    .filter((s) => /^[0-9]{8,}/.test(s) || /_\d+v\d+/i.test(s));
+  if (codeLike.length) {
+    const nameMap = await resolveAbilityUnitNames(DB, codeLike);
+    for (const r of rows) {
+      const key = String(r.ability_unit_name || '');
+      if (nameMap.has(key)) r.ability_unit_name = nameMap.get(key)!;
+    }
+  }
+  return rows;
+}
+
+async function loadPeriodConfigs(DB: D1Database, sessionId: number) {
+  try {
+    const { results } = await DB.prepare(
+      `SELECT period_number, start_time, end_time FROM session_period_configs
+       WHERE session_id = ? ORDER BY period_number ASC`
+    )
+      .bind(sessionId)
+      .all();
+    return (results || []).map((r: any) => ({
+      period_number: Number(r.period_number),
+      start_time: String(r.start_time || ''),
+      end_time: String(r.end_time || ''),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function buildSessionDocContext(DB: D1Database, sessionId: number, header: SessionHeader) {
+  const trainingDates = await getSessionTrainingDatesForLogs(
+    DB,
+    sessionId,
+    header.training_start_date,
+    header.training_end_date,
+    header.days_of_week,
+    header.lms_course_id,
+    header.session_name
+  );
+  const trainingDays = datesToTrainingDayLabels(trainingDates);
+  const unitPeriods = buildUnitPeriods(trainingDates, header.training_start_date, header.training_end_date);
+  const attendanceRules = buildAttendanceRules(header.training_time_start, header.training_time_end);
+  const dayCount = trainingDates.length || header.total_days || 0;
+  const hourCount =
+    header.total_hours ||
+    (header.daily_hours && dayCount ? Math.round(Number(header.daily_hours) * dayCount) : null) ||
+    (dayCount ? dayCount * 4 : null);
+  const textbookNames = await loadTextbookNames(DB, header.textbook_ids_json);
+  const timetableRows = await loadTimetableSlotRows(DB, sessionId);
+  const periodConfigs = await loadPeriodConfigs(DB, sessionId);
+  const studentTimetable = buildStudentDistributionTimetable({
+    course_name: header.course_name,
+    session_number: header.session_number,
+    session_name: header.session_name,
+    location: header.location,
+    training_start_date: header.training_start_date,
+    training_end_date: header.training_end_date,
+    training_time_start: header.training_time_start,
+    training_time_end: header.training_time_end,
+    days_of_week: header.days_of_week,
+    instructor_name: header.instructor_name,
+    training_dates: trainingDates,
+    timetable_rows: timetableRows,
+    unit_periods: unitPeriods,
+  });
+  const hrdTimetable = buildHrdReportTimetable({
+    course_name: header.course_name,
+    session_number: header.session_number,
+    session_name: header.session_name,
+    location: header.location,
+    instructor_name: header.instructor_name,
+    training_start_date: header.training_start_date,
+    training_end_date: header.training_end_date,
+    training_time_start: header.training_time_start,
+    training_time_end: header.training_time_end,
+    institution_name: header.institution_name,
+    total_hours: hourCount,
+    training_dates: trainingDates,
+    period_configs: periodConfigs,
+    slots: timetableRows,
+  });
+  return {
+    trainingDates,
+    trainingDays,
+    unitPeriods,
+    attendanceRules,
+    dayCount,
+    hourCount,
+    textbookNames,
+    timetableRows,
+    studentTimetable,
+    hrdTimetable,
+  };
+}
+
+function openingDocDownloadPath(
+  sessionId: number,
+  code: string,
+  format: string,
+  funding?: OpeningDocAudience | null
+): string {
+  const base = `/api/opening-docs/${sessionId}/docs/${code}/download?format=${encodeURIComponent(format)}`;
+  if (funding === 'gov' || funding === 'general') {
+    return `${base}&funding=${funding}`;
+  }
+  return base;
+}
+
+function safeDownloadFilename(base: string, ext: string): string {
+  const cleaned = String(base || 'opening-doc')
+    .replace(/[\\/:*?"<>|]+/g, '_')
+    .replace(/\s+/g, '_')
+    .slice(0, 80);
+  return `${cleaned}.${ext}`;
+}
+
 /** GET /api/opening-docs/catalog — 서류 목록 정의 */
 openingDocs.get('/catalog', authMiddleware, requireStaff, (c) => {
   return successResponse(c, OPENING_DOCS);
@@ -399,6 +580,22 @@ openingDocs.get('/:sessionId/pack', authMiddleware, requireStaff, async (c) => {
         doc.status === 'ready'
           ? openingDocPrintPath(sessionId, doc.code, hubFunding === 'all' ? null : hubFunding)
           : null;
+      const fundForDl: OpeningDocAudience | null =
+        hubFunding === 'all' ? null : hubFunding;
+      const downloads =
+        doc.status === 'ready'
+          ? doc.code === 'D02' || doc.code === 'D03'
+            ? {
+                xlsx: openingDocDownloadPath(sessionId, doc.code, 'xlsx', fundForDl),
+                gsheet: openingDocDownloadPath(sessionId, doc.code, 'gsheet', fundForDl),
+                html: openingDocDownloadPath(sessionId, doc.code, 'html', fundForDl),
+              }
+            : {
+                html: openingDocDownloadPath(sessionId, doc.code, 'html', fundForDl),
+              }
+          : doc.status === 'link' && external
+            ? { link: external }
+            : null;
       return {
         ...doc,
         audience,
@@ -420,6 +617,7 @@ openingDocs.get('/:sessionId/pack', authMiddleware, requireStaff, async (c) => {
             : audience === 'all'
               ? null
               : readyHref,
+        downloads,
         trainee_count: scoped.length,
         trainee_count_gov: countGov,
         trainee_count_general: countGeneral,
@@ -475,24 +673,7 @@ openingDocs.get('/:sessionId/docs/:docCode', authMiddleware, requireStaff, async
     const effectiveFunding = resolveOpeningDocFunding(def.audience, fundingParam);
     const allTrainees = await loadEnrolledTrainees(c.env.DB, sessionId);
     const trainees = filterTraineesByAudience(allTrainees, effectiveFunding);
-    const textbookNames = await loadTextbookNames(c.env.DB, header.textbook_ids_json);
-    const trainingDates = await getSessionTrainingDatesForLogs(
-      c.env.DB,
-      sessionId,
-      header.training_start_date,
-      header.training_end_date,
-      header.days_of_week,
-      header.lms_course_id,
-      header.session_name
-    );
-    const trainingDays = datesToTrainingDayLabels(trainingDates);
-    const unitPeriods = buildUnitPeriods(trainingDates, header.training_start_date, header.training_end_date);
-    const attendanceRules = buildAttendanceRules(header.training_time_start, header.training_time_end);
-    const dayCount = trainingDates.length || header.total_days || 0;
-    const hourCount =
-      header.total_hours ||
-      (header.daily_hours && dayCount ? Math.round(Number(header.daily_hours) * dayCount) : null) ||
-      (dayCount ? dayCount * 4 : null);
+    const ctx = await buildSessionDocContext(c.env.DB, sessionId, header);
 
     return successResponse(c, {
       doc: {
@@ -503,19 +684,21 @@ openingDocs.get('/:sessionId/docs/:docCode', authMiddleware, requireStaff, async
       funding_filter: effectiveFunding === 'none' ? fundingParam : effectiveFunding,
       session: {
         ...header,
-        textbook_names: textbookNames,
-        textbook_label: textbookNames.length ? textbookNames.join(' / ') : '',
+        textbook_names: ctx.textbookNames,
+        textbook_label: ctx.textbookNames.length ? ctx.textbookNames.join(' / ') : '',
         sd_material_label: '3D프린터운용기능사 출력 연습용 SD카드 (마이크로 sd포함)',
-        training_day_count: dayCount,
-        training_hour_count: hourCount,
-        unit_periods: unitPeriods,
-        attendance_rules: attendanceRules,
+        training_day_count: ctx.dayCount,
+        training_hour_count: ctx.hourCount,
+        unit_periods: ctx.unitPeriods,
+        attendance_rules: ctx.attendanceRules,
       },
       trainees,
       trainee_count_gov: allTrainees.filter((t) => t.funding_category === 'gov').length,
       trainee_count_general: allTrainees.filter((t) => t.funding_category === 'general').length,
-      training_dates: trainingDates,
-      training_days: trainingDays,
+      training_dates: ctx.trainingDates,
+      training_days: ctx.trainingDays,
+      student_timetable: ctx.studentTimetable,
+      hrd_timetable: ctx.hrdTimetable,
       printed_at: new Date().toISOString(),
     });
   } catch (e) {
@@ -523,5 +706,216 @@ openingDocs.get('/:sessionId/docs/:docCode', authMiddleware, requireStaff, async
     return errorResponse(c, '서류 데이터 조회 실패', 500);
   }
 });
+
+/**
+ * GET /api/opening-docs/:sessionId/docs/:docCode/download
+ * format=xlsx|gsheet|csv|html
+ */
+openingDocs.get('/:sessionId/docs/:docCode/download', authMiddleware, requireStaff, async (c) => {
+  try {
+    const sessionId = parseInt(c.req.param('sessionId'), 10);
+    const docCode = String(c.req.param('docCode') || '').toUpperCase();
+    const format = String(c.req.query('format') || 'html').trim().toLowerCase();
+    if (!Number.isFinite(sessionId) || sessionId <= 0) {
+      return errorResponse(c, '잘못된 회차 ID', 400);
+    }
+
+    const def = getOpeningDoc(docCode);
+    if (!def) return notFoundResponse(c, '서류를 찾을 수 없습니다');
+    if (def.status === 'planned') {
+      return errorResponse(c, '아직 구현되지 않은 서류입니다', 400);
+    }
+    if (def.status === 'link') {
+      const href = openingDocExternalLink(sessionId, def.linkType);
+      return errorResponse(c, `연결 서류는 파일 다운로드 대신 화면에서 열어주세요: ${href || ''}`, 400);
+    }
+
+    const header = await loadSessionHeader(c.env.DB, sessionId);
+    if (!header) return notFoundResponse(c, '회차를 찾을 수 없습니다');
+
+    const fundingParam = String(c.req.query('funding') || 'all').trim().toLowerCase();
+    const effectiveFunding = resolveOpeningDocFunding(def.audience, fundingParam);
+    const allTrainees = await loadEnrolledTrainees(c.env.DB, sessionId);
+    const trainees = filterTraineesByAudience(allTrainees, effectiveFunding);
+    const ctx = await buildSessionDocContext(c.env.DB, sessionId, header);
+
+    const baseName = `${def.code}_${header.course_name || '과정'}_${header.session_number != null ? header.session_number + '차' : '회차'}`;
+
+    if (docCode === 'D02' && (format === 'xlsx' || format === 'excel')) {
+      const buf = buildD02Workbook(ctx.studentTimetable, header.course_name || '수강생시간표');
+      const filename = safeDownloadFilename(`${baseName}_수강생배포용시간표`, 'xlsx');
+      return new Response(buf, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
+    if (docCode === 'D02' && (format === 'gsheet' || format === 'csv' || format === 'google')) {
+      const csv = buildD02Csv(ctx.studentTimetable);
+      const filename = safeDownloadFilename(`${baseName}_수강생배포용시간표_구글시트`, 'csv');
+      return new Response(csv, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+          'Cache-Control': 'no-store',
+          'X-Google-Sheets-Hint': 'File > Import > Upload in Google Sheets',
+        },
+      });
+    }
+
+    if (docCode === 'D03' && (format === 'xlsx' || format === 'excel')) {
+      const buf = buildD03Workbook(ctx.hrdTimetable, '시간표(출력)');
+      const filename = safeDownloadFilename(`${baseName}_HRD신고용시간표`, 'xlsx');
+      return new Response(buf, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
+    if (docCode === 'D03' && (format === 'gsheet' || format === 'csv' || format === 'google')) {
+      const csv = buildD03Csv(ctx.hrdTimetable);
+      const filename = safeDownloadFilename(`${baseName}_HRD신고용시간표_구글시트`, 'csv');
+      return new Response(csv, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+          'Cache-Control': 'no-store',
+          'X-Google-Sheets-Hint': 'File > Import > Upload in Google Sheets',
+        },
+      });
+    }
+
+    // 공통 HTML 다운로드 (인쇄용 간이 문서)
+    const fundingLabelText =
+      effectiveFunding === 'gov' ? '국비지원' : effectiveFunding === 'general' ? '일반' : '전체';
+    const tt = ctx.studentTimetable;
+    const hrd = ctx.hrdTimetable;
+    let bodyHtml = '';
+    if (docCode === 'D03') {
+      const pagesHtml = (hrd.pages || [])
+        .map((page, pi) => {
+          const days = page.days || [];
+          const dayHead = days.map((d) => `<th colspan="2">${d.day_no}</th>`).join('');
+          const dateHead = days.map((d) => `<th colspan="2">${escHtml(d.date_display)}</th>`).join('');
+          const periodRows = (hrd.periods || [])
+            .map((p) => {
+              const cells = days
+                .map((d) => {
+                  const s = d.slots[p.period_number];
+                  if (!s) return '<td></td><td></td>';
+                  return `<td><div style="font-weight:700">${escHtml(s.subject_name)}</div><div style="font-size:10px">${escHtml(s.ability_unit_name)}</div><div style="font-size:10px;color:#334155">${escHtml(s.location)}</div></td><td style="writing-mode:horizontal-tb">${escHtml(s.instructor_name)}</td>`;
+                })
+                .join('');
+              return `<tr><th>${p.period_number}</th><th style="font-size:10px">${escHtml(p.start_time)} ~ ${escHtml(p.end_time)}</th>${cells}</tr>`;
+            })
+            .join('');
+          return `<section style="margin-bottom:24px;page-break-after:always">
+            <h2 style="font-size:14px">HRD 신고용 시간표 ${pi + 1}</h2>
+            <p><strong>교육과정</strong> ${escHtml(hrd.course_name)} · <strong>회차</strong> ${hrd.session_number != null ? hrd.session_number : '-'} · ${escHtml(hrd.period_label)}</p>
+            <p>${escHtml(hrd.banner_title)}</p>
+            <table border="1" cellpadding="4" style="border-collapse:collapse;width:100%;font-size:11px">
+              <tr><th>교시</th><th>시간</th>${dayHead}</tr>
+              <tr><th></th><th></th>${dateHead}</tr>
+              ${periodRows}
+            </table>
+          </section>`;
+        })
+        .join('');
+      bodyHtml = pagesHtml || '<div>시간표 데이터 없음</div>';
+    } else if (docCode === 'D02') {
+      const blockHtml = tt.blocks
+        .map((block) => {
+          const days = block.days;
+          const cols = Math.max(days.length, 1);
+          const dayNos = days.map((d) => `<td>${escHtml(d.day_no_label)}</td>`).join('');
+          const dates = days.map((d) => `<td>${escHtml(d.date_display)}</td>`).join('');
+          const subjs = days
+            .map((d) => {
+              const bg = tt.subject_colors[d.subject_name] || 'FFC000';
+              return `<td style="background:#${bg};white-space:pre-line">${escHtml(d.subject_name)}</td>`;
+            })
+            .join('');
+          const teachers = days.map((d) => `<td>${escHtml(d.instructor_name)}</td>`).join('');
+          return `<table class="tt" style="width:100%;border-collapse:collapse;margin:8px 0;table-layout:fixed">
+            <tr><td style="width:90px"></td>${dayNos}${cols < 6 ? '<td colspan="' + (6 - cols) + '"></td>' : ''}</tr>
+            <tr><th>시간</th>${dates}</tr>
+            <tr><th rowspan="1">${escHtml(tt.time_label)}</th>${subjs}</tr>
+            <tr><th>훈련교사</th>${teachers}</tr>
+          </table>`;
+        })
+        .join('');
+      bodyHtml = `
+        <h1 style="text-align:center;white-space:pre-line">${escHtml(tt.title_lines.join('\n'))}</h1>
+        <p style="text-align:center;font-weight:700">${escHtml(tt.classroom_label)}</p>
+        <p style="text-align:center;white-space:pre-line;background:#eef6ff;padding:8px;border:1px solid #ccc">${escHtml(tt.period_summary)}</p>
+        ${blockHtml}
+        <pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;border:1px solid #ccc;padding:10px">${escHtml(tt.footer_notes)}</pre>`;
+    } else {
+      const rows = trainees
+        .map(
+          (t) =>
+            `<tr><td>${t.no}</td><td>${escHtml(t.funding_label)}</td><td>${escHtml(t.name)}</td><td>${escHtml(t.phone)}</td><td>${escHtml(t.birthdate)}</td></tr>`
+        )
+        .join('');
+      bodyHtml = `
+        <h1 style="text-align:center">${escHtml(def.title)}</h1>
+        <p><strong>과정</strong> ${escHtml(header.course_name)}
+          ${header.session_number != null ? `(${header.session_number}회차)` : ''}
+          · 대상 ${escHtml(fundingLabelText)} · ${trainees.length}명</p>
+        <p>${escHtml(String(header.training_start_date || '').slice(0, 10))} ~ ${escHtml(String(header.training_end_date || '').slice(0, 10))}
+          · ${escHtml(header.instructor_name || '')} · ${escHtml(header.location || '')}</p>
+        <p style="color:#64748b;font-size:12px">※ 서식 전체는 인쇄 화면에서 확인하고, 이 HTML은 명단·메타 요약 다운로드입니다. 완전한 양식은 인쇄 페이지에서 PDF/HTML로 저장하세요.</p>
+        <p><a href="${openingDocPrintPath(sessionId, docCode, effectiveFunding === 'gov' || effectiveFunding === 'general' ? effectiveFunding : null)}">인쇄 화면 열기</a></p>
+        <table style="width:100%;border-collapse:collapse" border="1" cellpadding="6">
+          <thead><tr><th>NO</th><th>구분</th><th>성명</th><th>연락처</th><th>생년월일</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="5" style="text-align:center">대상 없음</td></tr>'}</tbody>
+        </table>`;
+    }
+
+    const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/><title>${escHtml(def.title)}</title>
+      <style>
+        body{font-family:"Malgun Gothic",sans-serif;font-size:12px;color:#111;padding:16px}
+        table.tt th,table.tt td{border:1px solid #222;padding:6px;text-align:center;vertical-align:middle}
+        table.tt th{background:#f3f4f6}
+        @media print{.no-print{display:none}}
+      </style></head><body>
+      <div class="no-print" style="margin-bottom:12px">
+        <button onclick="window.print()">인쇄 / PDF 저장</button>
+      </div>
+      ${bodyHtml}
+      </body></html>`;
+
+    const filename = safeDownloadFilename(`${baseName}_${def.title}`, 'html');
+    return new Response(html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (e) {
+    console.error('opening-docs download:', e);
+    return errorResponse(c, '서류 다운로드 실패', 500);
+  }
+});
+
+function escHtml(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 export default openingDocs;
