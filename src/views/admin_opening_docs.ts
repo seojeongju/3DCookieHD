@@ -1013,7 +1013,6 @@ const sharedPrintHelpers = `
                 '<div class="pledge-date">' + esc(formatPledgeDate(session.training_start_date)) + '</div>' +
                 '<div class="pledge-sign">신청인&nbsp;&nbsp;&nbsp;&nbsp;' + esc(t.name || '') +
                 '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
-                '<p class="footnote">※ 원본: 2-3_개인정보활용동의서_일반.hwp</p>' +
             '</section>';
         }
         /** 미디어 촬영 동의서 — 과정 단위 1부(수강생별 복제 없음), 수기 성명·서명란 */
@@ -1041,8 +1040,7 @@ const sharedPrintHelpers = `
                 '<div class="ot-sign-line">' + esc(formatPledgeDate(session.training_start_date)) +
                 '&nbsp;&nbsp;성명:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +
                 '&nbsp;&nbsp;확인자:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
-                '</div>' +
-                '<p class="footnote">※ 원본: 4_미디어 촬영 동의서.hwp · 학생별 복제 없이 수기 성명·서명</p>';
+                '</div>';
         }
         /** HWP「2-2_내일배움_훈련생서약서」수강생 1장 */
         function pledgePageHtml(session, t) {
@@ -1485,7 +1483,6 @@ const sharedPrintHelpers = `
                     '<tr><th>훈련교사</th>' + teachers + '</tr></table>';
             });
             html += '<div class="tt-footer">' + esc(tt.footer_notes || '') + '</div>';
-            html += '<p class="footnote">※ 원본 양식: 02수강생배포용시간표.xlsx · Excel/구글시트 다운로드 가능</p>';
             return html;
         }
         function renderHrdTimetableHtml(hrd) {
@@ -1537,7 +1534,6 @@ const sharedPrintHelpers = `
                     '<table class="hrd-table">' + colgroup + '<thead>' +
                     '<tr><th class="pnum">교시</th><th class="ptime">시간</th>' + dayHead + '</tr>' +
                     '<tr><th></th><th></th>' + dateHead + '</tr></thead><tbody>' + body + '</tbody></table>' +
-                    (pi === pages.length - 1 ? '<p class="footnote">※ 원본 양식: HRD 신고용 훈련시간표.xlsx · Excel/구글시트 다운로드 가능</p>' : '') +
                 '</section>';
             }).join('');
         }
@@ -1670,9 +1666,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     sheet.innerHTML = brandHtml(session) + fundingBanner +
                         '<h1 class="doc-title">' + otTitle + (collect ? ' (수거용)' : ' (배포용)') + '</h1>' +
                         '<p class="doc-sub">훈련과정명 : ' + esc(courseNameWithSession(session)) + '</p>' +
-                        orientationBodyHtml(session, { collect: collect }) +
-                        '<p class="footnote">※ 원본: 3-' + (collect ? '1_오리엔테이션_수거용' : '2_오리엔테이션_배포용') +
-                        '.hwp · 학생별 복제 없이 안내 전문 + 수기 확인/서명란</p>';
+                        orientationBodyHtml(session, { collect: collect });
                     maybeAutodownload();
                     return;
                 }
@@ -1715,9 +1709,8 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                             '</tr>';
                         }
                     }
-                    html += '</tbody></table>' +
-                        '<p class="footnote">※ OT참석은 수기 체크 · 교육신청서/자부담 결제는 수강생관리 등록 정보를 ○로 표시합니다. (원본: 0_훈련생 등록현황 체크리스트.hwp)</p>';
-                } else if (docCode === 'D01') {
+                    html += '</tbody></table>';
+                    } else if (docCode === 'D01') {
                     /* HWP「1_훈련생명단-훈련교사관리」: NO·대상구분·성명·전화번호·생년월일·비고 */
                     html += '<table class="doc-table checklist-table">' +
                         '<thead><tr>' +
@@ -1747,9 +1740,8 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                             '</tr>';
                         }
                     }
-                    html += '</tbody></table>' +
-                        '<p class="footnote">※ 대상구분: 국비(재직자)·국비(구직자)·일반. 수강생 등록의 유형·지원유형을 반영합니다. (원본: 1_훈련생명단-훈련교사관리.hwp)</p>';
-                } else if (docCode === 'D23') {
+                    html += '</tbody></table>';
+                    } else if (docCode === 'D23') {
                     /* HWP「2-3_개인정보활용동의서_일반」— 일반 수강생별 1장 */
                     if (!trainees.length) {
                         sheet.className = 'sheet';
@@ -1788,9 +1780,8 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                             html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
                     });
-                    html += '</tbody></table>' +
-                        '<p class="footnote">※ 참여자서명은 수기 기재합니다. (원본: 3-3_오리엔테이션참여자명단.hwp)</p>';
-                } else if (docCode === 'D70') {
+                    html += '</tbody></table>';
+                    } else if (docCode === 'D70') {
                     /* HWP「7_.교재지급대장」 */
                     var textbookLabel = session.textbook_label || (session.textbook_names && session.textbook_names.length ? session.textbook_names.join(' / ') : '') || '';
                     var deployDate = (function() {
@@ -1820,9 +1811,8 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                             html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
                     });
-                    html += '</tbody></table>' +
-                        '<p class="footnote">※ 확인(정자체)는 수기 기재합니다. 교재명은 승인과정 등록 교재를 반영합니다. (원본: 7_.교재지급대장.hwp)</p>';
-                } else if (docCode === 'D80') {
+                    html += '</tbody></table>';
+                    } else if (docCode === 'D80') {
                     /* HWP「SD카드 지급반납 확인서 관리대장」 — 훈련일 6일 단위 가로 분할 */
                     var dayChunks = chunkArray(trainingDays, 6);
                     var sdRows = padRows(trainees, 10);
@@ -1899,7 +1889,6 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                             '<li><span class="bullet">훈련기간</span><span class="sep">:</span><span class="val">' + esc(formatDotDate(session.training_start_date) + ' ~ ' + formatDotDate(session.training_end_date)) + '</span></li>' +
                             '</ul>' +
                             '<table class="att-gen"><thead>' + head1 + head2 + '</thead><tbody>' + body + '</tbody></table>' +
-                            '<p class="footnote">※ 일반 수강생용. 시작·종료 칸에 본인 성명을 수기로 기재합니다. (원본: 5-1_출석부_일반수강생용.hwp)</p>' +
                         '</section>';
                     }).join('');
                     sheet.innerHTML = html;
@@ -1931,8 +1920,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '<div class="ledger-note"><strong>작성요령</strong><br>' +
                         '1. 대장은 훈련기관에서 전담자를 두어 별도 작성·관리하여야 하고, 훈련생은 사유발생일 당일에 훈련이 종료된 이후 관리자가 기재한 내용을 확인한 후 훈련생이 직접 본인의 성명을 자필로 정확하게 작성(사인, 특수문자 등은 기재할 수 없음)<br>' +
                         '2. ⑥란 발생일자는 직권입력사유 발생 해당일자 / ⑧란 성명은 전담관리자가 직접 기재 / ⑨란 사유는 카드 분실·훼손, 정전, 단말기 고장, 카드발급 지연 등<br>' +
-                        '3. ⑩·⑪란은 직권사유 발생 훈련생의 입실(외출)·퇴실(귀원) 시간을 기재합니다.</div>' +
-                        '<p class="footnote">※ 원본: 5-3_출석입력요청대장(별지서식제16호).hwp</p>';
+                        '3. ⑩·⑪란은 직권사유 발생 훈련생의 입실(외출)·퇴실(귀원) 시간을 기재합니다.</div>';
                 } else if (docCode === 'D90') {
                     /* HWP「업무수행평가」수업평가(본인) */
                     var evalQs = [
@@ -1972,8 +1960,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                     html += '<tr><td class="q">건의사항</td><td colspan="4" style="height:48px">&nbsp;</td><td class="score">총점<br>점</td></tr></tbody></table>' +
                         '<p style="margin-top:12px;font-size:12px;">*' + esc(courseNameWithSession(session)) + '</p>' +
                         '<div class="pledge-date">' + esc(formatPledgeDate(session.training_end_date || session.training_start_date)) + '</div>' +
-                        '<div class="pledge-sign">작성자&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>' +
-                        '<p class="footnote">※ 원본: 업무수행평가.hwp</p>';
+                        '<div class="pledge-sign">작성자&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)</div>';
                 } else if (docCode === 'D91') {
                     /* HWP「강의후설문조사」— 수강생 수만큼(최소 1) */
                     var surveyCount = Math.max(trainees.length, 1);
@@ -2019,7 +2006,6 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                             surveyBlock('교육내용평가', contentQs) +
                             '<p style="font-weight:700;margin:8px 0 4px;">전반적인 교육 소감을 구체적으로 작성하여 주시기 바랍니다.</p>' +
                             '<div class="survey-free">&nbsp;</div>' +
-                            '<p class="footnote">※ 원본: 강의후설문조사.hwp</p>' +
                         '</section>');
                     }
                     sheet.innerHTML = pages.join('');
