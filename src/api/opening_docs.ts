@@ -260,28 +260,35 @@ function normalizeFundingCategory(v: string | null | undefined): 'gov' | 'genera
   return 'gov';
 }
 
-function fundingLabel(category: 'gov' | 'general'): string {
-  return category === 'general' ? '일반' : '국비지원';
-}
-
-/** HWP「구분」열용 — 대상구분(국비/일반) + 지원유형 축약 */
-function categoryLabel(studentType: string, packageType: string, fundingCategory?: string): string {
-  const funding = fundingLabel(normalizeFundingCategory(fundingCategory));
+/** 국비 세부: 재직자 / 구직자(+기타 지원유형) */
+function fundingDetailLabel(studentType: string, packageType: string): string {
   const pt = String(packageType || '').toLowerCase();
   const st = String(studentType || '').toLowerCase();
-  let detail = '';
-  if (pt === 'jobholder') detail = '재직자';
-  else if (pt === 'unemployed') detail = '실업자';
-  else if (pt === 'package1') detail = '패키지1';
-  else if (pt === 'package2') detail = '패키지2';
-  else if (pt === 'eitc') detail = '근로장려금';
-  else if (pt === 'general') detail = '일반과정';
-  else if (st === 'worker') detail = '재직자';
-  else if (st === 'jobseeker') detail = '구직자';
-  else if (st === 'student') detail = '학생';
-  else if (st === 'general') detail = '일반';
-  else detail = packageType || studentType || '';
-  return detail ? `${funding}\n(${detail})` : funding;
+  if (pt === 'jobholder' || st === 'worker') return '재직자';
+  if (pt === 'unemployed' || st === 'jobseeker') return '구직자';
+  if (pt === 'package1') return '패키지1';
+  if (pt === 'package2') return '패키지2';
+  if (pt === 'eitc') return '근로장려금';
+  if (pt === 'general') return '일반과정';
+  if (st === 'student') return '학생';
+  if (st === 'general') return '일반';
+  return String(packageType || studentType || '').trim();
+}
+
+/** 대상구분 표시: 일반 / 국비(재직자) / 국비(구직자) … */
+function fundingLabel(
+  category: 'gov' | 'general',
+  studentType?: string,
+  packageType?: string
+): string {
+  if (category === 'general') return '일반';
+  const detail = fundingDetailLabel(studentType || '', packageType || '');
+  return detail ? `국비(${detail})` : '국비지원';
+}
+
+/** HWP「구분」열용 — 대상구분(국비/일반) + 재직·구직 등 세부 */
+function categoryLabel(studentType: string, packageType: string, fundingCategory?: string): string {
+  return fundingLabel(normalizeFundingCategory(fundingCategory), studentType, packageType);
 }
 
 async function ensureFundingCategoryColumn(DB: D1Database): Promise<void> {
@@ -332,7 +339,8 @@ async function loadEnrolledTrainees(DB: D1Database, sessionId: number) {
       student_type: r.student_type || '',
       package_type: r.package_type || '',
       funding_category,
-      funding_label: fundingLabel(funding_category),
+      funding_detail: fundingDetailLabel(r.student_type || '', r.package_type || ''),
+      funding_label: fundingLabel(funding_category, r.student_type || '', r.package_type || ''),
       category_label: categoryLabel(r.student_type || '', r.package_type || '', funding_category),
       journey_status: r.journey_status || '',
       enrollment_status: r.enrollment_status || '',
@@ -561,8 +569,11 @@ openingDocs.get('/:sessionId/pack', authMiddleware, requireStaff, async (c) => {
       fundingParam === 'gov' || fundingParam === 'general' ? fundingParam : 'all';
 
     const trainees = await loadEnrolledTrainees(c.env.DB, sessionId);
-    const govCount = trainees.filter((t) => t.funding_category === 'gov').length;
+    const govTrainees = trainees.filter((t) => t.funding_category === 'gov');
+    const govCount = govTrainees.length;
     const generalCount = trainees.filter((t) => t.funding_category === 'general').length;
+    const govWorkerCount = govTrainees.filter((t) => t.funding_detail === '재직자').length;
+    const govJobseekerCount = govTrainees.filter((t) => t.funding_detail === '구직자').length;
     const docs = OPENING_DOCS.map((doc) => {
       const external = openingDocExternalLink(sessionId, doc.linkType);
       const audience = (doc.audience || 'all') as OpeningDocAudience;
@@ -631,6 +642,8 @@ openingDocs.get('/:sessionId/pack', authMiddleware, requireStaff, async (c) => {
       funding_filter: hubFunding,
       trainee_count: trainees.length,
       trainee_count_gov: govCount,
+      trainee_count_gov_worker: govWorkerCount,
+      trainee_count_gov_jobseeker: govJobseekerCount,
       trainee_count_general: generalCount,
       docs,
       progress: {
@@ -694,6 +707,12 @@ openingDocs.get('/:sessionId/docs/:docCode', authMiddleware, requireStaff, async
       },
       trainees,
       trainee_count_gov: allTrainees.filter((t) => t.funding_category === 'gov').length,
+      trainee_count_gov_worker: allTrainees.filter(
+        (t) => t.funding_category === 'gov' && t.funding_detail === '재직자'
+      ).length,
+      trainee_count_gov_jobseeker: allTrainees.filter(
+        (t) => t.funding_category === 'gov' && t.funding_detail === '구직자'
+      ).length,
       trainee_count_general: allTrainees.filter((t) => t.funding_category === 'general').length,
       training_dates: ctx.trainingDates,
       training_days: ctx.trainingDays,

@@ -67,6 +67,8 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100"><i class="fas fa-map-marker-alt text-slate-400"></i><span id="packLocation">—</span></span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700"><i class="fas fa-users"></i> 배정 <span id="packTraineeCount">0</span>명</span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-700">국비 <span id="packGovCount">0</span></span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-100 text-orange-800">재직 <span id="packGovWorkerCount">0</span></span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50/70 border border-amber-100 text-amber-800">구직 <span id="packGovJobseekerCount">0</span></span>
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600">일반 <span id="packGeneralCount">0</span></span>
                             </div>
                             <div>
@@ -305,8 +307,12 @@ export const adminOpeningDocsHubHtml = (sessionId?: string) => `
                     document.getElementById('packLocation').textContent = s.location || '장소 미지정';
                     document.getElementById('packTraineeCount').textContent = String(data.trainee_count || 0);
                     var govEl = document.getElementById('packGovCount');
+                    var govWorkerEl = document.getElementById('packGovWorkerCount');
+                    var govJobEl = document.getElementById('packGovJobseekerCount');
                     var genEl = document.getElementById('packGeneralCount');
                     if (govEl) govEl.textContent = String(data.trainee_count_gov != null ? data.trainee_count_gov : 0);
+                    if (govWorkerEl) govWorkerEl.textContent = String(data.trainee_count_gov_worker != null ? data.trainee_count_gov_worker : 0);
+                    if (govJobEl) govJobEl.textContent = String(data.trainee_count_gov_jobseeker != null ? data.trainee_count_gov_jobseeker : 0);
                     if (genEl) genEl.textContent = String(data.trainee_count_general != null ? data.trainee_count_general : 0);
                     document.getElementById('packReadyCount').textContent = String((data.progress && data.progress.implemented) || 0);
                     document.getElementById('packTotalCount').textContent = String((data.progress && data.progress.total) || 0);
@@ -493,31 +499,32 @@ function openingDocPrintShell(title: string, bodyScript: string) {
         .empty { text-align: center; padding: 40px 12px; color: #64748b; }
         .footnote { margin-top: 10px; font-size: 10px; color: #64748b; }
         .sign-row { margin-top: 28px; display: flex; justify-content: flex-end; gap: 40px; font-size: 12px; }
-        .ot-wrap { font-size: 12px; line-height: 1.55; word-break: keep-all; }
-        .ot-wrap h2 { font-size: 14px; margin: 16px 0 8px; border-left: 4px solid #0f172a; padding-left: 8px; }
-        .ot-wrap h3 { font-size: 12.5px; margin: 10px 0 6px; font-weight: 800; }
-        .ot-wrap p { margin: 0 0 6px; }
-        .ot-wrap .bullet-line { margin: 0 0 6px; }
-        .ot-wrap .indent { margin: 0 0 6px 14px; }
-        table.ot-table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; table-layout: fixed; }
-        table.ot-table th, table.ot-table td { border: 1px solid #222; padding: 5px 6px; font-size: 11px; vertical-align: middle; }
+        .ot-wrap { font-size: 12px; line-height: 1.45; word-break: keep-all; }
+        .ot-wrap h2 { font-size: 13.5px; margin: 10px 0 6px; border-left: 4px solid #0f172a; padding-left: 8px; page-break-after: avoid; break-after: avoid; }
+        .ot-wrap h3 { font-size: 12px; margin: 8px 0 4px; font-weight: 800; page-break-after: avoid; break-after: avoid; }
+        .ot-wrap p { margin: 0 0 4px; }
+        .ot-wrap .bullet-line { margin: 0 0 4px; }
+        .ot-wrap .indent { margin: 0 0 4px 14px; }
+        table.ot-table { width: 100%; border-collapse: collapse; margin: 6px 0 8px; table-layout: fixed; }
+        table.ot-table th, table.ot-table td { border: 1px solid #222; padding: 4px 5px; font-size: 10.5px; vertical-align: middle; }
         table.ot-table th { background: #f3f4f6; text-align: center; font-weight: 700; }
         table.ot-table td.l { text-align: left; }
         table.ot-table td.c { text-align: center; }
-        .ot-confirm { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid #222; background: #fafafa; }
-        .ot-confirm .ask { font-weight: 700; margin-bottom: 8px; }
-        .ot-confirm-inline { margin: 8px 0 14px; font-size: 12px; font-weight: 700; }
+        .ot-confirm { margin: 6px 0 8px; padding: 8px 10px; border: 1px solid #222; background: #fafafa; page-break-inside: avoid; }
+        .ot-confirm .ask { font-weight: 700; margin-bottom: 6px; }
+        .ot-confirm-inline { margin: 4px 0 8px; font-size: 11.5px; font-weight: 700; }
         .ot-confirm-inline .box { display: inline-block; width: 14px; height: 14px; border: 1px solid #222; margin-left: 8px; vertical-align: -2px; }
-        .ot-sign-line { margin: 10px 0 4px; text-align: right; font-size: 12px; font-weight: 600; padding-right: 8px; }
-        .ot-page-break { page-break-before: always; break-before: page; }
+        .ot-sign-line { margin: 6px 0 2px; text-align: right; font-size: 12px; font-weight: 600; padding-right: 8px; }
         .eval-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
         .eval-head table { border-collapse: collapse; }
         .eval-head th, .eval-head td { border: 1px solid #222; padding: 4px 8px; font-size: 11px; text-align: center; }
         table.eval-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         table.eval-table th, table.eval-table td { border: 1px solid #222; padding: 5px 6px; font-size: 11px; }
         table.eval-table th { background: #f3f4f6; }
-        table.eval-table td.q { text-align: left; }
-        table.eval-table td.score { text-align: center; width: 28px; }
+        table.eval-table col.eq { width: auto; }
+        table.eval-table col.es { width: 34px; }
+        table.eval-table th.q, table.eval-table td.q { text-align: left; width: auto; }
+        table.eval-table th.score, table.eval-table td.score { text-align: center; width: 34px; max-width: 36px; padding: 4px 2px; }
         .survey-intro { font-size: 12px; line-height: 1.55; margin: 0 0 12px; word-break: keep-all; }
         .survey-meta { margin: 0 0 10px; font-size: 12px; }
         .survey-meta div { margin: 3px 0; }
@@ -836,7 +843,7 @@ const sharedPrintHelpers = `
                 '<p>○ 외출을 할 때에도 담당자에게 문의하여 직권입력요청대장에 사유 및 시간을 기재 후 본인 이름을 정자로 서명하셔야 합니다.</p>' +
                 (collect ? orientationConfirmSign(session) : '') +
 
-                '<h2 class="ot-page-break">훈련장려금</h2>' +
+                '<h2>훈련장려금</h2>' +
                 '<h3>기 준</h3>' +
                 '<p>○ 총 수업시간이 140시간 이상의 수업의 경우 실업자 및 근로장려금 수급자/무급휴직자와, 140시간 미만의 수업은 국민취업지원제도, 취성패1 참여자에 대해서만 지급이 됩니다.</p>' +
                 '<p>○ 단위기간 소정출석일수의 80%이상을 출석시 단위기간별로 훈련장려금을 지원받을 수 있습니다.</p>' +
@@ -882,7 +889,7 @@ const sharedPrintHelpers = `
                 '<p>○ 실업급여를 받고 계신 교육생은 본원에서 발급하는 교육수강증명서로 구직활동 등 노력을 대신 할 수 있습니다.</p>' +
                 (collect ? orientationConfirmSign(session) : '') +
 
-                '<h2 class="ot-page-break">평가일정</h2>' +
+                '<h2>평가일정</h2>' +
                 '<p>○ 훈련생은 훈련 중 교육과정의 훈련일정 중 평가일정에 맞추어 평가에 참여하여야 합니다.</p>' +
                 '<h3>1. 사전평가 및 설문조사</h3>' +
                 '<table class="ot-table"><thead><tr><th>평가방법</th><th style="width:120px">평가일</th></tr></thead><tbody>' +
@@ -1696,7 +1703,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         if (row) {
                             html += '<tr>' +
                                 '<td>' + row.no + '</td>' +
-                                '<td>' + esc(row.funding_label || fundingFilterLabel(row.funding_category)) + '</td>' +
+                                '<td>' + esc(row.funding_label || row.category_label || fundingFilterLabel(row.funding_category)) + '</td>' +
                                 '<td class="name">' + esc(row.name) + '</td>' +
                                 '<td>' + esc(row.phone) + '</td>' +
                                 '<td>' + esc(formatBirthKr(row.birthdate)) + '</td>' +
@@ -1710,7 +1717,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         }
                     }
                     html += '</tbody></table>' +
-                        '<p class="footnote">※ 대상구분은 수강생 등록의 국비지원/일반 구분을 반영합니다. (원본: 1_훈련생명단-훈련교사관리.hwp)</p>';
+                        '<p class="footnote">※ 대상구분: 국비(재직자)·국비(구직자)·일반. 수강생 등록의 유형·지원유형을 반영합니다. (원본: 1_훈련생명단-훈련교사관리.hwp)</p>';
                 } else if (docCode === 'D23') {
                     /* HWP「2-3_개인정보활용동의서_일반」— 일반 수강생별 1장 */
                     if (!trainees.length) {
@@ -1736,13 +1743,16 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '<li><span class="bullet">￭ 진행회차</span><span class="sep">:</span><span class="val">' + esc(session.session_number != null ? String(session.session_number) + '차' : '') + '</span></li>' +
                         '</ul>' +
                         '<table class="doc-table checklist-table">' +
+                        '<colgroup>' +
+                        '<col style="width:36px"><col style="width:92px"><col style="width:78px"><col style="width:128px"><col style="width:118px"><col style="width:86px">' +
+                        '</colgroup>' +
                         '<thead><tr>' +
-                        '<th style="width:40px">NO</th><th style="width:72px">대상구분</th><th style="width:90px">성명</th><th style="width:120px">전화번호</th>' +
-                        '<th style="width:120px">생년월일</th><th>참여자서명</th>' +
+                        '<th>NO</th><th>대상구분</th><th>성명</th><th>전화번호</th>' +
+                        '<th>생년월일</th><th>참여자서명</th>' +
                         '</tr></thead><tbody>';
                     padRows(trainees, 15).forEach(function(t, idx) {
                         if (t) {
-                            html += '<tr><td>' + t.no + '</td><td>' + esc(t.funding_label || fundingFilterLabel(t.funding_category)) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + esc(formatBirthKr(t.birthdate) || blankCell()) + '</td><td>' + blankCell() + '</td></tr>';
+                            html += '<tr><td>' + t.no + '</td><td>' + esc(t.funding_label || t.category_label || fundingFilterLabel(t.funding_category)) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + esc(formatBirthKr(t.birthdate) || blankCell()) + '</td><td>' + blankCell() + '</td></tr>';
                         } else {
                             html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
@@ -1771,7 +1781,7 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '</tr></thead><tbody>';
                     padRows(trainees, 15).forEach(function(t, idx) {
                         if (t) {
-                            html += '<tr><td>' + t.no + '</td><td>' + esc(t.funding_label || fundingFilterLabel(t.funding_category)) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + blankCell() + '</td><td class="addr">' + (t.status_memo ? esc(t.status_memo) : blankCell()) + '</td></tr>';
+                            html += '<tr><td>' + t.no + '</td><td>' + esc(t.funding_label || t.category_label || fundingFilterLabel(t.funding_category)) + '</td><td class="name">' + esc(t.name) + '</td><td>' + esc(t.phone) + '</td><td>' + blankCell() + '</td><td class="addr">' + (t.status_memo ? esc(t.status_memo) : blankCell()) + '</td></tr>';
                         } else {
                             html += '<tr><td>' + (idx + 1) + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td><td>' + blankCell() + '</td></tr>';
                         }
@@ -1917,7 +1927,9 @@ export const adminOpeningDocPrintHtml = (sessionId: string, docCode: string) => 
                         '<tr><th style="width:70px">소속</th><td class="l">' + esc(session.institution_name || '') +
                         '</td><th style="width:70px">성명</th><td class="l">' + esc(session.instructor_name || '') + '</td></tr>' +
                         '</tbody></table>' +
-                        '<table class="eval-table"><thead><tr><th class="q">평 가 내 용</th><th colspan="5">긍정화정도 (강함⇔약함)</th></tr>' +
+                        '<table class="eval-table"><colgroup>' +
+                        '<col class="eq"><col class="es"><col class="es"><col class="es"><col class="es"><col class="es">' +
+                        '</colgroup><thead><tr><th class="q">평 가 내 용</th><th colspan="5">긍정화정도 (강함⇔약함)</th></tr>' +
                         '<tr><th></th><th class="score">5</th><th class="score">4</th><th class="score">3</th><th class="score">2</th><th class="score">1</th></tr></thead><tbody>';
                     evalQs.forEach(function(q, qi) {
                         html += '<tr><td class="q">' + (qi + 1) + '. ' + esc(q) + '</td>' +
