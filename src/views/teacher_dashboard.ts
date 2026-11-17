@@ -561,6 +561,7 @@ export const teacherDashboardHtml = `
                 var maxStudents = course.max_students || 0;
                 var progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : (enrolledCount > 0 ? 100 : 0);
                 var lmsUrl = buildLmsEntryUrl(course);
+                var cbtUrl = buildLmsEntryUrl(course, 'cbt');
 
                 var progressBar = maxStudents > 0 
                     ? '<div class="hidden sm:flex flex-col w-24 items-end gap-1"><span class="text-[9px] font-black text-neutral-400 uppercase tracking-wider">' + progressPercent + '% Full</span><div class="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden"><div class="bg-gradient-to-r from-brand-400 to-brand-600 h-full transition-all duration-1000" style="width:' + progressPercent + '%"></div></div></div>'
@@ -587,8 +588,11 @@ export const teacherDashboardHtml = `
                             '</div>' +
                         '</div>' +
                     '</div>' +
-                    '<div class="flex items-center gap-3 shrink-0 justify-end border-t border-neutral-50 pt-3 sm:border-t-0 sm:pt-0">' +
+                    '<div class="flex items-center gap-2.5 shrink-0 justify-end border-t border-neutral-50 pt-3 sm:border-t-0 sm:pt-0">' +
                         progressBar +
+                        '<a href="' + escHtmlAttr(cbtUrl) + '" class="px-3.5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-2xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all duration-300 font-black text-[10px] tracking-wider uppercase flex items-center gap-1.5 inline-flex">' +
+                            '<i class="fas fa-file-contract text-[10px]"></i> 사전평가' +
+                        '</a>' +
                         '<a href="' + escHtmlAttr(lmsUrl) + '" class="px-4 py-2.5 bg-neutral-900 text-white rounded-2xl hover:bg-brand-600 transition-all duration-300 font-black text-[10px] tracking-wider uppercase flex items-center gap-2 inline-flex">' +
                             '<i class="fas fa-door-open text-[10px]"></i> 입장' +
                         '</a>' +

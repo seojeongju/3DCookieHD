@@ -660,11 +660,24 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                 return 'bg-gray-50 text-gray-600 ring-gray-200';
             };
             const totalPossible = (c) => (c.exam_count || 0) * (c.student_count || 0) || 0;
-            tbody.innerHTML = data.map(c => \`
+            const formatSummarySched = (c) => {
+                if (!c.exam_start_time && !c.exam_end_time) return '';
+                const norm = (v) => String(v || '').trim().replace('T', ' ').substring(0, 16);
+                const s = norm(c.exam_start_time);
+                const e = norm(c.exam_end_time);
+                if (s && e && s.substring(0, 10) === e.substring(0, 10)) {
+                    return s + ' ~ ' + e.substring(11, 16);
+                }
+                return [s, e].filter(Boolean).join(' ~ ');
+            };
+            tbody.innerHTML = data.map(c => {
+                const schedStr = formatSummarySched(c);
+                return \`
                 <tr class="hover:bg-indigo-50/30 transition-colors group border-b border-gray-50 last:border-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,1)]">
                     <td class="px-8 py-5 min-w-0 max-w-[320px] break-words align-top">
                         <div class="font-black text-gray-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight break-words">\${c.title || '-'}</div>
                         <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">회차 ID: \${c.session_id != null ? c.session_id : '-'}</div>
+                        \${schedStr ? \`<div class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[11px] font-bold"><i class="far fa-clock text-[10px]"></i> 실행일시: \${schedStr}</div>\` : \`<div class="mt-1 text-[11px] text-amber-600 font-medium">실행일시 미등록</div>\`}
                     </td>
                     <td class="px-6 py-5 text-center whitespace-nowrap align-top">
                         <span class="px-2.5 py-1 rounded-lg text-xs font-bold ring-1 \${statusClass(c.status)}">\${c.status_label || c.status || '-'}</span>
@@ -696,7 +709,8 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
                             : \`<span class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium text-gray-400 cursor-not-allowed whitespace-nowrap">회차 없음</span>\`}
                     </td>
                 </tr>
-            \`).join('');
+            \`;
+            }).join('');
             if (controlsEl && total != null && totalPages > 1) {
                 let html = \`<button onclick="goToPage(\${Math.max(1, currentPage - 1)})" \${currentPage === 1 ? 'disabled' : ''} class="w-10 h-10 flex items-center justify-center rounded-xl \${currentPage === 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600'}"><i class="fas fa-chevron-left text-[11px]"></i></button>\`;
                 let startPage = Math.max(1, currentPage - 2);
@@ -835,7 +849,11 @@ export const adminHrdExamsHtml = (sidebar = hrdSidebar('exams'), options?: Admin
             const bankCreateBtn = document.getElementById('bankCreateQuestionBtn');
             if (cbtLink) {
                 if (mgmtSessionId) {
-                    cbtLink.href = '/admin/courses/' + mgmtSessionId + '/lms/cbt';
+                    const lid = lmsCourseIdForMgmtSession();
+                    const rolePrefix = window.location.pathname.startsWith('/teacher') ? '/teacher' : '/admin';
+                    cbtLink.href = lid
+                        ? cbtMgmtHref({ session_id: mgmtSessionId, lms_course_id: lid, id: mgmtSessionId }, false)
+                        : (rolePrefix + '/courses/' + mgmtSessionId + '/lms/cbt?type=hrd&session_id=' + encodeURIComponent(mgmtSessionId));
                     if (addTargetType === 'pre') cbtLink.classList.remove('hidden');
                     else cbtLink.classList.add('hidden');
                 } else {

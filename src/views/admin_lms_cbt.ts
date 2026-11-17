@@ -44,7 +44,64 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
     </div>
 
     <!-- 메인 컨텐츠 -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- 사전평가 실행일 + 실행시간 등록/설정 카드 -->
+        <div class="bg-white rounded-2xl border border-purple-200/80 shadow-sm overflow-hidden">
+            <div class="px-5 py-3.5 bg-gradient-to-r from-purple-50 via-indigo-50/70 to-white border-b border-purple-100 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-sm">
+                        <i class="far fa-calendar-check text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-bold text-gray-800">사전평가 실행일 · 실행시간 등록</h3>
+                        <p class="text-xs text-gray-500">해당 과정(회차)의 사전평가 실시 일자와 시작·종료 시간을 설정합니다.</p>
+                    </div>
+                </div>
+                <div id="preEvalScheduleSummaryBadge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <i class="fas fa-clock text-[11px]"></i>
+                    <span>실행일시 미등록</span>
+                </div>
+            </div>
+            <div class="p-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5 items-end">
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-bold text-gray-600 mb-1.5">평가명</label>
+                        <input type="text" id="preEvalTitle" value="사전평가" placeholder="사전평가" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                    </div>
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-bold text-gray-600 mb-1.5"><span class="text-red-500 mr-0.5">*</span>실행일 (실시일자)</label>
+                        <input type="date" id="preEvalExecDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                    </div>
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-bold text-gray-600 mb-1.5"><span class="text-red-500 mr-0.5">*</span>실행 시작시간</label>
+                        <input type="time" id="preEvalStartTime" onchange="syncPreEvalDurationFromTimes()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                    </div>
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-bold text-gray-600 mb-1.5"><span class="text-red-500 mr-0.5">*</span>실행 종료시간</label>
+                        <input type="time" id="preEvalEndTime" onchange="syncPreEvalDurationFromTimes()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 lg:col-span-1">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5">제한시간(분)</label>
+                            <input type="number" id="preEvalTimeLimit" value="60" min="1" class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5">응시 상태</label>
+                            <select id="preEvalIsActive" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                                <option value="1">진행중</option>
+                                <option value="0">대기/마감</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1 flex items-center justify-end">
+                        <button type="button" id="preEvalSaveScheduleBtn" onclick="savePreEvalSchedule()" class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                            <i class="fas fa-save"></i> 실행일시 저장
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- 탭 메뉴 -->
         <div class="flex border-b border-gray-200 mb-6">
@@ -62,8 +119,9 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         <!-- 사전평가목록 탭: 문제은행·사전평가생성에서 온 문제 통합 목록 -->
         <div id="content-exams" class="tab-content">
             <div class="bg-white rounded-lg shadow overflow-hidden">
-                <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 text-sm text-gray-600">
-                    이 과정의 모든 사전평가 문제입니다. (문제은행에서 가져온 문제 + 사전평가생성에서 만든 문제)
+                <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 text-sm text-gray-600 flex flex-wrap items-center justify-between gap-2">
+                    <span>이 과정의 모든 사전평가 문제입니다. (문제은행에서 가져온 문제 + 사전평가생성에서 만든 문제)</span>
+                    <span id="preEvalTableScheduleLabel" class="text-xs font-bold text-indigo-700"></span>
                 </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -74,11 +132,12 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">유형</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">난이도</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">소속 시험</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-44">실행일시</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-28">관리</th>
                         </tr>
                     </thead>
                     <tbody id="preAssessmentQuestionListBody" class="bg-white divide-y divide-gray-200">
-                        <tr><td colspan="7" class="px-6 py-12 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩중...</td></tr>
+                        <tr><td colspan="8" class="px-6 py-12 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> 로딩중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -597,10 +656,204 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
         let examListCache = [];
         function toDatetimeLocal(val) {
             if (!val) return '';
-            const d = new Date(val);
+            const s = String(val).trim();
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return s.substring(0, 16);
+            if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)) return s.replace(/\s+/, 'T').substring(0, 16);
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return '';
             const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
             const h = String(d.getHours()).padStart(2, '0'), min = String(d.getMinutes()).padStart(2, '0');
             return y + '-' + m + '-' + day + 'T' + h + ':' + min;
+        }
+        function parseDateAndTime(val) {
+            const dt = toDatetimeLocal(val);
+            if (!dt || !dt.includes('T')) return { date: '', time: '' };
+            const parts = dt.split('T');
+            return { date: parts[0] || '', time: (parts[1] || '').substring(0, 5) };
+        }
+        function formatExamScheduleDisplay(startVal, endVal) {
+            const st = parseDateAndTime(startVal);
+            const et = parseDateAndTime(endVal);
+            if (!st.date && !et.date) return '-';
+            if (st.date && et.date && st.date !== et.date) {
+                return st.date + (st.time ? ' ' + st.time : '') + ' ~ ' + et.date + (et.time ? ' ' + et.time : '');
+            }
+            const dateStr = st.date || et.date;
+            const timeStr = (st.time || et.time) ? ((st.time || '') + (et.time ? ' ~ ' + et.time : '')) : '';
+            return (dateStr + (timeStr ? ' ' + timeStr : '')).trim();
+        }
+        function syncPreEvalDurationFromTimes() {
+            const stEl = document.getElementById('preEvalStartTime');
+            const etEl = document.getElementById('preEvalEndTime');
+            const limitEl = document.getElementById('preEvalTimeLimit');
+            if (!stEl || !etEl || !limitEl || !stEl.value || !etEl.value) return;
+            const [sh, sm] = stEl.value.split(':').map(Number);
+            const [eh, em] = etEl.value.split(':').map(Number);
+            if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return;
+            let diff = (eh * 60 + em) - (sh * 60 + sm);
+            if (diff > 0) limitEl.value = String(diff);
+        }
+        function syncPreEvalScheduleForm() {
+            const primaryExam = examListCache.find(e => e.type === 'practice') || examListCache[0] || null;
+            const badgeEl = document.getElementById('preEvalScheduleSummaryBadge');
+            const tableLabelEl = document.getElementById('preEvalTableScheduleLabel');
+            const titleEl = document.getElementById('preEvalTitle');
+            const dateEl = document.getElementById('preEvalExecDate');
+            const stEl = document.getElementById('preEvalStartTime');
+            const etEl = document.getElementById('preEvalEndTime');
+            const limitEl = document.getElementById('preEvalTimeLimit');
+            const activeEl = document.getElementById('preEvalIsActive');
+
+            if (primaryExam) {
+                if (titleEl) {
+                    const t = (primaryExam.title || '').trim();
+                    titleEl.value = (t && t !== '문제은행') ? t : '사전평가';
+                }
+                if (limitEl && primaryExam.time_limit_minutes != null) {
+                    limitEl.value = String(primaryExam.time_limit_minutes);
+                }
+                if (activeEl) {
+                    activeEl.value = primaryExam.is_active ? '1' : '0';
+                }
+                const st = parseDateAndTime(primaryExam.start_time);
+                const et = parseDateAndTime(primaryExam.end_time);
+                if (dateEl && (st.date || et.date)) dateEl.value = st.date || et.date;
+                if (stEl && st.time) stEl.value = st.time;
+                if (etEl && et.time) etEl.value = et.time;
+
+                const schedText = formatExamScheduleDisplay(primaryExam.start_time, primaryExam.end_time);
+                const isRegistered = schedText && schedText !== '-';
+                if (badgeEl) {
+                    if (isRegistered) {
+                        const statusTxt = primaryExam.is_active ? '진행중' : '대기/마감';
+                        badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ' +
+                            (primaryExam.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200');
+                        badgeEl.innerHTML = '<i class="far fa-calendar-check text-[11px]"></i><span>실행일시: ' + escapeHtml(schedText) + ' (' + (primaryExam.time_limit_minutes || 60) + '분 · ' + statusTxt + ')</span>';
+                    } else {
+                        badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200';
+                        badgeEl.innerHTML = '<i class="fas fa-clock text-[11px]"></i><span>실행일시 미등록 (실행일과 실행시간을 입력 후 저장해 주세요)</span>';
+                    }
+                }
+                if (tableLabelEl) {
+                    tableLabelEl.textContent = isRegistered ? ('사전평가 실행일시: ' + schedText) : '';
+                }
+            } else {
+                if (badgeEl) {
+                    badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200';
+                    badgeEl.innerHTML = '<i class="fas fa-clock text-[11px]"></i><span>실행일시 미등록</span>';
+                }
+                if (tableLabelEl) tableLabelEl.textContent = '';
+            }
+        }
+        async function savePreEvalSchedule() {
+            const titleEl = document.getElementById('preEvalTitle');
+            const dateEl = document.getElementById('preEvalExecDate');
+            const stEl = document.getElementById('preEvalStartTime');
+            const etEl = document.getElementById('preEvalEndTime');
+            const limitEl = document.getElementById('preEvalTimeLimit');
+            const activeEl = document.getElementById('preEvalIsActive');
+
+            const title = (titleEl && titleEl.value.trim()) ? titleEl.value.trim() : '사전평가';
+            const execDate = (dateEl && dateEl.value) ? dateEl.value.trim() : '';
+            const startTime = (stEl && stEl.value) ? stEl.value.trim() : '';
+            let endTime = (etEl && etEl.value) ? etEl.value.trim() : '';
+            const timeLimit = (limitEl && parseInt(limitEl.value, 10) > 0) ? parseInt(limitEl.value, 10) : 60;
+            const isActive = (activeEl && activeEl.value === '0') ? 0 : 1;
+
+            if (!execDate) {
+                alert('사전평가 실행일(실시일자)을 선택해 주세요.');
+                if (dateEl) dateEl.focus();
+                return;
+            }
+            if (!startTime) {
+                alert('사전평가 실행 시작시간을 입력해 주세요.');
+                if (stEl) stEl.focus();
+                return;
+            }
+            if (!endTime) {
+                const [sh, sm] = startTime.split(':').map(Number);
+                if (!isNaN(sh) && !isNaN(sm)) {
+                    const totalMin = sh * 60 + sm + timeLimit;
+                    const eh = Math.floor(totalMin / 60) % 24;
+                    const em = totalMin % 60;
+                    endTime = String(eh).padStart(2, '0') + ':' + String(em).padStart(2, '0');
+                    if (etEl) etEl.value = endTime;
+                } else {
+                    endTime = '23:59';
+                }
+            }
+
+            const startDateTime = execDate + 'T' + startTime;
+            const endDateTime = execDate + 'T' + endTime;
+            const btn = document.getElementById('preEvalSaveScheduleBtn');
+            if (btn) btn.disabled = true;
+
+            try {
+                const token = localStorage.getItem('token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                };
+
+                if (examListCache.length > 0) {
+                    const targets = examListCache.filter(e => e.type === 'practice');
+                    const examsToUpdate = targets.length > 0 ? targets : [examListCache[0]];
+                    for (const ex of examsToUpdate) {
+                        const newTitle = (!ex.title || ex.title === '문제은행') ? title : title;
+                        const res = await fetch(\`/api/cbt/exams/\${ex.id}\`, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify({
+                                title: newTitle,
+                                description: ex.description || '사전평가',
+                                type: ex.type || 'practice',
+                                time_limit_minutes: timeLimit,
+                                start_time: startDateTime,
+                                end_time: endDateTime,
+                                is_active: isActive
+                            })
+                        });
+                        const json = await res.json();
+                        if (!json.success) {
+                            alert('실행일시 저장 실패: ' + (json.error || json.message || '오류'));
+                            if (btn) btn.disabled = false;
+                            return;
+                        }
+                    }
+                } else {
+                    const payload = {
+                        course_id: courseId,
+                        title: title,
+                        description: '사전평가',
+                        type: 'practice',
+                        time_limit_minutes: timeLimit,
+                        start_time: startDateTime,
+                        end_time: endDateTime,
+                        is_active: isActive
+                    };
+                    if (sessionIdQ) payload.session_id = sessionIdQ;
+                    const res = await fetch('/api/cbt/exams', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(payload)
+                    });
+                    const json = await res.json();
+                    if (!json.success) {
+                        alert('실행일시 등록 실패: ' + (json.error || json.message || '오류'));
+                        if (btn) btn.disabled = false;
+                        return;
+                    }
+                }
+
+                await loadExams();
+                await loadQuestions();
+                alert('사전평가 실행일 및 실행시간이 저장되었습니다.');
+            } catch (err) {
+                console.error(err);
+                alert('실행일시 저장 중 오류가 발생했습니다.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
         }
         async function loadExams() {
             try {
@@ -610,6 +863,8 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 });
                 const result = await response.json();
                 examListCache = (result.success && Array.isArray(result.data)) ? result.data : [];
+                syncPreEvalScheduleForm();
+                renderPreAssessmentQuestionList();
                 const tbody = document.getElementById('examListBody');
                 if (tbody) {
                 if (examListCache.length > 0) {
@@ -715,25 +970,43 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             }
         }
         async function importGlobalBankQuestions() {
-            if (!examListCache.length) {
-                alert('먼저 시험을 생성한 뒤, 문제를 추가할 시험을 선택해 주세요.');
-                return;
-            }
-            const currentExamSelect = examListCache[0] && document.querySelector('#examListBody tr input[type=radio]') ? null : null;
-            const activeExam = examListCache[0];
-            const selectedExamId = activeExam && activeExam.id;
-            if (!selectedExamId) {
-                alert('현재는 전역 문제를 추가할 시험을 자동 인식하지 못했습니다. (다음 단계에서 시험 선택 UI를 보강해야 합니다.)');
-                return;
-            }
             const checkboxes = Array.from(document.querySelectorAll('.global-bank-checkbox'));
             const ids = checkboxes.filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)).filter(v => !Number.isNaN(v));
             if (!ids.length) {
                 alert('추가할 문제를 선택해 주세요.');
                 return;
             }
+            const token = localStorage.getItem('token');
+            let selectedExamId = examListCache[0] && examListCache[0].id;
+            if (!selectedExamId) {
+                try {
+                    const createPayload = {
+                        course_id: courseId,
+                        title: (document.getElementById('preEvalTitle')?.value || '').trim() || '사전평가',
+                        type: 'practice',
+                        time_limit_minutes: parseInt(document.getElementById('preEvalTimeLimit')?.value || '60', 10) || 60,
+                        is_active: 1
+                    };
+                    if (sessionIdQ) createPayload.session_id = sessionIdQ;
+                    const cRes = await fetch('/api/cbt/exams', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify(createPayload)
+                    });
+                    const cJson = await cRes.json();
+                    if (cJson && cJson.success && cJson.data && cJson.data.id) {
+                        selectedExamId = cJson.data.id;
+                        await loadExams();
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+            if (!selectedExamId) {
+                alert('사전평가 시험을 생성하지 못했습니다.');
+                return;
+            }
             try {
-                const token = localStorage.getItem('token');
                 const res = await fetch(\`/api/cbt/exams/\${selectedExamId}/import-questions\`, {
                     method: 'POST',
                     headers: {
@@ -746,6 +1019,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 if (json && json.success) {
                     alert('선택한 전역 문제들이 시험에 추가되었습니다.');
                     checkboxes.forEach(cb => { cb.checked = false; });
+                    loadExams();
                     loadQuestions();
                 } else {
                     alert('추가 실패: ' + (json && (json.error || json.message) || '알 수 없는 오류'));
@@ -790,16 +1064,23 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
             const tbody = document.getElementById('preAssessmentQuestionListBody');
             if (!tbody) return;
             if (allQuestions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">등록된 사전평가 문제가 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-500">등록된 사전평가 문제가 없습니다.</td></tr>';
                 return;
             }
             const difficultyLabel = (d) => (d === 'high' ? '상' : d === 'medium' ? '중' : d === 'low' ? '하' : '-');
+            const primaryExam = examListCache.find(e => e.type === 'practice') || examListCache[0] || null;
             tbody.innerHTML = allQuestions.map(function(q, idx) {
                 const text = (q.question_text || '').replace(/</g, '&lt;').substring(0, 80) + ((q.question_text || '').length > 80 ? '...' : '');
                 const typeLabel = typeof getQuestionTypeName === 'function' ? getQuestionTypeName(q.question_type) : (q.question_type === 'multiple_choice' ? '객관식' : q.question_type === 'short_answer' ? '단답형' : '서술형');
                 const categoryLabel = (q.category || '-').replace(/</g, '&lt;');
                 const diffLabel = difficultyLabel(q.difficulty);
-                const examTitle = (q.exam_title || '-').replace(/</g, '&lt;');
+                const rawExamTitle = q.exam_title || (primaryExam && primaryExam.title) || '-';
+                const examTitle = (rawExamTitle === '문제은행' ? '사전평가' : rawExamTitle).replace(/</g, '&lt;');
+                const matchedExam = examListCache.find(e => Number(e.id) === Number(q.exam_id)) || primaryExam;
+                const schedDisplay = formatExamScheduleDisplay(
+                    q.exam_start_time || (matchedExam && matchedExam.start_time),
+                    q.exam_end_time || (matchedExam && matchedExam.end_time)
+                );
                 return \`<tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${idx + 1}</td>
                     <td class="px-6 py-4 text-sm text-gray-900">\${text}</td>
@@ -807,6 +1088,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${typeLabel}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${diffLabel}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">\${examTitle}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600 font-medium">\${escapeHtml(schedDisplay)}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button type="button" onclick="openEditQuestion(\${q.id})" class="text-blue-600 hover:text-blue-900 mr-3">수정</button>
                         <button type="button" onclick="deleteQuestion(\${q.id})" class="text-red-600 hover:text-red-900">삭제</button>
@@ -833,7 +1115,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                 console.error('Error:', error);
                 document.getElementById('questionList').innerHTML = '<div class="text-center py-12 text-red-500">문제 목록을 불러오지 못했습니다.</div>';
                 const preBody = document.getElementById('preAssessmentQuestionListBody');
-                if (preBody) preBody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-red-500">문제 목록을 불러오지 못했습니다.</td></tr>';
+                if (preBody) preBody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-red-500">문제 목록을 불러오지 못했습니다.</td></tr>';
             }
         }
         async function deleteQuestion(id) {
@@ -1123,6 +1405,7 @@ export const adminLmsCbtHtml = (sidebar: string = hrdSidebar('courses')) => `
                     document.getElementById('questionSubmitBtn').textContent = '등록하기';
                     var examIdInput = document.getElementById('questionFormExamId');
                     if (examIdInput) examIdInput.value = '';
+                    loadExams();
                     loadQuestions();
                     if (currentExamIdForModal) loadExamModalQuestions(currentExamIdForModal);
                     e.target.reset();

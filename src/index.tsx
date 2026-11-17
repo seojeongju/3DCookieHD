@@ -951,7 +951,14 @@ app.get('/teacher/courses', (c) => {
 app.get('/teacher/students', (c) => c.redirect('/teacher/courses?tab=students'));
 app.get('/teacher/students/:id/journey', (c) => c.html(adminHrdStudentJourneyHtml(c.req.param('id'), { sidebarHtml: teacherSidebar('students'), backHref: '/teacher/courses?tab=students' })));
 app.get('/teacher/attendance', (c) => c.redirect('/teacher/courses?tab=attendance'));
-app.get('/teacher/exams', (c) => c.redirect('/teacher/courses?tab=exams'));
+app.get('/teacher/exams', (c) => {
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return c.html(adminHrdExamsHtml(teacherSidebar('exams', 'exams')));
+});
+app.get('/teacher/exams/question-bank', (c) => {
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return c.html(adminHrdExamsHtml(teacherSidebar('exams-question-bank', 'exams'), { questionBankOnly: true }));
+});
 app.get('/teacher/surveys', (c) => c.redirect('/teacher/courses?tab=surveys'));
 app.get('/teacher/posts', (c) => c.html(adminPostsListHtml(teacherSidebar('posts'))));
 app.get('/teacher/courses/:id/lms/counseling', (c) => c.html(adminHrdCounselingHtml(c.req.param('id'), teacherSidebar('courses', 'counseling'))));

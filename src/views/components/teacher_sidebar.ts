@@ -60,6 +60,27 @@ ${sidebarMobileCss}
                     <span class="font-black text-sm tracking-tight">나의 강의 관리</span>
                     ${activeMenu === 'courses' ? '<span class="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>' : ''}
                 </a>
+                <div class="space-y-1">
+                    <button type="button" onclick="toggleSidebarAccordion('teacher-pre-eval-menu')" class="w-full flex items-center px-5 py-3.5 rounded-2xl transition-all duration-500 group ${activeMenu.startsWith('exams') ? 'bg-blue-600/20 text-white border border-blue-500/30' : 'text-gray-300 hover:bg-white/5 hover:text-white'} justify-between">
+                        <div class="flex items-center gap-0">
+                            <div class="w-8 flex justify-center">
+                                <i class="fas fa-file-signature text-sm ${activeMenu.startsWith('exams') ? 'text-blue-400' : 'text-gray-400 group-hover:text-blue-400 transition-colors'}"></i>
+                            </div>
+                            <span class="font-black text-sm tracking-tight">사전평가관리</span>
+                        </div>
+                        <i id="arrow-teacher-pre-eval-menu" class="fas fa-chevron-down text-[10px] transition-transform duration-300" style="transform: rotate(180deg);"></i>
+                    </button>
+                    <div id="teacher-pre-eval-menu" class="overflow-hidden transition-all duration-500 space-y-1 mt-1 pl-4">
+                        <a href="/teacher/exams" class="flex items-center px-5 py-2.5 rounded-xl transition-all duration-300 group ${activeMenu === 'exams' ? 'text-blue-400 bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                            <i class="fas fa-list w-6 text-xs transition-colors"></i>
+                            <span class="font-bold text-[13px]">사전평가 목록</span>
+                        </a>
+                        <a href="/teacher/exams/question-bank" class="flex items-center px-5 py-2.5 rounded-xl transition-all duration-300 group ${activeMenu === 'exams-question-bank' ? 'text-blue-400 bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                            <i class="fas fa-database w-6 text-xs transition-colors"></i>
+                            <span class="font-bold text-[13px]">사전평가문제은행</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -78,17 +99,17 @@ ${sidebarMobileCss}
                         </div>
                         <span class="font-black text-sm tracking-tight text-gray-300">통합 성과 관리</span>
                     </div>
-                    <i id="arrow-performance-analysis" class="fas fa-chevron-down text-[10px] transition-transform duration-300"></i>
+                    <i id="arrow-performance-analysis" class="fas fa-chevron-down text-[10px] transition-transform duration-300" style="transform: rotate(180deg);"></i>
                 </button>
                 
-                <div id="performance-analysis" class="hidden overflow-hidden transition-all duration-500 space-y-1 mt-1 pl-4">
+                <div id="performance-analysis" class="overflow-hidden transition-all duration-500 space-y-1 mt-1 pl-4">
                     ${performanceItems
                         .map(
                             (item) => {
                                 const isPortfolios = item.onlySidebar === true;
                                 const href = isPortfolios ? '/teacher/portfolios' : `/teacher/courses?tab=${item.tab}`;
                                 const active = isPortfolios ? activeMenu === 'portfolios' : activeSubMenu === item.tab;
-                                return `<a href="${href}" class="flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${active ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                                return `<a href="${href}" data-lms-path="${item.path ?? ''}" class="teacher-perf-nav-link flex items-center px-5 py-3 rounded-xl transition-all duration-300 group ${active ? 'text-blue-400 bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
                         <i class="fas ${item.icon} w-6 text-xs transition-colors"></i>
                         <span class="font-bold text-[13px]">${item.label}</span>
                     </a>`;
@@ -206,7 +227,7 @@ ${sidebarMobileCss}
         }
     };
 
-    // 현재 활성 메뉴 확인 및 아코디언 자동 열기
+    // 현재 활성 메뉴 확인 및 아코디언 자동 열기 + LMS 내부일 때 해당 과정 경로로 직접 연결
     (function() {
         const activeSub = '${activeSubMenu || ''}';
         const activeMain = '${activeMenu || ''}';
@@ -218,6 +239,22 @@ ${sidebarMobileCss}
             const arrow = document.getElementById('arrow-performance-analysis');
             if (el) el.classList.remove('hidden');
             if (arrow) arrow.style.transform = 'rotate(180deg)';
+        }
+
+        // 강사가 이미 특정 과정 LMS(/teacher/courses/:id/lms...) 내부에 있을 때는 좌측 통합 성과 관리 메뉴 클릭 시 해당 과정의 탭으로 바로 이동
+        const lmsMatch = window.location.pathname.match(/^\/teacher\/courses\/(\d+)\/lms/);
+        if (lmsMatch && lmsMatch[1]) {
+            const cid = lmsMatch[1];
+            const searchParams = new URLSearchParams(window.location.search);
+            const sid = searchParams.get('session_id') || '';
+            const type = searchParams.get('type') || 'hrd';
+            const qs = '?type=' + encodeURIComponent(type) + (sid ? '&session_id=' + encodeURIComponent(sid) : '');
+            document.querySelectorAll('.teacher-perf-nav-link').forEach(function(a) {
+                const lmsPath = a.getAttribute('data-lms-path');
+                if (lmsPath) {
+                    a.setAttribute('href', '/teacher/courses/' + cid + '/lms/' + lmsPath + qs);
+                }
+            });
         }
     })();
 

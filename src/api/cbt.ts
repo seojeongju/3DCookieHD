@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Bindings } from '../types';
 import { successResponse, errorResponse } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
-import { lmsCourseIdForSession, resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { lmsCourseIdForSession, lmsCourseIdForSessionOrCreate, resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
 
 const cbt = new Hono<{ Bindings: Bindings }>();
 
@@ -58,7 +58,8 @@ cbt.post('/exams', authMiddleware, async (c) => {
             return errorResponse(c, 'course_id와 title은 필수입니다', 400);
         }
 
-        const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id);
+        const resolvedCourseId = (await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id))
+            ?? (body.session_id ? await lmsCourseIdForSessionOrCreate(c.env.DB, body.session_id) : await lmsCourseIdForSessionOrCreate(c.env.DB, course_id));
         if (resolvedCourseId == null) {
             return errorResponse(c, '해당 회차에 연결된 LMS 과정이 없습니다. 과정 연결을 먼저 해주세요.', 400);
         }
@@ -233,7 +234,8 @@ cbt.get('/questions', authMiddleware, async (c) => {
             SELECT 
                 eq.id, eq.exam_id, eq.question_text, eq.question_type,
                 eq.options, eq.correct_answer, eq.points, eq.order_index,
-                e.title as exam_title, e.course_id,
+                eq.ncs_ability_unit_code, eq.ncs_ability_unit_name,
+                e.title as exam_title, e.course_id, e.start_time as exam_start_time, e.end_time as exam_end_time,
                 qb.difficulty,
                 COALESCE(qb.category, ns.name) as category
             FROM exam_questions eq
@@ -656,7 +658,8 @@ cbt.post('/questions', authMiddleware, async (c) => {
         // exam_id 결정: 없으면 course_id(회차 ID 또는 과정 ID)로 가장 최근 시험에 연결
         let targetExamId = exam_id ? parseInt(exam_id) : null;
         if (!targetExamId && course_id) {
-            const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id);
+            const resolvedCourseId = (await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id))
+                ?? (body.session_id ? await lmsCourseIdForSessionOrCreate(c.env.DB, body.session_id) : await lmsCourseIdForSessionOrCreate(c.env.DB, course_id));
             if (resolvedCourseId == null) {
                 return errorResponse(c, '해당 회차에 연결된 LMS 과정이 없습니다.', 400);
             }
@@ -667,10 +670,10 @@ cbt.post('/questions', authMiddleware, async (c) => {
             if (latestExam) {
                 targetExamId = latestExam.id;
             } else {
-                // 과정에 시험이 없으면 기본 시험 생성 (연습문제 타입)
+                // 과정에 시험이 없으면 기본 사전평가 생성 (연습문제 타입, 활성 상태)
                 const createResult = await c.env.DB.prepare(`
                     INSERT INTO exams (course_id, title, type, is_active, created_at, updated_at)
-                    VALUES (?, '문제은행', 'practice', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    VALUES (?, '사전평가', 'practice', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 `).bind(resolvedCourseId).run();
                 targetExamId = createResult.meta.last_row_id;
             }
@@ -880,7 +883,7 @@ cbt.post('/ncs-submit', authMiddleware, async (c) => {
         const sessionId = body.session_id != null ? String(body.session_id) : null;
         const answers = body.answers && typeof body.answers === 'object' ? body.answers : {};
         if (!sessionId) return errorResponse(c, 'session_id가 필요합니다', 400);
-        const courseId = await lmsCourseIdForSession(c.env.DB, sessionId);
+        const courseId = (await lmsCourseIdForSession(c.env.DB, sessionId)) ?? (await lmsCourseIdForSessionOrCreate(c.env.DB, sessionId));
         if (courseId == null) return errorResponse(c, '해당 회차를 찾을 수 없습니다', 404);
         const { results: rows } = await c.env.DB.prepare(`
             SELECT n.id, q.correct_answer, q.question_type
@@ -922,7 +925,7 @@ cbt.post('/ncs-course-questions', authMiddleware, async (c) => {
         const body = await c.req.json() as { session_id?: string | number; question_bank_ids?: number[] };
         const sessionId = body.session_id != null ? String(body.session_id) : null;
         if (!sessionId) return errorResponse(c, 'session_id가 필요합니다', 400);
-        const courseId = await lmsCourseIdForSession(c.env.DB, sessionId);
+        const courseId = (await lmsCourseIdForSession(c.env.DB, sessionId)) ?? (await lmsCourseIdForSessionOrCreate(c.env.DB, sessionId));
         if (courseId == null) return errorResponse(c, '해당 회차를 찾을 수 없습니다', 404);
 
         const raw = body.question_bank_ids || [];

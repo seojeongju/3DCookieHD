@@ -2,7 +2,7 @@ import { teacherSidebar } from './components/teacher_sidebar';
 import { lmsEntryUrlClientScript } from '../utils/lmsEntryUrl';
 
 function teacherCoursesHtmlInner(activeSubMenu?: string) {
-    const tab = activeSubMenu && ['students', 'attendance', 'assignments', 'exams', 'grades', 'surveys', 'ncs', 'employment'].includes(activeSubMenu) ? activeSubMenu : undefined;
+    const tab = activeSubMenu && ['students', 'attendance', 'training-logs', 'counseling', 'assignments', 'exams', 'cbt', 'grades', 'surveys', 'instructor-eval', 'ncs', 'employment'].includes(activeSubMenu) ? (activeSubMenu === 'cbt' ? 'exams' : activeSubMenu) : undefined;
     return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -403,7 +403,19 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             const titleEl = document.getElementById('tabHintTitle');
             const textEl = document.getElementById('tabHintText');
             if (!banner || !textEl) return;
-            const labels = { students: '수강생 관리', attendance: '출석 관리', cbt: '평가 및 채점', surveys: '설문 및 역량진단' };
+            const labels = {
+                students: '수강생 관리',
+                attendance: '출석 관리',
+                'training-logs': '훈련일지',
+                counseling: '상담 관리',
+                cbt: '사전평가관리',
+                'ncs-eval-dashboard': 'NCS평가(본평가)관리',
+                surveys: '설문 관리',
+                'instructor-eval': '교강사직무능력평가',
+                grades: '성적 관리',
+                employment: '취업 관리',
+                assignments: '과제 관리'
+            };
             if (lmsTab && labels[lmsTab]) {
                 banner.classList.remove('hidden');
                 titleEl.textContent = '「' + labels[lmsTab] + '」 직접 연결됨';
@@ -563,6 +575,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 const maxStudents = course.max_students || 0;
                 const progressPercent = maxStudents > 0 ? Math.round((enrolledCount / maxStudents) * 100) : (enrolledCount > 0 ? 100 : 0);
                 const lmsUrl = buildLmsEntryUrl(course, getLmsTab() || undefined);
+                const cbtUrl = buildLmsEntryUrl(course, 'cbt');
                 
                 const safeTitle = (course.title || '제목 없음').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                 const safeCat = (course.category || '일반').replace(/'/g, "&#39;").replace(/"/g, "&quot;");
@@ -618,6 +631,9 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                                 '</div>' +
                               '</div>'
                             : '') +
+                        '<a href="' + escHtmlAttr(cbtUrl) + '" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-colors font-bold text-xs whitespace-nowrap" title="이 과정 사전평가관리 바로가기">' +
+                            '<i class="fas fa-file-contract text-[10px]"></i> 사전평가관리' +
+                        '</a>' +
                         '<a href="' + escHtmlAttr(lmsUrl) + '" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-brand-600 transition-colors font-bold text-xs whitespace-nowrap">' +
                             (status === 'upcoming' || status === 'recruiting' || status === 'always_open'
                                 ? '<i class="fas fa-clipboard-list text-[10px]"></i> 과정 준비'
@@ -649,7 +665,10 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
         function getLmsTab() {
             const p = new URLSearchParams(window.location.search);
             const t = (p.get('tab') || '').toLowerCase();
-            return ['students', 'attendance', 'exams', 'surveys'].includes(t) ? (t === 'exams' ? 'cbt' : t) : '';
+            if (t === 'exams' || t === 'cbt') return 'cbt';
+            if (t === 'ncs') return 'ncs-eval-dashboard';
+            const allowed = ['students', 'attendance', 'training-logs', 'counseling', 'surveys', 'instructor-eval', 'grades', 'employment', 'assignments'];
+            return allowed.includes(t) ? t : '';
         }
 
         function viewCourseDetail(course) {

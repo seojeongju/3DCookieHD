@@ -547,18 +547,56 @@ export const studentClassroomHtml = (sessionId: string) => `
             html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4"><p class="text-[10px] font-black text-slate-400">응시완료</p><p class="text-2xl font-black mt-1 text-emerald-600">' + doneExam + '</p></div>';
             html += '<div class="bento-card rounded-[1.5rem] border border-slate-100 bg-white p-4 col-span-2 sm:col-span-1"><p class="text-[10px] font-black text-slate-400">미응시</p><p class="text-2xl font-black mt-1 ' + ((exams.length - doneExam) > 0 ? 'text-amber-600' : '') + '">' + (exams.length - doneExam) + '</p></div>';
             html += '</div>';
+            function formatExamSched(s, e) {
+                var ns = s ? String(s).trim().replace('T', ' ').substring(0, 16) : '';
+                var ne = e ? String(e).trim().replace('T', ' ').substring(0, 16) : '';
+                if (!ns && !ne) return '';
+                if (ns && ne && ns.substring(0, 10) === ne.substring(0, 10)) {
+                    return ns + ' ~ ' + ne.substring(11, 16);
+                }
+                return [ns, ne].filter(Boolean).join(' ~ ');
+            }
+            function getSchedStatus(e) {
+                if (e.schedule_status) return e.schedule_status;
+                var now = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 19);
+                var norm = function(v) {
+                    if (!v) return '';
+                    var s = String(v).trim().replace(' ', 'T');
+                    if (/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(s)) return s + ':00';
+                    if (/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$/.test(s)) return s;
+                    return s.slice(0, 19);
+                };
+                var st = norm(e.start_time);
+                var et = norm(e.end_time);
+                if (st && now < st) return 'upcoming';
+                if (et && now > et) return 'ended';
+                return 'open';
+            }
             function examCards(list) {
                 return '<div class="space-y-3">' + list.map(function(e) {
                     const submitted = !!e.has_submitted;
-                    const btn = submitted
-                        ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black">응시완료</span>'
-                        : '<button type="button" onclick="openClassroomExam(' + e.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black">응시하기</button>';
-                    return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex gap-4"><div class="w-1.5 rounded-full ' + (submitted ? 'bg-emerald-400' : 'bg-sky-500') + ' shrink-0"></div><div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + examTypeLabel(e.type) + '</span><h3 class="font-black text-lg mt-1">' + esc(e.title) + '</h3><p class="text-xs text-slate-500 mt-1">' + esc(e.description || '') + (e.time_limit_minutes ? ' · ' + e.time_limit_minutes + '분' : '') + '</p></div>' + btn + '</div></div>';
+                    const schedStatus = getSchedStatus(e);
+                    const schedTxt = formatExamSched(e.start_time, e.end_time);
+                    var barCls = 'bg-sky-500';
+                    var btn = '';
+                    if (submitted) {
+                        barCls = 'bg-emerald-400';
+                        btn = '<span class="px-4 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl text-[10px] font-black whitespace-nowrap">응시완료</span>';
+                    } else if (schedStatus === 'ended') {
+                        barCls = 'bg-rose-400';
+                        btn = '<div class="flex flex-col items-end gap-1 shrink-0"><span class="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-2xl text-[10px] font-black whitespace-nowrap">미응시</span><span class="text-[10px] text-rose-500 font-bold">응시 기간이 종료되었습니다</span></div>';
+                    } else if (schedStatus === 'upcoming') {
+                        barCls = 'bg-amber-400';
+                        btn = '<div class="flex flex-col items-end gap-1 shrink-0"><span class="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl text-[10px] font-black whitespace-nowrap">응시 대기</span><span class="text-[10px] text-amber-600 font-bold">응시 기간 전입니다</span></div>';
+                    } else {
+                        btn = '<button type="button" onclick="openClassroomExam(' + e.id + ')" class="px-4 py-2.5 bg-sky-600 text-white rounded-2xl text-[10px] font-black hover:bg-sky-700 transition whitespace-nowrap">응시하기</button>';
+                    }
+                    return '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex gap-4"><div class="w-1.5 rounded-full ' + barCls + ' shrink-0"></div><div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><span class="text-[10px] font-black uppercase tracking-widest text-sky-600">' + examTypeLabel(e.type) + '</span><h3 class="font-black text-lg mt-1">' + esc(e.title === '문제은행' ? '사전평가' : e.title) + '</h3><p class="text-xs text-slate-500 mt-1">' + esc(e.description || '') + (e.time_limit_minutes ? ' · ' + e.time_limit_minutes + '분' : '') + (schedTxt ? ' · 실행일시: ' + esc(schedTxt) : '') + '</p></div>' + btn + '</div></div>';
                 }).join('') + '</div>';
             }
             if (practice.length) {
-                var pendingPractice = practice.some(function(e) { return !e.has_submitted; });
-                html += '<div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">사전평가</h3>' + (pendingPractice && practice.length > 1 ? '<button type="button" onclick="openPreAssessmentCombined()" class="text-xs font-black text-sky-600">한 번에 응시</button>' : '') + '</div>' + examCards(practice);
+                var openPendingPractice = practice.filter(function(e) { return !e.has_submitted && getSchedStatus(e) === 'open'; });
+                html += '<div class="flex items-center justify-between mb-3"><h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">사전평가</h3>' + (openPendingPractice.length > 1 ? '<button type="button" onclick="openPreAssessmentCombined()" class="text-xs font-black text-sky-600">한 번에 응시</button>' : '') + '</div>' + examCards(practice);
             }
             if (others.length) {
                 html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3 mt-6">과정 시험</h3>' + examCards(others);

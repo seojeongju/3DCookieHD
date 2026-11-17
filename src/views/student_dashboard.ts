@@ -809,17 +809,29 @@ export const studentDashboardHtml = () => `
                         var examCount = g.exams.length;
                         var totalMin = g.exams.reduce(function(s, e) { return s + ((e.time_limit_minutes || e.time_limit) || 0); }, 0);
                         var label = examCount > 1 ? '사전평가 (' + examCount + '개 시험)' : '사전평가';
-                        var title = (g.exams[0] && g.exams[0].title) || '사전평가';
+                        var rawTitle = (g.exams[0] && g.exams[0].title) || '사전평가';
+                        var title = rawTitle === '문제은행' ? '사전평가' : rawTitle;
                         var desc = (g.exams[0] && g.exams[0].description) || '';
                         var cid = g.course_id;
                         var preSubmitted = g.exams.every(function(e) { return e.has_submitted; });
+                        var unsubmitted = g.exams.filter(function(e) { return !e.has_submitted; });
+                        var hasOpen = unsubmitted.some(function(e) { return !e.schedule_status || e.schedule_status === 'open'; });
+                        var allEnded = unsubmitted.length > 0 && unsubmitted.every(function(e) { return e.schedule_status === 'ended'; });
+                        var allUpcoming = unsubmitted.length > 0 && unsubmitted.every(function(e) { return e.schedule_status === 'upcoming'; });
+                        var st0 = g.exams[0] && g.exams[0].start_time ? String(g.exams[0].start_time).replace('T', ' ').substring(0, 16) : '';
+                        var et0 = g.exams[0] && g.exams[0].end_time ? String(g.exams[0].end_time).replace('T', ' ').substring(0, 16) : '';
+                        var schedTxt = (st0 && et0 && st0.substring(0, 10) === et0.substring(0, 10)) ? (st0 + ' ~ ' + et0.substring(11, 16)) : [st0, et0].filter(Boolean).join(' ~ ');
                         var sess = sessionData.find(function(s) { return Number(s.lms_course_id) === Number(cid) || Number(s.course_id) === Number(cid); });
                         var preBtn = preSubmitted
                             ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>'
-                            : (sess
-                                ? '<a href="/student/classroom/' + sess.session_id + '#exam" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-door-open"></i> 강의실에서 응시</a>'
-                                : '<button type="button" onclick="location.href=&#39;/student/pre-assessment/take?course_id=' + cid + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>');
-                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + label + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (g.course_title || '일반').replace(/</g, '&lt;') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + totalMin + '분</span>' + (preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : '') + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (title || '').replace(/</g, '&lt;') + '</h3><p class="text-sm text-slate-600 mt-1">' + (desc || '').replace(/</g, '&lt;') + '</p></div>' + preBtn + '</div>';
+                            : (allEnded
+                                ? '<div class="flex flex-col items-end gap-1"><span class="px-5 py-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-2xl font-black text-[10px] whitespace-nowrap">미응시</span><span class="text-[10px] text-rose-500 font-bold">응시 기간 종료</span></div>'
+                                : (allUpcoming
+                                    ? '<div class="flex flex-col items-end gap-1"><span class="px-5 py-2.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl font-black text-[10px] whitespace-nowrap">응시 대기</span><span class="text-[10px] text-amber-600 font-bold">응시 기간 전</span></div>'
+                                    : (sess
+                                        ? '<a href="/student/classroom/' + sess.session_id + '#exam" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-door-open"></i> 강의실에서 응시</a>'
+                                        : (hasOpen ? '<button type="button" onclick="location.href=&#39;/student/pre-assessment/take?course_id=' + cid + '&#39;" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>' : ''))));
+                        html += '<div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div class="flex-1"><div class="flex flex-wrap items-center gap-2 mb-1"><span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + label + '</span><span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">' + (g.course_title || '일반').replace(/</g, '&lt;') + '</span><span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> ' + totalMin + '분</span>' + (schedTxt ? '<span class="text-[10px] text-indigo-600 font-bold"><i class="far fa-calendar-alt mr-1"></i>' + schedTxt.replace(/</g, '&lt;') + '</span>' : '') + (preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : (allEnded ? '<span class="px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-black rounded-full">미응시</span>' : '')) + '</div><h3 class="text-lg font-black text-slate-800 tracking-tight">' + (title || '').replace(/</g, '&lt;') + '</h3><p class="text-sm text-slate-600 mt-1">' + (desc || '').replace(/</g, '&lt;') + '</p></div>' + preBtn + '</div>';
                     });
                     html += '</div><div class="mt-4 flex justify-end"><button type="button" onclick="switchTab(&#39;preAssessment&#39;)" class="text-sky-600 hover:text-slate-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">사전평가 전체보기 <i class="fas fa-chevron-right"></i></button></div>';
                 }
@@ -994,20 +1006,36 @@ export const studentDashboardHtml = () => `
                     var courseId = g.course_id;
                     var examCount = g.exams.length;
                     var label = examCount > 1 ? '사전평가 (' + examCount + '개 시험)' : '사전평가';
-                    var preSubmitted = g.exams.some(function(e) { return e.has_submitted; });
+                    var preSubmitted = g.exams.every(function(e) { return e.has_submitted; });
+                    var unsubmitted = g.exams.filter(function(e) { return !e.has_submitted; });
+                    var allEnded = unsubmitted.length > 0 && unsubmitted.every(function(e) { return e.schedule_status === 'ended'; });
+                    var allUpcoming = unsubmitted.length > 0 && unsubmitted.every(function(e) { return e.schedule_status === 'upcoming'; });
+                    var rawTitle = (g.exams[0] && g.exams[0].title) || '사전평가';
+                    var displayTitle = rawTitle === '문제은행' ? '사전평가' : rawTitle;
+                    var st0 = g.exams[0] && g.exams[0].start_time ? String(g.exams[0].start_time).replace('T', ' ').substring(0, 16) : '';
+                    var et0 = g.exams[0] && g.exams[0].end_time ? String(g.exams[0].end_time).replace('T', ' ').substring(0, 16) : '';
+                    var schedTxt = (st0 && et0 && st0.substring(0, 10) === et0.substring(0, 10)) ? (st0 + ' ~ ' + et0.substring(11, 16)) : [st0, et0].filter(Boolean).join(' ~ ');
+                    var actionHtml = preSubmitted
+                        ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>'
+                        : (allEnded
+                            ? '<div class="flex flex-col items-end gap-1"><span class="px-5 py-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-2xl font-black text-[10px] whitespace-nowrap">미응시</span><span class="text-[10px] text-rose-500 font-bold">응시 기간이 종료되었습니다</span></div>'
+                            : (allUpcoming
+                                ? '<div class="flex flex-col items-end gap-1"><span class="px-5 py-2.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl font-black text-[10px] whitespace-nowrap">응시 대기</span><span class="text-[10px] text-amber-600 font-bold">응시 기간 전입니다</span></div>'
+                                : '<button onclick="location.href=\\'/student/pre-assessment/take?course_id=' + courseId + '\\'" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>'));
                     return \`
                     <div class="bento-card bg-white rounded-[2rem] p-6 border border-slate-200/60 shadow-sm hover:border-sky-200 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
                                 <span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${label}</span>
                                 <span class="px-2 py-0.5 bg-sky-50 text-sky-600 text-[10px] font-black rounded-full uppercase tracking-widest">\${(g.course_title || '').replace(/</g, '&lt;')}</span>
                                 <span class="text-[10px] text-slate-400 font-bold"><i class="far fa-clock mr-1"></i> \${totalMin}분</span>
-                                \${preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : ''}
+                                \${schedTxt ? '<span class="text-[10px] text-indigo-600 font-bold"><i class="far fa-calendar-alt mr-1"></i>' + schedTxt.replace(/</g, '&lt;') + '</span>' : ''}
+                                \${preSubmitted ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full uppercase tracking-widest">응시완료</span>' : (allEnded ? '<span class="px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-black rounded-full">미응시</span>' : '')}
                             </div>
-                            <h3 class="text-lg font-black text-slate-800 tracking-tight">\${(g.exams[0] && g.exams[0].title) || '사전평가'}</h3>
+                            <h3 class="text-lg font-black text-slate-800 tracking-tight">\${displayTitle.replace(/</g, '&lt;')}</h3>
                             <p class="text-sm text-slate-600 mt-1">\${(g.exams[0] && g.exams[0].description) || ''}</p>
                         </div>
-                        \${preSubmitted ? '<span class="px-6 py-3.5 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase cursor-default flex items-center gap-2"><i class="fas fa-check-circle"></i> 응시완료</span>' : '<button onclick="location.href=\\'/student/pre-assessment/take?course_id=' + courseId + '\\'" class="px-6 py-3.5 bg-sky-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap flex items-center gap-2"><i class="fas fa-pen-fancy"></i> 응시하기</button>'}
+                        \${actionHtml}
                     </div>
                     \`;
                 }).join('') + '</div>';

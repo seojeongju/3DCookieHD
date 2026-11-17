@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Bindings, JWTPayload } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { attendanceKindSql } from '../utils/attendance_enrollment';
+import { getExamScheduleStatus, getNowKstIso } from '../utils/examSchedule';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 app.use('*', authMiddleware);
@@ -476,7 +477,12 @@ app.get('/:sessionId/exams', async (c) => {
          WHERE e.course_id = ? AND IFNULL(e.is_active, 0) = 1
          ORDER BY e.created_at DESC`
     ).bind(userId, courseId).all();
-    return c.json({ success: true, data: results || [] });
+    const nowKst = getNowKstIso();
+    const enriched = (results || []).map((row: any) => ({
+        ...row,
+        schedule_status: getExamScheduleStatus(row.start_time, row.end_time, nowKst)
+    }));
+    return c.json({ success: true, data: enriched });
 });
 
 app.get('/:sessionId/assignments', async (c) => {

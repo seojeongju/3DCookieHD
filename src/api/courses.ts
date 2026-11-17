@@ -12,7 +12,7 @@ import { verifyCourseOwnership } from '../middleware/ownership';
 import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
 import { getSessionTrainingDates, normalizeTrainingDate } from '../utils/session_training_dates';
-import { lmsCourseIdForSession } from '../utils/sessionCourseResolution';
+import { lmsCourseIdForSession, lmsCourseIdForSessionOrCreate } from '../utils/sessionCourseResolution';
 import { getEffectiveSessionStatus } from '../utils/course_session_status';
 import { attendanceKindSql, enrollmentBelongs, upsertAttendanceLog } from '../utils/attendance_enrollment';
 
@@ -289,10 +289,11 @@ courses.get('/', async (c) => {
         .first<{ name: string | null }>();
       const teacherName = String(teacherUser?.name || '').trim();
       const jsonIdCond = sqlJsonArrayContainsId('c.main_instructor_ids_json');
-      // bind 순서: 시간표 / NCS 주강사(5) / LMS teacher_id / (선택) 강사명 2개
+      // bind 순서: 시간표 / NCS 주강사(5) + 평가자(1) / LMS teacher_id / (선택) 강사명 4개
       const hrdAssignParams: any[] = [
         teacherId,
         teacherId, teacherId, teacherId, teacherId, String(teacherId),
+        teacherId,
         teacherId,
       ];
       let instructorNameSql = '0';
@@ -301,8 +302,11 @@ courses.get('/', async (c) => {
           TRIM(COALESCE(s.instructor_name, '')) = ?
           OR (',' || REPLACE(REPLACE(COALESCE(s.instructor_name, ''), ' ', ''), '/', ',') || ',')
              LIKE '%,' || ? || ',%'
+          OR TRIM(COALESCE(a.instructor_name, '')) = ?
+          OR (',' || REPLACE(REPLACE(COALESCE(a.instructor_name, ''), ' ', ''), '/', ',') || ',')
+             LIKE '%,' || ? || ',%'
         )`;
-        hrdAssignParams.push(teacherName, teacherName);
+        hrdAssignParams.push(teacherName, teacherName, teacherName, teacherName);
       }
 
       const hrdRows = await c.env.DB.prepare(`
@@ -322,8 +326,7 @@ courses.get('/', async (c) => {
             FROM ncs_approved_registrations r
             INNER JOIN ncs_approved_curriculum c ON c.registration_id = r.id
             WHERE r.approved_course_id = s.approved_course_id
-              AND c.main_instructor_ids_json IS NOT NULL
-              AND ${jsonIdCond}
+              AND ((c.main_instructor_ids_json IS NOT NULL AND ${jsonIdCond}) OR c.evaluator_id = ?)
           )
           OR EXISTS (
             SELECT 1 FROM courses lc
@@ -389,7 +392,7 @@ courses.get('/', async (c) => {
             ? Number((r as any).lms_course_id)
             : null;
         if (!lmsCourseId) {
-          lmsCourseId = await lmsCourseIdForSession(c.env.DB, sessionId);
+          lmsCourseId = await lmsCourseIdForSessionOrCreate(c.env.DB, sessionId);
         }
         if (lmsCourseId && !lmsMetaById.has(lmsCourseId)) {
           const meta = await c.env.DB.prepare(

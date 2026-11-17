@@ -3,9 +3,72 @@ import type { Bindings } from '../types';
 import { successResponse, errorResponse, notFoundResponse } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
 import { getAll, execute } from '../utils/database';
-import { resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { lmsCourseIdForSessionOrCreate, resolveSessionToLmsCourseId } from '../utils/sessionCourseResolution';
+import { getExamScheduleStatus, getNowKstIso } from '../utils/examSchedule';
 
 const exams = new Hono<{ Bindings: Bindings }>();
+
+/** 강사가 해당 LMS 과정(또는 연결된 HRD 회차)의 담당 강사인지 검증 */
+async function isTeacherAssignedToCourse(
+    db: D1Database,
+    teacherId: number,
+    courseId: number | string | null | undefined,
+    sessionId?: number | string | null
+): Promise<boolean> {
+    const cid = courseId != null ? parseInt(String(courseId), 10) : NaN;
+    const sid = sessionId != null ? parseInt(String(sessionId), 10) : NaN;
+
+    if (Number.isFinite(cid)) {
+        const course: any = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(cid).first();
+        if (course && Number(course.teacher_id) === Number(teacherId)) return true;
+    }
+
+    const teacherUser = await db.prepare('SELECT name FROM users WHERE id = ?').bind(teacherId).first<{ name: string | null }>();
+    const teacherName = String(teacherUser?.name || '').trim();
+    const jsonIdCond = `(
+        nc.main_instructor_ids_json LIKE '%[' || ? || ']%'
+        OR nc.main_instructor_ids_json LIKE '%[' || ? || ',%'
+        OR nc.main_instructor_ids_json LIKE '%,' || ? || ',%'
+        OR nc.main_instructor_ids_json LIKE '%,' || ? || ']%'
+        OR nc.main_instructor_ids_json LIKE '%"' || ? || '"%'
+    )`;
+
+    const checkSessionSql = `
+        SELECT 1
+        FROM course_sessions s
+        INNER JOIN approved_courses a ON s.approved_course_id = a.id
+        WHERE (s.lms_course_id = ? OR s.id = ?)
+          AND (
+            EXISTS (SELECT 1 FROM session_timetable st WHERE st.session_id = s.id AND st.instructor_id = ?)
+            OR EXISTS (
+                SELECT 1 FROM ncs_approved_registrations nr
+                INNER JOIN ncs_approved_curriculum nc ON nc.registration_id = nr.id
+                WHERE nr.approved_course_id = s.approved_course_id
+                  AND ((nc.main_instructor_ids_json IS NOT NULL AND ${jsonIdCond}) OR nc.evaluator_id = ?)
+            )
+            OR (
+                ? != '' AND (
+                    TRIM(COALESCE(s.instructor_name, '')) = ?
+                    OR (',' || REPLACE(REPLACE(COALESCE(s.instructor_name, ''), ' ', ''), '/', ',') || ',') LIKE '%,' || ? || ',%'
+                    OR TRIM(COALESCE(a.instructor_name, '')) = ?
+                    OR (',' || REPLACE(REPLACE(COALESCE(a.instructor_name, ''), ' ', ''), '/', ',') || ',') LIKE '%,' || ? || ',%'
+                )
+            )
+          )
+        LIMIT 1
+    `;
+    const checkCid = Number.isFinite(cid) ? cid : -1;
+    const checkSid = Number.isFinite(sid) ? sid : checkCid;
+    const row = await db.prepare(checkSessionSql).bind(
+        checkCid,
+        checkSid,
+        teacherId,
+        teacherId, teacherId, teacherId, teacherId, String(teacherId),
+        teacherId,
+        teacherName, teacherName, teacherName, teacherName, teacherName
+    ).first();
+    return !!row;
+}
 
 // Auth middleware for all exam routes (or specific ones if preferred)
 // exams.use('*', authMiddleware);
@@ -45,8 +108,47 @@ exams.get('/', async (c) => {
         const params: any[] = [];
 
         if (userRole === 'teacher' && userId) {
-            query += ' AND c.teacher_id = ?';
-            params.push(userId);
+            const teacherUser = await c.env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(userId).first<{ name: string | null }>();
+            const teacherName = String(teacherUser?.name || '').trim();
+            const jsonIdCond = `(
+                nc.main_instructor_ids_json LIKE '%[' || ? || ']%'
+                OR nc.main_instructor_ids_json LIKE '%[' || ? || ',%'
+                OR nc.main_instructor_ids_json LIKE '%,' || ? || ',%'
+                OR nc.main_instructor_ids_json LIKE '%,' || ? || ']%'
+                OR nc.main_instructor_ids_json LIKE '%"' || ? || '"%'
+            )`;
+            query += ` AND (
+                c.teacher_id = ?
+                OR EXISTS (
+                    SELECT 1 FROM course_sessions s
+                    INNER JOIN approved_courses a ON s.approved_course_id = a.id
+                    WHERE s.lms_course_id = e.course_id
+                      AND (
+                        EXISTS (SELECT 1 FROM session_timetable st WHERE st.session_id = s.id AND st.instructor_id = ?)
+                        OR EXISTS (
+                            SELECT 1 FROM ncs_approved_registrations nr
+                            INNER JOIN ncs_approved_curriculum nc ON nc.registration_id = nr.id
+                            WHERE nr.approved_course_id = s.approved_course_id
+                              AND ((nc.main_instructor_ids_json IS NOT NULL AND ${jsonIdCond}) OR nc.evaluator_id = ?)
+                        )
+                        OR (
+                            ? != '' AND (
+                                TRIM(COALESCE(s.instructor_name, '')) = ?
+                                OR (',' || REPLACE(REPLACE(COALESCE(s.instructor_name, ''), ' ', ''), '/', ',') || ',') LIKE '%,' || ? || ',%'
+                                OR TRIM(COALESCE(a.instructor_name, '')) = ?
+                                OR (',' || REPLACE(REPLACE(COALESCE(a.instructor_name, ''), ' ', ''), '/', ',') || ',') LIKE '%,' || ? || ',%'
+                            )
+                        )
+                      )
+                )
+            )`;
+            params.push(
+                userId,
+                userId,
+                userId, userId, userId, userId, String(userId),
+                userId,
+                teacherName, teacherName, teacherName, teacherName, teacherName
+            );
         } else if (userRole === 'student' && userId) {
             // 학생은 본인이 수강 승인된 과정의 시험만 볼 수 있음
             query += ` AND e.course_id IN (
@@ -64,7 +166,12 @@ exams.get('/', async (c) => {
 
         const bindParams = userRole === 'student' && userId ? [userId, ...params] : params;
         const { results } = await c.env.DB.prepare(query).bind(...bindParams).all();
-        return successResponse(c, results || []);
+        const nowKst = getNowKstIso();
+        const enriched = (results || []).map((row: any) => ({
+            ...row,
+            schedule_status: getExamScheduleStatus(row.start_time, row.end_time, nowKst)
+        }));
+        return successResponse(c, enriched);
     } catch (e: any) {
         return errorResponse(c, e.message, 500);
     }
@@ -206,7 +313,7 @@ exams.get('/student/pre-assessment-combined', async (c) => {
         }
 
         const sqlExams = `
-            SELECT e.id, e.title, e.time_limit_minutes, e.course_id
+            SELECT e.id, e.title, e.time_limit_minutes, e.course_id, e.start_time, e.end_time
             FROM exams e
             WHERE e.course_id = ? AND e.type = 'practice' AND e.is_active = 1
             AND e.course_id IN (
@@ -218,16 +325,18 @@ exams.get('/student/pre-assessment-combined', async (c) => {
             )
             ORDER BY e.created_at ASC
         `;
-        let { results: exams } = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number }[] };
+        let { results: exams } = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number; start_time?: string | null; end_time?: string | null }[] };
         // course_id로 시험이 없으면 파라미터를 회차(session) ID로 해석해 LMS 과정 ID로 재조회
         if ((!exams || exams.length === 0) && courseIdParam && !sessionIdParam) {
             const resolved = await resolveSessionToLmsCourseId(c.env.DB, courseIdParam);
             if (resolved != null && resolved !== courseId) {
                 courseId = resolved;
-                const next = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number }[] };
+                const next = await c.env.DB.prepare(sqlExams).bind(courseId, userId, userId).all() as { results: { id: number; title: string; time_limit_minutes?: number; course_id: number; start_time?: string | null; end_time?: string | null }[] };
                 exams = next.results || [];
             }
         }
+        const nowKst = getNowKstIso();
+        exams = (exams || []).filter((ex) => getExamScheduleStatus(ex.start_time, ex.end_time, nowKst) === 'open');
 
         const courseRow: any = await c.env.DB.prepare('SELECT title FROM courses WHERE id = ?').bind(courseId).first();
         const course_title = courseRow?.title || '';
@@ -275,7 +384,7 @@ exams.get('/:id', authMiddleware, async (c) => {
         if (!exam) return notFoundResponse(c, 'Exam not found');
 
         // 강사는 본인이 담당하는 과정의 시험만 조회 가능
-        if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
+        if (user.role === 'teacher' && !(await isTeacherAssignedToCourse(c.env.DB, user.userId, exam.course_id))) {
             return errorResponse(c, '본인이 담당하는 과정의 시험만 조회할 수 있습니다', 403);
         }
 
@@ -310,7 +419,7 @@ exams.get('/:id/status', authMiddleware, async (c) => {
         if (!exam) return notFoundResponse(c, 'Exam not found');
 
         // 강사는 본인이 담당하는 과정의 시험만 조회 가능
-        if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
+        if (user.role === 'teacher' && !(await isTeacherAssignedToCourse(c.env.DB, user.userId, exam.course_id))) {
             return errorResponse(c, '본인이 담당하는 과정의 시험만 조회할 수 있습니다', 403);
         }
 
@@ -369,27 +478,30 @@ exams.post('/', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
         const body = await c.req.json();
-        let { title, course_id, description, time_limit, questions, type } = body;
+        let { title, course_id, description, time_limit, time_limit_minutes, start_time, end_time, questions, type } = body;
+        const rawSessionId = body.session_id || course_id;
         
-        // 만약 세션 ID가 전달되었다면 과정 ID로 해소
-        const resolvedCourseId = await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id);
+        // 만약 세션 ID가 전달되었다면 과정 ID로 해소 (없으면 생성 연결)
+        const resolvedCourseId = (await resolveSessionToLmsCourseId(c.env.DB, course_id, body.session_id))
+            ?? (rawSessionId ? await lmsCourseIdForSessionOrCreate(c.env.DB, rawSessionId) : null);
         if (resolvedCourseId != null) {
             course_id = resolvedCourseId;
         }
 
         // 강사는 본인이 담당하는 과정에만 시험 생성 가능
         if (user.role === 'teacher' && course_id) {
-            const course: any = await c.env.DB.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(course_id).first();
-            if (!course || course.teacher_id !== user.userId) {
+            const allowed = await isTeacherAssignedToCourse(c.env.DB, user.userId, course_id, body.session_id);
+            if (!allowed) {
                 return errorResponse(c, '본인이 담당하는 과정에만 시험을 생성할 수 있습니다', 403);
             }
         }
 
-        // exams 테이블 사용, time_limit_minutes 사용
+        const effectiveTimeLimit = time_limit_minutes ?? time_limit ?? 60;
+        // exams 테이블 사용, time_limit_minutes, start_time, end_time 사용
         const result = await c.env.DB.prepare(`
-            INSERT INTO exams (course_id, title, description, time_limit_minutes, type, is_active)
-            VALUES (?, ?, ?, ?, ?, 1)
-        `).bind(course_id, title, description, time_limit, type || 'practice').run();
+            INSERT INTO exams (course_id, title, description, time_limit_minutes, start_time, end_time, type, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+        `).bind(course_id, title, description || null, effectiveTimeLimit, start_time || null, end_time || null, type || 'practice').run();
 
         const examId = result.meta.last_row_id;
 
@@ -428,7 +540,7 @@ exams.delete('/:id', authMiddleware, async (c) => {
                 LEFT JOIN courses c ON e.course_id = c.id 
                 WHERE e.id = ?
             `).bind(id).first();
-            if (!exam || exam.teacher_id !== user.userId) {
+            if (!exam || !(await isTeacherAssignedToCourse(c.env.DB, user.userId, exam.course_id))) {
                 return errorResponse(c, '본인이 담당하는 과정의 시험만 삭제할 수 있습니다', 403);
             }
         }
@@ -459,13 +571,12 @@ exams.put('/:id', authMiddleware, async (c) => {
                 LEFT JOIN courses c ON e.course_id = c.id 
                 WHERE e.id = ?
             `).bind(id).first();
-            if (!exam || exam.teacher_id !== user.userId) {
+            if (!exam || !(await isTeacherAssignedToCourse(c.env.DB, user.userId, exam.course_id))) {
                 return errorResponse(c, '본인이 담당하는 과정의 시험만 수정할 수 있습니다', 403);
             }
             // course_id 변경 시에도 본인 담당 과정인지 확인
             if (course_id && course_id !== exam.course_id) {
-                const newCourse: any = await c.env.DB.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(course_id).first();
-                if (!newCourse || newCourse.teacher_id !== user.userId) {
+                if (!(await isTeacherAssignedToCourse(c.env.DB, user.userId, course_id))) {
                     return errorResponse(c, '본인이 담당하는 과정으로만 변경할 수 있습니다', 403);
                 }
             }
@@ -508,8 +619,19 @@ exams.put('/:id', authMiddleware, async (c) => {
 exams.get('/:id/take', async (c) => {
     const id = c.req.param('id');
     try {
-        const exam = await c.env.DB.prepare('SELECT * FROM exams WHERE id = ?').bind(id).first();
+        const exam: any = await c.env.DB.prepare('SELECT * FROM exams WHERE id = ?').bind(id).first();
         if (!exam) return notFoundResponse(c, 'Exam not found');
+
+        if (exam.is_active != null && Number(exam.is_active) === 0) {
+            return errorResponse(c, '현재 응시 가능한 상태가 아닙니다.', 403);
+        }
+        const schedStatus = getExamScheduleStatus(exam.start_time, exam.end_time);
+        if (schedStatus === 'upcoming') {
+            return errorResponse(c, '응시 기간이 아직 시작되지 않았습니다.', 403);
+        }
+        if (schedStatus === 'ended') {
+            return errorResponse(c, '응시 기간이 종료되어 문제를 열람할 수 없습니다.', 403);
+        }
 
         // 정답을 제외하고 문제 목록 반환
         const { results: questions } = await c.env.DB.prepare('SELECT id, question_text, question_type, options, points, order_index FROM exam_questions WHERE exam_id = ? ORDER BY order_index ASC').bind(id).all();
@@ -547,6 +669,20 @@ exams.post('/:id/submit', async (c) => {
             // console.warn('No student_id provided, using test ID 4');
         }
         const effectiveStudentId = student_id || 4; // 임시 기본값
+
+        // 시험 활성 상태 및 응시 기간 검증 (기간 외 제출 차단)
+        const examMeta: any = await c.env.DB.prepare('SELECT id, is_active, start_time, end_time FROM exams WHERE id = ?').bind(examId).first();
+        if (!examMeta) return notFoundResponse(c, '시험을 찾을 수 없습니다');
+        if (examMeta.is_active != null && Number(examMeta.is_active) === 0) {
+            return errorResponse(c, '현재 응시 가능한 상태가 아닙니다.', 403);
+        }
+        const schedStatus = getExamScheduleStatus(examMeta.start_time, examMeta.end_time);
+        if (schedStatus === 'upcoming') {
+            return errorResponse(c, '응시 기간이 시작되지 않아 제출할 수 없습니다.', 403);
+        }
+        if (schedStatus === 'ended') {
+            return errorResponse(c, '응시 기간이 종료되어 제출할 수 없습니다.', 403);
+        }
 
         // Get correct answers and types
         const { results: questions } = await c.env.DB.prepare('SELECT id, correct_answer, points, question_type FROM exam_questions WHERE exam_id = ?').bind(examId).all();
@@ -642,7 +778,7 @@ exams.post('/:id/grade', authMiddleware, async (c) => {
         if (!exam) return notFoundResponse(c, 'Exam not found');
 
         // 강사는 본인이 담당하는 과정의 시험만 채점 가능
-        if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
+        if (user.role === 'teacher' && !(await isTeacherAssignedToCourse(c.env.DB, user.userId, exam.course_id))) {
             return errorResponse(c, '본인이 담당하는 과정의 시험만 채점할 수 있습니다', 403);
         }
 
@@ -747,7 +883,7 @@ exams.get('/:id/submissions/:submission_id', authMiddleware, async (c) => {
         if (!exam) return notFoundResponse(c, 'Exam not found');
 
         // 강사는 본인이 담당하는 과정의 시험만 조회 가능
-        if (user.role === 'teacher' && exam.teacher_id !== user.userId) {
+        if (user.role === 'teacher' && !(await isTeacherAssignedToCourse(c.env.DB, user.userId, exam.course_id))) {
             return errorResponse(c, '본인이 담당하는 과정의 시험만 조회할 수 있습니다', 403);
         }
 

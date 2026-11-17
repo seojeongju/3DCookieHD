@@ -3567,9 +3567,10 @@ app.get('/assignments/summary', authMiddleware, async (c) => {
     }
 });
 
-// 시험 및 CBT 참여 현황 요약 조회 — 회차별(course_sessions) 목록, 과제관리와 동일 구조
+// 시험 및 CBT 참여 현황 요약 조회 — 회차별(course_sessions) 목록, 과제관리와 동일 구조 (강사 로그인 시 담당 과정만 필터링)
 app.get('/exams/summary', authMiddleware, async (c) => {
     try {
+        const user = c.get('user') as JWTPayload | undefined;
         const statusFilter = (c.req.query('status') || '').toString().toLowerCase().trim();
         let statusCondition = '';
         const params: (string | number)[] = [];
@@ -3577,13 +3578,57 @@ app.get('/exams/summary', authMiddleware, async (c) => {
             statusCondition = ' AND s.status = ?';
             params.push(statusFilter);
         }
+
+        let teacherCondition = '';
+        if (user && user.role === 'teacher' && user.userId != null) {
+            const teacherId = Number(user.userId);
+            const teacherUser = await c.env.DB.prepare('SELECT name FROM users WHERE id = ?')
+                .bind(teacherId)
+                .first<{ name: string | null }>();
+            const teacherName = String(teacherUser?.name || '').trim();
+            const jsonIdCond = `(
+                nc.main_instructor_ids_json LIKE '%[' || ? || ']%'
+                OR nc.main_instructor_ids_json LIKE '%[' || ? || ',%'
+                OR nc.main_instructor_ids_json LIKE '%,' || ? || ',%'
+                OR nc.main_instructor_ids_json LIKE '%,' || ? || ']%'
+                OR nc.main_instructor_ids_json LIKE '%"' || ? || '"%'
+            )`;
+            params.push(
+                teacherId,
+                teacherId, teacherId, teacherId, teacherId, String(teacherId),
+                teacherId,
+                teacherId
+            );
+            let nameCond = '0';
+            if (teacherName) {
+                nameCond = `(
+                    TRIM(COALESCE(s.instructor_name, '')) = ?
+                    OR (',' || REPLACE(REPLACE(COALESCE(s.instructor_name, ''), ' ', ''), '/', ',') || ',') LIKE '%,' || ? || ',%'
+                    OR TRIM(COALESCE(a.instructor_name, '')) = ?
+                    OR (',' || REPLACE(REPLACE(COALESCE(a.instructor_name, ''), ' ', ''), '/', ',') || ',') LIKE '%,' || ? || ',%'
+                )`;
+                params.push(teacherName, teacherName, teacherName, teacherName);
+            }
+            teacherCondition = ` AND (
+                EXISTS (SELECT 1 FROM session_timetable st WHERE st.session_id = s.id AND st.instructor_id = ?)
+                OR EXISTS (
+                    SELECT 1 FROM ncs_approved_registrations nr
+                    INNER JOIN ncs_approved_curriculum nc ON nc.registration_id = nr.id
+                    WHERE nr.approved_course_id = s.approved_course_id
+                      AND ((nc.main_instructor_ids_json IS NOT NULL AND ${jsonIdCond}) OR nc.evaluator_id = ?)
+                )
+                OR EXISTS (SELECT 1 FROM courses lc WHERE lc.id = s.lms_course_id AND lc.teacher_id = ?)
+                OR ${nameCond}
+            )`;
+        }
+
         let sessions: any[] = [];
         try {
             const q = c.env.DB.prepare(`
-                SELECT s.id, s.session_number, s.session_name, s.status, s.instructor_name, a.name as course_name, s.lms_course_id
+                SELECT s.id, s.session_number, s.session_name, s.status, s.instructor_name, a.instructor_name as approved_instructor_name, a.name as course_name, s.lms_course_id
                 FROM course_sessions s
                 JOIN approved_courses a ON s.approved_course_id = a.id
-                WHERE 1=1 ${statusCondition}
+                WHERE 1=1 ${statusCondition} ${teacherCondition}
                 ORDER BY s.training_start_date DESC, s.id DESC
             `);
             const out = params.length > 0 ? await q.bind(...params).all() : await q.all();
@@ -3603,14 +3648,18 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                 const sessionNum = session.session_number != null ? String(session.session_number) : '';
                 const sessionNamePart = (session.session_name || '').trim();
                 const title = `${courseName} (${sessionNum ? sessionNum + '회차' : ''}${sessionNamePart ? ' - ' + sessionNamePart : ''})`.replace(/\s*\(\s*\)\s*$/, '').trim() || courseName;
-                // 조회 화면이므로 기존 연결을 바꾸지 않는다 (제목 LIKE 매칭은 다른 회차 과정을 잡을 수 있어 사용하지 않음)
                 let courseId: number | null = null;
                 try {
-                    courseId = await lmsCourseIdForSession(c.env.DB, session.id);
-                } catch (_) { }
+                    courseId = await lmsCourseIdForSessionOrCreate(c.env.DB, session.id);
+                } catch (_) {
+                    try { courseId = await lmsCourseIdForSession(c.env.DB, session.id); } catch (_) { }
+                }
 
                 let examCount = 0, studentCount = 0, totalSubmissions = 0;
                 let avgScore = 0;
+                let examStartTime: string | null = null;
+                let examEndTime: string | null = null;
+                let examTimeLimit: number | null = null;
                 try {
                     const eStat: any = await c.env.DB.prepare(
                         'SELECT COUNT(*) as student_count FROM course_session_enrollments WHERE session_id = ? AND status IN ("approved", "enrolled")'
@@ -3621,6 +3670,16 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                     try {
                         const xStat: any = await c.env.DB.prepare('SELECT COUNT(*) as exam_count FROM exams WHERE course_id = ?').bind(courseId).first();
                         examCount = xStat?.exam_count ?? 0;
+                    } catch (_) { }
+                    try {
+                        const latestExam: any = await c.env.DB.prepare(
+                            'SELECT start_time, end_time, time_limit_minutes FROM exams WHERE course_id = ? ORDER BY CASE WHEN type = "practice" THEN 0 ELSE 1 END, created_at DESC LIMIT 1'
+                        ).bind(courseId).first();
+                        if (latestExam) {
+                            examStartTime = latestExam.start_time || null;
+                            examEndTime = latestExam.end_time || null;
+                            examTimeLimit = latestExam.time_limit_minutes != null ? Number(latestExam.time_limit_minutes) : null;
+                        }
                     } catch (_) { }
                     try {
                         const subStat: any = await c.env.DB.prepare(`
@@ -3644,8 +3703,11 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                     title,
                     status: session.status,
                     status_label: statusLabels[session.status] || session.status || '-',
-                    teacher_name: session.instructor_name || null,
+                    teacher_name: session.instructor_name || session.approved_instructor_name || null,
                     exam_count: examCount,
+                    exam_start_time: examStartTime,
+                    exam_end_time: examEndTime,
+                    exam_time_limit: examTimeLimit,
                     student_count: studentCount,
                     total_submissions: totalSubmissions,
                     avg_score: avgScore,
@@ -3660,8 +3722,11 @@ app.get('/exams/summary', authMiddleware, async (c) => {
                     title: (session?.course_name || '과정') + ' (오류)',
                     status: session?.status,
                     status_label: statusLabels[session?.status] || '-',
-                    teacher_name: session?.instructor_name || null,
+                    teacher_name: session?.instructor_name || session?.approved_instructor_name || null,
                     exam_count: 0,
+                    exam_start_time: null,
+                    exam_end_time: null,
+                    exam_time_limit: null,
                     student_count: 0,
                     total_submissions: 0,
                     avg_score: 0,
