@@ -458,6 +458,297 @@ async function loadPeriodConfigs(DB: D1Database, sessionId: number) {
   }
 }
 
+type OrientationRegularEvalItem = {
+  subject_name: string;
+  ability_unit_label: string;
+  ncs_type: string;
+  method: string;
+  eval_date: string;
+};
+
+type OrientationEvaluationSchedule = {
+  pre_assessment_date: string | null;
+  basic_survey_date: string | null;
+  satisfaction_surveys: { label: string; eval_date: string }[];
+  regular_evaluations: OrientationRegularEvalItem[];
+};
+
+function parseFirstEvalMethod(raw: any): string {
+  if (!raw) return '';
+  try {
+    const arr = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (Array.isArray(arr) && arr.length > 0) {
+      const first = arr[0];
+      if (typeof first === 'string') return first.trim();
+      if (first && typeof first === 'object') return String(first.name || first.method || first.title || '').trim();
+    }
+  } catch {
+    /* ignore */
+  }
+  return '';
+}
+
+function extractAbilityUnitCodeAndName(abilityJson: any, unitsJson: any): { code: string; name: string } {
+  const tryParse = (raw: any) => {
+    if (!raw) return null;
+    try {
+      const p = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return Array.isArray(p) ? p : null;
+    } catch {
+      return null;
+    }
+  };
+  const arr = tryParse(abilityJson) || tryParse(unitsJson) || [];
+  for (const item of arr) {
+    if (!item) continue;
+    if (typeof item === 'string') {
+      const s = item.trim();
+      if (s) return { code: /^[0-9]{8,}|_\d+v\d+/i.test(s) ? s : '', name: s };
+    } else if (typeof item === 'object') {
+      const code = String(item.code || item.unit_code || '').trim();
+      const name = String(item.name || item.unit_name || item.title || '').trim();
+      if (code || name) return { code, name };
+    }
+  }
+  return { code: '', name: '' };
+}
+
+function normalizeEvalMethodLabel(method: string): string {
+  const m = String(method || '').trim();
+  if (!m) return '';
+  const map: Record<string, string> = {
+    checklist: '평가자 체크리스트',
+    portfolio: '포트폴리오',
+    written: '지필평가',
+    practical: '작업형 실기',
+    interview: '면접/구두발표',
+    case_study: '사례연구',
+    problem_solving: '문제해결 시나리오',
+  };
+  return map[m.toLowerCase()] || m;
+}
+
+async function loadOrientationEvaluationSchedule(
+  DB: D1Database,
+  sessionId: number,
+  header: SessionHeader,
+  timetableRows: Awaited<ReturnType<typeof loadTimetableSlotRows>>
+): Promise<OrientationEvaluationSchedule> {
+  const startDate = header.training_start_date ? String(header.training_start_date).slice(0, 10) : null;
+  const endDate = header.training_end_date ? String(header.training_end_date).slice(0, 10) : null;
+
+  // 1. 사전평가 실행일 (exams.type = 'practice' 의 start_time 또는 개강일)
+  let preAssessmentDate: string | null = startDate;
+  if (header.lms_course_id) {
+    try {
+      const examRow: any = await DB.prepare(
+        `SELECT start_time, created_at FROM exams
+         WHERE course_id = ? AND type = 'practice'
+           AND (IFNULL(is_active, 0) = 1 OR start_time IS NOT NULL OR end_time IS NOT NULL)
+         ORDER BY id DESC LIMIT 1`
+      )
+        .bind(header.lms_course_id)
+        .first();
+      const rawStart = examRow?.start_time ? String(examRow.start_time).slice(0, 10) : '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(rawStart)) {
+        preAssessmentDate = rawStart;
+      }
+    } catch {
+      /* exams 테이블 조회 실패 시 개강일 폴백 */
+    }
+  }
+
+  // 2. 시간표에서 교과목별 마지막 훈련일(평가일 마지막날) 및 능력단위 수집
+  const subjectMap = new Map<
+    string,
+    {
+      subject_id: number | null;
+      subject_name: string;
+      ability_unit_name: string;
+      ability_units_json: any;
+      units_json: any;
+      last_date: string;
+      first_order: number;
+    }
+  >();
+  let orderCounter = 0;
+  for (const r of timetableRows) {
+    if (r.is_excluded) continue;
+    const subjName = String(r.subject_name || '').trim();
+    if (!subjName) continue;
+    const key = r.subject_id != null ? `id:${r.subject_id}` : `name:${subjName}`;
+    const existing = subjectMap.get(key);
+    const tDate = String(r.training_date || '').slice(0, 10);
+    if (!existing) {
+      subjectMap.set(key, {
+        subject_id: r.subject_id,
+        subject_name: subjName,
+        ability_unit_name: String(r.ability_unit_name || '').trim(),
+        ability_units_json: r.ability_units_json,
+        units_json: r.units_json,
+        last_date: tDate,
+        first_order: orderCounter++,
+      });
+    } else {
+      if (tDate && (!existing.last_date || tDate > existing.last_date)) {
+        existing.last_date = tDate;
+      }
+      if (!existing.ability_unit_name && r.ability_unit_name) {
+        existing.ability_unit_name = String(r.ability_unit_name).trim();
+      }
+    }
+  }
+
+  // 3. 교과목 상세(ncs_approved_curriculum: classification, evaluation_methods_json) 조회
+  const currMetaById = new Map<number, { type: string; classification: string; evalMethod: string }>();
+  const subjectIds = [...new Set([...subjectMap.values()].map((s) => s.subject_id).filter((id): id is number => id != null))];
+  for (let i = 0; i < subjectIds.length; i += 40) {
+    const chunk = subjectIds.slice(i, i + 40);
+    const ph = chunk.map(() => '?').join(',');
+    try {
+      const { results } = await DB.prepare(
+        `SELECT id, type, classification, evaluation_methods_json FROM ncs_approved_curriculum WHERE id IN (${ph})`
+      )
+        .bind(...chunk)
+        .all();
+      for (const row of (results || []) as any[]) {
+        currMetaById.set(Number(row.id), {
+          type: String(row.type || '').trim(),
+          classification: String(row.classification || '').trim(),
+          evalMethod: normalizeEvalMethodLabel(parseFirstEvalMethod(row.evaluation_methods_json)),
+        });
+      }
+    } catch {
+      /* 컬럼 없는 구형 스키마 무시 */
+    }
+  }
+
+  // 4. ncs_evaluation_plans 조회 (평가방법, planned_date)
+  type EvalPlanRow = {
+    ncs_unit_id: number;
+    unit_code: string;
+    unit_name: string;
+    method: string;
+    planned_date: string;
+  };
+  const evalPlans: EvalPlanRow[] = [];
+  if (header.lms_course_id) {
+    try {
+      const { results } = await DB.prepare(
+        `SELECT p.ncs_unit_id, p.method, p.planned_date, u.code AS unit_code, u.name AS unit_name
+         FROM ncs_evaluation_plans p
+         JOIN ncs_units u ON p.ncs_unit_id = u.id
+         WHERE p.course_id = ?
+         ORDER BY COALESCE(NULLIF(p.planned_date, ''), '9999-12-31') ASC, p.id ASC`
+      )
+        .bind(header.lms_course_id)
+        .all();
+      for (const p of (results || []) as any[]) {
+        evalPlans.push({
+          ncs_unit_id: Number(p.ncs_unit_id),
+          unit_code: String(p.unit_code || '').trim(),
+          unit_name: String(p.unit_name || '').trim(),
+          method: normalizeEvalMethodLabel(String(p.method || '')),
+          planned_date: p.planned_date ? String(p.planned_date).slice(0, 10) : '',
+        });
+      }
+    } catch {
+      /* ncs_evaluation_plans 없을 수 있음 */
+    }
+  }
+
+  // 5. 정기평가 행 구성
+  const regularEvaluations: OrientationRegularEvalItem[] = [];
+  const subjList = [...subjectMap.values()];
+
+  if (subjList.length > 0) {
+    // 코드->단위명 매핑 보강
+    const codesToResolve: string[] = [];
+    for (const s of subjList) {
+      const parsed = extractAbilityUnitCodeAndName(s.ability_units_json, s.units_json);
+      if (parsed.code) codesToResolve.push(parsed.code);
+    }
+    const unitNameMap = codesToResolve.length ? await resolveAbilityUnitNames(DB, codesToResolve) : new Map<string, string>();
+
+    for (const s of subjList) {
+      const meta = s.subject_id != null ? currMetaById.get(s.subject_id) : undefined;
+      const parsed = extractAbilityUnitCodeAndName(s.ability_units_json, s.units_json);
+      const code = parsed.code;
+      const resolvedName = (code && unitNameMap.get(code)) || parsed.name || s.ability_unit_name || s.subject_name;
+
+      // NCS / 비NCS 판별
+      let ncsType = 'NCS';
+      if (meta) {
+        const cls = meta.classification.toLowerCase();
+        const tp = meta.type.toLowerCase();
+        if (tp === 'non_ncs' || cls.includes('비ncs') || cls.includes('비 ncs') || cls.includes('교양')) {
+          ncsType = '비NCS';
+        } else if (tp === 'ncs' || cls.includes('ncs')) {
+          ncsType = 'NCS';
+        } else if (!code) {
+          ncsType = '비NCS';
+        }
+      } else if (!code) {
+        ncsType = '비NCS';
+      }
+
+      // 평가계획 매칭 (코드 일치, CURRICULUM_id 일치, 또는 이름 일치)
+      const matchedPlan = evalPlans.find((p) => {
+        if (code && p.unit_code && p.unit_code === code) return true;
+        if (s.subject_id != null && p.unit_code === `__CURRICULUM_${s.subject_id}`) return true;
+        if (p.unit_name && (p.unit_name === resolvedName || p.unit_name === s.subject_name)) return true;
+        return false;
+      });
+
+      const abilityUnitLabel =
+        code && ncsType === 'NCS'
+          ? `[${code}]\n${resolvedName}`
+          : resolvedName;
+
+      const method = matchedPlan?.method || meta?.evalMethod || (ncsType === 'NCS' ? '평가자 체크리스트' : '포트폴리오');
+      const evalDate = matchedPlan?.planned_date || s.last_date || endDate || '';
+
+      regularEvaluations.push({
+        subject_name: s.subject_name,
+        ability_unit_label: abilityUnitLabel,
+        ncs_type: ncsType,
+        method,
+        eval_date: evalDate,
+      });
+    }
+  } else if (evalPlans.length > 0) {
+    // 시간표 미작성 시 평가계획에서 직접 구성
+    for (const p of evalPlans) {
+      const isCurr = p.unit_code.startsWith('__CURRICULUM_');
+      const ncsType = isCurr || !p.unit_code ? '비NCS' : 'NCS';
+      const abilityUnitLabel =
+        !isCurr && p.unit_code ? `[${p.unit_code}]\n${p.unit_name}` : p.unit_name;
+      regularEvaluations.push({
+        subject_name: p.unit_name,
+        ability_unit_label: abilityUnitLabel,
+        ncs_type: ncsType,
+        method: p.method || '포트폴리오',
+        eval_date: p.planned_date || endDate || '',
+      });
+    }
+  }
+
+  // 날짜순 정렬
+  regularEvaluations.sort((a, b) => (a.eval_date || '9999-12-31').localeCompare(b.eval_date || '9999-12-31'));
+
+  const satisfactionSurveys = regularEvaluations.map((ev, idx) => ({
+    label: `교과목 만족도조사 ${idx + 1}`,
+    eval_date: ev.eval_date,
+  }));
+
+  return {
+    pre_assessment_date: preAssessmentDate,
+    basic_survey_date: startDate || preAssessmentDate,
+    satisfaction_surveys: satisfactionSurveys,
+    regular_evaluations: regularEvaluations,
+  };
+}
+
 async function buildSessionDocContext(DB: D1Database, sessionId: number, header: SessionHeader) {
   const trainingDates = await getSessionTrainingDatesForLogs(
     DB,
@@ -479,6 +770,7 @@ async function buildSessionDocContext(DB: D1Database, sessionId: number, header:
   const textbookNames = await loadTextbookNames(DB, header.textbook_ids_json);
   const timetableRows = await loadTimetableSlotRows(DB, sessionId);
   const periodConfigs = await loadPeriodConfigs(DB, sessionId);
+  const evaluationSchedule = await loadOrientationEvaluationSchedule(DB, sessionId, header, timetableRows);
   const studentTimetable = buildStudentDistributionTimetable({
     course_name: header.course_name,
     session_number: header.session_number,
@@ -521,6 +813,7 @@ async function buildSessionDocContext(DB: D1Database, sessionId: number, header:
     timetableRows,
     studentTimetable,
     hrdTimetable,
+    evaluationSchedule,
   };
 }
 
@@ -704,6 +997,7 @@ openingDocs.get('/:sessionId/docs/:docCode', authMiddleware, requireStaff, async
         training_hour_count: ctx.hourCount,
         unit_periods: ctx.unitPeriods,
         attendance_rules: ctx.attendanceRules,
+        evaluation_schedule: ctx.evaluationSchedule,
       },
       trainees,
       trainee_count_gov: allTrainees.filter((t) => t.funding_category === 'gov').length,

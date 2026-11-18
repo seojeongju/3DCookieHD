@@ -11,56 +11,65 @@ function setCell(
   cells[r][c] = cell;
 }
 
-/** 첨부 엑셀 양식에 맞춘 D02 워크북 생성 */
+/** 인쇄화면(.tt-*)과 동일한 레이아웃의 D02 워크북 생성 */
 export function buildD02Workbook(pack: StudentTimetablePack, sheetName = '수강생시간표'): ArrayBuffer {
   const cells: Record<number, Record<number, XlsxCell>> = {};
   const merges: string[] = [];
   const rowHeights: Record<number, number> = {};
-  const COLS = 6; // D~I
-  const START_COL = 3; // C
-  const END_COL = START_COL + COLS; // I = 9
+  const COLS = 6; // B~G (6일)
+  const START_COL = 1; // A
+  const endColLetter = String.fromCharCode(64 + START_COL + COLS); // G
 
   const title = pack.title_lines.join('\n');
+  const titleLineCount = Math.max(pack.title_lines.length, 2);
   setCell(cells, 1, START_COL, {
     v: title,
-    merge: `C1:I1`,
+    merge: `A1:${endColLetter}1`,
     align: 'center',
     valign: 'center',
     wrap: true,
     fontSize: 16,
     bold: true,
+    border: false,
   });
-  merges.push('C1:I1');
-  rowHeights[1] = 72;
+  merges.push(`A1:${endColLetter}1`);
+  rowHeights[1] = Math.max(48, titleLineCount * 24);
 
   setCell(cells, 2, START_COL, {
     v: pack.classroom_label,
-    merge: 'C2:I2',
+    merge: `A2:${endColLetter}2`,
     align: 'center',
     valign: 'center',
-    fontSize: 14,
+    fontSize: 13,
+    bold: true,
+    border: false,
   });
-  merges.push('C2:I2');
-  rowHeights[2] = 28;
+  merges.push(`A2:${endColLetter}2`);
+  rowHeights[2] = 24;
 
+  const summaryLines = Math.max(String(pack.period_summary || '').split('\n').length, 1);
   setCell(cells, 3, START_COL, {
     v: pack.period_summary,
-    merge: 'C3:I3',
+    merge: `A3:${endColLetter}3`,
     align: 'center',
     valign: 'center',
     wrap: true,
     bold: true,
-    fontSize: 11,
-    fill: 'DDEBF7',
+    fontSize: 10,
+    fill: 'EEF6FF',
   });
-  merges.push('C3:I3');
-  rowHeights[3] = 36;
+  merges.push(`A3:${endColLetter}3`);
+  rowHeights[3] = Math.max(30, summaryLines * 17 + 10);
 
-  let row = 4;
+  // 안내문과 첫 블록 사이 여백
+  rowHeights[4] = 8;
+  let row = 5;
+
   for (const block of pack.blocks) {
     const days = block.days;
-    // 일차 번호
-    for (let i = 0; i < COLS; i++) {
+    // 일차 번호 (좌측 셀은 인쇄화면과 동일하게 테두리 없음)
+    setCell(cells, row, START_COL, { v: '', border: false });
+    for (let i = 0; i < days.length; i++) {
       const d = days[i];
       setCell(cells, row, START_COL + 1 + i, {
         v: d ? d.day_no_label : '',
@@ -68,7 +77,7 @@ export function buildD02Workbook(pack: StudentTimetablePack, sheetName = '수강
         fontSize: 10,
       });
     }
-    rowHeights[row] = 16;
+    rowHeights[row] = 18;
     row += 1;
 
     // 시간 | 날짜들
@@ -76,15 +85,16 @@ export function buildD02Workbook(pack: StudentTimetablePack, sheetName = '수강
       v: '시간',
       align: 'center',
       bold: true,
-      fill: 'F2F2F2',
+      fill: 'F3F4F6',
       fontSize: 10,
     });
-    for (let i = 0; i < COLS; i++) {
+    for (let i = 0; i < days.length; i++) {
       const d = days[i];
       setCell(cells, row, START_COL + 1 + i, {
         v: d ? d.date_display : '',
         align: 'center',
-        fill: 'F2F2F2',
+        bold: true,
+        fill: 'F3F4F6',
         fontSize: 10,
       });
     }
@@ -97,39 +107,41 @@ export function buildD02Workbook(pack: StudentTimetablePack, sheetName = '수강
       v: pack.time_label,
       align: 'center',
       valign: 'center',
+      bold: true,
       wrap: true,
-      merge: `C${subjRow}:C${subjRow + 1}`,
+      merge: `A${subjRow}:A${subjRow + 1}`,
       fontSize: 10,
-      fill: 'F2F2F2',
+      fill: 'F3F4F6',
     });
-    merges.push(`C${subjRow}:C${subjRow + 1}`);
-    for (let i = 0; i < COLS; i++) {
+    merges.push(`A${subjRow}:A${subjRow + 1}`);
+    for (let i = 0; i < days.length; i++) {
       const d = days[i];
       const fill = d && d.subject_name ? pack.subject_colors[d.subject_name] || 'FFC000' : undefined;
-      const colLetter = String.fromCharCode(68 + i); // D=68
+      const colL = String.fromCharCode(64 + START_COL + 1 + i); // B~G
       setCell(cells, subjRow, START_COL + 1 + i, {
         v: d ? d.subject_name : '',
         align: 'center',
         valign: 'center',
         wrap: true,
         fill,
-        merge: `${colLetter}${subjRow}:${colLetter}${subjRow + 1}`,
+        merge: `${colL}${subjRow}:${colL}${subjRow + 1}`,
         fontSize: 9,
       });
-      merges.push(`${colLetter}${subjRow}:${colLetter}${subjRow + 1}`);
+      merges.push(`${colL}${subjRow}:${colL}${subjRow + 1}`);
     }
-    rowHeights[subjRow] = 28;
-    rowHeights[subjRow + 1] = 28;
+    rowHeights[subjRow] = 26;
+    rowHeights[subjRow + 1] = 26;
     row += 2;
 
     // 훈련교사
     setCell(cells, row, START_COL, {
       v: '훈련교사',
       align: 'center',
-      fill: 'F2F2F2',
+      bold: true,
+      fill: 'F3F4F6',
       fontSize: 10,
     });
-    for (let i = 0; i < COLS; i++) {
+    for (let i = 0; i < days.length; i++) {
       const d = days[i];
       setCell(cells, row, START_COL + 1 + i, {
         v: d ? d.instructor_name : '',
@@ -137,42 +149,48 @@ export function buildD02Workbook(pack: StudentTimetablePack, sheetName = '수강
         fontSize: 10,
       });
     }
-    rowHeights[row] = 18;
+    rowHeights[row] = 19;
+    row += 1;
+
+    // 블록 간 여백
+    rowHeights[row] = 8;
     row += 1;
   }
 
   // 하단 안내
-  row += 1;
+  const footerLines = Math.max(String(pack.footer_notes || '').split('\n').length, 4);
+  const footerRows = Math.max(4, Math.min(8, footerLines));
   const footerStart = row;
-  const footerEnd = row + 6;
+  const footerEnd = row + footerRows - 1;
   setCell(cells, footerStart, START_COL, {
     v: pack.footer_notes,
-    merge: `C${footerStart}:I${footerEnd}`,
+    merge: `A${footerStart}:${endColLetter}${footerEnd}`,
     align: 'left',
     valign: 'top',
     wrap: true,
     fontSize: 10,
   });
-  merges.push(`C${footerStart}:I${footerEnd}`);
-  for (let r = footerStart; r <= footerEnd; r++) rowHeights[r] = 18;
-  rowHeights[footerStart] = 28;
-  rowHeights[footerEnd] = 40;
+  merges.push(`A${footerStart}:${endColLetter}${footerEnd}`);
+  const totalFooterHeight = Math.max(84, footerLines * 16 + 16);
+  const perRowH = Math.ceil(totalFooterHeight / footerRows);
+  for (let r = footerStart; r <= footerEnd; r++) rowHeights[r] = perRowH;
 
   const sheet: XlsxSheetSpec = {
-    name: sheetName.slice(0, 31),
+    name: sheetName,
     cells,
     merges,
     rowHeights,
+    landscape: false,
+    fitToWidth: 1,
+    fitToHeight: 0,
     colWidths: {
-      1: 2.5,
-      2: 1.5,
-      3: 16,
-      4: 15,
-      5: 15,
-      6: 15,
-      7: 15,
-      8: 15,
-      9: 15,
+      1: 15,
+      2: 14.5,
+      3: 14.5,
+      4: 14.5,
+      5: 14.5,
+      6: 14.5,
+      7: 14.5,
     },
   };
 

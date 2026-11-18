@@ -22,7 +22,7 @@ function colLetter(n: number): string {
   return s;
 }
 
-/** 한 페이지(최대 9일) 블록을 지정 시작 행에 기록. 반환: 다음 시작 행 */
+/** 인쇄화면(.hrd-page)과 동일한 레이아웃의 한 페이지(최대 9일) 블록 기록. 반환: 다음 시작 행 */
 function writePageBlock(
   cells: Record<number, Record<number, XlsxCell>>,
   merges: string[],
@@ -33,78 +33,114 @@ function writePageBlock(
 ): number {
   const days = page.days;
   const dayCount = Math.max(days.length, 1);
-  const lastDayCol = 4 + (dayCount - 1) * 2 + 1; // D=4, each day 2 cols
-  const endColLetter = colLetter(Math.max(lastDayCol, 21)); // at least U
+  const lastDayCol = 2 + dayCount * 2; // A=1(교시), B=2(시간), C~=일차(각 2열)
+  const endCol = Math.max(lastDayCol, 20); // 최소 T열(20)
+  const endColLetter = colLetter(endCol);
 
   let r = startRow;
 
-  // 헤더 메타
-  const meta: Array<[string, string]> = [
-    ['교육과정', pack.course_name],
-    ['훈련기간', pack.period_label],
-    ['훈련회차', pack.session_number != null ? String(pack.session_number) : ''],
-    ['훈련시간', pack.time_range_label],
-    ['훈련강사', pack.instructor_label],
-    ['훈련장소', pack.location_label],
-  ];
+  // 1. 상단 메타 표 (인쇄화면 .hrd-meta 5행 구조와 동일)
+  // Row 0: 교육과정 | course_name (C~N) | sheet_title (O~endCol, 2행 병합)
+  setCell(cells, r, 1, { v: '교육과정', bold: true, align: 'center', fill: 'F3F4F6', fontSize: 10, merge: `A${r}:B${r}` });
+  merges.push(`A${r}:B${r}`);
+  setCell(cells, r, 3, { v: pack.course_name, bold: true, align: 'left', wrap: true, fontSize: 10, merge: `C${r}:N${r}` });
+  merges.push(`C${r}:N${r}`);
+  setCell(cells, r, 15, {
+    v: pack.sheet_title || '훈련시간표',
+    bold: true,
+    align: 'center',
+    valign: 'center',
+    wrap: true,
+    fontSize: 12,
+    fill: 'E0F2FE',
+    merge: `O${r}:${endColLetter}${r + 1}`,
+  });
+  merges.push(`O${r}:${endColLetter}${r + 1}`);
+  const courseLines = Math.max(String(pack.course_name || '').split('\n').length, 1);
+  rowHeights[r] = Math.max(26, courseLines * 17 + 8);
 
-  for (let i = 0; i < meta.length; i++) {
-    const row = r + i;
-    setCell(cells, row, 2, { v: meta[i][0], bold: true, align: 'center', fill: 'F2F2F2', fontSize: 10, merge: `B${row}:C${row}` });
-    merges.push(`B${row}:C${row}`);
-    setCell(cells, row, 4, {
-      v: meta[i][1],
-      align: i === 0 ? 'left' : 'center',
-      wrap: i === 0,
-      fontSize: i === 0 ? 11 : 10,
-      bold: i === 0,
-      merge: `D${row}:H${row}`,
-    });
-    merges.push(`D${row}:H${row}`);
-    rowHeights[row] = i === 0 ? 32 : 18;
-  }
+  // Row 1: 훈련기간 | period_label (C~N)
+  const r1 = r + 1;
+  setCell(cells, r1, 1, { v: '훈련기간', bold: true, align: 'center', fill: 'F3F4F6', fontSize: 10, merge: `A${r1}:B${r1}` });
+  merges.push(`A${r1}:B${r1}`);
+  setCell(cells, r1, 3, { v: pack.period_label, align: 'center', fontSize: 10, merge: `C${r1}:N${r1}` });
+  merges.push(`C${r1}:N${r1}`);
+  rowHeights[r1] = 20;
 
-  // 우측 제목 배너 (훈련시간~강사 행)
-  const titleRow = r + 3;
-  setCell(cells, titleRow, 12, {
-    v: pack.sheet_title,
+  // Row 2: 훈련회차 | session_number (C~F) | 훈련시간 (G~H) | time_range_label (I~N) | institution_name (O~endCol, 3행 병합)
+  const r2 = r + 2;
+  setCell(cells, r2, 1, { v: '훈련회차', bold: true, align: 'center', fill: 'F3F4F6', fontSize: 10, merge: `A${r2}:B${r2}` });
+  merges.push(`A${r2}:B${r2}`);
+  setCell(cells, r2, 3, {
+    v: pack.session_number != null ? String(pack.session_number) : '',
+    align: 'center',
+    fontSize: 10,
+    merge: `C${r2}:F${r2}`,
+  });
+  merges.push(`C${r2}:F${r2}`);
+  setCell(cells, r2, 7, { v: '훈련시간', bold: true, align: 'center', fill: 'F3F4F6', fontSize: 10, merge: `G${r2}:H${r2}` });
+  merges.push(`G${r2}:H${r2}`);
+  setCell(cells, r2, 9, { v: pack.time_range_label, align: 'center', fontSize: 10, merge: `I${r2}:N${r2}` });
+  merges.push(`I${r2}:N${r2}`);
+  setCell(cells, r2, 15, {
+    v: pack.institution_name || '',
+    bold: true,
+    align: 'center',
+    valign: 'center',
+    wrap: true,
+    fontSize: 12,
+    fill: 'E0F2FE',
+    merge: `O${r2}:${endColLetter}${r + 4}`,
+  });
+  merges.push(`O${r2}:${endColLetter}${r + 4}`);
+  rowHeights[r2] = 20;
+
+  // Row 3: 훈련강사 | instructor_label (C~N)
+  const r3 = r + 3;
+  setCell(cells, r3, 1, { v: '훈련강사', bold: true, align: 'center', fill: 'F3F4F6', fontSize: 10, merge: `A${r3}:B${r3}` });
+  merges.push(`A${r3}:B${r3}`);
+  setCell(cells, r3, 3, { v: pack.instructor_label, align: 'center', fontSize: 10, merge: `C${r3}:N${r3}` });
+  merges.push(`C${r3}:N${r3}`);
+  rowHeights[r3] = 20;
+
+  // Row 4: 훈련장소 | location_label (C~N)
+  const r4 = r + 4;
+  setCell(cells, r4, 1, { v: '훈련장소', bold: true, align: 'center', fill: 'F3F4F6', fontSize: 10, merge: `A${r4}:B${r4}` });
+  merges.push(`A${r4}:B${r4}`);
+  setCell(cells, r4, 3, { v: pack.location_label, align: 'center', fontSize: 10, merge: `C${r4}:N${r4}` });
+  merges.push(`C${r4}:N${r4}`);
+  rowHeights[r4] = 20;
+
+  r += 5;
+  rowHeights[r] = 8; // 여백
+  r += 1;
+
+  // 2. 기관 배너 (.hrd-banner)
+  setCell(cells, r, 1, {
+    v: pack.banner_title,
     align: 'center',
     valign: 'center',
     bold: true,
-    wrap: true,
-    fontSize: 12,
-    fill: 'DDEBF7',
-    merge: `L${titleRow}:U${titleRow + 1}`,
+    fontSize: 11,
+    fill: 'FFF7ED',
+    merge: `A${r}:${endColLetter}${r}`,
   });
-  merges.push(`L${titleRow}:U${titleRow + 1}`);
-
-  r += 6;
-  // 빈 행
+  merges.push(`A${r}:${endColLetter}${r}`);
+  rowHeights[r] = 24;
+  r += 1;
+  rowHeights[r] = 8; // 여백
   r += 1;
 
-  // 기관 배너
-  setCell(cells, r, 2, {
-    v: pack.banner_title,
-    align: 'center',
-    bold: true,
-    fontSize: 11,
-    fill: 'FFF2CC',
-    merge: `B${r}:${endColLetter}${r}`,
-  });
-  merges.push(`B${r}:${endColLetter}${r}`);
-  rowHeights[r] = 22;
-  r += 2;
-
-  // 헤더: 교시 | 시간 | 일차들
-  setCell(cells, r, 2, { v: '교시', bold: true, align: 'center', fill: 'F2F2F2', fontSize: 9 });
-  setCell(cells, r, 3, { v: '시간', bold: true, align: 'center', fill: 'F2F2F2', fontSize: 9 });
+  // 3. 시간표 헤더: 교시 | 시간 | 일차들
+  setCell(cells, r, 1, { v: '교시', bold: true, align: 'center', fill: 'F3F4F6', fontSize: 9 });
+  setCell(cells, r, 2, { v: '시간', bold: true, align: 'center', fill: 'F3F4F6', fontSize: 9 });
   for (let i = 0; i < days.length; i++) {
-    const c = 4 + i * 2;
+    const c = 3 + i * 2;
     setCell(cells, r, c, {
       v: String(days[i].day_no),
       bold: true,
       align: 'center',
-      fill: 'F2F2F2',
+      fill: 'F3F4F6',
       fontSize: 9,
       merge: `${colLetter(c)}${r}:${colLetter(c + 1)}${r}`,
     });
@@ -114,12 +150,13 @@ function writePageBlock(
   r += 1;
 
   // 날짜 행
-  setCell(cells, r, 2, { v: '', fill: 'F2F2F2' });
-  setCell(cells, r, 3, { v: '', fill: 'F2F2F2' });
+  setCell(cells, r, 1, { v: '', fill: 'F3F4F6' });
+  setCell(cells, r, 2, { v: '', fill: 'F3F4F6' });
   for (let i = 0; i < days.length; i++) {
-    const c = 4 + i * 2;
+    const c = 3 + i * 2;
     setCell(cells, r, c, {
       v: days[i].date_display,
+      bold: true,
       align: 'center',
       fill: 'E2EFDA',
       fontSize: 8,
@@ -130,34 +167,34 @@ function writePageBlock(
   rowHeights[r] = 16;
   r += 1;
 
-  // 교시 블록
+  // 4. 교시 블록 (교시당 3행: 과목/능력단위/장소 + 강사 세로병합)
   for (const period of pack.periods) {
     const blockStart = r;
     const blockEnd = r + 2;
     const timeLabel = `${period.start_time} ~ ${period.end_time}`;
 
-    setCell(cells, blockStart, 2, {
+    setCell(cells, blockStart, 1, {
       v: period.period_number,
       align: 'center',
       valign: 'center',
       bold: true,
       fontSize: 10,
-      merge: `B${blockStart}:B${blockEnd}`,
+      merge: `A${blockStart}:A${blockEnd}`,
     });
-    merges.push(`B${blockStart}:B${blockEnd}`);
+    merges.push(`A${blockStart}:A${blockEnd}`);
 
-    setCell(cells, blockStart, 3, {
+    setCell(cells, blockStart, 2, {
       v: timeLabel,
       align: 'center',
       valign: 'center',
       wrap: true,
       fontSize: 8,
-      merge: `C${blockStart}:C${blockEnd}`,
+      merge: `B${blockStart}:B${blockEnd}`,
     });
-    merges.push(`C${blockStart}:C${blockEnd}`);
+    merges.push(`B${blockStart}:B${blockEnd}`);
 
     for (let i = 0; i < days.length; i++) {
-      const cSubj = 4 + i * 2;
+      const cSubj = 3 + i * 2;
       const cInst = cSubj + 1;
       const slot = days[i].slots[period.period_number] || null;
       const subj = slot?.subject_name || '';
@@ -169,31 +206,35 @@ function writePageBlock(
         v: subj,
         align: 'center',
         valign: 'center',
+        bold: true,
         wrap: true,
-        fontSize: 8,
-        fill: subj ? 'FFF2CC' : undefined,
+        fontSize: 8.5,
+        fill: subj ? 'FFF7ED' : undefined,
       });
       setCell(cells, blockStart + 1, cSubj, {
         v: unit,
         align: 'center',
         valign: 'center',
         wrap: true,
-        fontSize: 7,
+        fontSize: 8,
+        color: '334155',
       });
       setCell(cells, blockStart + 2, cSubj, {
         v: loc,
         align: 'center',
         valign: 'center',
-        fontSize: 7,
-        fill: 'DEEBF7',
+        wrap: true,
+        fontSize: 8,
+        fill: 'E0F2FE',
       });
 
       setCell(cells, blockStart, cInst, {
         v: inst,
         align: 'center',
         valign: 'center',
+        bold: true,
         wrap: true,
-        fontSize: 8,
+        fontSize: 8.5,
         merge: `${colLetter(cInst)}${blockStart}:${colLetter(cInst)}${blockEnd}`,
       });
       merges.push(`${colLetter(cInst)}${blockStart}:${colLetter(cInst)}${blockEnd}`);
@@ -220,21 +261,23 @@ export function buildD03Workbook(pack: HrdTimetablePack, sheetName = '시간표(
   }
 
   const colWidths: Record<number, number> = {
-    1: 2,
-    2: 4,
-    3: 11,
+    1: 4.5, // 교시
+    2: 11.5, // 시간
   };
   for (let i = 0; i < 9; i++) {
-    colWidths[4 + i * 2] = 14;
-    colWidths[5 + i * 2] = 4;
+    colWidths[3 + i * 2] = 13.5; // 과목/단위/장소
+    colWidths[4 + i * 2] = 4.5; // 강사
   }
 
   const sheet: XlsxSheetSpec = {
-    name: sheetName.slice(0, 31),
+    name: sheetName,
     cells,
     merges,
     rowHeights,
     colWidths,
+    landscape: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
   };
   return buildXlsx([sheet]);
 }

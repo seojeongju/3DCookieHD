@@ -924,15 +924,42 @@ const sharedPrintHelpers = `
                 '<h2>평가일정</h2>' +
                 '<p>○ 훈련생은 훈련 중 교육과정의 훈련일정 중 평가일정에 맞추어 평가에 참여하여야 합니다.</p>' +
                 '<h3>1. 사전평가 및 설문조사</h3>' +
-                '<table class="ot-table"><thead><tr><th>평가방법</th><th style="width:120px">평가일</th></tr></thead><tbody>' +
-                '<tr><td class="l">객관식시험(사전평가)</td><td class="c">' + esc(formatDotDate(session.training_start_date)) + '</td></tr>' +
-                '<tr><td class="l">기초설문조사(자가진단)</td><td class="c">' + esc(formatDotDate(session.training_start_date)) + '</td></tr>' +
-                '<tr><td class="l">교과목 만족도조사</td><td class="c">과정 일정에 따라 실시</td></tr>' +
-                '</tbody></table>' +
+                (function() {
+                    var evSched = session.evaluation_schedule || {};
+                    var preDate = formatDotDate(evSched.pre_assessment_date || session.training_start_date);
+                    var basicDate = formatDotDate(evSched.basic_survey_date || session.training_start_date);
+                    var surveys = Array.isArray(evSched.satisfaction_surveys) ? evSched.satisfaction_surveys : [];
+                    var surveyRows = surveys.length
+                        ? surveys.map(function(sv) {
+                            return '<tr><td class="c">' + esc(sv.label || '교과목 만족도조사') + '</td><td class="c">' +
+                                esc(sv.eval_date ? formatDotDate(sv.eval_date) : '과정 일정에 따라 실시') + '</td></tr>';
+                        }).join('')
+                        : '<tr><td class="c">교과목 만족도조사</td><td class="c">과정 일정에 따라 실시</td></tr>';
+                    return '<table class="ot-table"><thead><tr><th>평가방법</th><th style="width:140px">평가일</th></tr></thead><tbody>' +
+                        '<tr><td class="c">객관식시험(사전평가)</td><td class="c">' + esc(preDate) + '</td></tr>' +
+                        '<tr><td class="c">기초설문조사(자가진단)</td><td class="c">' + esc(basicDate) + '</td></tr>' +
+                        surveyRows +
+                        '</tbody></table>';
+                })() +
                 '<h3>2. 정기평가</h3>' +
-                '<table class="ot-table"><thead><tr><th>교과목</th><th>능력단위/단원</th><th style="width:100px">평가방법</th><th style="width:100px">평가일</th></tr></thead><tbody>' +
-                '<tr><td class="l" colspan="4" style="text-align:left;padding:8px">※ 교과목·능력단위·평가일은 회차 시간표·평가계획에 따라 운영하며, OT 당일 별도 안내합니다.</td></tr>' +
-                '</tbody></table>' +
+                (function() {
+                    var evSched = session.evaluation_schedule || {};
+                    var regs = Array.isArray(evSched.regular_evaluations) ? evSched.regular_evaluations : [];
+                    var regRows = regs.length
+                        ? regs.map(function(ev) {
+                            return '<tr>' +
+                                '<td class="c">' + esc(ev.subject_name || '') + '</td>' +
+                                '<td class="c" style="white-space:pre-line">' + esc(ev.ability_unit_label || '') + '</td>' +
+                                '<td class="c">' + esc(ev.ncs_type || '') + '</td>' +
+                                '<td class="c" style="white-space:pre-line">' + esc(ev.method || '') + '</td>' +
+                                '<td class="c">' + esc(ev.eval_date ? formatDotDate(ev.eval_date) : '-') + '</td>' +
+                            '</tr>';
+                        }).join('')
+                        : '<tr><td class="l" colspan="5" style="text-align:left;padding:8px">※ 교과목·능력단위·평가일은 회차 시간표·평가계획에 따라 운영하며, OT 당일 별도 안내합니다.</td></tr>';
+                    return '<table class="ot-table"><thead><tr><th>교과목</th><th>능력단위/단원</th><th style="width:52px">NCS</th><th style="width:96px">평가방법</th><th style="width:92px">평가일</th></tr></thead><tbody>' +
+                        regRows +
+                        '</tbody></table>';
+                })() +
                 orientationConfirmCheck() +
 
                 '<h2>환불규정</h2>' +

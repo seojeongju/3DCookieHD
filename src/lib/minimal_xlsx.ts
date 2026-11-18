@@ -11,6 +11,10 @@ export type XlsxCell = {
   merge?: string;
   /** 배경색 hex (알파 없이) 예: FFC000 */
   fill?: string;
+  /** 글자색 hex (알파 없이) 예: 1E293B */
+  color?: string;
+  /** 테두리 표시 여부 (기본 true) */
+  border?: boolean;
   bold?: boolean;
   wrap?: boolean;
   align?: 'left' | 'center' | 'right';
@@ -26,14 +30,63 @@ export type XlsxSheetSpec = {
   colWidths?: Record<number, number>;
   rowHeights?: Record<number, number>;
   merges?: string[];
+  /** 인쇄 방향 (true = 가로, 기본 false = 세로) */
+  landscape?: boolean;
+  /** 페이지 맞춤 너비 (예: 1) */
+  fitToWidth?: number;
+  /** 페이지 맞춤 높이 (예: 0 = 자동, 1 = 1페이지) */
+  fitToHeight?: number;
 };
 
 function xmlEscape(s: string): string {
   return String(s)
+    // XML 1.0에서 허용되지 않는 제어문자 제거 (\t, \n, \r 제외)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/** Excel 시트명 금지 문자(\ / ? * [ ] :) 제거 및 31자 제한 */
+function sanitizeSheetName(name: string, usedNames: Set<string>): string {
+  let base = String(name || 'Sheet')
+    .replace(/[\\/*?:\[\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^'+|'+$/g, '');
+  if (!base) base = 'Sheet';
+  let candidate = base.slice(0, 31).replace(/'+$/g, '') || 'Sheet';
+  let idx = 2;
+  while (usedNames.has(candidate.toLowerCase())) {
+    const suffix = ` (${idx++})`;
+    candidate = base.slice(0, Math.max(1, 31 - suffix.length)) + suffix;
+  }
+  usedNames.add(candidate.toLowerCase());
+  return candidate;
+}
+
+function colToNum(letters: string): number {
+  let n = 0;
+  for (let i = 0; i < letters.length; i++) {
+    n = n * 26 + (letters.charCodeAt(i) - 64);
+  }
+  return n;
+}
+
+function parseRange(ref: string): { r1: number; c1: number; r2: number; c2: number } | null {
+  const m = String(ref).trim().match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+  if (!m) return null;
+  const c1 = colToNum(m[1].toUpperCase());
+  const r1 = parseInt(m[2], 10);
+  const c2 = colToNum(m[3].toUpperCase());
+  const r2 = parseInt(m[4], 10);
+  return {
+    r1: Math.min(r1, r2),
+    c1: Math.min(c1, c2),
+    r2: Math.max(r1, r2),
+    c2: Math.max(c1, c2),
+  };
 }
 
 function colLetter(n: number): string {
@@ -154,6 +207,8 @@ type StyleKey = string;
 function styleKey(c: XlsxCell): StyleKey {
   return [
     c.fill || '',
+    c.color || '',
+    c.border === false ? '0' : '1',
     c.bold ? '1' : '0',
     c.wrap ? '1' : '0',
     c.align || 'center',
@@ -164,16 +219,26 @@ function styleKey(c: XlsxCell): StyleKey {
 }
 
 function buildStylesXml(styleList: XlsxCell[]): { xml: string; indexOf: (c: XlsxCell) => number } {
-  const fills: string[] = ['FFFFFFFF', 'FFF2F2F2']; // 0 none-ish, 1 gray
+  // OOXML 규약: fillId 0 = none, fillId 1 = gray125 필수 예약
+  const fills: string[] = ['none', 'gray125'];
   const fillIndex = new Map<string, number>();
   fillIndex.set('', 0);
-  fillIndex.set('F2F2F2', 1);
 
   const xfMap = new Map<StyleKey, number>();
-  const xfs: { fillId: number; bold: boolean; wrap: boolean; align: string; valign: string; fontSize: number; numFmt: string }[] = [];
+  const xfs: {
+    fillId: number;
+    color: string;
+    border: boolean;
+    bold: boolean;
+    wrap: boolean;
+    align: string;
+    valign: string;
+    fontSize: number;
+    numFmt: string;
+  }[] = [];
 
-  // default xf
-  xfs.push({ fillId: 0, bold: false, wrap: false, align: 'center', valign: 'center', fontSize: 11, numFmt: '' });
+  // default xf (0)
+  xfs.push({ fillId: 0, color: '', border: true, bold: false, wrap: false, align: 'center', valign: 'center', fontSize: 11, numFmt: '' });
   xfMap.set(styleKey({}), 0);
 
   for (const c of styleList) {
@@ -191,6 +256,8 @@ function buildStylesXml(styleList: XlsxCell[]): { xml: string; indexOf: (c: Xlsx
     xfMap.set(sk, xfs.length);
     xfs.push({
       fillId,
+      color: c.color ? c.color.replace(/^#/, '').toUpperCase() : '',
+      border: c.border !== false,
       bold: !!c.bold,
       wrap: !!c.wrap,
       align: c.align || 'center',
@@ -200,22 +267,25 @@ function buildStylesXml(styleList: XlsxCell[]): { xml: string; indexOf: (c: Xlsx
     });
   }
 
-  // fonts: 0 default, then one per xf that needs custom (simplify: one font per xf)
+  // fonts: 0 default, then one per xf
   const fontsXml: string[] = [];
   fontsXml.push(`<font><sz val="11"/><color theme="1"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>`);
   for (let i = 1; i < xfs.length; i++) {
     const f = xfs[i];
+    const colorXml = f.color
+      ? `<color rgb="${f.color.length === 6 ? `FF${f.color}` : f.color}"/>`
+      : `<color theme="1"/>`;
     fontsXml.push(
-      `<font>${f.bold ? '<b/>' : ''}<sz val="${f.fontSize}"/><color theme="1"/><name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>`
+      `<font>${f.bold ? '<b/>' : ''}<sz val="${f.fontSize}"/>${colorXml}<name val="맑은 고딕"/><family val="3"/><charset val="129"/></font>`
     );
   }
 
   const fillsXml = fills
-    .map((rgb, i) =>
-      i === 0
-        ? `<fill><patternFill patternType="none"/></fill>`
-        : `<fill><patternFill patternType="solid"><fgColor rgb="${rgb}"/><bgColor indexed="64"/></patternFill></fill>`
-    )
+    .map((val, i) => {
+      if (i === 0) return `<fill><patternFill patternType="none"/></fill>`;
+      if (i === 1) return `<fill><patternFill patternType="gray125"/></fill>`;
+      return `<fill><patternFill patternType="solid"><fgColor rgb="${val}"/><bgColor indexed="64"/></patternFill></fill>`;
+    })
     .join('');
 
   // numFmts for dates if needed
@@ -233,7 +303,8 @@ function buildStylesXml(styleList: XlsxCell[]): { xml: string; indexOf: (c: Xlsx
     .map((xf, i) => {
       const fontId = i === 0 ? 0 : i;
       const numFmtId = xf.numFmt ? numFmtIds.get(xf.numFmt) || 0 : 0;
-      return `<xf numFmtId="${numFmtId}" fontId="${fontId}" fillId="${xf.fillId}" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="${xf.align}" vertical="${xf.valign}"${xf.wrap ? ' wrapText="1"' : ''}/></xf>`;
+      const borderId = xf.border ? 1 : 0;
+      return `<xf numFmtId="${numFmtId}" fontId="${fontId}" fillId="${xf.fillId}" borderId="${borderId}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="${xf.align}" vertical="${xf.valign}"${xf.wrap ? ' wrapText="1"' : ''}/></xf>`;
     })
     .join('');
 
@@ -245,15 +316,16 @@ function buildStylesXml(styleList: XlsxCell[]): { xml: string; indexOf: (c: Xlsx
   <borders count="2">
     <border><left/><right/><top/><bottom/><diagonal/></border>
     <border>
-      <left style="thin"><color rgb="FF000000"/></left>
-      <right style="thin"><color rgb="FF000000"/></right>
-      <top style="thin"><color rgb="FF000000"/></top>
-      <bottom style="thin"><color rgb="FF000000"/></bottom>
+      <left style="thin"><color rgb="FF222222"/></left>
+      <right style="thin"><color rgb="FF222222"/></right>
+      <top style="thin"><color rgb="FF222222"/></top>
+      <bottom style="thin"><color rgb="FF222222"/></bottom>
       <diagonal/>
     </border>
   </borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
   <cellXfs count="${xfs.length}">${cellXfs}</cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
 
   return {
@@ -351,23 +423,56 @@ function sheetToXml(sheet: XlsxSheetSpec, styleIndexOf: (c: XlsxCell) => number)
 </worksheet>`;
 }
 
-function sharedStringsXml(items: string[]): string {
+function sharedStringsXml(items: string[], totalCount: number): string {
   const body = items
     .map((s) => {
       const escaped = xmlEscape(s);
-      // preserve newlines
-      if (s.includes('\n') || s.includes('\r')) {
+      // preserve leading/trailing spaces or newlines
+      if (/^\s|\s$|[\n\r\t]/.test(s)) {
         return `<si><t xml:space="preserve">${escaped}</t></si>`;
       }
       return `<si><t>${escaped}</t></si>`;
     })
     .join('');
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${items.length}" uniqueCount="${items.length}">${body}</sst>`;
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${totalCount}" uniqueCount="${items.length}">${body}</sst>`;
 }
 
 export function buildXlsx(sheets: XlsxSheetSpec[]): ArrayBuffer {
   const enc = new TextEncoder();
+
+  // 병합 범위 내 나머지 셀에 시작 셀의 테두리/배경 스타일 자동 복제 (Excel 병합 테두리 누락 방지)
+  for (const sh of sheets) {
+    const merges = [...(sh.merges || [])];
+    for (const row of Object.values(sh.cells)) {
+      for (const cell of Object.values(row)) {
+        if (cell?.merge) merges.push(cell.merge);
+      }
+    }
+    for (const m of new Set(merges)) {
+      const range = parseRange(m);
+      if (!range) continue;
+      const master = sh.cells[range.r1]?.[range.c1];
+      if (!master) continue;
+      for (let r = range.r1; r <= range.r2; r++) {
+        if (!sh.cells[r]) sh.cells[r] = {};
+        for (let c = range.c1; c <= range.c2; c++) {
+          if (r === range.r1 && c === range.c1) continue;
+          if (!sh.cells[r][c]) {
+            sh.cells[r][c] = {
+              v: null,
+              fill: master.fill,
+              border: master.border,
+              align: master.align,
+              valign: master.valign,
+              fontSize: master.fontSize,
+            };
+          }
+        }
+      }
+    }
+  }
+
   const allCells: XlsxCell[] = [];
   for (const sh of sheets) {
     for (const row of Object.values(sh.cells)) {
@@ -379,7 +484,9 @@ export function buildXlsx(sheets: XlsxSheetSpec[]): ArrayBuffer {
   const sheetXmls: string[] = [];
   const allShared: string[] = [];
   const sharedIndex = new Map<string, number>();
+  let totalSharedCount = 0;
   const takeShared = (s: string) => {
+    totalSharedCount += 1;
     if (sharedIndex.has(s)) return sharedIndex.get(s)!;
     const i = allShared.length;
     allShared.push(s);
@@ -387,22 +494,12 @@ export function buildXlsx(sheets: XlsxSheetSpec[]): ArrayBuffer {
     return i;
   };
 
-  // Rebuild sheet XML with global shared strings
   for (const sheet of sheets) {
-    const rows = Object.keys(sheet.cells)
-      .map(Number)
-      .sort((a, b) => a - b);
-    for (const r of rows) {
-      for (const cell of Object.values(sheet.cells[r] || {})) {
-        if (typeof cell.v === 'string') takeShared(cell.v);
-      }
+    const rowSet = new Set<number>(Object.keys(sheet.cells).map(Number));
+    if (sheet.rowHeights) {
+      for (const rk of Object.keys(sheet.rowHeights)) rowSet.add(Number(rk));
     }
-  }
-
-  for (const sheet of sheets) {
-    const rows = Object.keys(sheet.cells)
-      .map(Number)
-      .sort((a, b) => a - b);
+    const rows = [...rowSet].sort((a, b) => a - b);
     const rowXml: string[] = [];
     for (const r of rows) {
       const cols = sheet.cells[r] || {};
@@ -416,7 +513,9 @@ export function buildXlsx(sheets: XlsxSheetSpec[]): ArrayBuffer {
         const ref = `${colLetter(c)}${r}`;
         const s = styles.indexOf(cell);
         if (cell.v == null || cell.v === '') {
-          if (cell.fill || cell.wrap || cell.bold) cellsXml.push(`<c r="${ref}" s="${s}"/>`);
+          if (cell.fill || cell.wrap || cell.bold || cell.border !== false) {
+            cellsXml.push(`<c r="${ref}" s="${s}"/>`);
+          }
           continue;
         }
         if (typeof cell.v === 'number') {
@@ -428,10 +527,12 @@ export function buildXlsx(sheets: XlsxSheetSpec[]): ArrayBuffer {
       }
       const ht = sheet.rowHeights?.[r];
       const htAttr = ht != null ? ` ht="${ht}" customHeight="1"` : '';
-      rowXml.push(`<row r="${r}"${htAttr}>${cellsXml.join('')}</row>`);
+      if (cellsXml.length || htAttr) {
+        rowXml.push(`<row r="${r}"${htAttr}>${cellsXml.join('')}</row>`);
+      }
     }
     const merges = [...(sheet.merges || [])];
-    for (const r of rows) {
+    for (const r of Object.keys(sheet.cells).map(Number)) {
       for (const cell of Object.values(sheet.cells[r] || {})) {
         if (cell.merge) merges.push(cell.merge);
       }
@@ -442,16 +543,29 @@ export function buildXlsx(sheets: XlsxSheetSpec[]): ArrayBuffer {
       : '';
     const colsXmlParts: string[] = [];
     if (sheet.colWidths) {
-      for (const [k, w] of Object.entries(sheet.colWidths)) {
-        colsXmlParts.push(`<col min="${k}" max="${k}" width="${w}" customWidth="1"/>`);
+      const colKeys = Object.keys(sheet.colWidths).map(Number).sort((a, b) => a - b);
+      for (const k of colKeys) {
+        colsXmlParts.push(`<col min="${k}" max="${k}" width="${sheet.colWidths[k]}" customWidth="1"/>`);
       }
     }
     const colsXml = colsXmlParts.length ? `<cols>${colsXmlParts.join('')}</cols>` : '';
+
+    const useFit = sheet.fitToWidth != null || sheet.fitToHeight != null;
+    const sheetPrXml = useFit ? `<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>` : '';
+    const pageMarginsXml = `<pageMargins left="0.35" right="0.35" top="0.4" bottom="0.4" header="0.2" footer="0.2"/>`;
+    const orientation = sheet.landscape ? 'landscape' : 'portrait';
+    const fitW = sheet.fitToWidth != null ? ` fitToWidth="${sheet.fitToWidth}"` : '';
+    const fitH = sheet.fitToHeight != null ? ` fitToHeight="${sheet.fitToHeight}"` : '';
+    const pageSetupXml = `<pageSetup paperSize="9" orientation="${orientation}"${fitW}${fitH}/>`;
+
     sheetXmls.push(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  ${sheetPrXml}
   ${colsXml}
   <sheetData>${rowXml.join('')}</sheetData>
   ${mergeXml}
+  ${pageMarginsXml}
+  ${pageSetupXml}
 </worksheet>`);
   }
 
@@ -487,13 +601,14 @@ export function buildXlsx(sheets: XlsxSheetSpec[]): ArrayBuffer {
   <Relationship Id="rId${sheets.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
 </Relationships>`;
 
+  const usedSheetNames = new Set<string>();
   const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
     ${sheets
       .map(
         (sh, i) =>
-          `<sheet name="${xmlEscape(sh.name.slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`
+          `<sheet name="${xmlEscape(sanitizeSheetName(sh.name, usedSheetNames))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`
       )
       .join('')}
   </sheets>
@@ -505,7 +620,7 @@ export function buildXlsx(sheets: XlsxSheetSpec[]): ArrayBuffer {
     { name: 'xl/workbook.xml', data: enc.encode(workbook) },
     { name: 'xl/_rels/workbook.xml.rels', data: enc.encode(wbRels) },
     { name: 'xl/styles.xml', data: enc.encode(styles.xml) },
-    { name: 'xl/sharedStrings.xml', data: enc.encode(sharedStringsXml(allShared)) },
+    { name: 'xl/sharedStrings.xml', data: enc.encode(sharedStringsXml(allShared, totalSharedCount)) },
   ];
   sheetXmls.forEach((xml, i) => {
     files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: enc.encode(xml) });
