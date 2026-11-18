@@ -960,7 +960,7 @@ const sharedPrintHelpers = `
                         regRows +
                         '</tbody></table>';
                 })() +
-                orientationConfirmCheck() +
+                (collect ? orientationConfirmCheck() : '') +
 
                 '<h2>환불규정</h2>' +
                 '<p>○ 수업개시전: 교육청 교습비 반환기준 [제18조 제2항 제3호의 반환사유]에 의거하여 전액 취소 후 결제</p>' +
