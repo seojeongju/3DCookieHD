@@ -875,7 +875,6 @@ const sharedPrintHelpers = `
                 '<p>○ 복수 훈련과정을 동시에 수강하는 경우 훈련과정별로 입실과 퇴실을 각각 체크해야 출석으로 인정됩니다.</p>' +
                 '<p>○ 교육생의 카드분실/파손, 휴대폰의 분실 및 파손 등의 사유 또는 출결관리시스템의 고장 등으로 출석체크를 할 수 없는 경우 담당자에게 문의하여 직권입력요청대장에 사유 및 시간을 기재 후 입/퇴실 시 본인 이름을 정자로 서명하셔야 출석으로 인정됩니다.</p>' +
                 '<p>○ 외출을 할 때에도 담당자에게 문의하여 직권입력요청대장에 사유 및 시간을 기재 후 본인 이름을 정자로 서명하셔야 합니다.</p>' +
-                (collect ? orientationConfirmSign(session) : '') +
 
                 '<h2>훈련장려금</h2>' +
                 '<h3>기 준</h3>' +
@@ -921,7 +920,6 @@ const sharedPrintHelpers = `
                 '<h2>제증명 발급</h2>' +
                 '<p>○ 소정훈련일수의 100분의 80이상을 출석한 훈련생에게 수료증이 발급됩니다.</p>' +
                 '<p>○ 실업급여를 받고 계신 교육생은 본원에서 발급하는 교육수강증명서로 구직활동 등 노력을 대신 할 수 있습니다.</p>' +
-                (collect ? orientationConfirmSign(session) : '') +
 
                 '<h2>평가일정</h2>' +
                 '<p>○ 훈련생은 훈련 중 교육과정의 훈련일정 중 평가일정에 맞추어 평가에 참여하여야 합니다.</p>' +
@@ -954,7 +952,6 @@ const sharedPrintHelpers = `
                 '<tr><td class="l">총 교습시간의 1/2 경과 후</td><td class="l">반환하지 않음</td></tr>' +
                 '<tr><td class="l" colspan="2">교습기간이 1개월을 초과하는 경우: 교습 시작 전 전액 / 시작 후는 해당 월분(1개월 이내 기준) + 나머지 월분 전액</td></tr>' +
                 '</tbody></table>' +
-                (collect ? orientationConfirmSign(session) : '') +
 
                 '<h2>문의사항</h2>' +
                 '<p>○ 교육훈련과 관련하여 기타 문의사항이 있으신 분은 본원 교육행정실로 연락주시기 바랍니다.</p>' +
@@ -974,6 +971,10 @@ const sharedPrintHelpers = `
                 '<p>○ 소화기를 불이 난 곳으로 옮긴 후 손잡이 부분의 봉인 줄을 제거하고 안전핀을 뽑습니다.</p>' +
                 '<p>○ 바람을 등지고 서서 노즐을 빼서 잡고 불쪽으로 향하게 합니다.</p>' +
                 '<p>○ 가까이 접근하여 손잡이를 힘껏 움켜쥐고, 빗자루로 쓸 듯이 분말(소화약제)을 골고루 쏩니다.</p>' +
+                (collect ? '<div style="margin:8px 0 10px;text-align:center;"><img src="/static/fire-extinguisher-guide.png" alt="소화기 사용법 안내" style="max-width:100%;height:auto;display:inline-block;border:1px solid #e2e8f0;border-radius:4px;padding:4px;background:#fff;" /></div>' +
+                '<p><strong>대피도</strong></p>' +
+                '<p style="text-align:center;font-weight:bold;margin:4px 0 6px;">- 제1강의실 대피도 -</p>' +
+                '<div style="margin:4px 0 12px;text-align:center;"><img src="/static/evacuation-map-room1.jpg" alt="제1강의실 대피도" style="max-width:92%;height:auto;display:inline-block;border:1px solid #e2e8f0;border-radius:4px;padding:4px;background:#fff;" /></div>' : '') +
                 '<h3>긴급상황 신고센터</h3>' +
                 '<table class="ot-table"><thead><tr><th style="width:120px">기관</th><th style="width:110px">연락처</th><th>내용</th></tr></thead><tbody>' +
                 '<tr><td class="c">응급정보센터</td><td class="c">1339(국번없이)</td><td class="l">질병증상 및 응급처치 상담, 구급차 연결, 병원응급실 안내</td></tr>' +
