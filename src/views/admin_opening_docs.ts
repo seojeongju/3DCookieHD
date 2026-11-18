@@ -971,10 +971,10 @@ const sharedPrintHelpers = `
                 '<p>○ 소화기를 불이 난 곳으로 옮긴 후 손잡이 부분의 봉인 줄을 제거하고 안전핀을 뽑습니다.</p>' +
                 '<p>○ 바람을 등지고 서서 노즐을 빼서 잡고 불쪽으로 향하게 합니다.</p>' +
                 '<p>○ 가까이 접근하여 손잡이를 힘껏 움켜쥐고, 빗자루로 쓸 듯이 분말(소화약제)을 골고루 쏩니다.</p>' +
-                (collect ? '<div style="margin:8px 0 10px;text-align:center;"><img src="/static/fire-extinguisher-guide.png" alt="소화기 사용법 안내" style="max-width:100%;height:auto;display:inline-block;border:1px solid #e2e8f0;border-radius:4px;padding:4px;background:#fff;" /></div>' +
+                '<div style="margin:8px 0 10px;text-align:center;"><img src="/static/fire-extinguisher-guide.png" alt="소화기 사용법 안내" style="max-width:100%;height:auto;display:inline-block;border:1px solid #e2e8f0;border-radius:4px;padding:4px;background:#fff;" /></div>' +
                 '<p><strong>대피도</strong></p>' +
                 '<p style="text-align:center;font-weight:bold;margin:4px 0 6px;">- 제1강의실 대피도 -</p>' +
-                '<div style="margin:4px 0 12px;text-align:center;"><img src="/static/evacuation-map-room1.jpg" alt="제1강의실 대피도" style="max-width:92%;height:auto;display:inline-block;border:1px solid #e2e8f0;border-radius:4px;padding:4px;background:#fff;" /></div>' : '') +
+                '<div style="margin:4px 0 12px;text-align:center;"><img src="/static/evacuation-map-room1.jpg" alt="제1강의실 대피도" style="max-width:92%;height:auto;display:inline-block;border:1px solid #e2e8f0;border-radius:4px;padding:4px;background:#fff;" /></div>' +
                 '<h3>긴급상황 신고센터</h3>' +
                 '<table class="ot-table"><thead><tr><th style="width:120px">기관</th><th style="width:110px">연락처</th><th>내용</th></tr></thead><tbody>' +
                 '<tr><td class="c">응급정보센터</td><td class="c">1339(국번없이)</td><td class="l">질병증상 및 응급처치 상담, 구급차 연결, 병원응급실 안내</td></tr>' +
@@ -982,13 +982,7 @@ const sharedPrintHelpers = `
                 '<tr><td class="c">보건복지부</td><td class="c">-</td><td class="l">질환 대처방법 동영상 정보제공</td></tr>' +
                 '<tr><td class="c">국민안전처</td><td class="c">044-200-2114</td><td class="l">www.npss.go.kr · 폭염 대응·국민행동요령</td></tr>' +
                 '</tbody></table>' +
-                (collect
-                    ? orientationConfirmSign(session)
-                    : ('<div class="ot-confirm">' +
-                        '<p class="ask">상기 오리엔테이션 안내 내용을 확인하였습니다.</p>' +
-                        '<div class="ot-sign-line">성명:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +
-                        '&nbsp;&nbsp;서명:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>' +
-                    '</div>')) +
+                (collect ? orientationConfirmSign(session) : '') +
             '</div>';
             return html;
         }
