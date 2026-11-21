@@ -3,7 +3,7 @@ import type { Bindings, JWTPayload } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { attendanceKindSql } from '../utils/attendance_enrollment';
 import { getEffectiveExamActive, getExamScheduleStatus, getNowKstIso } from '../utils/examSchedule';
-import { syncEvaluationPlansForCourse } from './ncs';
+import { syncEvaluationPlansForCourse, resolveUnitToCurriculumSubjectMap } from './ncs';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 app.use('*', authMiddleware);
@@ -218,7 +218,7 @@ app.get('/:sessionId/ncs-plans', async (c) => {
     }
     try {
         const { results } = await c.env.DB.prepare(
-            `SELECT p.id, p.method, p.planned_date, p.target_score, p.course_id, p.evaluation_round, p.status,
+            `SELECT p.id, p.ncs_unit_id, p.method, p.planned_date, p.target_score, p.course_id, p.evaluation_round, p.status,
                     u.name as unit_name, u.code as unit_code,
                     (SELECT 1 FROM ncs_evidence ev WHERE ev.plan_id = p.id AND ev.student_id = ? LIMIT 1) as has_evidence
              FROM ncs_evaluation_plans p
@@ -226,7 +226,16 @@ app.get('/:sessionId/ncs-plans', async (c) => {
              WHERE p.course_id = ?
              ORDER BY COALESCE(p.evaluation_round, 1) ASC, p.planned_date DESC, p.id ASC`
         ).bind(userId, enrolled.lms_course_id).all();
-        return c.json({ success: true, data: results || [] });
+        const rows = (results || []) as any[];
+        const subjMap = await resolveUnitToCurriculumSubjectMap(c.env.DB, enrolled.lms_course_id, sessionId);
+        for (const r of rows) {
+            const subj = subjMap.get(Number(r.ncs_unit_id));
+            if (subj) {
+                r.subject_name = subj.subject_name;
+                r.curriculum_id = subj.curriculum_id;
+            }
+        }
+        return c.json({ success: true, data: rows });
     } catch {
         return c.json({ success: true, data: [] });
     }
@@ -274,10 +283,14 @@ app.get('/:sessionId/ncs-plans/:planId/exam', async (c) => {
 
     const round = Number(plan.evaluation_round) || 1;
     const unitCode = String(plan.unit_code || '');
-    const curriculumId = unitCode.startsWith('CURR-') ? parseInt(unitCode.slice(5), 10) : NaN;
+    const subjMap = await resolveUnitToCurriculumSubjectMap(db, enrolled.lms_course_id, sessionId);
+    const mappedSubj = subjMap.get(Number(plan.ncs_unit_id));
+    const curriculumId = mappedSubj?.curriculum_id ?? (unitCode.startsWith('CURR-') ? parseInt(unitCode.slice(5), 10) : NaN);
     const unitName = String(plan.unit_name || '');
+    const subjectName = mappedSubj?.subject_name || unitName;
     const matches = (cid: unknown, subj: unknown) =>
         (Number.isFinite(curriculumId) && cid != null && String(cid).trim() === String(curriculumId)) ||
+        ncsNamesRoughlyMatch(subj, subjectName) ||
         ncsNamesRoughlyMatch(subj, unitName);
 
     // 계획 문서는 LMS 과정 ID 또는 회차 ID로 저장될 수 있음
@@ -386,6 +399,7 @@ app.get('/:sessionId/ncs-plans/:planId/exam', async (c) => {
         data: {
             plan: {
                 id: plan.id,
+                subject_name: subjectName,
                 unit_name: unitName,
                 unit_code: unitCode.startsWith('CURR-') ? '' : unitCode,
                 method: plan.method || '',

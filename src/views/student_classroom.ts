@@ -813,8 +813,13 @@ export const studentClassroomHtml = (sessionId: string) => `
                 html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 본평가 (능력단위별)</h3><p class="text-xs text-slate-500 mb-3">시험지·평가내용을 확인한 뒤 답안·증빙 파일을 제출하세요.</p><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">';
                 plans.forEach(function(p) {
                     const done = !!p.has_evidence;
-                    const codeTag = p.unit_code && String(p.unit_code).indexOf('CURR-') !== 0 ? '<p class="text-[10px] font-black text-sky-600">[' + esc(p.unit_code) + ']</p>' : '<p class="text-[10px] font-black text-sky-600">교과목 평가</p>';
-                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col justify-between min-h-[150px]"><div>' + codeTag + '<h3 class="font-black mt-1">' + esc(p.unit_name) + '</h3><p class="text-xs text-slate-500 mt-2">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div><div class="mt-4 flex flex-wrap items-center gap-2">' +
+                    const hasRealCode = p.unit_code && String(p.unit_code).indexOf('CURR-') !== 0;
+                    const displayTitle = p.subject_name || p.unit_name || '';
+                    const unitSub = (p.subject_name && p.unit_name && p.subject_name !== p.unit_name)
+                        ? (hasRealCode ? '[' + esc(p.unit_code) + '] ' : '') + esc(p.unit_name)
+                        : (hasRealCode ? '[' + esc(p.unit_code) + ']' : '교과목 평가');
+                    const codeTag = '<p class="text-[10px] font-black text-sky-600">' + unitSub + '</p>';
+                    html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col justify-between min-h-[150px]"><div>' + codeTag + '<h3 class="font-black mt-1">' + esc(displayTitle) + '</h3><p class="text-xs text-slate-500 mt-2">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div><div class="mt-4 flex flex-wrap items-center gap-2">' +
                         '<button type="button" onclick="openNcsPlanExam(' + p.id + ')" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black"><i class="fas fa-file-lines mr-1"></i>시험지·평가내용 보기</button>' +
                         (done ? '<span class="inline-flex px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black"><i class="fas fa-check mr-1"></i>제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black">답안·증빙 제출</button>') +
                         '</div></div>';
@@ -1386,7 +1391,10 @@ export const studentClassroomHtml = (sessionId: string) => `
                 let html = '<button type="button" onclick="loadTab(&#39;ncs&#39;)" class="text-xs font-black text-sky-600 mb-4"><i class="fas fa-arrow-left mr-1"></i>목록</button>';
                 html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-6 mb-5">';
                 html += '<span class="text-[10px] font-black uppercase tracking-widest text-indigo-600">NCS 본평가 · ' + plan.evaluation_round + '차</span>';
-                html += '<h2 class="text-xl font-black mt-1">' + esc(plan.unit_name) + '</h2>';
+                html += '<h2 class="text-xl font-black mt-1">' + esc(plan.subject_name || plan.unit_name) + '</h2>';
+                if (plan.subject_name && plan.unit_name && plan.subject_name !== plan.unit_name) {
+                    html += '<p class="text-xs text-slate-400 font-bold mt-0.5">' + (plan.unit_code ? '[' + esc(plan.unit_code) + '] ' : '') + esc(plan.unit_name) + '</p>';
+                }
                 html += '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 text-xs">';
                 html += '<div class="rounded-xl bg-slate-50 p-3"><p class="text-[10px] text-slate-400 font-bold">평가방법</p><p class="font-black mt-0.5">' + esc(plan.method || '-') + '</p></div>';
                 html += '<div class="rounded-xl bg-slate-50 p-3"><p class="text-[10px] text-slate-400 font-bold">평가일시</p><p class="font-black mt-0.5">' + esc(sch && sch.date ? fmtDate(sch.date) + (ncsTimeRange(sch) ? ' ' + ncsTimeRange(sch) : '') : fmtDate(plan.planned_date)) + '</p></div>';

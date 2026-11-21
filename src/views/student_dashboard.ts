@@ -1220,7 +1220,8 @@ export const studentDashboardHtml = () => `
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-5">
                                 <div class="text-[10px] text-sky-600 font-black uppercase tracking-widest mb-1">\${p.course_title}</div>
-                                <div class="text-sm font-bold text-slate-800">[\${p.unit_code}] \${p.unit_name}</div>
+                                <div class="text-sm font-bold text-slate-800">\${p.subject_name || p.unit_name}</div>
+                                \${p.subject_name && p.unit_name && p.subject_name !== p.unit_name ? \`<div class="text-[11px] text-slate-400 mt-0.5">[\${p.unit_code}] \${p.unit_name}</div>\` : ''}
                                 <div class="flex flex-wrap gap-3 mt-2">
                                     <span class="text-[10px] text-slate-400 font-bold flex items-center gap-1"><i class="far fa-calendar-alt"></i> 예정: \${p.planned_date || '미정'}</span>
                                     <span class="text-[10px] text-slate-400 font-bold flex items-center gap-1"><i class="fas fa-vial"></i> 방법: \${p.method}</span>
@@ -1232,7 +1233,7 @@ export const studentDashboardHtml = () => `
                                 </div>
                             </td>
                             <td class="px-6 py-5 text-right">
-                                <button onclick="openUploadModal(\${p.id}, '\${p.unit_name}', '\${p.course_title} - \${p.unit_name}')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap">
+                                <button onclick="openUploadModal(\${p.id}, '\${(p.subject_name || p.unit_name || '').replace(/'/g, '')}', '\${p.course_title} - \${(p.subject_name || p.unit_name || '').replace(/'/g, '')}')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-sky-100 whitespace-nowrap">
                                     <i class="fas fa-upload mr-1"></i> 자료제출
                                 </button>
                             </td>

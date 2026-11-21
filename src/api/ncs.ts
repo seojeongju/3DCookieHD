@@ -6416,6 +6416,61 @@ export async function syncEvaluationPlansForCourse(
     }
 }
 
+/**
+ * ncs_unit_id -> 승인과정 교과목(curriculum_id, subject_name) 매핑.
+ * 학생 화면에서 능력단위명 대신 실제 교과목명(예: 곡면과 자유형 설계를 위한 고급 3D모델링)을 표시하고
+ * 시험지/평가도구(ncs_plan_documents)를 정확히 매칭하기 위해 사용.
+ */
+export async function resolveUnitToCurriculumSubjectMap(
+    db: any,
+    courseId: number,
+    overrideSessionId: number | null = null
+): Promise<Map<number, { curriculum_id: number; subject_name: string }>> {
+    const out = new Map<number, { curriculum_id: number; subject_name: string }>();
+    if (!Number.isFinite(courseId) || courseId < 1) return out;
+    try {
+        const { subjects } = await resolveLmsSubjectPlans(db, courseId, overrideSessionId);
+        if (!subjects.length) return out;
+
+        // 이미 평가계획 문서가 존재하는 curriculum_id 집합을 우선순위로 둔다
+        const docSubjectSet = new Set<number>();
+        try {
+            const cids = await resolveNcsPlanDocumentCourseIds(db, courseId);
+            const inList = (cids.length ? cids : [courseId]).filter((v) => Number.isFinite(Number(v)) && Number(v) >= 1);
+            if (inList.length) {
+                const ph = inList.map(() => '?').join(', ');
+                const { results: docRows } = await db.prepare(
+                    `SELECT curriculum_id, payload_json FROM ncs_plan_documents WHERE course_id IN (${ph})`
+                ).bind(...inList).all();
+                for (const d of (docRows || []) as any[]) {
+                    if (d.curriculum_id != null) docSubjectSet.add(Number(d.curriculum_id));
+                    try {
+                        const p = d.payload_json ? JSON.parse(String(d.payload_json)) : {};
+                        if (p?.curriculum_id != null && String(p.curriculum_id).trim() !== '') {
+                            docSubjectSet.add(Number(p.curriculum_id));
+                        }
+                    } catch { /* ignore */ }
+                }
+            }
+        } catch { /* ignore */ }
+
+        // 문서가 있는 교과목을 먼저 매핑하고, 나머지를 뒤에 채운다
+        const ordered = [
+            ...subjects.filter((s) => docSubjectSet.has(s.ncs_unit_id)),
+            ...subjects.filter((s) => !docSubjectSet.has(s.ncs_unit_id)),
+        ];
+        for (const s of ordered) {
+            const unitId = await resolveNcsUnitIdForCurriculumSubject(db, s);
+            if (unitId && !out.has(unitId)) {
+                out.set(unitId, { curriculum_id: s.ncs_unit_id, subject_name: s.unit_name });
+            }
+        }
+    } catch (err) {
+        console.warn('resolveUnitToCurriculumSubjectMap:', err);
+    }
+    return out;
+}
+
 /** 평가계획 완료: 회의록이 완성됐거나, 교과목이 1개 이상 있고 모든 교과목의 6단계(실시일자~검토)가 설정완료 */
 function dashPlanConfirmed(minutesPayloads: Record<string, any>[], rows: Array<Record<string, any>>): boolean {
     if (minutesPayloads.some(dashMinutesLooksComplete)) return true;
@@ -7867,7 +7922,20 @@ app.get('/my-plans', async (c) => {
             ORDER BY p.planned_date DESC, p.id DESC
         `;
         const { results } = await c.env.DB.prepare(query).bind(studentId, studentId).all();
-        return c.json({ success: true, data: results || [] });
+        const rows = (results || []) as any[];
+        const courseMapCache = new Map<number, Map<number, { curriculum_id: number; subject_name: string }>>();
+        for (const r of rows) {
+            const cid = Number(r.course_id);
+            if (!courseMapCache.has(cid)) {
+                courseMapCache.set(cid, await resolveUnitToCurriculumSubjectMap(c.env.DB, cid, null));
+            }
+            const subj = courseMapCache.get(cid)?.get(Number(r.ncs_unit_id));
+            if (subj) {
+                r.subject_name = subj.subject_name;
+                r.curriculum_id = subj.curriculum_id;
+            }
+        }
+        return c.json({ success: true, data: rows });
     } catch (e) {
         console.error('Failed to fetch student plans:', e);
         return c.json({ success: false, error: 'Failed to fetch student plans' }, 500);
