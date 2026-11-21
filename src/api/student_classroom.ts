@@ -3,6 +3,7 @@ import type { Bindings, JWTPayload } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { attendanceKindSql } from '../utils/attendance_enrollment';
 import { getEffectiveExamActive, getExamScheduleStatus, getNowKstIso } from '../utils/examSchedule';
+import { syncEvaluationPlansForCourse } from './ncs';
 
 const app = new Hono<{ Bindings: Bindings; Variables: { user: JWTPayload } }>();
 app.use('*', authMiddleware);
@@ -210,14 +211,20 @@ app.get('/:sessionId/ncs-plans', async (c) => {
     const userId = c.get('user').userId;
     if (!enrolled.lms_course_id) return c.json({ success: true, data: [] });
     try {
+        // 평가계획(ncs_plan_documents) 저장 후 평가실행 탭을 열지 않았더라도 학생에게 즉시 노출되도록 동기화
+        await syncEvaluationPlansForCourse(c.env.DB, enrolled.lms_course_id, sessionId);
+    } catch {
+        /* 동기화 실패 시에도 기존 ncs_evaluation_plans 조회 계속 */
+    }
+    try {
         const { results } = await c.env.DB.prepare(
-            `SELECT p.id, p.method, p.planned_date, p.target_score, p.course_id,
+            `SELECT p.id, p.method, p.planned_date, p.target_score, p.course_id, p.evaluation_round, p.status,
                     u.name as unit_name, u.code as unit_code,
                     (SELECT 1 FROM ncs_evidence ev WHERE ev.plan_id = p.id AND ev.student_id = ? LIMIT 1) as has_evidence
              FROM ncs_evaluation_plans p
              JOIN ncs_units u ON u.id = p.ncs_unit_id
              WHERE p.course_id = ?
-             ORDER BY p.planned_date DESC`
+             ORDER BY COALESCE(p.evaluation_round, 1) ASC, p.planned_date DESC, p.id ASC`
         ).bind(userId, enrolled.lms_course_id).all();
         return c.json({ success: true, data: results || [] });
     } catch {

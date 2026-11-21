@@ -1544,7 +1544,7 @@ function ncsPlanTabsHtml(prefix: string, useFixedCourseId: boolean) {
                           <td class="border border-black px-2 py-1"><div id="review_writer" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
                         </tr>
                         <tr>
-                          <td class="border border-black text-center bg-slate-50 font-bold py-1">검토일</td>
+                          <td class="border border-black text-center bg-slate-50 font-bold py-1">검토자</td>
                           <td class="border border-black px-2 py-1"><div id="review_reviewer" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
                           <td class="border border-black text-center bg-slate-50 font-bold py-1">검토일</td>
                           <td class="border border-black px-2 py-1"><div id="review_review_date" contenteditable="true" class="outline-none min-h-[1.25rem] whitespace-pre-wrap"></div></td>
@@ -3625,7 +3625,8 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         };
       }
       if (tabId === 'review') {
-        var revRawCur = parseInt(String(getNcsSubjectSelectCurriculumValue('review_subject_name') || ''), 10);
+        var revRawCur = parseInt(String(getNcsSubjectSelectCurriculumValue('review_subject_name') || sharedPlanCurriculumId || ''), 10);
+        var revPlainSubj = getNcsSubjectSelectPlainName('review_subject_name') || sharedPlanSubjectLabel || '';
         var revRawSess = selectedSessionIdForSubject ? parseInt(String(selectedSessionIdForSubject), 10) : NaN;
         return {
           title: getReviewFieldValue('review_doc_title'),
@@ -3635,7 +3636,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
             approval_role_chair: getReviewFieldValue('review_approval_role_chair'),
             approval_role_writer: getReviewFieldValue('review_approval_role_writer'),
             approval_role_reviewer: getReviewFieldValue('review_approval_role_reviewer'),
-            subject_name: getNcsSubjectSelectPlainName('review_subject_name'),
+            subject_name: revPlainSubj,
             curriculum_id: Number.isFinite(revRawCur) && revRawCur > 0 ? revRawCur : '',
             session_id: Number.isFinite(revRawSess) && revRawSess > 0 ? revRawSess : '',
             unit_level: getReviewFieldValue('review_unit_level'),

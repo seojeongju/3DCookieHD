@@ -6055,7 +6055,11 @@ function dashGroupDocsByRoundType(docRows: unknown): Map<string, Record<string, 
         const row = r as any;
         const key = `${row.evaluation_round}:${row.doc_type}`;
         const list = map.get(key) || [];
-        list.push(dashParsePlanDocPayload(row.payload_json));
+        const parsed = dashParsePlanDocPayload(row.payload_json);
+        if ((parsed.curriculum_id == null || String(parsed.curriculum_id).trim() === '') && row.curriculum_id != null && String(row.curriculum_id).trim() !== '') {
+            parsed.curriculum_id = row.curriculum_id;
+        }
+        list.push(parsed);
         map.set(key, list);
     }
     return map;
@@ -6106,6 +6110,26 @@ function dashTypedDocOk(payload: Record<string, any>, plan: Record<string, any>)
 
 function dashTypedDocsOk(payloads: Record<string, any>[], plan: Record<string, any>): boolean {
     return payloads.some((p) => dashTypedDocOk(p, plan));
+}
+
+/** 평가도구검토(review) 문서 완료 판별: 검토표 행뿐 아니라 검토의견/검토일/검토자/평가도구명/첨부 중 하나라도 있고 과목이 매칭되면 완료 */
+function dashReviewDocOk(payloads: Record<string, any>[], plan: Record<string, any>): boolean {
+    return payloads.some((p) => {
+        if (!p || typeof p !== 'object') return false;
+        const rows = Array.isArray(p.rows) ? p.rows : [];
+        const hasAnyContent =
+            rows.length > 0 ||
+            String(p.notes ?? '').trim() !== '' ||
+            String(p.review_date ?? '').trim() !== '' ||
+            String(p.reviewer ?? '').trim() !== '' ||
+            String(p.writer ?? '').trim() !== '' ||
+            String(p.tool_name ?? '').trim() !== '' ||
+            (Array.isArray(p.attachments) && p.attachments.length > 0);
+        if (!hasAnyContent) return false;
+        if (dashPayloadMatchesPlan(p, plan)) return true;
+        // 단일 과목만 없는 구형/미지정 문서 fallback: curriculum_id와 subject_name 모두 비어있고 rows가 있는 경우 제외, 이름이 매칭되면 허용
+        return false;
+    });
 }
 
 /** 테이블에 컬럼이 있는지 (운영 DB 마이그레이션 누락 대비) */
@@ -6303,7 +6327,7 @@ async function syncEvaluationPlansFromPlanDocuments(
     const inPh = inList.map(() => '?').join(', ');
     const dtPh = DASHBOARD_PLAN_DOC_TYPES.map(() => '?').join(', ');
     const { results: docRows } = await db.prepare(`
-        SELECT evaluation_round, doc_type, payload_json, updated_at, id
+        SELECT evaluation_round, doc_type, curriculum_id, payload_json, updated_at, id
         FROM ncs_plan_documents
         WHERE course_id IN (${inPh}) AND evaluation_round = ? AND doc_type IN (${dtPh})
         ORDER BY updated_at DESC, id DESC
@@ -6320,7 +6344,7 @@ async function syncEvaluationPlansFromPlanDocuments(
             tools: dashTypedDocsOk(P('tools'), subject),
             rubric: dashTypedDocsOk(rubricPayloads, subject),
             achievement: dashTypedDocsOk(P('achievement'), subject),
-            review: dashTypedDocsOk(P('review'), subject),
+            review: dashReviewDocOk(P('review'), subject),
         };
         const anyDoc = Object.values(okMap).some(Boolean);
         if (!anyDoc) continue; // 계획 문서가 없는 교과목은 실행 목록에 올리지 않음
@@ -6372,6 +6396,24 @@ async function syncEvaluationPlansFromPlanDocuments(
         map.set(unitId, { curriculum_id: subject.ncs_unit_id, subject_name: subject.unit_name });
     }
     return map;
+}
+
+/** 특정 과정의 1~3차 평가계획 문서를 ncs_evaluation_plans에 일괄 동기화 (학생 화면/저장 시 호출) */
+export async function syncEvaluationPlansForCourse(
+    db: any,
+    courseId: number,
+    overrideSessionId: number | null = null
+): Promise<void> {
+    if (!Number.isFinite(courseId) || courseId < 1) return;
+    const hasRoundCol = await tableHasColumn(db, 'ncs_evaluation_plans', 'evaluation_round');
+    const rounds = hasRoundCol ? [1, 2, 3] : [1];
+    for (const r of rounds) {
+        try {
+            await syncEvaluationPlansFromPlanDocuments(db, courseId, overrideSessionId, r, hasRoundCol);
+        } catch (err) {
+            console.warn(`syncEvaluationPlansForCourse(${courseId}, round ${r}):`, err);
+        }
+    }
 }
 
 /** 평가계획 완료: 회의록이 완성됐거나, 교과목이 1개 이상 있고 모든 교과목의 6단계(실시일자~검토)가 설정완료 */
@@ -6864,6 +6906,15 @@ app.post('/plan-documents', authMiddleware, async (c) => {
             }
         }
 
+        try {
+            const hasRoundCol = await tableHasColumn(c.env.DB, 'ncs_evaluation_plans', 'evaluation_round');
+            const sesOvrSave = await resolveExplicitSessionOverride(c.env.DB, c.req.query('session_id') ?? (body as any).session_id);
+            const syncCid = sesOvrSave ? sesOvrSave.lmsCourseId : courseId;
+            await syncEvaluationPlansFromPlanDocuments(c.env.DB, syncCid, sesOvrSave ? sesOvrSave.sessionId : null, round, hasRoundCol);
+        } catch (syncErr) {
+            console.warn('auto sync evaluation plans (POST):', syncErr);
+        }
+
         return c.json({ success: true, data: { id: result.meta.last_row_id, mode: 'created' } });
     } catch (e) {
         console.error('Failed to save NCS plan document:', e);
@@ -6985,6 +7036,15 @@ app.put('/plan-documents/:id', authMiddleware, async (c) => {
             }
         }
 
+        try {
+            const hasRoundCol = await tableHasColumn(c.env.DB, 'ncs_evaluation_plans', 'evaluation_round');
+            const sesOvrSave = await resolveExplicitSessionOverride(c.env.DB, c.req.query('session_id') ?? (body as any).session_id);
+            const syncCid = sesOvrSave ? sesOvrSave.lmsCourseId : courseId;
+            await syncEvaluationPlansFromPlanDocuments(c.env.DB, syncCid, sesOvrSave ? sesOvrSave.sessionId : null, round, hasRoundCol);
+        } catch (syncErr) {
+            console.warn('auto sync evaluation plans (PUT):', syncErr);
+        }
+
         return c.json({ success: true, data: { id: docId, mode: 'updated' } });
     } catch (e) {
         console.error('Failed to update NCS plan document:', e);
@@ -7063,6 +7123,12 @@ app.delete('/plan-documents/:id', authMiddleware, async (c) => {
         }
 
         await c.env.DB.prepare('DELETE FROM ncs_plan_documents WHERE id = ?').bind(docId).run();
+        try {
+            const hasRoundCol = await tableHasColumn(c.env.DB, 'ncs_evaluation_plans', 'evaluation_round');
+            await syncEvaluationPlansFromPlanDocuments(c.env.DB, effectiveCidDel, sesOvrDel ? sesOvrDel.sessionId : null, round, hasRoundCol);
+        } catch (syncErr) {
+            console.warn('auto sync evaluation plans (DELETE):', syncErr);
+        }
         return c.json({ success: true, data: { id: docId, mode: 'deleted' } });
     } catch (e) {
         console.error('Failed to delete NCS plan document:', e);
@@ -7094,7 +7160,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
         const dtPh = DASHBOARD_PLAN_DOC_TYPES.map(() => '?').join(', ');
 
         const { results: docRows } = await c.env.DB.prepare(`
-            SELECT evaluation_round, doc_type, payload_json, updated_at, id
+            SELECT evaluation_round, doc_type, curriculum_id, payload_json, updated_at, id
             FROM ncs_plan_documents
             WHERE course_id IN (${inPh}) AND evaluation_round BETWEEN 1 AND 3
             AND doc_type IN (${dtPh})
@@ -7214,7 +7280,7 @@ app.get('/evaluation-dashboard', authMiddleware, async (c) => {
                     tools: plan ? dashTypedDocsOk(toolsPayloads, plan) : false,
                     rubric: plan ? dashTypedDocsOk(rubricPayloads, plan) : false,
                     achievement: plan ? dashTypedDocsOk(achievementPayloads, plan) : false,
-                    review: plan ? dashTypedDocsOk(reviewPayloads, plan) : false,
+                    review: plan ? dashReviewDocOk(reviewPayloads, plan) : false,
                     scores_missing,
                     plan_registered: !!plan,
                 };
@@ -7390,7 +7456,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
         const dtPh = DASHBOARD_PLAN_DOC_TYPES.map(() => '?').join(', ');
 
         const { results: docRows } = await c.env.DB.prepare(`
-            SELECT evaluation_round, doc_type, payload_json, updated_at, id
+            SELECT evaluation_round, doc_type, curriculum_id, payload_json, updated_at, id
             FROM ncs_plan_documents
             WHERE course_id IN (${inPh}) AND evaluation_round BETWEEN 1 AND 3
             AND doc_type IN (${dtPh})
@@ -7436,7 +7502,7 @@ app.get('/evaluation-dashboard-hub', authMiddleware, async (c) => {
                 const toolsOk = dashTypedDocsOk(toolsPayloads, plan);
                 const rubricOk = dashTypedDocsOk(rubricPayloads, plan);
                 const achievementOk = dashTypedDocsOk(achievementPayloads, plan);
-                const reviewOk = dashTypedDocsOk(reviewPayloads, plan);
+                const reviewOk = dashReviewDocOk(reviewPayloads, plan);
 
                 const plan_registered = scheduleOk || questionsOk || toolsOk || rubricOk || achievementOk || reviewOk;
 
@@ -7743,25 +7809,65 @@ app.get('/my-results', async (c) => {
     }
 });
 
-// 학생별 관련 평가 계획 조회 (증빙 업로드용)
+// 학생별 관련 평가 계획 조회 (증빙 업로드용 — 회차 수강생 + 기존 enrollments 모두 지원)
 app.get('/my-plans', async (c) => {
     try {
         const studentId = c.req.query('studentId');
         if (!studentId) return c.json({ success: false, error: 'Student ID is required' }, 400);
 
+        // 1) 회차 수강생의 lms_course_id에 아직 ncs_evaluation_plans가 없으면 평가계획 문서에서 자동 동기화
+        try {
+            const { results: sessRows } = await c.env.DB.prepare(`
+                SELECT DISTINCT cs.id AS session_id, cs.lms_course_id
+                FROM course_session_enrollments cse
+                JOIN course_sessions cs ON cs.id = cse.session_id
+                WHERE cse.user_id = ? AND cse.status IN ('approved', 'enrolled')
+                  AND cs.lms_course_id IS NOT NULL AND cs.lms_course_id > 0
+            `).bind(studentId).all();
+            for (const sr of (sessRows || []) as any[]) {
+                const lmsCid = Number(sr.lms_course_id);
+                const sid = Number(sr.session_id);
+                if (!Number.isFinite(lmsCid) || lmsCid < 1) continue;
+                const existingCnt: any = await c.env.DB.prepare(
+                    'SELECT COUNT(*) AS cnt FROM ncs_evaluation_plans WHERE course_id = ?'
+                ).bind(lmsCid).first();
+                if (Number(existingCnt?.cnt ?? 0) === 0) {
+                    await syncEvaluationPlansForCourse(c.env.DB, lmsCid, Number.isFinite(sid) ? sid : null);
+                }
+            }
+        } catch (syncErr) {
+            console.warn('my-plans auto sync:', syncErr);
+        }
+
         const query = `
-            SELECT 
-                p.*, u.name as unit_name, u.code as unit_code,
-                co.title as course_title
+            SELECT
+                p.id, p.course_id, p.ncs_unit_id, p.method, p.planned_date, p.target_score, p.status,
+                p.evaluation_round,
+                u.name as unit_name, u.code as unit_code,
+                COALESCE(co.title, ac.name, '') as course_title
             FROM ncs_evaluation_plans p
             JOIN ncs_units u ON p.ncs_unit_id = u.id
-            JOIN courses co ON p.course_id = co.id
-            JOIN enrollments e ON e.course_id = co.id
-            WHERE e.user_id = ? AND e.status = 'approved'
-            ORDER BY p.planned_date DESC
+            LEFT JOIN courses co ON p.course_id = co.id
+            LEFT JOIN course_sessions cs ON cs.lms_course_id = p.course_id
+            LEFT JOIN approved_courses ac ON ac.id = cs.approved_course_id
+            WHERE (
+                EXISTS (
+                    SELECT 1 FROM course_session_enrollments cse
+                    JOIN course_sessions cs2 ON cs2.id = cse.session_id
+                    WHERE cse.user_id = ? AND cse.status IN ('approved', 'enrolled')
+                      AND cs2.lms_course_id = p.course_id
+                )
+                OR EXISTS (
+                    SELECT 1 FROM enrollments e
+                    WHERE e.user_id = ? AND e.status = 'approved'
+                      AND e.course_id = p.course_id
+                )
+            )
+            GROUP BY p.id
+            ORDER BY p.planned_date DESC, p.id DESC
         `;
-        const { results } = await c.env.DB.prepare(query).bind(studentId).all();
-        return c.json({ success: true, data: results });
+        const { results } = await c.env.DB.prepare(query).bind(studentId, studentId).all();
+        return c.json({ success: true, data: results || [] });
     } catch (e) {
         console.error('Failed to fetch student plans:', e);
         return c.json({ success: false, error: 'Failed to fetch student plans' }, 500);
