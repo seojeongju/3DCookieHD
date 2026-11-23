@@ -306,23 +306,42 @@ function resultPageScript(useFixedCourseId: boolean) {
         }
         body.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-left"><thead class="bg-slate-50 border-b border-slate-100"><tr>' +
           '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">성명</th>' +
+          '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">제출 답안 · 첨부파일</th>' +
           '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">점수</th>' +
           '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">이수여부</th>' +
-          '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">채점결과문서</th>' +
+          '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">관리 · 결과문서</th>' +
           '</tr></thead><tbody class="divide-y divide-slate-100">' +
           rows.map(row => {
             const studentId = encodeURIComponent(row.student_id);
             const courseId = encodeURIComponent(selectedCourseId);
+            const sidQ = _sid ? '&session_id=' + encodeURIComponent(_sid) : '';
             const reportHref = basePrefix + '/courses/' + courseId + '/lms/ncs-report/' + studentId + (_sid ? '?session_id=' + encodeURIComponent(_sid) : '');
+            const execHref = basePrefix + '/courses/' + courseId + '/lms/ncs-eval-exec?evaluation_round=' + encodeURIComponent(docsRound) + '&plan_id=' + encodeURIComponent(selectedDocPlanId) + sidQ;
             const hasScore = row.score != null && String(row.score).trim() !== '';
             const passBadge = !hasScore
               ? '<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700">미채점</span>'
               : (row.is_passed ? '<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">이수</span>' : '<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700">미이수</span>');
-            return '<tr>' +
+            const evList = Array.isArray(row.evidence_list) ? row.evidence_list : [];
+            const evHtml = evList.length
+              ? '<div class="space-y-1">' + evList.map(ev => {
+                  const hasUrl = ev.file_url && String(ev.file_url).trim() !== '';
+                  return '<div class="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs">' +
+                    (hasUrl
+                      ? '<a href="' + escapeHtml(ev.file_url) + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline break-all"><i class="fas fa-paperclip mr-1"></i>' + escapeHtml(ev.file_name || '제출파일') + '</a>'
+                      : '<span class="font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + escapeHtml(ev.file_name || '답안 입력') + '</span>') +
+                    (ev.comment ? '<div class="text-slate-600 mt-0.5 whitespace-pre-wrap">' + escapeHtml(ev.comment) + '</div>' : '') +
+                  '</div>';
+                }).join('') + '</div>'
+              : '<span class="text-xs text-slate-400">미제출</span>';
+            return '<tr class="align-top">' +
               '<td class="px-4 py-3 text-sm font-semibold text-slate-800">' + escapeHtml(row.name || '-') + '</td>' +
+              '<td class="px-4 py-3 max-w-md">' + evHtml + '</td>' +
               '<td class="px-4 py-3 text-sm text-slate-700 text-center">' + escapeHtml(hasScore ? row.score : '-') + '</td>' +
               '<td class="px-4 py-3 text-center">' + passBadge + '</td>' +
-              '<td class="px-4 py-3"><a target="_blank" href="' + reportHref + '" class="inline-flex items-center px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">개인 결과문서</a></td>' +
+              '<td class="px-4 py-3"><div class="flex flex-wrap items-center gap-1.5">' +
+                '<a href="' + execHref + '" class="inline-flex items-center px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-xs font-bold text-sky-700 hover:bg-sky-100"><i class="fas fa-plus mr-1"></i>답안·파일 대리입력</a>' +
+                '<a target="_blank" href="' + reportHref + '" class="inline-flex items-center px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">개인 결과문서</a>' +
+              '</div></td>' +
             '</tr>';
           }).join('') +
           '</tbody></table></div>';

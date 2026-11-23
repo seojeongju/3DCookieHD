@@ -100,20 +100,82 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
                 </div>
               </div>
 
-              <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <!-- 하위 탭: 점수 채점 | 강사 대리 답안·파일 입력 | 시험지·평가문항·평가도구 -->
+              <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                <button type="button" data-exec-subtab="grading" onclick="switchExecSubTab('grading')" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black transition">
+                  <i class="fas fa-check-double mr-1.5"></i>1. 점수 채점 · 제출물 확인
+                </button>
+                <button type="button" data-exec-subtab="proxy" onclick="switchExecSubTab('proxy')" class="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-black hover:bg-gray-50 transition">
+                  <i class="fas fa-file-circle-plus mr-1.5 text-sky-600"></i>2. 강사 대리 답안 · 파일 입력
+                </button>
+                <button type="button" data-exec-subtab="exam" onclick="switchExecSubTab('exam')" class="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-black hover:bg-gray-50 transition">
+                  <i class="fas fa-book-open mr-1.5 text-amber-600"></i>3. 시험지 · 평가문항 · 평가도구 보기
+                </button>
+              </div>
+
+              <!-- 탭 1: 점수 채점 및 학생별 제출물 확인 -->
+              <div id="execSubPanel-grading" class="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 <table class="w-full text-left">
                   <thead class="bg-gray-50 border-b border-gray-100">
                     <tr>
-                      <th class="px-6 py-3 text-xs font-semibold text-gray-500">성명</th>
-                      <th class="px-6 py-3 text-xs font-semibold text-gray-500 text-center">점수</th>
-                      <th class="px-6 py-3 text-xs font-semibold text-gray-500 text-center">이수여부</th>
-                      <th class="px-6 py-3 text-xs font-semibold text-gray-500">평가 의견</th>
+                      <th class="px-5 py-3 text-xs font-semibold text-gray-500">성명</th>
+                      <th class="px-5 py-3 text-xs font-semibold text-gray-500">제출 답안 · 첨부파일 (대리입력)</th>
+                      <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">점수</th>
+                      <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">이수여부</th>
+                      <th class="px-5 py-3 text-xs font-semibold text-gray-500">평가 의견</th>
                     </tr>
                   </thead>
                   <tbody id="resultTableBody" class="divide-y divide-gray-100">
                     <!-- JS -->
                   </tbody>
                 </table>
+              </div>
+
+              <!-- 탭 2: 강사 대리 답안 · 첨부파일 입력 탭 -->
+              <div id="execSubPanel-proxy" class="hidden space-y-4">
+                <div class="rounded-xl border border-sky-200 bg-sky-50/60 p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h4 class="text-sm font-black text-sky-900"><i class="fas fa-user-pen mr-1.5"></i>시험 시 파일이나 정답을 입력하지 못한 수강생을 위한 강사 대리 입력</h4>
+                    <p class="text-xs text-sky-700 mt-0.5">수강생을 선택하여 답안(정답) 텍스트, 평가 결과물 첨부파일, 또는 포트폴리오 링크를 대신 등록할 수 있습니다.</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                    <label class="block text-xs font-black text-gray-700">1. 대상 수강생 선택</label>
+                    <select id="proxyStudentSelect" onchange="onProxyStudentChange(this.value)" class="w-full px-3 py-2.5 rounded-xl border border-gray-300 text-sm font-bold text-gray-800 bg-white"></select>
+                    <div id="proxyStudentExistingBox" class="pt-2 border-t border-gray-100"></div>
+                  </div>
+                  <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">제출 제목</label>
+                        <input id="proxyTitleInput" type="text" placeholder="예: 1차 본평가 답안 및 실기 파일 (강사 대리입력)" class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                      </div>
+                      <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">외부 링크 (선택 · 구글드라이브/포트폴리오 URL)</label>
+                        <input id="proxyUrlInput" type="url" placeholder="https://..." class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold text-gray-600 mb-1">정답 / 답안 내용 입력 (문항별 답안, 서술형 답안, 평가 메모)</label>
+                      <textarea id="proxyAnswerInput" rows="5" placeholder="학생이 작성한 정답이나 서술형 답안 내용을 이곳에 입력하세요..." class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-sky-500 outline-none"></textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-bold text-gray-600 mb-1">평가 결과물 파일 첨부 (다중 선택 가능 · CAD/STL/이미지/PDF/ZIP 등)</label>
+                      <input id="proxyFileInput" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.txt,.zip,.rar,.stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.mp4" class="block w-full text-sm text-gray-600 file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border-0 file:bg-sky-50 file:text-sky-700 file:text-xs file:font-black hover:file:bg-sky-100" />
+                    </div>
+                    <div class="flex justify-end">
+                      <button type="button" id="proxySubmitBtn" onclick="submitProxyEvidence()" class="px-5 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-black hover:bg-sky-700 transition">
+                        <i class="fas fa-cloud-arrow-up mr-1.5"></i>대리 답안 · 파일 저장
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 탭 3: 시험지 · 평가문항 · 평가도구 보기 -->
+              <div id="execSubPanel-exam" class="hidden space-y-4">
+                <div id="execExamSpecBody" class="space-y-4"></div>
               </div>
             </div>
           </section>
@@ -330,7 +392,8 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
 
         const matchedListPlan = plans.find(p => String(p.id) === String(planId));
-        const displayName = currentPlan.subject_name || (matchedListPlan && matchedListPlan.subject_name) || currentPlan.unit_name || '-';
+        const displayName = (matchedListPlan && matchedListPlan.subject_name) || currentPlan.subject_name || currentPlan.unit_name || '-';
+        currentPlan.subject_name = displayName;
         const unitLabel = currentPlan.unit_name && currentPlan.unit_name !== displayName
           ? \` | 능력단위: \${currentPlan.unit_code ? '[' + currentPlan.unit_code + '] ' : ''}\${currentPlan.unit_name}\`
           : '';
@@ -339,44 +402,279 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         document.getElementById('selectedTargetScore').textContent = \`\${currentPlan.target_score}점\`;
         document.getElementById('selectedMethodPlan').textContent = \`\${currentPlan.method} / \${currentPlan.planned_date || '-'}\`;
 
+        window._currentExamSpec = result.exam_spec || { schedule: null, questions: { rows: [], attachments: [] }, tools: { criteria_groups: [] } };
         renderResultTable();
+        renderProxyPanel();
+        renderExamSpecPanel();
         renderExecList();
       } catch (e) {
         console.error(e);
       }
     }
 
+    function switchExecSubTab(tab) {
+      ['grading', 'proxy', 'exam'].forEach(t => {
+        const panel = document.getElementById('execSubPanel-' + t);
+        const btn = document.querySelector('[data-exec-subtab="' + t + '"]');
+        const active = t === tab;
+        if (panel) panel.classList.toggle('hidden', !active);
+        if (btn) {
+          btn.className = active
+            ? 'px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black transition'
+            : 'px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-black hover:bg-gray-50 transition';
+        }
+      });
+    }
+
+    function openProxyForStudent(studentId) {
+      switchExecSubTab('proxy');
+      const sel = document.getElementById('proxyStudentSelect');
+      if (sel) {
+        sel.value = String(studentId);
+        onProxyStudentChange(String(studentId));
+      }
+    }
+
+    function renderStudentEvidenceBadges(row) {
+      const list = Array.isArray(row.evidence_list) ? row.evidence_list : [];
+      const itemsHtml = list.length
+        ? '<div class="space-y-1 mb-2">' + list.map(ev => {
+            const hasUrl = ev.file_url && String(ev.file_url).trim() !== '';
+            const linkPart = hasUrl
+              ? '<a href="' + escapeHtml(ev.file_url) + '" target="_blank" rel="noopener" class="text-xs font-bold text-sky-700 hover:underline break-all"><i class="fas ' + (ev.file_type === 'link' ? 'fa-link' : 'fa-paperclip') + ' mr-1"></i>' + escapeHtml(ev.file_name || '제출파일') + '</a>'
+              : '<span class="text-xs font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + escapeHtml(ev.file_name || '답안 입력') + '</span>';
+            const commentPart = ev.comment ? '<div class="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 mt-0.5 whitespace-pre-wrap">' + escapeHtml(ev.comment) + '</div>' : '';
+            return '<div class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 flex items-start justify-between gap-2">' +
+              '<div class="min-w-0 flex-1">' + linkPart + commentPart + '</div>' +
+              '<button type="button" onclick="deleteStudentEvidence(' + ev.id + ')" class="text-gray-400 hover:text-red-500 text-xs px-1" title="삭제"><i class="fas fa-trash-can"></i></button>' +
+            '</div>';
+          }).join('') + '</div>'
+        : '<span class="inline-block text-xs text-gray-400 mr-2">미제출</span>';
+      return itemsHtml +
+        '<button type="button" onclick="openProxyForStudent(' + row.student_id + ')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold hover:bg-sky-100 transition">' +
+          '<i class="fas fa-plus"></i> 답안·파일 대리입력' +
+        '</button>';
+    }
+
     function renderResultTable() {
       const tbody = document.getElementById('resultTableBody');
       if (!tbody) return;
       tbody.innerHTML = studentResults.map(row => \`
-        <tr class="hover:bg-gray-50 transition">
-          <td class="px-6 py-4">
-            <div class="flex items-center gap-3">
-              <div class="text-sm">
-                <div class="font-bold text-gray-800">\${row.name}</div>
-                <div class="text-[10px] text-gray-400">\${row.phone || ''}</div>
-              </div>
+        <tr class="hover:bg-gray-50 transition align-top">
+          <td class="px-5 py-4">
+            <div class="text-sm">
+              <div class="font-bold text-gray-800">\${escapeHtml(row.name)}</div>
+              <div class="text-[10px] text-gray-400">\${escapeHtml(row.phone || '')}</div>
             </div>
           </td>
-          <td class="px-6 py-4 text-center">
+          <td class="px-5 py-4 max-w-md">
+            \${renderStudentEvidenceBadges(row)}
+          </td>
+          <td class="px-4 py-4 text-center">
             <input type="number" value="\${row.score ?? ''}"
               onchange="updateScore(\${row.student_id}, this.value)"
               class="w-20 px-2 py-1 text-center border rounded-lg focus:ring-2 focus:ring-blue-500 font-bold">
           </td>
-          <td class="px-6 py-4 text-center">
+          <td class="px-4 py-4 text-center">
             <span class="px-2 py-1 rounded text-xs font-bold \${row.is_passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
               \${row.is_passed ? '이수 (Pass)' : '미이수 (Fail)'}
             </span>
           </td>
-          <td class="px-6 py-4">
-            <input type="text" value="\${row.feedback || ''}"
+          <td class="px-5 py-4">
+            <input type="text" value="\${escapeHtml(row.feedback || '')}"
               onchange="updateFeedback(\${row.student_id}, this.value)"
               placeholder="평가 의견 입력"
               class="w-full px-3 py-1 border rounded-lg text-sm">
           </td>
         </tr>
       \`).join('');
+    }
+
+    function renderProxyPanel() {
+      const sel = document.getElementById('proxyStudentSelect');
+      if (!sel) return;
+      const prevVal = sel.value;
+      sel.innerHTML = studentResults.map(r =>
+        '<option value="' + r.student_id + '">' + escapeHtml(r.name) + ' (' + ((r.evidence_list || []).length) + '건 제출)</option>'
+      ).join('');
+      if (prevVal && studentResults.some(r => String(r.student_id) === String(prevVal))) {
+        sel.value = prevVal;
+      }
+      onProxyStudentChange(sel.value);
+    }
+
+    function onProxyStudentChange(studentId) {
+      const row = studentResults.find(r => String(r.student_id) === String(studentId));
+      const box = document.getElementById('proxyStudentExistingBox');
+      const titleInput = document.getElementById('proxyTitleInput');
+      if (titleInput && currentPlan && row) {
+        titleInput.value = (currentPlan.subject_name || currentPlan.unit_name || '본평가') + ' - ' + row.name + ' (강사 대리입력)';
+      }
+      if (!box) return;
+      if (!row) {
+        box.innerHTML = '<p class="text-xs text-gray-400">수강생을 선택하세요.</p>';
+        return;
+      }
+      const list = Array.isArray(row.evidence_list) ? row.evidence_list : [];
+      box.innerHTML = '<p class="text-xs font-bold text-gray-600 mb-2">' + escapeHtml(row.name) + ' 수강생 제출 내역 (' + list.length + '건)</p>' +
+        (list.length
+          ? '<div class="space-y-1.5 max-h-60 overflow-y-auto">' + list.map(ev => {
+              const hasUrl = ev.file_url && String(ev.file_url).trim() !== '';
+              return '<div class="rounded-lg border border-gray-200 bg-gray-50 p-2 text-xs flex items-start justify-between gap-2">' +
+                '<div class="min-w-0 flex-1">' +
+                  (hasUrl
+                    ? '<a href="' + escapeHtml(ev.file_url) + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline break-all"><i class="fas fa-paperclip mr-1"></i>' + escapeHtml(ev.file_name || '제출파일') + '</a>'
+                    : '<span class="font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + escapeHtml(ev.file_name || '답안 입력') + '</span>') +
+                  (ev.comment ? '<div class="text-gray-700 mt-1 whitespace-pre-wrap bg-white p-1.5 rounded border border-gray-100">' + escapeHtml(ev.comment) + '</div>' : '') +
+                '</div>' +
+                '<button type="button" onclick="deleteStudentEvidence(' + ev.id + ')" class="text-gray-400 hover:text-red-500 px-1" title="삭제"><i class="fas fa-trash-can"></i></button>' +
+              '</div>';
+            }).join('') + '</div>'
+          : '<p class="text-xs text-gray-400">아직 등록된 답안이나 첨부파일이 없습니다.</p>');
+    }
+
+    async function uploadProxyFile(file, planId) {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('category', 'evidence');
+      fd.append('folder', 'ncs-evidence/' + planId);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+        body: fd
+      });
+      const json = await res.json();
+      if (!json || !json.success || !json.data || !json.data.url) {
+        throw new Error((json && json.error) || (file.name + ' 업로드 실패'));
+      }
+      return json.data;
+    }
+
+    async function submitProxyEvidence() {
+      if (!currentPlan) return;
+      const studentId = document.getElementById('proxyStudentSelect')?.value;
+      if (!studentId) { alert('대상 수강생을 선택하세요.'); return; }
+      const title = (document.getElementById('proxyTitleInput')?.value || '').trim() || '강사 대리입력';
+      const url = (document.getElementById('proxyUrlInput')?.value || '').trim();
+      const answer = (document.getElementById('proxyAnswerInput')?.value || '').trim();
+      const fileInput = document.getElementById('proxyFileInput');
+      const files = fileInput && fileInput.files ? Array.from(fileInput.files) : [];
+
+      if (!files.length && !url && !answer) {
+        alert('정답/답안 내용을 입력하거나 파일 또는 링크를 첨부해 주세요.');
+        return;
+      }
+
+      const btn = document.getElementById('proxySubmitBtn');
+      if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+      try {
+        const items = [];
+        for (const f of files) {
+          const up = await uploadProxyFile(f, currentPlan.id);
+          const fType = String(f.type || '').startsWith('image/') ? 'image' : 'document';
+          items.push({ name: title + ' · ' + (up.originalName || f.name), url: up.url, type: fType });
+        }
+        if (url) items.push({ name: title, url, type: 'link' });
+        if (!items.length && answer) {
+          items.push({ name: title, url: '', type: 'answer' });
+        }
+
+        for (const it of items) {
+          const res = await fetch('/api/ncs/evidence', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify({
+              plan_id: currentPlan.id,
+              student_id: Number(studentId),
+              file_name: it.name,
+              file_url: it.url,
+              file_type: it.type,
+              comment: answer
+            })
+          });
+          const j = await res.json();
+          if (!j?.success) throw new Error(j?.error || '제출 저장 실패');
+        }
+
+        if (document.getElementById('proxyUrlInput')) document.getElementById('proxyUrlInput').value = '';
+        if (document.getElementById('proxyAnswerInput')) document.getElementById('proxyAnswerInput').value = '';
+        if (fileInput) fileInput.value = '';
+        alert('수강생 답안/첨부파일이 등록되었습니다.');
+        await selectPlan(currentPlan.id);
+      } catch (e) {
+        console.error(e);
+        alert(e.message || '저장 중 오류가 발생했습니다.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-cloud-arrow-up mr-1.5"></i>대리 답안 · 파일 저장'; }
+      }
+    }
+
+    async function deleteStudentEvidence(evidenceId) {
+      if (!confirm('이 제출물/답안을 삭제하시겠습니까?')) return;
+      try {
+        const res = await fetch('/api/ncs/evidence/' + evidenceId, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const j = await res.json();
+        if (j?.success && currentPlan) {
+          await selectPlan(currentPlan.id);
+        } else {
+          alert(j?.error || '삭제 실패');
+        }
+      } catch (e) {
+        alert('삭제 중 오류가 발생했습니다.');
+      }
+    }
+
+    function renderExamSpecPanel() {
+      const box = document.getElementById('execExamSpecBody');
+      if (!box) return;
+      const spec = window._currentExamSpec || {};
+      const q = spec.questions || { rows: [], attachments: [] };
+      const tools = spec.tools || { criteria_groups: [] };
+      const groups = Array.isArray(tools.criteria_groups) ? tools.criteria_groups : [];
+      const rows = Array.isArray(q.rows) ? q.rows : [];
+      const atts = Array.isArray(q.attachments) ? q.attachments : [];
+
+      let html = '';
+      if (groups.length) {
+        html += '<div class="bg-white rounded-xl border border-gray-200 p-5"><h4 class="text-sm font-black text-gray-800 mb-3"><i class="fas fa-list-check text-indigo-600 mr-1.5"></i>평가내용 (평가도구 수행준거)</h4>';
+        groups.forEach(g => {
+          html += '<div class="mb-3"><p class="text-xs font-black text-gray-800">' + escapeHtml(g.element_title || g.element_name || '수행준거') + '</p><ul class="mt-1 space-y-1">';
+          (g.lines || []).forEach(l => {
+            if (!l || !String(l.text || '').trim()) return;
+            html += '<li class="text-xs text-gray-700 pl-3 border-l-2 border-indigo-200">' + (l.label ? '<span class="font-bold text-indigo-600 mr-1">' + escapeHtml(l.label) + '</span>' : '') + escapeHtml(l.text) + '</li>';
+          });
+          html += '</ul></div>';
+        });
+        html += '</div>';
+      }
+
+      html += '<div class="bg-white rounded-xl border border-gray-200 p-5"><h4 class="text-sm font-black text-gray-800 mb-3"><i class="fas fa-pen-to-square text-amber-500 mr-1.5"></i>평가문항 및 문제 첨부파일 (' + rows.length + '문항)</h4>';
+      if (rows.length) {
+        html += '<div class="space-y-3">';
+        rows.forEach((r, idx) => {
+          html += '<div class="rounded-xl border border-gray-100 bg-gray-50 p-4">' +
+            '<div class="flex items-center justify-between mb-2"><span class="text-xs font-black text-gray-800">문항 ' + (r.no || idx + 1) + (r.type ? ' (' + escapeHtml(r.type) + ')' : '') + '</span><span class="text-xs font-black text-indigo-600">' + (r.score || 0) + '점</span></div>' +
+            '<div class="text-xs text-gray-700 whitespace-pre-wrap">' + (r.text || '') + '</div>' +
+            (r.answer ? '<div class="mt-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded">정답/채점기준: ' + escapeHtml(r.answer) + '</div>' : '') +
+          '</div>';
+        });
+        html += '</div>';
+      } else {
+        html += '<p class="text-xs text-gray-400">등록된 평가문항이 없습니다.</p>';
+      }
+      if (atts.length) {
+        html += '<div class="mt-4 pt-3 border-t border-gray-100"><p class="text-xs font-black text-gray-600 mb-2">문제 첨부파일</p><div class="flex flex-wrap gap-2">' +
+          atts.map(a => '<a href="' + escapeHtml(a.url || '') + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-sky-700 hover:bg-sky-50"><i class="fas fa-paperclip"></i>' + escapeHtml(a.name || '첨부파일') + '</a>').join('') +
+        '</div></div>';
+      }
+      html += '</div>';
+      box.innerHTML = html;
     }
 
     function updateScore(studentId, scoreRaw) {

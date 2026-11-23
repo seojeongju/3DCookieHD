@@ -6440,35 +6440,48 @@ export async function resolveUnitToCurriculumSubjectMap(
         const { subjects } = await resolveLmsSubjectPlans(db, courseId, overrideSessionId);
         if (!subjects.length) return out;
 
-        // 이미 평가계획 문서가 존재하는 curriculum_id 집합을 우선순위로 둔다
+        // 이미 평가계획 문서(일정/문항/도구/채점기준/성취수준/검토)가 설정된 교과목을 최우선 매핑
         const docSubjectSet = new Set<number>();
         try {
             const cids = await resolveNcsPlanDocumentCourseIds(db, courseId);
             const inList = (cids.length ? cids : [courseId]).filter((v) => Number.isFinite(Number(v)) && Number(v) >= 1);
             if (inList.length) {
                 const ph = inList.map(() => '?').join(', ');
+                const dtPh = DASHBOARD_PLAN_DOC_TYPES.map(() => '?').join(', ');
                 const { results: docRows } = await db.prepare(
-                    `SELECT curriculum_id, payload_json FROM ncs_plan_documents WHERE course_id IN (${ph})`
-                ).bind(...inList).all();
-                for (const d of (docRows || []) as any[]) {
-                    if (d.curriculum_id != null) docSubjectSet.add(Number(d.curriculum_id));
-                    try {
-                        const p = d.payload_json ? JSON.parse(String(d.payload_json)) : {};
-                        if (p?.curriculum_id != null && String(p.curriculum_id).trim() !== '') {
-                            docSubjectSet.add(Number(p.curriculum_id));
-                        }
-                    } catch { /* ignore */ }
+                    `SELECT evaluation_round, doc_type, curriculum_id, payload_json, updated_at, id
+                     FROM ncs_plan_documents
+                     WHERE course_id IN (${ph}) AND doc_type IN (${dtPh})
+                     ORDER BY updated_at DESC, id DESC`
+                ).bind(...inList, ...DASHBOARD_PLAN_DOC_TYPES).all();
+                const docsByRoundType = dashGroupDocsByRoundType(docRows);
+                for (const round of [1, 2, 3]) {
+                    const P = (t: string) => dashPayloadsFor(docsByRoundType, round, t);
+                    const schP = P('schedule');
+                    for (const subject of subjects) {
+                        const anyOk =
+                            dashScheduleOkForPlan(schP, subject) ||
+                            dashTypedDocsOk(P('questions'), subject) ||
+                            dashTypedDocsOk(P('tools'), subject) ||
+                            dashTypedDocsOk(P('rubric'), subject) ||
+                            dashTypedDocsOk(P('achievement'), subject) ||
+                            dashReviewDocOk(P('review'), subject);
+                        if (anyOk) docSubjectSet.add(subject.ncs_unit_id);
+                    }
                 }
             }
         } catch { /* ignore */ }
 
-        // 문서가 있는 교과목을 먼저 매핑하고, 나머지를 뒤에 채운다
+        // 문서가 있는 교과목을 먼저 매핑하고, 동일 능력단위 코드 충돌 시 CURR-<id> 분리도 함께 매핑
         const ordered = [
             ...subjects.filter((s) => docSubjectSet.has(s.ncs_unit_id)),
             ...subjects.filter((s) => !docSubjectSet.has(s.ncs_unit_id)),
         ];
         for (const s of ordered) {
-            const unitId = await resolveNcsUnitIdForCurriculumSubject(db, s);
+            let unitId = await resolveNcsUnitIdForCurriculumSubject(db, s, false);
+            if (unitId && out.has(unitId)) {
+                unitId = await resolveNcsUnitIdForCurriculumSubject(db, s, true);
+            }
             if (unitId && !out.has(unitId)) {
                 out.set(unitId, { curriculum_id: s.ncs_unit_id, subject_name: s.unit_name });
             }
@@ -7826,7 +7839,8 @@ app.get('/evaluations/:planId', authMiddleware, async (c) => {
             results = (r.results || []) as any[];
         }
 
-        // plan에 교과목명(subject_name) 및 능력단위 정보 보강
+        // plan에 교과목명(subject_name) 및 능력단위 정보 + 시험지/평가도구/학생별 제출물 목록 보강
+        let examSpec: any = { schedule: null, questions: { rows: [], attachments: [], notes: '' }, tools: { criteria_groups: [] } };
         try {
             const unitRow: any = await c.env.DB.prepare('SELECT code, name FROM ncs_units WHERE id = ?').bind(plan.ncs_unit_id).first();
             if (unitRow) {
@@ -7839,9 +7853,94 @@ app.get('/evaluations/:planId', authMiddleware, async (c) => {
                 plan.subject_name = subj.subject_name;
                 plan.curriculum_id = subj.curriculum_id;
             }
+
+            // 학생별 제출 증빙/답안 목록(ncs_evidence) 매핑
+            const { results: evRows } = await c.env.DB.prepare(
+                'SELECT id, student_id, file_name, file_url, file_type, comment, uploaded_at FROM ncs_evidence WHERE plan_id = ? ORDER BY uploaded_at DESC, id DESC'
+            ).bind(planId).all();
+            const evByStudent = new Map<number, any[]>();
+            for (const ev of (evRows || []) as any[]) {
+                const sid = Number(ev.student_id);
+                const list = evByStudent.get(sid) || [];
+                list.push(ev);
+                evByStudent.set(sid, list);
+            }
+            for (const r of results) {
+                r.evidence_list = evByStudent.get(Number(r.student_id)) || [];
+                r.evidence_count = r.evidence_list.length;
+            }
+
+            // 이 평가계획의 평가문항/평가도구/일정 조회 (강사가 평가실행/결과에서 바로 확인 가능하도록)
+            const round = Number(plan.evaluation_round) || 1;
+            const cids = await resolveNcsPlanDocumentCourseIds(c.env.DB, Number(plan.course_id));
+            const inList = (cids.length ? cids : [Number(plan.course_id)]).filter((v) => Number.isFinite(Number(v)) && Number(v) >= 1);
+            if (inList.length) {
+                const ph = inList.map(() => '?').join(', ');
+                const { results: pDocs } = await c.env.DB.prepare(
+                    `SELECT doc_type, curriculum_id, payload_json
+                     FROM ncs_plan_documents
+                     WHERE course_id IN (${ph}) AND evaluation_round = ? AND doc_type IN ('questions', 'tools', 'schedule')
+                     ORDER BY updated_at DESC, id DESC`
+                ).bind(...inList, round).all();
+                const targetCid = plan.curriculum_id != null ? String(plan.curriculum_id).trim() : '';
+                const targetSubj = String(plan.subject_name || plan.unit_name || '').trim();
+                const targetUnit = String(plan.unit_name || '').trim();
+                const matchDoc = (cid: unknown, sName: unknown) =>
+                    (targetCid && cid != null && String(cid).trim() === targetCid) ||
+                    (targetSubj && dashNamesRoughlyMatch(sName, targetSubj)) ||
+                    (targetUnit && dashNamesRoughlyMatch(sName, targetUnit));
+
+                for (const d of (pDocs || []) as any[]) {
+                    const p = dashParsePlanDocPayload(d.payload_json);
+                    const docCid = p.curriculum_id || d.curriculum_id;
+                    if (d.doc_type === 'questions' && !examSpec.questions.rows.length) {
+                        const qRows = (Array.isArray(p.rows) ? p.rows : []).filter((r: any) =>
+                            matchDoc(r?.curriculum_id || docCid, r?.subject || p.subject_name)
+                        );
+                        if (qRows.length || (matchDoc(docCid, p.subject_name) && Array.isArray(p.attachments) && p.attachments.length)) {
+                            examSpec.questions = {
+                                rows: qRows.map((r: any, idx: number) => ({
+                                    no: Number(r?.no || idx + 1),
+                                    type: String(r?.type || ''),
+                                    text: String(r?.text || ''),
+                                    score: Number(r?.score || 0),
+                                    answer: String(r?.answer || r?.correct_answer || ''),
+                                })),
+                                attachments: Array.isArray(p.attachments) ? p.attachments : [],
+                                notes: String(p.notes || ''),
+                            };
+                        }
+                    } else if (d.doc_type === 'tools' && !examSpec.tools.criteria_groups.length) {
+                        if (matchDoc(docCid, p.subject_name)) {
+                            const groups = Array.isArray(p.criteria_groups) ? p.criteria_groups : [];
+                            if (groups.length) {
+                                examSpec.tools = {
+                                    criteria_groups: groups,
+                                    eval_datetime: String(p.tools_eval_datetime || ''),
+                                    duration: String(p.tools_eval_duration || ''),
+                                    achievement_note: String(p.tools_achievement_note || ''),
+                                };
+                            }
+                        }
+                    } else if (d.doc_type === 'schedule' && !examSpec.schedule) {
+                        const hit = (Array.isArray(p.rows) ? p.rows : []).find((r: any) =>
+                            matchDoc(r?.curriculum_id, r?.subject) && String(r?.date || '').trim()
+                        );
+                        if (hit) {
+                            examSpec.schedule = {
+                                date: String(hit.date || ''),
+                                time: String(hit.time || ''),
+                                time_end: String(hit.time_end || ''),
+                                place: String(hit.place || ''),
+                                instructor_name: String(hit.instructor_name || ''),
+                            };
+                        }
+                    }
+                }
+            }
         } catch { /* ignore */ }
 
-        return c.json({ success: true, data: results, plan });
+        return c.json({ success: true, data: results, plan, exam_spec: examSpec });
     } catch (e) {
         console.error('Failed to fetch evaluation targets:', e);
         return c.json({ success: false, error: 'Failed to fetch evaluation targets' }, 500);
@@ -8089,27 +8188,52 @@ app.get('/evidence', async (c) => {
     }
 });
 
-// 증빙 자료 등록
+// 증빙 자료 및 답안 등록 (학생 본인 제출 + 강사/관리자 대리 입력 지원, 텍스트 답안 단독 제출도 허용)
 app.post('/evidence', authMiddleware, async (c) => {
     try {
         const user = c.get('user') as JWTPayload;
         const body = await c.req.json();
         const { plan_id, student_id, file_name, file_url, file_type, comment } = body;
-        if (!plan_id || !String(file_name || '').trim() || !String(file_url || '').trim()) {
-            return c.json({ success: false, error: '제출물 제목과 파일(또는 링크)이 필요합니다.' }, 400);
+        const trimmedUrl = String(file_url || '').trim();
+        const trimmedComment = String(comment || '').trim();
+        const trimmedName = String(file_name || '').trim() || (trimmedUrl ? '첨부 제출물' : '답안/정답 입력');
+        if (!plan_id || (!trimmedUrl && !trimmedComment)) {
+            return c.json({ success: false, error: '첨부파일(또는 링크)이나 답안/정답 내용을 입력해 주세요.' }, 400);
         }
-        // 학생은 본인 제출만 가능
+        // 학생은 본인 제출만 가능, 강사/관리자는 student_id 지정 대리 제출 가능
         const studentId = user.role === 'student' ? user.userId : (student_id ?? user.userId);
+        const finalType = file_type || (trimmedUrl ? 'file' : 'answer');
 
         const result = await c.env.DB.prepare(`
             INSERT INTO ncs_evidence(plan_id, student_id, file_name, file_url, file_type, comment)
-        VALUES(?, ?, ?, ?, ?, ?)
-            `).bind(plan_id, studentId, String(file_name).trim(), String(file_url).trim(), file_type || 'file', comment || null).run();
+            VALUES(?, ?, ?, ?, ?, ?)
+        `).bind(plan_id, studentId, trimmedName, trimmedUrl, finalType, trimmedComment || null).run();
 
         return c.json({ success: true, data: { id: result.meta.last_row_id } });
     } catch (e) {
         console.error('Failed to upload evidence:', e);
         return c.json({ success: false, error: 'Failed to upload evidence' }, 500);
+    }
+});
+
+// 증빙 자료 / 대리 입력 답안 삭제
+app.delete('/evidence/:id', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user') as JWTPayload;
+        const id = parseInt(c.req.param('id'), 10);
+        if (!Number.isFinite(id) || id < 1) {
+            return c.json({ success: false, error: 'Invalid evidence id' }, 400);
+        }
+        const row: any = await c.env.DB.prepare('SELECT id, student_id FROM ncs_evidence WHERE id = ?').bind(id).first();
+        if (!row) return c.json({ success: false, error: '제출물을 찾을 수 없습니다.' }, 404);
+        if (user.role === 'student' && Number(row.student_id) !== Number(user.userId)) {
+            return forbiddenResponse(c, '본인 제출물만 삭제할 수 있습니다.');
+        }
+        await c.env.DB.prepare('DELETE FROM ncs_evidence WHERE id = ?').bind(id).run();
+        return c.json({ success: true });
+    } catch (e) {
+        console.error('Failed to delete evidence:', e);
+        return c.json({ success: false, error: 'Failed to delete evidence' }, 500);
     }
 });
 

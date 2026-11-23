@@ -104,11 +104,12 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">연락처</th>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">상태</th>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">등록일</th>
+                            <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">NCS 평가 대리입력</th>
                         </tr>
                     </thead>
                     <tbody id="studentsTableBody" class="divide-y divide-slate-50">
                         <tr>
-                            <td colspan="4" class="px-8 py-20 text-center text-slate-400">
+                            <td colspan="5" class="px-8 py-20 text-center text-slate-400">
                                 <i class="fas fa-spinner fa-spin text-2xl mb-4 block"></i>
                                 <span class="text-sm font-bold uppercase tracking-widest">수강생 목록을 불러오는 중...</span>
                             </td>
@@ -236,6 +237,11 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                             '<span class="px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-widest border ' + statusClass + '">' + statusText + '</span>' +
                         '</td>' +
                         '<td class="px-6 py-6 text-xs font-bold text-slate-400 tracking-widest uppercase">' + date + '</td>' +
+                        '<td class="px-6 py-6 text-center" onclick="event.stopPropagation()">' +
+                            '<button type="button" onclick="window.__openStudentNcsProxy(' + studentId + ', ' + JSON.stringify(s.user_name || '수강생').replace(/"/g, '&quot;') + ')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 text-xs font-black hover:bg-sky-600 hover:text-white transition">' +
+                                '<i class="fas fa-file-circle-plus"></i> 답안·파일 대리입력' +
+                            '</button>' +
+                        '</td>' +
                     '</tr>';
                 }).join('');
             }
@@ -270,9 +276,182 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
             window.__lmsSetRowsPerPage = function(n) { setRowsPerPageLms(n); };
 
             document.getElementById('studentsTableBody').addEventListener('click', function(e) {
+                if (e.target.closest('button, a')) return;
                 const row = e.target.closest('tr[data-href]');
                 if (row) location.href = row.getAttribute('data-href');
             });
+
+            // NCS 평가 답안·첨부파일 강사 대리입력 모달
+            let proxyPlansCache = null;
+            let activeProxyStudent = { id: null, name: '' };
+
+            async function ensureProxyPlans() {
+                if (proxyPlansCache) return proxyPlansCache;
+                const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
+                const all = [];
+                for (const r of [1, 2, 3]) {
+                    try {
+                        const res = await fetch('/api/ncs/plans?courseId=' + encodeURIComponent(courseId) + '&evaluation_round=' + r + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''), {
+                            headers: { 'Authorization': 'Bearer ' + getToken() }
+                        });
+                        const j = await res.json();
+                        (Array.isArray(j?.data) ? j.data : []).forEach(p => all.push({ ...p, __round: r }));
+                    } catch (_) {}
+                }
+                proxyPlansCache = all;
+                return all;
+            }
+
+            window.__openStudentNcsProxy = async function(studentId, studentName) {
+                activeProxyStudent = { id: Number(studentId), name: studentName || '수강생' };
+                const modal = document.getElementById('studentNcsProxyModal');
+                const nameEl = document.getElementById('ncsProxyStudentName');
+                const planSel = document.getElementById('ncsProxyPlanSelect');
+                if (!modal || !planSel) return;
+                if (nameEl) nameEl.textContent = activeProxyStudent.name;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                planSel.innerHTML = '<option value="">평가 계획을 불러오는 중...</option>';
+                const plans = await ensureProxyPlans();
+                if (!plans.length) {
+                    planSel.innerHTML = '<option value="">등록된 NCS 본평가 계획이 없습니다</option>';
+                    document.getElementById('ncsProxyExistingBox').innerHTML = '<p class="text-xs text-slate-400">먼저 NCS평가(본평가)관리 > 평가계획에서 계획을 저장해 주세요.</p>';
+                    return;
+                }
+                planSel.innerHTML = plans.map(p => {
+                    const label = '[' + p.__round + '차] ' + (p.subject_name || p.unit_name || '교과목') + (p.planned_date ? ' (' + p.planned_date + ')' : '');
+                    return '<option value="' + p.id + '">' + label + '</option>';
+                }).join('');
+                await window.__onNcsProxyPlanChange(planSel.value);
+            };
+
+            window.__closeStudentNcsProxy = function() {
+                const modal = document.getElementById('studentNcsProxyModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            };
+
+            window.__onNcsProxyPlanChange = async function(planId) {
+                const box = document.getElementById('ncsProxyExistingBox');
+                const titleInput = document.getElementById('ncsProxyTitle');
+                const plans = proxyPlansCache || [];
+                const plan = plans.find(p => String(p.id) === String(planId));
+                if (titleInput && plan) {
+                    titleInput.value = (plan.subject_name || plan.unit_name || '본평가') + ' - ' + activeProxyStudent.name + ' (강사 대리입력)';
+                }
+                if (!box || !planId || !activeProxyStudent.id) return;
+                box.innerHTML = '<p class="text-xs text-slate-400">제출 내역 조회 중...</p>';
+                try {
+                    const res = await fetch('/api/ncs/evidence?planId=' + encodeURIComponent(planId) + '&studentId=' + encodeURIComponent(activeProxyStudent.id), {
+                        headers: { 'Authorization': 'Bearer ' + getToken() }
+                    });
+                    const j = await res.json();
+                    const list = Array.isArray(j?.data) ? j.data : [];
+                    if (!list.length) {
+                        box.innerHTML = '<p class="text-xs text-slate-400">아직 제출된 답안이나 첨부파일이 없습니다.</p>';
+                        return;
+                    }
+                    box.innerHTML = '<div class="space-y-1.5">' + list.map(ev => {
+                        const hasUrl = ev.file_url && String(ev.file_url).trim() !== '';
+                        return '<div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs flex items-start justify-between gap-2">' +
+                            '<div class="min-w-0 flex-1">' +
+                                (hasUrl
+                                    ? '<a href="' + ev.file_url + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline break-all"><i class="fas fa-paperclip mr-1"></i>' + (ev.file_name || '제출파일') + '</a>'
+                                    : '<span class="font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + (ev.file_name || '답안 입력') + '</span>') +
+                                (ev.comment ? '<div class="text-slate-700 mt-1 whitespace-pre-wrap bg-white p-2 rounded border border-slate-100">' + ev.comment + '</div>' : '') +
+                            '</div>' +
+                            '<button type="button" onclick="window.__deleteNcsProxyEvidence(' + ev.id + ')" class="text-slate-400 hover:text-rose-500 px-1" title="삭제"><i class="fas fa-trash-can"></i></button>' +
+                        '</div>';
+                    }).join('') + '</div>';
+                } catch (_) {
+                    box.innerHTML = '<p class="text-xs text-rose-500">제출 내역을 불러오지 못했습니다.</p>';
+                }
+            };
+
+            window.__deleteNcsProxyEvidence = async function(evId) {
+                if (!confirm('이 제출물/답안을 삭제하시겠습니까?')) return;
+                try {
+                    const res = await fetch('/api/ncs/evidence/' + evId, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': 'Bearer ' + getToken() }
+                    });
+                    const j = await res.json();
+                    if (j?.success) {
+                        await window.__onNcsProxyPlanChange(document.getElementById('ncsProxyPlanSelect').value);
+                    } else {
+                        alert(j?.error || '삭제 실패');
+                    }
+                } catch (_) {
+                    alert('삭제 중 오류가 발생했습니다.');
+                }
+            };
+
+            window.__submitStudentNcsProxy = async function() {
+                const planId = document.getElementById('ncsProxyPlanSelect')?.value;
+                if (!planId || !activeProxyStudent.id) { alert('평가 계획을 선택하세요.'); return; }
+                const title = (document.getElementById('ncsProxyTitle')?.value || '').trim() || '강사 대리입력';
+                const url = (document.getElementById('ncsProxyUrl')?.value || '').trim();
+                const answer = (document.getElementById('ncsProxyAnswer')?.value || '').trim();
+                const fi = document.getElementById('ncsProxyFiles');
+                const files = fi && fi.files ? Array.from(fi.files) : [];
+                if (!files.length && !url && !answer) {
+                    alert('정답/답안 내용을 입력하거나 파일 또는 링크를 첨부해 주세요.');
+                    return;
+                }
+                const btn = document.getElementById('ncsProxySaveBtn');
+                if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+                try {
+                    const items = [];
+                    for (const f of files) {
+                        const fd = new FormData();
+                        fd.append('file', f);
+                        fd.append('category', 'evidence');
+                        fd.append('folder', 'ncs-evidence/' + planId);
+                        const upRes = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + getToken() },
+                            body: fd
+                        });
+                        const upJson = await upRes.json();
+                        if (!upJson?.success || !upJson?.data?.url) throw new Error(upJson?.error || (f.name + ' 업로드 실패'));
+                        const fType = String(f.type || '').startsWith('image/') ? 'image' : 'document';
+                        items.push({ name: title + ' · ' + (upJson.data.originalName || f.name), url: upJson.data.url, type: fType });
+                    }
+                    if (url) items.push({ name: title, url, type: 'link' });
+                    if (!items.length && answer) items.push({ name: title, url: '', type: 'answer' });
+
+                    for (const it of items) {
+                        const res = await fetch('/api/ncs/evidence', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + getToken()
+                            },
+                            body: JSON.stringify({
+                                plan_id: Number(planId),
+                                student_id: activeProxyStudent.id,
+                                file_name: it.name,
+                                file_url: it.url,
+                                file_type: it.type,
+                                comment: answer
+                            })
+                        });
+                        const j = await res.json();
+                        if (!j?.success) throw new Error(j?.error || '저장 실패');
+                    }
+                    document.getElementById('ncsProxyUrl').value = '';
+                    document.getElementById('ncsProxyAnswer').value = '';
+                    if (fi) fi.value = '';
+                    alert('수강생 답안/첨부파일이 등록되었습니다.');
+                    await window.__onNcsProxyPlanChange(planId);
+                } catch (e) {
+                    alert(e.message || '저장 중 오류가 발생했습니다.');
+                } finally {
+                    if (btn) { btn.disabled = false; btn.textContent = '대리 답안 · 파일 저장'; }
+                }
+            };
 
             document.getElementById('studentSearch').addEventListener('keyup', function(e) {
                 if (e.key === 'Enter') loadStudents(1);
@@ -285,6 +464,51 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
             }
         })();
     </script>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수강생 관리: 강사 대리 NCS 답안·파일 입력 모달 -->
+    <div id="studentNcsProxyModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-sky-600">NCS 본평가 강사 대리 입력</span>
+                    <h3 class="text-lg font-black text-slate-900 mt-0.5"><span id="ncsProxyStudentName">수강생</span> · 답안 및 첨부파일 등록</h3>
+                </div>
+                <button type="button" onclick="window.__closeStudentNcsProxy()" class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">1. 평가 교과목(계획) 선택</label>
+                    <select id="ncsProxyPlanSelect" onchange="window.__onNcsProxyPlanChange(this.value)" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-800 bg-white"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">기존 제출 내역</label>
+                    <div id="ncsProxyExistingBox" class="rounded-xl border border-slate-200 p-3 bg-white max-h-40 overflow-y-auto"></div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">제출 제목</label>
+                        <input id="ncsProxyTitle" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">외부 링크 (선택)</label>
+                        <input id="ncsProxyUrl" type="url" placeholder="https://..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">정답 / 답안 내용 입력</label>
+                    <textarea id="ncsProxyAnswer" rows="4" placeholder="학생이 시험 시 입력하지 못한 정답이나 서술형 답안을 대신 입력하세요..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-sky-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">평가 결과물 파일 첨부 (다중 선택 가능)</label>
+                    <input id="ncsProxyFiles" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.txt,.zip,.rar,.stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.mp4" class="block w-full text-sm text-slate-600 file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border-0 file:bg-sky-50 file:text-sky-700 file:text-xs file:font-black hover:file:bg-sky-100" />
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button type="button" onclick="window.__closeStudentNcsProxy()" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100">닫기</button>
+                <button type="button" id="ncsProxySaveBtn" onclick="window.__submitStudentNcsProxy()" class="px-5 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-black hover:bg-sky-700">대리 답안 · 파일 저장</button>
             </div>
         </div>
     </div>
