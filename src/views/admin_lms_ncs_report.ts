@@ -84,15 +84,16 @@ export const adminLmsNcsReportHtml = `
                 }
 
                 // 2. 능력단위 정보
-                const uRes = await fetch(\`/api/ncs/plans?courseId=\${courseId}\` + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''));
+                const authHdr = { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') };
+                const uRes = await fetch(\`/api/ncs/plans?courseId=\${courseId}\` + (_sid ? '&session_id=' + encodeURIComponent(_sid) : ''), { headers: authHdr });
                 const uData = await uRes.json();
                 const plans = uData.data || [];
                 
                 const unitHeaders = document.getElementById('unitHeaders');
-                unitHeaders.colSpan = plans.length;
+                unitHeaders.colSpan = Math.max(plans.length, 1);
                 
                 const unitSubHeaders = document.getElementById('unitSubHeaders');
-                unitSubHeaders.innerHTML = plans.map(p => \`<th class="text-[10px]">\${p.unit_name}<br>(\${p.unit_code})</th>\`).join('');
+                unitSubHeaders.innerHTML = plans.map(p => \`<th class="text-[10px]">\${p.subject_name || p.unit_name}<br>(\${p.unit_code || p.unit_name || '-'})</th>\`).join('');
 
                 // 3. 학생별 결과 집계
                 // 모든 계획에 대한 결과를 병렬로 가져옴 (성능 최적화는 추후 API 개선)
@@ -100,7 +101,7 @@ export const adminLmsNcsReportHtml = `
                 const students = [];
 
                 for (const plan of plans) {
-                    const rRes = await fetch(\`/api/ncs/evaluations/\${plan.id}\`);
+                    const rRes = await fetch(\`/api/ncs/evaluations/\${plan.id}\` + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''), { headers: authHdr });
                     const rData = await rRes.json();
                     if (rData.success) {
                         rData.data.forEach(row => {

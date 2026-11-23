@@ -57,7 +57,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
               <table class="w-full text-left min-w-[980px]">
                 <thead class="bg-white border-b border-gray-100">
                   <tr>
-                    <th class="px-4 py-3 text-xs font-semibold text-gray-500">능력단위</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-gray-500">교과목 / 능력단위</th>
                     <th class="px-4 py-3 text-xs font-semibold text-gray-500">평가방법</th>
                     <th class="px-4 py-3 text-xs font-semibold text-gray-500">평가예정일</th>
                     <th class="px-4 py-3 text-xs font-semibold text-gray-500 text-center">계획 상태</th>
@@ -186,7 +186,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
     async function ensurePlanStats(planId) {
       if (planStatsCache[planId]) return planStatsCache[planId];
       try {
-        const res = await fetch('/api/ncs/evaluations/' + planId, {
+        const res = await fetch('/api/ncs/evaluations/' + planId + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''), {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
         const json = await res.json();
@@ -209,10 +209,11 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       const keyword = (document.getElementById('unitSearchInput')?.value || '').trim().toLowerCase();
       if (!keyword) return plans;
       return plans.filter(p => {
+        const subj = String(p.subject_name || '').toLowerCase();
         const unit = String(p.unit_name || '').toLowerCase();
         const code = String(p.unit_code || '').toLowerCase();
         const method = String(p.method || '').toLowerCase();
-        return unit.includes(keyword) || code.includes(keyword) || method.includes(keyword);
+        return subj.includes(keyword) || unit.includes(keyword) || code.includes(keyword) || method.includes(keyword);
       });
     }
 
@@ -232,11 +233,16 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         const passRate = stats.total > 0 ? Math.round((stats.passed / stats.total) * 100) : 0;
         const planDone = plan.status === 'confirmed' || plan.status === 'completed';
         const evalDone = stats.graded > 0;
+        const mainTitle = plan.subject_name || plan.unit_name || '-';
+        const subUnit = (plan.subject_name && plan.unit_name && plan.subject_name !== plan.unit_name)
+          ? ((plan.unit_code ? '[' + plan.unit_code + '] ' : '') + plan.unit_name)
+          : (plan.unit_code || '');
+        const sidQ = _sid ? '&session_id=' + encodeURIComponent(_sid) : '';
         return \`
           <tr class="hover:bg-gray-50 transition">
             <td class="px-4 py-3">
-              <div class="font-semibold text-gray-800">\${escapeHtml(plan.unit_name)}</div>
-              <div class="text-xs text-gray-400 mt-0.5">\${escapeHtml(plan.unit_code || '')}</div>
+              <div class="font-semibold text-gray-800">\${escapeHtml(mainTitle)}</div>
+              <div class="text-xs text-gray-400 mt-0.5">\${escapeHtml(subUnit)}</div>
             </td>
             <td class="px-4 py-3 text-sm text-gray-700">\${escapeHtml(plan.method || '-')}</td>
             <td class="px-4 py-3 text-sm text-gray-700">\${escapeHtml(plan.planned_date || '-')}</td>
@@ -249,8 +255,8 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
             <td class="px-4 py-3 text-center">
               <div class="flex items-center justify-center gap-1.5">
                 <button class="px-2.5 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition" onclick="selectPlan(\${plan.id})">평가입력</button>
-                <a class="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition" href="\${basePrefix}/courses/\${courseId}/lms/ncs-eval-plan?evaluation_round=\${activeRound}">계획서</a>
-                <a class="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition" href="\${basePrefix}/courses/\${courseId}/lms/ncs-eval-result?evaluation_round=\${activeRound}">결과</a>
+                <a class="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition" href="\${basePrefix}/courses/\${courseId}/lms/ncs-eval-plan?evaluation_round=\${activeRound}\${sidQ}">계획서</a>
+                <a class="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition" href="\${basePrefix}/courses/\${courseId}/lms/ncs-eval-result?evaluation_round=\${activeRound}\${sidQ}">결과</a>
               </div>
             </td>
           </tr>
@@ -295,6 +301,10 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         plans = Array.isArray(json.data) ? json.data : [];
         await hydrateVisibleStats(plans);
         renderExecList();
+        const initPlanId = new URLSearchParams(window.location.search).get('plan_id');
+        if (initPlanId && !currentPlan && plans.some(p => String(p.id) === String(initPlanId))) {
+          await selectPlan(initPlanId);
+        }
 
       } catch (e) {
         console.error(e);
@@ -305,7 +315,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
 
     async function selectPlan(planId) {
       try {
-        const res = await fetch(\`/api/ncs/evaluations/\${planId}\`, {
+        const res = await fetch(\`/api/ncs/evaluations/\${planId}\` + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''), {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
         const result = await res.json();
@@ -319,8 +329,13 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         btn.disabled = false;
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
 
-        document.getElementById('selectedPlanTitle').textContent = currentPlan.unit_name;
-        document.getElementById('selectedPlanInfo').textContent = \`평가방법: \${currentPlan.method} | 평가일: \${currentPlan.planned_date || '-'}\`;
+        const matchedListPlan = plans.find(p => String(p.id) === String(planId));
+        const displayName = currentPlan.subject_name || (matchedListPlan && matchedListPlan.subject_name) || currentPlan.unit_name || '-';
+        const unitLabel = currentPlan.unit_name && currentPlan.unit_name !== displayName
+          ? \` | 능력단위: \${currentPlan.unit_code ? '[' + currentPlan.unit_code + '] ' : ''}\${currentPlan.unit_name}\`
+          : '';
+        document.getElementById('selectedPlanTitle').textContent = displayName;
+        document.getElementById('selectedPlanInfo').textContent = \`평가방법: \${currentPlan.method} | 평가일: \${currentPlan.planned_date || '-'}\${unitLabel}\`;
         document.getElementById('selectedTargetScore').textContent = \`\${currentPlan.target_score}점\`;
         document.getElementById('selectedMethodPlan').textContent = \`\${currentPlan.method} / \${currentPlan.planned_date || '-'}\`;
 

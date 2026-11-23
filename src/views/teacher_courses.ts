@@ -423,12 +423,30 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
             }
         }
 
+        function handleUnauthorizedTeacherSession() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+            window.location.href = '/login';
+        }
+
         function checkLogin() {
             const token = localStorage.getItem('token');
             if (!token) {
                 window.location.href = '/login';
                 return;
             }
+            try {
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                    const payload = JSON.parse(atob(b64));
+                    if (payload && payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+                        handleUnauthorizedTeacherSession();
+                        return;
+                    }
+                }
+            } catch (e) { /* ignore decode error */ }
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             if (user.role !== 'teacher' && user.role !== 'admin') {
                 alert('강사 권한이 필요합니다.');
@@ -440,9 +458,13 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
         async function loadStats() {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('/api/courses?limit=500', {
+                const res = await fetch('/api/courses?scope=teacher&limit=500', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
+                if (res.status === 401) {
+                    handleUnauthorizedTeacherSession();
+                    return;
+                }
                 const result = await res.json();
                 if (result.success) {
                     const all = result.data || [];
@@ -479,7 +501,7 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 const status = activeStatusTab === 'all' ? '' : activeStatusTab;
                 const search = document.getElementById('searchInput').value;
 
-                let url = '/api/courses?page=' + page + '&limit=' + limit;
+                let url = '/api/courses?scope=teacher&page=' + page + '&limit=' + limit;
                 if (category) url += '&category=' + encodeURIComponent(category);
                 if (status) url += '&status=' + encodeURIComponent(status);
                 if (search) url += '&search=' + encodeURIComponent(search);
@@ -487,6 +509,10 @@ function teacherCoursesHtmlInner(activeSubMenu?: string) {
                 const response = await fetch(url, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
+                if (response.status === 401) {
+                    handleUnauthorizedTeacherSession();
+                    return;
+                }
                 const result = await response.json();
 
                 if (result.success) {

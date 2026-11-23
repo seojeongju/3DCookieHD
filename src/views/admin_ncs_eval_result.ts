@@ -88,7 +88,7 @@ function resultPageScript(useFixedCourseId: boolean) {
     }
 
     async function fetchPlanEvaluationStats(planId) {
-      const res = await authFetch('/api/ncs/evaluations/' + encodeURIComponent(planId));
+      const res = await authFetch('/api/ncs/evaluations/' + encodeURIComponent(planId) + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''));
       const json = await res.json();
       const rows = Array.isArray(json?.data) ? json.data : [];
       const total = rows.length;
@@ -99,6 +99,27 @@ function resultPageScript(useFixedCourseId: boolean) {
       const passRate = graded ? (passed / graded * 100) : 0;
       const completed = total > 0 && graded >= total;
       return { total, graded, passed, avgScore, passRate, completed };
+    }
+
+    function planDisplayLabel(plan) {
+      const main = String(plan?.subject_name || plan?.unit_name || '-').trim();
+      const uName = String(plan?.unit_name || '').trim();
+      const uCode = String(plan?.unit_code || '').trim();
+      if (plan?.subject_name && uName && plan.subject_name !== uName) {
+        return main + ' (' + (uCode ? '[' + uCode + '] ' : '') + uName + ')';
+      }
+      return uCode ? ('[' + uCode + '] ' + main) : main;
+    }
+
+    function planDisplayHtml(plan) {
+      const main = String(plan?.subject_name || plan?.unit_name || '-').trim();
+      const uName = String(plan?.unit_name || '').trim();
+      const uCode = String(plan?.unit_code || '').trim();
+      const sub = (plan?.subject_name && uName && plan.subject_name !== uName)
+        ? ((uCode ? '[' + uCode + '] ' : '') + uName)
+        : uCode;
+      return '<div class="font-bold text-slate-800">' + escapeHtml(main) + '</div>' +
+        (sub ? '<div class="text-xs text-slate-400 mt-0.5">' + escapeHtml(sub) + '</div>' : '');
     }
 
     function renderNoCourseMessage(containerId) {
@@ -147,42 +168,50 @@ function resultPageScript(useFixedCourseId: boolean) {
             '<div class="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3"><p class="text-[11px] text-indigo-700 font-black uppercase tracking-wider">완료건 이수율</p><p class="mt-1 text-2xl font-black text-indigo-700">' + overallPassRate.toFixed(1) + '%</p></div>' +
           '</div>';
 
-        const tableHtml = completedRows.length
+        const tableHtml = statsByPlan.length
           ? '<div class="overflow-x-auto rounded-2xl border border-slate-200/70 mt-4"><table class="w-full text-left min-w-[980px]"><thead class="bg-slate-50 border-b border-slate-100"><tr>' +
               '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">차수</th>' +
-              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">능력단위</th>' +
-              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">평가실시일</th>' +
-              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">채점완료</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">교과목 / 능력단위</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">평가방법 / 실시일</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">상태</th>' +
+              '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">채점현황</th>' +
               '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">평균점수</th>' +
               '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">이수율</th>' +
               '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">바로가기</th>' +
             '</tr></thead><tbody class="divide-y divide-slate-100">' +
-            completedRows.map(x => {
+            statsByPlan.map(x => {
               const plan = x.plan;
               const stats = x.stats;
               const courseId = encodeURIComponent(selectedCourseId);
               const roundQ = encodeURIComponent(plan.__round);
+              const sidQ = _sid ? '&session_id=' + encodeURIComponent(_sid) : '';
+              const stateBadge = stats.completed
+                ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">채점완료</span>'
+                : (stats.graded > 0
+                    ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-700">채점진행중</span>'
+                    : '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700">채점대기</span>');
               return '<tr>' +
                 '<td class="px-4 py-3 text-sm font-bold text-slate-700">' + escapeHtml(roundLabel(plan.__round)) + '</td>' +
-                '<td class="px-4 py-3 text-sm text-slate-800">[' + escapeHtml(plan.unit_code || '-') + '] ' + escapeHtml(plan.unit_name || '-') + '</td>' +
-                '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(plan.planned_date || '-') + '</td>' +
+                '<td class="px-4 py-3 text-sm text-slate-800">' + planDisplayHtml(plan) + '</td>' +
+                '<td class="px-4 py-3 text-sm text-slate-700">' + escapeHtml(plan.method || '-') + '<div class="text-xs text-slate-400">' + escapeHtml(plan.planned_date || '-') + '</div></td>' +
+                '<td class="px-4 py-3 text-center">' + stateBadge + '</td>' +
                 '<td class="px-4 py-3 text-sm text-center text-slate-700">' + stats.graded + '/' + stats.total + '</td>' +
-                '<td class="px-4 py-3 text-sm text-center text-slate-700">' + stats.avgScore.toFixed(1) + '점</td>' +
-                '<td class="px-4 py-3 text-sm text-center font-bold text-sky-700">' + stats.passRate.toFixed(1) + '%</td>' +
+                '<td class="px-4 py-3 text-sm text-center text-slate-700">' + (stats.graded > 0 ? stats.avgScore.toFixed(1) + '점' : '-') + '</td>' +
+                '<td class="px-4 py-3 text-sm text-center font-bold text-sky-700">' + (stats.graded > 0 ? stats.passRate.toFixed(1) + '%' : '-') + '</td>' +
                 '<td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1.5">' +
-                  '<a href="' + basePrefix + '/courses/' + courseId + '/lms/ncs-eval-result?evaluation_round=' + roundQ + '" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">상세결과</a>' +
-                  '<a href="' + basePrefix + '/courses/' + courseId + '/lms/ncs-eval-exec?evaluation_round=' + roundQ + '" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-xs font-bold text-sky-700 hover:bg-sky-100">평가실행</a>' +
+                  '<a href="' + basePrefix + '/courses/' + courseId + '/lms/ncs-eval-exec?evaluation_round=' + roundQ + '&plan_id=' + encodeURIComponent(plan.id) + sidQ + '" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-xs font-bold text-sky-700 hover:bg-sky-100">채점/실행</a>' +
+                  '<button type="button" onclick="docsRound=' + Number(plan.__round) + ';document.getElementById(\\'docsRoundSelect\\').value=\\'' + Number(plan.__round) + '\\';selectedDocPlanId=\\'' + String(plan.id) + '\\';setActiveTab(\\'docs\\');loadDocPlanOptions().then(renderDocResults);" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">결과문서</button>' +
                 '</div></td>' +
               '</tr>';
             }).join('') +
             '</tbody></table></div>'
-          : '<div class="mt-4 p-6 text-center text-slate-400 text-sm border border-slate-200 rounded-2xl">NCS 평가실행 완료 내역이 없습니다.</div>';
+          : '<div class="mt-4 p-6 text-center text-slate-400 text-sm border border-slate-200 rounded-2xl">등록된 평가 계획이 없습니다.</div>';
 
         body.innerHTML = '<div class="space-y-4">' +
           summaryCards +
           '<div class="rounded-2xl border border-slate-200/70 bg-white p-4">' +
-            '<h4 class="text-sm font-black text-slate-900">평가실행 완료 내역</h4>' +
-            '<p class="text-xs text-slate-500 mt-1">채점이 전원 완료된 계획만 표시됩니다.</p>' +
+            '<h4 class="text-sm font-black text-slate-900">평가 계획 및 실행 현황</h4>' +
+            '<p class="text-xs text-slate-500 mt-1">등록된 전체 평가 계획의 채점 진행 상태와 결과를 확인하고 바로 채점할 수 있습니다.</p>' +
             tableHtml +
           '</div>' +
         '</div>';
@@ -210,16 +239,21 @@ function resultPageScript(useFixedCourseId: boolean) {
           const courseId = encodeURIComponent(selectedCourseId);
           const planId = encodeURIComponent(plan.id);
           const roundQ = encodeURIComponent(gradingRound);
+          const sidQ = _sid ? '&session_id=' + encodeURIComponent(_sid) : '';
+          const mainName = plan.subject_name || plan.unit_name || '교과목';
+          const subLabel = (plan.subject_name && plan.unit_name && plan.subject_name !== plan.unit_name)
+            ? ((plan.unit_code ? '[' + plan.unit_code + '] ' : '') + plan.unit_name)
+            : (plan.unit_code ? '[' + plan.unit_code + ']' : '-');
           return '<div class="rounded-2xl border border-slate-200/70 bg-white p-4 flex items-center justify-between gap-3">' +
             '<div class="min-w-0">' +
               '<div class="flex items-center gap-2 mb-1">' +
-                '<span class="px-2 py-0.5 rounded-lg bg-slate-100 text-[11px] font-bold text-slate-600">[' + escapeHtml(plan.unit_code || '-') + ']</span>' +
+                '<span class="px-2 py-0.5 rounded-lg bg-slate-100 text-[11px] font-bold text-slate-600">' + escapeHtml(subLabel) + '</span>' +
                 statusLabel(plan.status) +
               '</div>' +
-              '<p class="font-bold text-slate-800 truncate">' + escapeHtml(plan.unit_name || '능력단위') + '</p>' +
+              '<p class="font-bold text-slate-800 truncate">' + escapeHtml(mainName) + '</p>' +
               '<p class="text-xs text-slate-500 mt-1">평가일: ' + escapeHtml(plan.planned_date || '-') + ' · 방법: ' + escapeHtml(plan.method || '-') + '</p>' +
             '</div>' +
-            '<a href="' + (useFixedCourseId ? ('/admin/courses/' + courseId + '/lms/ncs-eval-exec?evaluation_round=' + roundQ + '&plan_id=' + planId) : ('/admin/courses/' + courseId + '/lms/ncs-eval-exec?evaluation_round=' + roundQ + '&plan_id=' + planId)) + '" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 text-xs font-black hover:bg-sky-100 transition whitespace-nowrap">채점 실행</a>' +
+            '<a href="' + basePrefix + '/courses/' + courseId + '/lms/ncs-eval-exec?evaluation_round=' + roundQ + '&plan_id=' + planId + sidQ + '" class="px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 text-xs font-black hover:bg-sky-100 transition whitespace-nowrap">채점 실행</a>' +
           '</div>';
         }).join('');
       } catch (e) {
@@ -240,7 +274,7 @@ function resultPageScript(useFixedCourseId: boolean) {
       plans.forEach(plan => {
         const opt = document.createElement('option');
         opt.value = String(plan.id);
-        opt.textContent = '[' + (plan.unit_code || '-') + '] ' + (plan.unit_name || '능력단위') + ' · ' + (plan.planned_date || '-');
+        opt.textContent = planDisplayLabel(plan) + ' · ' + (plan.planned_date || '-');
         sel.appendChild(opt);
       });
       if (selectedDocPlanId && plans.some(p => String(p.id) === String(selectedDocPlanId))) {
@@ -263,11 +297,11 @@ function resultPageScript(useFixedCourseId: boolean) {
       }
       body.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">로딩 중...</div>';
       try {
-        const res = await authFetch('/api/ncs/evaluations/' + encodeURIComponent(selectedDocPlanId));
+        const res = await authFetch('/api/ncs/evaluations/' + encodeURIComponent(selectedDocPlanId) + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''));
         const json = await res.json();
         const rows = Array.isArray(json?.data) ? json.data : [];
         if (!rows.length) {
-          body.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">채점 결과가 없습니다.</div>';
+          body.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm">수강생 또는 채점 결과가 없습니다.</div>';
           return;
         }
         body.innerHTML = '<div class="overflow-x-auto"><table class="w-full text-left"><thead class="bg-slate-50 border-b border-slate-100"><tr>' +
@@ -279,11 +313,15 @@ function resultPageScript(useFixedCourseId: boolean) {
           rows.map(row => {
             const studentId = encodeURIComponent(row.student_id);
             const courseId = encodeURIComponent(selectedCourseId);
-            const reportHref = (useFixedCourseId ? '/admin/courses/' + courseId + '/lms/ncs-report/' + studentId : '/admin/courses/' + courseId + '/lms/ncs-report/' + studentId);
+            const reportHref = basePrefix + '/courses/' + courseId + '/lms/ncs-report/' + studentId + (_sid ? '?session_id=' + encodeURIComponent(_sid) : '');
+            const hasScore = row.score != null && String(row.score).trim() !== '';
+            const passBadge = !hasScore
+              ? '<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700">미채점</span>'
+              : (row.is_passed ? '<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">이수</span>' : '<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700">미이수</span>');
             return '<tr>' +
               '<td class="px-4 py-3 text-sm font-semibold text-slate-800">' + escapeHtml(row.name || '-') + '</td>' +
-              '<td class="px-4 py-3 text-sm text-slate-700 text-center">' + escapeHtml(row.score ?? '-') + '</td>' +
-              '<td class="px-4 py-3 text-center">' + (row.is_passed ? '<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">이수</span>' : '<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700">미이수</span>') + '</td>' +
+              '<td class="px-4 py-3 text-sm text-slate-700 text-center">' + escapeHtml(hasScore ? row.score : '-') + '</td>' +
+              '<td class="px-4 py-3 text-center">' + passBadge + '</td>' +
               '<td class="px-4 py-3"><a target="_blank" href="' + reportHref + '" class="inline-flex items-center px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">개인 결과문서</a></td>' +
             '</tr>';
           }).join('') +
@@ -310,7 +348,7 @@ function resultPageScript(useFixedCourseId: boolean) {
         }
         const statsRows = [];
         for (const plan of plans) {
-          const res = await authFetch('/api/ncs/evaluations/' + encodeURIComponent(plan.id));
+          const res = await authFetch('/api/ncs/evaluations/' + encodeURIComponent(plan.id) + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''));
           const json = await res.json();
           const rows = Array.isArray(json?.data) ? json.data : [];
           const graded = rows.filter(r => r.score != null);
@@ -319,6 +357,7 @@ function resultPageScript(useFixedCourseId: boolean) {
           const passRate = graded.length ? (passCount / graded.length * 100) : 0;
           statsRows.push({
             plan,
+            totalCount: rows.length,
             gradedCount: graded.length,
             passCount,
             avgScore: avg.toFixed(1),
@@ -327,14 +366,14 @@ function resultPageScript(useFixedCourseId: boolean) {
         }
 
         const summary = statsRows.map((s, i) =>
-          (i + 1) + '. [' + (s.plan.unit_code || '-') + '] ' + (s.plan.unit_name || '-') + ' / 평균 ' + s.avgScore + '점 / 이수율 ' + s.passRate + '%'
+          (i + 1) + '. ' + planDisplayLabel(s.plan) + ' / 채점 ' + s.gradedCount + '/' + s.totalCount + '명 / 평균 ' + s.avgScore + '점 / 이수율 ' + s.passRate + '%'
         ).join('\\n');
 
         body.innerHTML = '<div class="space-y-4">' +
           '<div class="overflow-x-auto rounded-2xl border border-slate-200/70">' +
             '<table class="w-full text-left">' +
               '<thead class="bg-slate-50 border-b border-slate-100"><tr>' +
-                '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">능력단위</th>' +
+                '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider">교과목 / 능력단위</th>' +
                 '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">채점완료</th>' +
                 '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">이수인원</th>' +
                 '<th class="px-4 py-2 text-xs font-black text-slate-500 uppercase tracking-wider text-center">평균점수</th>' +
@@ -343,8 +382,8 @@ function resultPageScript(useFixedCourseId: boolean) {
               '<tbody class="divide-y divide-slate-100">' +
                 statsRows.map(s =>
                   '<tr>' +
-                    '<td class="px-4 py-3 text-sm font-semibold text-slate-800">[' + escapeHtml(s.plan.unit_code || '-') + '] ' + escapeHtml(s.plan.unit_name || '-') + '</td>' +
-                    '<td class="px-4 py-3 text-center text-sm text-slate-700">' + s.gradedCount + '명</td>' +
+                    '<td class="px-4 py-3 text-sm font-semibold text-slate-800">' + planDisplayHtml(s.plan) + '</td>' +
+                    '<td class="px-4 py-3 text-center text-sm text-slate-700">' + s.gradedCount + ' / ' + s.totalCount + '명</td>' +
                     '<td class="px-4 py-3 text-center text-sm text-slate-700">' + s.passCount + '명</td>' +
                     '<td class="px-4 py-3 text-center text-sm text-slate-700">' + s.avgScore + '점</td>' +
                     '<td class="px-4 py-3 text-center text-sm font-bold text-sky-700">' + s.passRate + '%</td>' +

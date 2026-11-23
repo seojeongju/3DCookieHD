@@ -6268,12 +6268,16 @@ const CURRICULUM_UNIT_CODE_PREFIX = 'CURR-';
 /**
  * 교과목(curriculum)에 대응하는 ncs_units.id 를 찾거나 만든다.
  * 1) ability_units_json 의 첫 능력단위 코드 → ncs_units.code (없으면 생성)
- * 2) 비NCS·코드 없음 → `CURR-<curriculum_id>` 대체 행 (없으면 생성)
+ * 2) 비NCS·코드 없음 또는 동일 과정 내 중복 코드(forceCurriculumUnit=true) → `CURR-<curriculum_id>` 대체 행 (없으면 생성)
  */
-async function resolveNcsUnitIdForCurriculumSubject(db: any, subject: DashSubjectPlan): Promise<number | null> {
+async function resolveNcsUnitIdForCurriculumSubject(
+    db: any,
+    subject: DashSubjectPlan,
+    forceCurriculumUnit = false
+): Promise<number | null> {
     let unitCode = '';
     let unitName = '';
-    if (subject.ability_units_json) {
+    if (!forceCurriculumUnit && subject.ability_units_json) {
         try {
             const parsed = JSON.parse(subject.ability_units_json) as AbilityUnitJsonEntry[];
             for (const u of Array.isArray(parsed) ? parsed : []) {
@@ -6349,7 +6353,11 @@ async function syncEvaluationPlansFromPlanDocuments(
         const anyDoc = Object.values(okMap).some(Boolean);
         if (!anyDoc) continue; // 계획 문서가 없는 교과목은 실행 목록에 올리지 않음
 
-        const unitId = await resolveNcsUnitIdForCurriculumSubject(db, subject);
+        let unitId = await resolveNcsUnitIdForCurriculumSubject(db, subject, false);
+        if (unitId && map.has(unitId)) {
+            // 동일 과정 내 다른 교과목이 이미 같은 NCS 능력단위 코드를 점유한 경우 교과목 전용 행으로 분리해 덮어쓰기 방지
+            unitId = await resolveNcsUnitIdForCurriculumSubject(db, subject, true);
+        }
         if (!unitId) continue;
 
         let plannedDate: string | null = null;
@@ -7639,6 +7647,15 @@ app.get('/plans', authMiddleware, async (c) => {
         } catch (syncErr) {
             console.warn('evaluation plans sync from plan documents:', syncErr);
         }
+        if (subjectByUnitId.size === 0) {
+            try {
+                subjectByUnitId = await resolveUnitToCurriculumSubjectMap(
+                    c.env.DB,
+                    courseIdNum,
+                    sesOvrPlans ? sesOvrPlans.sessionId : null
+                );
+            } catch { /* ignore */ }
+        }
 
         const evaluationRoundCondition = hasRoundCol ? 'AND p.evaluation_round = ?' : '';
         const roundBind = hasRoundCol ? [evaluationRound] : [];
@@ -7764,18 +7781,65 @@ app.get('/evaluations/:planId', authMiddleware, async (c) => {
             if (!allowed) return forbiddenResponse(c, '이 과정에 대한 권한이 없습니다.');
         }
 
-        // 2. 수강생 목록 및 기존 성적 조회
-        const query = `
-            SELECT 
-                u.id as student_id, u.name, u.phone,
-                er.score, er.is_passed, er.feedback, er.id as result_id
-            FROM users u
-            JOIN enrollments e ON u.id = e.user_id
-            LEFT JOIN ncs_evaluation_results er ON er.plan_id = ? AND er.student_id = u.id
-            WHERE e.course_id = ? AND u.role = 'student'
-            ORDER BY u.name ASC
-        `;
-        const { results } = await c.env.DB.prepare(query).bind(planId, plan.course_id).all();
+        // 2. 수강생 목록 및 기존 성적 조회 (회차 수강생 course_session_enrollments + 기존 enrollments 모두 지원)
+        const sesOvrEval = await resolveExplicitSessionOverride(c.env.DB, c.req.query('session_id'));
+        const explicitSid = sesOvrEval ? sesOvrEval.sessionId : null;
+        let results: any[] = [];
+        if (explicitSid) {
+            const r = await c.env.DB.prepare(`
+                SELECT
+                    u.id as student_id, u.name, u.phone,
+                    er.score, er.is_passed, er.feedback, er.id as result_id,
+                    (SELECT COUNT(*) FROM ncs_evidence ev WHERE ev.plan_id = ? AND ev.student_id = u.id) as evidence_count
+                FROM course_session_enrollments cse
+                JOIN users u ON u.id = cse.user_id
+                LEFT JOIN ncs_evaluation_results er ON er.plan_id = ? AND er.student_id = u.id
+                WHERE cse.session_id = ? AND cse.status IN ('approved', 'enrolled')
+                GROUP BY u.id
+                ORDER BY u.name ASC
+            `).bind(planId, planId, explicitSid).all();
+            results = (r.results || []) as any[];
+        }
+        if (!results.length) {
+            const r = await c.env.DB.prepare(`
+                SELECT
+                    u.id as student_id, u.name, u.phone,
+                    er.score, er.is_passed, er.feedback, er.id as result_id,
+                    (SELECT COUNT(*) FROM ncs_evidence ev WHERE ev.plan_id = ? AND ev.student_id = u.id) as evidence_count
+                FROM users u
+                LEFT JOIN ncs_evaluation_results er ON er.plan_id = ? AND er.student_id = u.id
+                WHERE (
+                    EXISTS (
+                        SELECT 1 FROM course_session_enrollments cse
+                        JOIN course_sessions cs ON cs.id = cse.session_id
+                        WHERE cse.user_id = u.id AND cse.status IN ('approved', 'enrolled')
+                          AND (cs.lms_course_id = ? OR cs.id = ?)
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM enrollments e
+                        WHERE e.user_id = u.id AND e.course_id = ? AND e.status IN ('approved', 'enrolled')
+                    )
+                )
+                GROUP BY u.id
+                ORDER BY u.name ASC
+            `).bind(planId, planId, plan.course_id, plan.course_id, plan.course_id).all();
+            results = (r.results || []) as any[];
+        }
+
+        // plan에 교과목명(subject_name) 및 능력단위 정보 보강
+        try {
+            const unitRow: any = await c.env.DB.prepare('SELECT code, name FROM ncs_units WHERE id = ?').bind(plan.ncs_unit_id).first();
+            if (unitRow) {
+                plan.unit_code = unitRow.code;
+                plan.unit_name = unitRow.name;
+            }
+            const subjMap = await resolveUnitToCurriculumSubjectMap(c.env.DB, Number(plan.course_id), explicitSid);
+            const subj = subjMap.get(Number(plan.ncs_unit_id));
+            if (subj) {
+                plan.subject_name = subj.subject_name;
+                plan.curriculum_id = subj.curriculum_id;
+            }
+        } catch { /* ignore */ }
 
         return c.json({ success: true, data: results, plan });
     } catch (e) {
@@ -8054,19 +8118,30 @@ app.get('/plans/:planId/export-csv', async (c) => {
     try {
         const planId = c.req.param('planId');
 
-        // 데이터 조회
+        // 데이터 조회 (회차 수강생 course_session_enrollments + 기존 enrollments 모두 지원)
         const query = `
             SELECT 
                 u.name as student_name, u.phone,
                 p.method, p.planned_date,
                 un.code as unit_code, un.name as unit_name,
                 er.score, er.is_passed
-            FROM users u
-            JOIN enrollments e ON u.id = e.user_id
-            JOIN ncs_evaluation_plans p ON e.course_id = p.course_id
+            FROM ncs_evaluation_plans p
             JOIN ncs_units un ON p.ncs_unit_id = un.id
+            JOIN users u ON (
+                EXISTS (
+                    SELECT 1 FROM course_session_enrollments cse
+                    JOIN course_sessions cs ON cs.id = cse.session_id
+                    WHERE cse.user_id = u.id AND cse.status IN ('approved', 'enrolled')
+                      AND (cs.lms_course_id = p.course_id OR cs.id = p.course_id)
+                )
+                OR EXISTS (
+                    SELECT 1 FROM enrollments e
+                    WHERE e.user_id = u.id AND e.course_id = p.course_id
+                )
+            )
             LEFT JOIN ncs_evaluation_results er ON er.plan_id = p.id AND er.student_id = u.id
-            WHERE p.id = ? AND u.role = 'student'
+            WHERE p.id = ?
+            GROUP BY u.id
             ORDER BY u.name ASC
         `;
         const { results } = await c.env.DB.prepare(query).bind(planId).all();

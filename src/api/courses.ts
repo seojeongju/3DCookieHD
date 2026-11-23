@@ -13,7 +13,7 @@ import { calcActualDailyMinutes, calcAttendedMinutes } from '../lib/attendance';
 import { isRegisteredLmsCourseId } from '../lib/lmsCourseContext';
 import { getSessionTrainingDates, normalizeTrainingDate } from '../utils/session_training_dates';
 import { lmsCourseIdForSession, lmsCourseIdForSessionOrCreate } from '../utils/sessionCourseResolution';
-import { getEffectiveSessionStatus } from '../utils/course_session_status';
+import { getEffectiveSessionStatus, todayKST } from '../utils/course_session_status';
 import { attendanceKindSql, enrollmentBelongs, upsertAttendanceLog } from '../utils/attendance_enrollment';
 
 const courses = new Hono<{ Bindings: Bindings }>();
@@ -181,6 +181,7 @@ courses.get('/', async (c) => {
     let isTeacher = false;
     let isAdmin = false;
     let teacherId: number | null = null;
+    const scope = String(query.scope || '').toLowerCase();
 
     // 역할 기반 필터링 (강사는 본인 과정만)
     const authHeader = c.req.header('Authorization');
@@ -195,10 +196,17 @@ courses.get('/', async (c) => {
           params.push(payload.userId);
         } else if (payload && payload.role === 'admin') {
           isAdmin = true;
+        } else if (!payload && (scope === 'teacher' || scope === 'admin')) {
+          return errorResponse(c, '인증이 만료되었습니다. 다시 로그인해주세요.', 401);
         }
       } catch (e) {
+        if (scope === 'teacher' || scope === 'admin') {
+          return errorResponse(c, '인증이 만료되었습니다. 다시 로그인해주세요.', 401);
+        }
         // 토큰 오류 무시 (비로그인 처리)
       }
+    } else if (scope === 'teacher' || scope === 'admin') {
+      return errorResponse(c, '로그인이 필요합니다.', 401);
     }
 
     if (filter.category) {
@@ -381,10 +389,12 @@ courses.get('/', async (c) => {
           training_start_date: (r as any).training_start_date,
           training_end_date: (r as any).training_end_date,
         });
-        const normStatus = toTeacherCourseStatus(effective);
-
         const endDate = ((r as any).training_end_date || '').slice(0, 10);
         const startDate = ((r as any).training_start_date || '').slice(0, 10) || null;
+        let normStatus = toTeacherCourseStatus(effective);
+        if (effective === 'recruitment_closed' && startDate && todayKST() < startDate) {
+          normStatus = 'upcoming';
+        }
 
         const sessionId = Number((r as any).id);
         let lmsCourseId =
