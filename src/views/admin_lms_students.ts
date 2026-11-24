@@ -342,24 +342,24 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
 
             function stripHtmlToPlain(html) {
                 var clean = String(html || '')
-                    .replace(/<!--qimg-->[\s\S]*?<!--\/qimg-->/gi, '')
-                    .replace(/<!--\/?qimg-->/gi, '')
-                    .replace(/<!--\/?qbody-->/gi, '');
+                    .replace(/<!--qimg-->[\\s\\S]*?<!--\\/qimg-->/gi, '')
+                    .replace(/<!--\\/?qimg-->/gi, '')
+                    .replace(/<!--\\/?qbody-->/gi, '');
                 const tmp = document.createElement('div');
                 tmp.innerHTML = clean;
-                return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+                return (tmp.textContent || tmp.innerText || '').replace(/\\s+/g, ' ').trim();
             }
 
             function formatModalNumberedComment(comment) {
                 const raw = String(comment || '').trim();
                 if (!raw) return '';
-                const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-                const hasNumbered = lines.some(l => /^\d+\s*[\.\)\ 번:]/.test(l));
+                const lines = raw.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);
+                const hasNumbered = lines.some(l => /^\\d+\\s*[\\.\\)\\ 번:]/.test(l));
                 if (!hasNumbered && lines.length <= 1) {
                     return '<div class="text-slate-700 mt-1 whitespace-pre-wrap bg-white p-2 rounded border border-slate-100">' + escHtml(raw) + '</div>';
                 }
                 return '<div class="space-y-1 mt-1">' + lines.map(line => {
-                    const m = line.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+                    const m = line.match(/^(\\d+)\\s*(?:[\\.\\)\\:]|번\\s*:?)\\s*(.*)$/);
                     if (m) {
                         return '<div class="flex items-start gap-1.5 text-xs bg-white border border-slate-200 rounded-lg px-2 py-1">' +
                             '<span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded bg-indigo-600 text-white text-[10px] font-black shrink-0">' + escHtml(m[1]) + '</span>' +
@@ -373,15 +373,15 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
             function parseModalNumberedAnswers(comment) {
                 const map = {};
                 const extra = [];
-                String(comment || '').split(/\r?\n/).forEach(line => {
+                String(comment || '').split(/\\r?\\n/).forEach(line => {
                     const t = line.trim();
                     if (!t) return;
-                    const m = t.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+                    const m = t.match(/^(\\d+)\\s*(?:[\\.\\)\\:]|번\\s*:?)\\s*(.*)$/);
                     if (m) map[Number(m[1])] = m[2] || '';
-                    else if (t.startsWith('[비고]')) extra.push(t.replace(/^\[비고\]\s*/, ''));
+                    else if (t.startsWith('[비고]')) extra.push(t.replace(/^\\[비고\\]\\s*/, ''));
                     else extra.push(t);
                 });
-                return { map, extra: extra.join('\n') };
+                return { map, extra: extra.join('\\n') };
             }
 
             function renderModalQuestionInputs(prefillComment) {
@@ -438,7 +438,7 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                 const out = [];
                 if (anyNum) out.push(...lines);
                 if (memo) out.push(anyNum ? ('[비고] ' + memo) : memo);
-                return out.join('\n').trim();
+                return out.join('\\n').trim();
             }
 
             window.__onNcsProxyPlanChange = async function(planId) {

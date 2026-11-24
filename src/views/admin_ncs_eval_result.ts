@@ -104,13 +104,13 @@ function resultPageScript(useFixedCourseId: boolean) {
     function formatResultNumberedCommentHtml(comment) {
       const raw = String(comment || '').trim();
       if (!raw) return '';
-      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      const hasNumbered = lines.some(l => /^\d+\s*[\.\)\ 번:]/.test(l));
+      const lines = raw.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);
+      const hasNumbered = lines.some(l => /^\\d+\\s*[\\.\\)\\ 번:]/.test(l));
       if (!hasNumbered && lines.length <= 1) {
         return '<div class="text-slate-600 mt-0.5 whitespace-pre-wrap">' + escapeHtml(raw) + '</div>';
       }
       return '<div class="space-y-1 mt-1">' + lines.map(line => {
-        const m = line.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+        const m = line.match(/^(\\d+)\\s*(?:[\\.\\)\\:]|번\\s*:?)\\s*(.*)$/);
         if (m) {
           return '<div class="flex items-start gap-1.5 text-xs bg-white border border-slate-200 rounded-lg px-2 py-1">' +
             '<span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded bg-indigo-600 text-white text-[10px] font-black shrink-0">' + escapeHtml(m[1]) + '</span>' +
@@ -220,7 +220,7 @@ function resultPageScript(useFixedCourseId: boolean) {
                 '<td class="px-4 py-3 text-sm text-center font-bold text-sky-700">' + (stats.graded > 0 ? stats.passRate.toFixed(1) + '%' : '-') + '</td>' +
                 '<td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1.5">' +
                   '<a href="' + basePrefix + '/courses/' + courseId + '/lms/ncs-eval-exec?evaluation_round=' + roundQ + '&plan_id=' + encodeURIComponent(plan.id) + sidQ + '" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-xs font-bold text-sky-700 hover:bg-sky-100">채점/실행</a>' +
-                  '<button type="button" onclick="docsRound=' + Number(plan.__round) + ';document.getElementById(\\'docsRoundSelect\\').value=\\'' + Number(plan.__round) + '\\';selectedDocPlanId=\\'' + String(plan.id) + '\\';setActiveTab(\\'docs\\');loadDocPlanOptions().then(renderDocResults);" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">결과문서</button>' +
+                  '<button type="button" onclick="docsRound=' + Number(plan.__round) + ';document.getElementById(&#39;docsRoundSelect&#39;).value=&#39;' + Number(plan.__round) + '&#39;;selectedDocPlanId=&#39;' + String(plan.id) + '&#39;;setActiveTab(&#39;docs&#39;);loadDocPlanOptions().then(renderDocResults);" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">결과문서</button>' +
                 '</div></td>' +
               '</tr>';
             }).join('') +

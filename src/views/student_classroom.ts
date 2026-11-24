@@ -1355,14 +1355,14 @@ export const studentClassroomHtml = (sessionId: string) => `
                 text = bodyPart.trim();
             } else {
                 text = text
-                    .replace(/<!--\/?qimg-->/gi, '')
-                    .replace(/<!--\/?qbody-->/gi, '')
+                    .replace(/<!--\\/?qimg-->/gi, '')
+                    .replace(/<!--\\/?qbody-->/gi, '')
                     .trim();
             }
 
             var imgHtml = '';
             if (imgPart) {
-                var cleanImg = imgPart.replace(/<script[^]*?<\/script>/gi, '').replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '');
+                var cleanImg = imgPart.replace(/<script[^]*?<\\/script>/gi, '').replace(/\\son[a-z]+\\s*=\\s*("[^"]*"|'[^']*')/gi, '');
                 if (/<[a-z][^>]*>/i.test(cleanImg)) {
                     imgHtml = '<div class="mb-3">' + cleanImg + '</div>';
                 }
@@ -1370,11 +1370,11 @@ export const studentClassroomHtml = (sessionId: string) => `
 
             var hasTag = /<[a-z][^>]*>/i.test(text);
             if (hasTag) {
-                text = text.replace(/<script[^]*?<\/script>/gi, '').replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '');
+                text = text.replace(/<script[^]*?<\\/script>/gi, '').replace(/\\son[a-z]+\\s*=\\s*("[^"]*"|'[^']*')/gi, '');
                 return '<div class="ncs-q-body break-words [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-2">' + imgHtml + text + '</div>';
             }
             var safe = esc(text);
-            safe = safe.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full rounded-xl my-2">');
+            safe = safe.replace(/!\\[([^\\]]*)\\]\\(([^)]+)\\)/g, '<img src="$2" alt="$1" class="max-w-full rounded-xl my-2">');
             return '<div class="ncs-q-body whitespace-pre-wrap break-words [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-2">' + imgHtml + safe + '</div>';
         }
 
@@ -1447,19 +1447,19 @@ export const studentClassroomHtml = (sessionId: string) => `
                 const generalEvidenceList = [];
                 const latestCommentEv = evidence.find(function(e) { return e && String(e.comment || '').trim() !== ''; });
                 if (latestCommentEv && latestCommentEv.comment) {
-                    String(latestCommentEv.comment).split(/\r?\n/).forEach(function(line) {
+                    String(latestCommentEv.comment).split(/\\r?\\n/).forEach(function(line) {
                         var t = line.trim();
                         if (!t) return;
-                        var m = t.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+                        var m = t.match(/^(\\d+)\\s*(?:[\\.\\)\\:]|번\\s*:?)\\s*(.*)$/);
                         if (m) existingAnswerMap[Number(m[1])] = m[2] || '';
-                        else if (t.indexOf('[비고]') === 0) existingExtraLines.push(t.replace(/^\[비고\]\s*/, ''));
+                        else if (t.indexOf('[비고]') === 0) existingExtraLines.push(t.replace(/^\\[비고\\]\\s*/, ''));
                         else existingExtraLines.push(t);
                     });
                 }
                 evidence.forEach(function(e) {
                     if (!e) return;
                     var fn = String(e.file_name || '');
-                    var qm = fn.match(/\[문항\s*(\d+)\]/);
+                    var qm = fn.match(/\\[문항\\s*(\\d+)\\]/);
                     if (qm && e.file_url) {
                         var qn = Number(qm[1]);
                         if (!existingFilesByQ[qn]) existingFilesByQ[qn] = [];
@@ -1503,7 +1503,7 @@ export const studentClassroomHtml = (sessionId: string) => `
                         '<input type="file" data-inline-qfile="' + qNo + '" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.mp4" class="block w-full text-xs text-slate-600 file:mr-3 file:px-3.5 file:py-2 file:rounded-xl file:border-0 file:bg-white file:border file:border-slate-200 file:text-sky-700 file:text-xs file:font-black hover:file:bg-sky-50" />';
                     if (qFiles.length) {
                         html += '<div class="mt-2 space-y-1.5">' + qFiles.map(function(f) {
-                            var isImg = f.file_type === 'image' || /\.(png|jpe?g|gif|webp|bmp)$/i.test(String(f.file_url || ''));
+                            var isImg = f.file_type === 'image' || /\\.(png|jpe?g|gif|webp|bmp)$/i.test(String(f.file_url || ''));
                             return '<div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs">' +
                                 '<div class="flex items-center gap-2 min-w-0">' +
                                     (isImg ? '<img src="' + esc(f.file_url) + '" alt="첨부" class="w-10 h-10 object-cover rounded-lg border border-slate-200 shrink-0" />' : '<i class="fas fa-file-check text-emerald-600"></i>') +
@@ -1575,12 +1575,12 @@ export const studentClassroomHtml = (sessionId: string) => `
 
         function stripStudentQuestionHtml(html) {
             var text = String(html || '')
-                .replace(/<!--qimg-->[\s\S]*?<!--\/qimg-->/gi, '')
-                .replace(/<!--\/?qimg-->/gi, '')
-                .replace(/<!--\/?qbody-->/gi, '');
+                .replace(/<!--qimg-->[\\s\\S]*?<!--\\/qimg-->/gi, '')
+                .replace(/<!--\\/?qimg-->/gi, '')
+                .replace(/<!--\\/?qbody-->/gi, '');
             const tmp = document.createElement('div');
             tmp.innerHTML = text;
-            return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+            return (tmp.textContent || tmp.innerText || '').replace(/\\s+/g, ' ').trim();
         }
 
         window.deleteMyInlineEvidence = async function(evId, planId) {
@@ -1617,9 +1617,9 @@ export const studentClassroomHtml = (sessionId: string) => `
                 ansLines.push(qNo + '. ' + val);
             });
             const commentParts = [];
-            if (hasAnyAnswer) commentParts.push(ansLines.join('\n'));
+            if (hasAnyAnswer) commentParts.push(ansLines.join('\\n'));
             if (extraMemo) commentParts.push(hasAnyAnswer ? ('[비고] ' + extraMemo) : extraMemo);
-            const combinedComment = commentParts.join('\n').trim();
+            const combinedComment = commentParts.join('\\n').trim();
 
             const filesToUpload = [];
             fileInputs.forEach(function(fi) {
@@ -1797,9 +1797,9 @@ export const studentClassroomHtml = (sessionId: string) => `
                 qLines.push(no + '. ' + v);
             });
             const commentParts = [];
-            if (hasNumbered) commentParts.push(qLines.join('\n'));
+            if (hasNumbered) commentParts.push(qLines.join('\\n'));
             if (rawMemo) commentParts.push(hasNumbered ? ('[비고] ' + rawMemo) : rawMemo);
-            const comment = commentParts.join('\n').trim();
+            const comment = commentParts.join('\\n').trim();
             const fi = document.getElementById('evidenceFiles');
             const files = fi && fi.files ? Array.prototype.slice.call(fi.files) : [];
             if (!fileName) { alert('제출물 제목을 입력하세요.'); return; }

@@ -458,7 +458,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         if (bodyPart.lastIndexOf(end) >= 0) bodyPart = bodyPart.slice(0, bodyPart.lastIndexOf(end));
         text = bodyPart.trim();
       } else {
-        text = text.replace(/<!--\/?qimg-->/gi, '').replace(/<!--\/?qbody-->/gi, '').trim();
+        text = text.replace(/<!--\\/?qimg-->/gi, '').replace(/<!--\\/?qbody-->/gi, '').trim();
       }
       return { imgHtml: imgPart, bodyHtml: text };
     }
@@ -467,11 +467,11 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       var parts = unpackNcsQuestionBundle(raw);
       var imgHtml = '';
       if (parts.imgHtml && /<[a-z][^>]*>/i.test(parts.imgHtml)) {
-        imgHtml = '<div class="mb-2">' + parts.imgHtml.replace(/<script[^]*?<\/script>/gi, '') + '</div>';
+        imgHtml = '<div class="mb-2">' + parts.imgHtml.replace(/<script[^]*?<\\/script>/gi, '') + '</div>';
       }
       var body = parts.bodyHtml;
       if (/<[a-z][^>]*>/i.test(body)) {
-        return '<div class="[&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-1.5">' + imgHtml + body.replace(/<script[^]*?<\/script>/gi, '') + '</div>';
+        return '<div class="[&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-1.5">' + imgHtml + body.replace(/<script[^]*?<\\/script>/gi, '') + '</div>';
       }
       return '<div class="whitespace-pre-wrap [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-1.5">' + imgHtml + escapeHtml(body) + '</div>';
     }
@@ -480,19 +480,19 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       var parts = unpackNcsQuestionBundle(html);
       const tmp = document.createElement('div');
       tmp.innerHTML = String(parts.bodyHtml || '');
-      return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+      return (tmp.textContent || tmp.innerText || '').replace(/\\s+/g, ' ').trim();
     }
 
     function formatNumberedCommentHtml(comment) {
       const raw = String(comment || '').trim();
       if (!raw) return '';
-      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      const hasNumbered = lines.some(l => /^\d+\s*[\.\)\ 번:]/.test(l));
+      const lines = raw.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);
+      const hasNumbered = lines.some(l => /^\\d+\\s*[\\.\\)\\ 번:]/.test(l));
       if (!hasNumbered && lines.length <= 1) {
         return '<div class="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 mt-0.5 whitespace-pre-wrap">' + escapeHtml(raw) + '</div>';
       }
       return '<div class="space-y-1 mt-1">' + lines.map(line => {
-        const m = line.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+        const m = line.match(/^(\\d+)\\s*(?:[\\.\\)\\:]|번\\s*:?)\\s*(.*)$/);
         if (m) {
           return '<div class="flex items-start gap-1.5 text-xs bg-slate-50 border border-slate-200/80 rounded-lg px-2 py-1">' +
             '<span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded bg-indigo-600 text-white text-[10px] font-black shrink-0">' + escapeHtml(m[1]) + '</span>' +
@@ -506,20 +506,20 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
     function parseNumberedAnswersFromComment(comment) {
       const map = {};
       const extra = [];
-      const lines = String(comment || '').split(/\r?\n/);
+      const lines = String(comment || '').split(/\\r?\\n/);
       lines.forEach(line => {
         const trimmed = line.trim();
         if (!trimmed) return;
-        const m = trimmed.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+        const m = trimmed.match(/^(\\d+)\\s*(?:[\\.\\)\\:]|번\\s*:?)\\s*(.*)$/);
         if (m) {
           map[Number(m[1])] = m[2] || '';
         } else if (trimmed.startsWith('[비고]')) {
-          extra.push(trimmed.replace(/^\[비고\]\s*/, ''));
+          extra.push(trimmed.replace(/^\\[비고\\]\\s*/, ''));
         } else {
           extra.push(trimmed);
         }
       });
-      return { map, extra: extra.join('\n') };
+      return { map, extra: extra.join('\\n') };
     }
 
     let extraProxyQuestionCount = 0;
@@ -551,7 +551,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         const qNo = q && q.no ? Number(q.no) : (i + 1);
         const qText = q ? stripHtmlToText(q.text) : '';
         const qParts = q ? unpackNcsQuestionBundle(q.text) : { imgHtml: '', bodyHtml: '' };
-        const hasQImg = qParts.imgHtml && /<img\b/i.test(qParts.imgHtml);
+        const hasQImg = qParts.imgHtml && /<img\\b/i.test(qParts.imgHtml);
         const cleanPrompt = qText.replace(new RegExp('^' + qNo + '\\s*[\\.\\)]\\s*'), '');
         const val = parsed.map[qNo] != null ? parsed.map[qNo] : '';
         const qFiles = stuEvList.filter(ev => ev && ev.file_url && new RegExp('\\[문항\\s*' + qNo + '\\]').test(String(ev.file_name || '')));
@@ -608,7 +608,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       if (memo) {
         out.push(anyNumbered ? ('[비고] ' + memo) : memo);
       }
-      return out.join('\n').trim();
+      return out.join('\\n').trim();
     }
 
     function renderStudentEvidenceBadges(row) {
