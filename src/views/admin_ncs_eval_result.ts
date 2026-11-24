@@ -101,6 +101,26 @@ function resultPageScript(useFixedCourseId: boolean) {
       return { total, graded, passed, avgScore, passRate, completed };
     }
 
+    function formatResultNumberedCommentHtml(comment) {
+      const raw = String(comment || '').trim();
+      if (!raw) return '';
+      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const hasNumbered = lines.some(l => /^\d+\s*[\.\)\ 번:]/.test(l));
+      if (!hasNumbered && lines.length <= 1) {
+        return '<div class="text-slate-600 mt-0.5 whitespace-pre-wrap">' + escapeHtml(raw) + '</div>';
+      }
+      return '<div class="space-y-1 mt-1">' + lines.map(line => {
+        const m = line.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+        if (m) {
+          return '<div class="flex items-start gap-1.5 text-xs bg-white border border-slate-200 rounded-lg px-2 py-1">' +
+            '<span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded bg-indigo-600 text-white text-[10px] font-black shrink-0">' + escapeHtml(m[1]) + '</span>' +
+            '<span class="text-slate-800 font-medium break-all whitespace-pre-wrap">' + escapeHtml(m[2] || '-') + '</span>' +
+          '</div>';
+        }
+        return '<div class="text-xs text-slate-600 bg-white rounded px-2 py-1 whitespace-pre-wrap">' + escapeHtml(line) + '</div>';
+      }).join('') + '</div>';
+    }
+
     function planDisplayLabel(plan) {
       const main = String(plan?.subject_name || plan?.unit_name || '-').trim();
       const uName = String(plan?.unit_name || '').trim();
@@ -329,7 +349,7 @@ function resultPageScript(useFixedCourseId: boolean) {
                     (hasUrl
                       ? '<a href="' + escapeHtml(ev.file_url) + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline break-all"><i class="fas fa-paperclip mr-1"></i>' + escapeHtml(ev.file_name || '제출파일') + '</a>'
                       : '<span class="font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + escapeHtml(ev.file_name || '답안 입력') + '</span>') +
-                    (ev.comment ? '<div class="text-slate-600 mt-0.5 whitespace-pre-wrap">' + escapeHtml(ev.comment) + '</div>' : '') +
+                    (ev.comment ? formatResultNumberedCommentHtml(ev.comment) : '') +
                   '</div>';
                 }).join('') + '</div>'
               : '<span class="text-xs text-slate-400">미제출</span>';

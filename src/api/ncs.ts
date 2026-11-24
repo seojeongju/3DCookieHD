@@ -7904,7 +7904,7 @@ app.get('/evaluations/:planId', authMiddleware, async (c) => {
                                     type: String(r?.type || ''),
                                     text: String(r?.text || ''),
                                     score: Number(r?.score || 0),
-                                    answer: String(r?.answer || r?.correct_answer || ''),
+                                    answer: String(r?.answer || r?.correct_answer || r?.keyword || ''),
                                 })),
                                 attachments: Array.isArray(p.attachments) ? p.attachments : [],
                                 notes: String(p.notes || ''),

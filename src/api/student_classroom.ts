@@ -320,7 +320,9 @@ app.get('/:sessionId/ncs-plans/:planId/exam', async (c) => {
         ...questionDocs.filter((x) => !matches(x.p.curriculum_id, x.p.subject_name)),
     ];
     for (const { p } of orderedQuestionDocs) {
-        const rows = (Array.isArray(p.rows) ? p.rows : []).filter((r: any) => matches(r?.curriculum_id, r?.subject));
+        const rows = (Array.isArray(p.rows) ? p.rows : []).filter((r: any) =>
+            matches(r?.curriculum_id || p.curriculum_id, r?.subject || p.subject_name)
+        );
         if (!rows.length) continue;
         questions = rows
             .map((r: any) => ({

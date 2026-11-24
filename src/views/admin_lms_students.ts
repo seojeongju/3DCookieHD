@@ -333,6 +333,114 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                 }
             };
 
+            let activeProxyQuestions = [];
+            let extraModalQuestionCount = 0;
+
+            function escHtml(v) {
+                return String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            function stripHtmlToPlain(html) {
+                var clean = String(html || '')
+                    .replace(/<!--qimg-->[\s\S]*?<!--\/qimg-->/gi, '')
+                    .replace(/<!--\/?qimg-->/gi, '')
+                    .replace(/<!--\/?qbody-->/gi, '');
+                const tmp = document.createElement('div');
+                tmp.innerHTML = clean;
+                return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+            }
+
+            function formatModalNumberedComment(comment) {
+                const raw = String(comment || '').trim();
+                if (!raw) return '';
+                const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                const hasNumbered = lines.some(l => /^\d+\s*[\.\)\ 번:]/.test(l));
+                if (!hasNumbered && lines.length <= 1) {
+                    return '<div class="text-slate-700 mt-1 whitespace-pre-wrap bg-white p-2 rounded border border-slate-100">' + escHtml(raw) + '</div>';
+                }
+                return '<div class="space-y-1 mt-1">' + lines.map(line => {
+                    const m = line.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+                    if (m) {
+                        return '<div class="flex items-start gap-1.5 text-xs bg-white border border-slate-200 rounded-lg px-2 py-1">' +
+                            '<span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded bg-indigo-600 text-white text-[10px] font-black shrink-0">' + escHtml(m[1]) + '</span>' +
+                            '<span class="text-slate-800 font-medium break-all whitespace-pre-wrap">' + escHtml(m[2] || '-') + '</span>' +
+                        '</div>';
+                    }
+                    return '<div class="text-xs text-slate-600 bg-white rounded px-2 py-1 whitespace-pre-wrap">' + escHtml(line) + '</div>';
+                }).join('') + '</div>';
+            }
+
+            function parseModalNumberedAnswers(comment) {
+                const map = {};
+                const extra = [];
+                String(comment || '').split(/\r?\n/).forEach(line => {
+                    const t = line.trim();
+                    if (!t) return;
+                    const m = t.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+                    if (m) map[Number(m[1])] = m[2] || '';
+                    else if (t.startsWith('[비고]')) extra.push(t.replace(/^\[비고\]\s*/, ''));
+                    else extra.push(t);
+                });
+                return { map, extra: extra.join('\n') };
+            }
+
+            function renderModalQuestionInputs(prefillComment) {
+                const box = document.getElementById('ncsProxyNumberedBox');
+                const label = document.getElementById('ncsProxyQCountLabel');
+                const memoEl = document.getElementById('ncsProxyAnswer');
+                if (!box) return;
+                const qRows = Array.isArray(activeProxyQuestions) ? activeProxyQuestions : [];
+                const baseCount = qRows.length > 0 ? qRows.length : 1;
+                const totalCount = baseCount + extraModalQuestionCount;
+                if (label) label.textContent = qRows.length > 0 ? ('등록된 평가문항 ' + qRows.length + '개 기준') : ('총 ' + totalCount + '개 문항 입력란');
+                const parsed = parseModalNumberedAnswers(prefillComment || '');
+                if (memoEl && prefillComment != null) memoEl.value = parsed.extra || '';
+
+                let html = '';
+                for (let i = 0; i < totalCount; i++) {
+                    const q = qRows[i] || null;
+                    const qNo = q && q.no ? Number(q.no) : (i + 1);
+                    const qText = q ? stripHtmlToPlain(q.text) : '';
+                    const cleanPrompt = qText.replace(new RegExp('^' + qNo + '\\s*[\\.\\)]\\s*'), '');
+                    const val = parsed.map[qNo] != null ? parsed.map[qNo] : '';
+                    html += '<div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">' +
+                        '<div class="flex items-start gap-2.5">' +
+                            '<span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs font-black shrink-0 mt-0.5">' + qNo + '</span>' +
+                            '<div class="flex-1 min-w-0 space-y-1.5">' +
+                                (cleanPrompt
+                                    ? '<p class="text-xs font-bold text-slate-800 break-keep">' + escHtml(cleanPrompt) + '</p>'
+                                    : '<p class="text-xs font-bold text-slate-600">' + qNo + '번 문항 정답 / 답안</p>') +
+                                '<input type="text" data-modal-qno="' + qNo + '" value="' + escHtml(val) + '" placeholder="' + qNo + '번 문항 정답 또는 답안을 입력하세요" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-900 focus:ring-2 focus:ring-sky-500 outline-none" />' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                }
+                box.innerHTML = html;
+            }
+
+            window.__addModalProxyQuestion = function() {
+                const cur = collectModalFormattedAnswers();
+                extraModalQuestionCount += 1;
+                renderModalQuestionInputs(cur);
+            };
+
+            function collectModalFormattedAnswers() {
+                const inputs = Array.from(document.querySelectorAll('#ncsProxyNumberedBox input[data-modal-qno]'));
+                const lines = [];
+                let anyNum = false;
+                inputs.forEach(inp => {
+                    const no = inp.getAttribute('data-modal-qno');
+                    const v = String(inp.value || '').trim();
+                    if (v !== '') anyNum = true;
+                    lines.push(no + '. ' + v);
+                });
+                const memo = (document.getElementById('ncsProxyAnswer')?.value || '').trim();
+                const out = [];
+                if (anyNum) out.push(...lines);
+                if (memo) out.push(anyNum ? ('[비고] ' + memo) : memo);
+                return out.join('\n').trim();
+            }
+
             window.__onNcsProxyPlanChange = async function(planId) {
                 const box = document.getElementById('ncsProxyExistingBox');
                 const titleInput = document.getElementById('ncsProxyTitle');
@@ -342,13 +450,24 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                     titleInput.value = (plan.subject_name || plan.unit_name || '본평가') + ' - ' + activeProxyStudent.name + ' (강사 대리입력)';
                 }
                 if (!box || !planId || !activeProxyStudent.id) return;
-                box.innerHTML = '<p class="text-xs text-slate-400">제출 내역 조회 중...</p>';
+                box.innerHTML = '<p class="text-xs text-slate-400">제출 내역 및 문항 조회 중...</p>';
                 try {
-                    const res = await fetch('/api/ncs/evidence?planId=' + encodeURIComponent(planId) + '&studentId=' + encodeURIComponent(activeProxyStudent.id), {
-                        headers: { 'Authorization': 'Bearer ' + getToken() }
-                    });
-                    const j = await res.json();
+                    const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
+                    const [evRes, evalRes] = await Promise.all([
+                        fetch('/api/ncs/evidence?planId=' + encodeURIComponent(planId) + '&studentId=' + encodeURIComponent(activeProxyStudent.id), {
+                            headers: { 'Authorization': 'Bearer ' + getToken() }
+                        }),
+                        fetch('/api/ncs/evaluations/' + encodeURIComponent(planId) + (_sid ? '?session_id=' + encodeURIComponent(_sid) : ''), {
+                            headers: { 'Authorization': 'Bearer ' + getToken() }
+                        })
+                    ]);
+                    const j = await evRes.json();
+                    const evalJ = await evalRes.json();
+                    activeProxyQuestions = Array.isArray(evalJ?.exam_spec?.questions?.rows) ? evalJ.exam_spec.questions.rows : [];
+                    extraModalQuestionCount = 0;
                     const list = Array.isArray(j?.data) ? j.data : [];
+                    const latestWithComment = list.find(ev => ev && String(ev.comment || '').trim() !== '');
+                    renderModalQuestionInputs(latestWithComment ? latestWithComment.comment : '');
                     if (!list.length) {
                         box.innerHTML = '<p class="text-xs text-slate-400">아직 제출된 답안이나 첨부파일이 없습니다.</p>';
                         return;
@@ -358,9 +477,9 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                         return '<div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs flex items-start justify-between gap-2">' +
                             '<div class="min-w-0 flex-1">' +
                                 (hasUrl
-                                    ? '<a href="' + ev.file_url + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline break-all"><i class="fas fa-paperclip mr-1"></i>' + (ev.file_name || '제출파일') + '</a>'
-                                    : '<span class="font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + (ev.file_name || '답안 입력') + '</span>') +
-                                (ev.comment ? '<div class="text-slate-700 mt-1 whitespace-pre-wrap bg-white p-2 rounded border border-slate-100">' + ev.comment + '</div>' : '') +
+                                    ? '<a href="' + escHtml(ev.file_url) + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline break-all"><i class="fas fa-paperclip mr-1"></i>' + escHtml(ev.file_name || '제출파일') + '</a>'
+                                    : '<span class="font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + escHtml(ev.file_name || '답안 입력') + '</span>') +
+                                (ev.comment ? formatModalNumberedComment(ev.comment) : '') +
                             '</div>' +
                             '<button type="button" onclick="window.__deleteNcsProxyEvidence(' + ev.id + ')" class="text-slate-400 hover:text-rose-500 px-1" title="삭제"><i class="fas fa-trash-can"></i></button>' +
                         '</div>';
@@ -393,11 +512,11 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                 if (!planId || !activeProxyStudent.id) { alert('평가 계획을 선택하세요.'); return; }
                 const title = (document.getElementById('ncsProxyTitle')?.value || '').trim() || '강사 대리입력';
                 const url = (document.getElementById('ncsProxyUrl')?.value || '').trim();
-                const answer = (document.getElementById('ncsProxyAnswer')?.value || '').trim();
+                const answer = collectModalFormattedAnswers();
                 const fi = document.getElementById('ncsProxyFiles');
                 const files = fi && fi.files ? Array.from(fi.files) : [];
                 if (!files.length && !url && !answer) {
-                    alert('정답/답안 내용을 입력하거나 파일 또는 링크를 첨부해 주세요.');
+                    alert('문항별 정답/답안 내용을 입력하거나 파일 또는 링크를 첨부해 주세요.');
                     return;
                 }
                 const btn = document.getElementById('ncsProxySaveBtn');
@@ -498,8 +617,17 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">정답 / 답안 내용 입력</label>
-                    <textarea id="ncsProxyAnswer" rows="4" placeholder="학생이 시험 시 입력하지 못한 정답이나 서술형 답안을 대신 입력하세요..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-sky-500 outline-none"></textarea>
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                        <label class="block text-xs font-bold text-slate-600">문항별 정답 / 답안 입력 (<span id="ncsProxyQCountLabel">문항 수에 맞춰 자동 표시</span>)</label>
+                        <button type="button" onclick="window.__addModalProxyQuestion()" class="px-2.5 py-1 rounded-lg border border-sky-200 bg-sky-50 text-sky-700 text-[11px] font-black hover:bg-sky-100">
+                            <i class="fas fa-plus mr-1"></i>문항 입력란 추가
+                        </button>
+                    </div>
+                    <div id="ncsProxyNumberedBox" class="space-y-2"></div>
+                    <div class="mt-2.5">
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">추가 메모 / 종합 의견 (선택)</label>
+                        <textarea id="ncsProxyAnswer" rows="2" placeholder="추가 서술 답안이나 메모가 있으면 입력하세요..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-sky-500 outline-none"></textarea>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">평가 결과물 파일 첨부 (다중 선택 가능)</label>

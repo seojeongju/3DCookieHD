@@ -157,8 +157,17 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
                       </div>
                     </div>
                     <div>
-                      <label class="block text-xs font-bold text-gray-600 mb-1">정답 / 답안 내용 입력 (문항별 답안, 서술형 답안, 평가 메모)</label>
-                      <textarea id="proxyAnswerInput" rows="5" placeholder="학생이 작성한 정답이나 서술형 답안 내용을 이곳에 입력하세요..." class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-sky-500 outline-none"></textarea>
+                      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <label class="block text-xs font-bold text-gray-600">문항별 정답 / 답안 입력 (<span id="proxyQuestionCountLabel">문항 수에 맞춰 자동 표시</span>)</label>
+                        <button type="button" onclick="addExtraProxyQuestionInput()" class="px-2.5 py-1 rounded-lg border border-sky-200 bg-sky-50 text-sky-700 text-[11px] font-black hover:bg-sky-100 transition">
+                          <i class="fas fa-plus mr-1"></i>문항 입력란 추가
+                        </button>
+                      </div>
+                      <div id="proxyNumberedAnswersBox" class="space-y-2.5"></div>
+                      <div class="mt-3">
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">추가 메모 / 종합 의견 (선택)</label>
+                        <textarea id="proxyAnswerInput" rows="2" placeholder="추가 서술 답안이나 전체 메모가 있으면 입력하세요..." class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-sky-500 outline-none"></textarea>
+                      </div>
                     </div>
                     <div>
                       <label class="block text-xs font-bold text-gray-600 mb-1">평가 결과물 파일 첨부 (다중 선택 가능 · CAD/STL/이미지/PDF/ZIP 등)</label>
@@ -435,6 +444,173 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       }
     }
 
+    function unpackNcsQuestionBundle(raw) {
+      var text = String(raw || '').trim();
+      var start = '<' + '!--qimg-->';
+      var mid = '<' + '!--/qimg--><' + '!--qbody-->';
+      var end = '<' + '!--/qbody-->';
+      var imgPart = '';
+      if (text.indexOf(start) >= 0 && text.indexOf(mid) >= 0) {
+        var sIdx = text.indexOf(start);
+        var mIdx = text.indexOf(mid);
+        imgPart = text.slice(sIdx + start.length, mIdx).trim();
+        var bodyPart = text.slice(mIdx + mid.length);
+        if (bodyPart.lastIndexOf(end) >= 0) bodyPart = bodyPart.slice(0, bodyPart.lastIndexOf(end));
+        text = bodyPart.trim();
+      } else {
+        text = text.replace(/<!--\/?qimg-->/gi, '').replace(/<!--\/?qbody-->/gi, '').trim();
+      }
+      return { imgHtml: imgPart, bodyHtml: text };
+    }
+
+    function renderNcsQuestionRichHtml(raw) {
+      var parts = unpackNcsQuestionBundle(raw);
+      var imgHtml = '';
+      if (parts.imgHtml && /<[a-z][^>]*>/i.test(parts.imgHtml)) {
+        imgHtml = '<div class="mb-2">' + parts.imgHtml.replace(/<script[^]*?<\/script>/gi, '') + '</div>';
+      }
+      var body = parts.bodyHtml;
+      if (/<[a-z][^>]*>/i.test(body)) {
+        return '<div class="[&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-1.5">' + imgHtml + body.replace(/<script[^]*?<\/script>/gi, '') + '</div>';
+      }
+      return '<div class="whitespace-pre-wrap [&_img]:max-w-full [&_img]:rounded-lg [&_img]:my-1.5">' + imgHtml + escapeHtml(body) + '</div>';
+    }
+
+    function stripHtmlToText(html) {
+      var parts = unpackNcsQuestionBundle(html);
+      const tmp = document.createElement('div');
+      tmp.innerHTML = String(parts.bodyHtml || '');
+      return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function formatNumberedCommentHtml(comment) {
+      const raw = String(comment || '').trim();
+      if (!raw) return '';
+      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const hasNumbered = lines.some(l => /^\d+\s*[\.\)\ 번:]/.test(l));
+      if (!hasNumbered && lines.length <= 1) {
+        return '<div class="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 mt-0.5 whitespace-pre-wrap">' + escapeHtml(raw) + '</div>';
+      }
+      return '<div class="space-y-1 mt-1">' + lines.map(line => {
+        const m = line.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+        if (m) {
+          return '<div class="flex items-start gap-1.5 text-xs bg-slate-50 border border-slate-200/80 rounded-lg px-2 py-1">' +
+            '<span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded bg-indigo-600 text-white text-[10px] font-black shrink-0">' + escapeHtml(m[1]) + '</span>' +
+            '<span class="text-gray-800 font-medium break-all whitespace-pre-wrap">' + escapeHtml(m[2] || '-') + '</span>' +
+          '</div>';
+        }
+        return '<div class="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 whitespace-pre-wrap">' + escapeHtml(line) + '</div>';
+      }).join('') + '</div>';
+    }
+
+    function parseNumberedAnswersFromComment(comment) {
+      const map = {};
+      const extra = [];
+      const lines = String(comment || '').split(/\r?\n/);
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const m = trimmed.match(/^(\d+)\s*(?:[\.\)\:]|번\s*:?)\s*(.*)$/);
+        if (m) {
+          map[Number(m[1])] = m[2] || '';
+        } else if (trimmed.startsWith('[비고]')) {
+          extra.push(trimmed.replace(/^\[비고\]\s*/, ''));
+        } else {
+          extra.push(trimmed);
+        }
+      });
+      return { map, extra: extra.join('\n') };
+    }
+
+    let extraProxyQuestionCount = 0;
+
+    function renderProxyQuestionInputs(prefillComment) {
+      const box = document.getElementById('proxyNumberedAnswersBox');
+      const countLabel = document.getElementById('proxyQuestionCountLabel');
+      const memoEl = document.getElementById('proxyAnswerInput');
+      if (!box) return;
+      const spec = window._currentExamSpec || {};
+      const qRows = Array.isArray(spec?.questions?.rows) ? spec.questions.rows : [];
+      const baseCount = qRows.length > 0 ? qRows.length : 1;
+      const totalCount = baseCount + extraProxyQuestionCount;
+      if (countLabel) {
+        countLabel.textContent = qRows.length > 0 ? ('등록된 평가문항 ' + qRows.length + '개 기준') : ('총 ' + totalCount + '개 문항 입력란');
+      }
+      const parsed = parseNumberedAnswersFromComment(prefillComment || '');
+      if (memoEl && prefillComment != null) {
+        memoEl.value = parsed.extra || '';
+      }
+
+      let html = '';
+      const activeStudentId = document.getElementById('proxyStudentSelect')?.value;
+      const activeRow = studentResults.find(r => String(r.student_id) === String(activeStudentId));
+      const stuEvList = (activeRow && Array.isArray(activeRow.evidence_list)) ? activeRow.evidence_list : [];
+
+      for (let i = 0; i < totalCount; i++) {
+        const q = qRows[i] || null;
+        const qNo = q && q.no ? Number(q.no) : (i + 1);
+        const qText = q ? stripHtmlToText(q.text) : '';
+        const qParts = q ? unpackNcsQuestionBundle(q.text) : { imgHtml: '', bodyHtml: '' };
+        const hasQImg = qParts.imgHtml && /<img\b/i.test(qParts.imgHtml);
+        const cleanPrompt = qText.replace(new RegExp('^' + qNo + '\\s*[\\.\\)]\\s*'), '');
+        const val = parsed.map[qNo] != null ? parsed.map[qNo] : '';
+        const qFiles = stuEvList.filter(ev => ev && ev.file_url && new RegExp('\\[문항\\s*' + qNo + '\\]').test(String(ev.file_name || '')));
+        html += '<div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-2.5">' +
+          '<div class="flex items-start gap-2.5">' +
+            '<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-lg bg-indigo-600 text-white text-xs font-black shrink-0 mt-0.5">1. 문항 ' + qNo + '</span>' +
+            '<div class="flex-1 min-w-0">' +
+              (cleanPrompt
+                ? '<div class="flex flex-wrap items-center justify-between gap-2">' +
+                    '<p class="text-xs font-bold text-gray-800 break-keep">' + escapeHtml(cleanPrompt) + '</p>' +
+                    (q && q.score ? '<span class="text-[11px] font-black text-indigo-600 shrink-0">' + escapeHtml(q.score) + '점</span>' : '') +
+                  '</div>'
+                : '<p class="text-xs font-bold text-gray-600">' + qNo + '번 문항</p>') +
+              (hasQImg ? '<div class="mt-2 [&_img]:max-h-40 [&_img]:rounded-lg">' + qParts.imgHtml + '</div>' : '') +
+              (q && q.answer ? '<p class="text-[11px] text-emerald-700 font-semibold mt-1">기준 정답/키워드: ' + escapeHtml(q.answer) + '</p>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div>' +
+            '<label class="block text-[11px] font-black text-sky-800 mb-1"><span class="inline-block px-1.5 py-0.5 rounded bg-sky-100 mr-1">2. 답변(메모)</span>' + qNo + '번 정답 / 답안</label>' +
+            '<input type="text" data-proxy-qno="' + qNo + '" value="' + escapeHtml(val) + '" placeholder="' + qNo + '번 문항에 대한 학생의 정답 또는 답안을 입력하세요" class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-900 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none" />' +
+          '</div>' +
+          '<div>' +
+            '<label class="block text-[11px] font-black text-emerald-800 mb-1"><span class="inline-block px-1.5 py-0.5 rounded bg-emerald-100 mr-1">3. 첨부파일 또는 이미지</span>' + qNo + '번 문항 파일/이미지 첨부 (선택)</label>' +
+            '<input type="file" data-proxy-qfile="' + qNo + '" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.mp4" class="block w-full text-xs text-gray-600 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-200 file:bg-white file:text-sky-700 file:text-xs file:font-bold hover:file:bg-sky-50" />' +
+            (qFiles.length ? '<div class="mt-1.5 flex flex-wrap gap-1.5">' + qFiles.map(f => '<a href="' + escapeHtml(f.file_url) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-emerald-200 text-[11px] font-bold text-sky-700"><i class="fas fa-paperclip text-emerald-600"></i>' + escapeHtml(f.file_name) + '</a>').join('') + '</div>' : '') +
+          '</div>' +
+        '</div>';
+      }
+      box.innerHTML = html;
+    }
+
+    function addExtraProxyQuestionInput() {
+      // 현재 입력된 값 보존
+      const currentCombined = collectProxyFormattedAnswers();
+      extraProxyQuestionCount += 1;
+      renderProxyQuestionInputs(currentCombined);
+    }
+
+    function collectProxyFormattedAnswers() {
+      const inputs = Array.from(document.querySelectorAll('#proxyNumberedAnswersBox input[data-proxy-qno]'));
+      const lines = [];
+      let anyNumbered = false;
+      inputs.forEach(inp => {
+        const no = inp.getAttribute('data-proxy-qno');
+        const v = String(inp.value || '').trim();
+        if (v !== '') anyNumbered = true;
+        lines.push(no + '. ' + v);
+      });
+      const memo = (document.getElementById('proxyAnswerInput')?.value || '').trim();
+      const out = [];
+      if (anyNumbered) {
+        out.push(...lines);
+      }
+      if (memo) {
+        out.push(anyNumbered ? ('[비고] ' + memo) : memo);
+      }
+      return out.join('\n').trim();
+    }
+
     function renderStudentEvidenceBadges(row) {
       const list = Array.isArray(row.evidence_list) ? row.evidence_list : [];
       const itemsHtml = list.length
@@ -443,7 +619,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
             const linkPart = hasUrl
               ? '<a href="' + escapeHtml(ev.file_url) + '" target="_blank" rel="noopener" class="text-xs font-bold text-sky-700 hover:underline break-all"><i class="fas ' + (ev.file_type === 'link' ? 'fa-link' : 'fa-paperclip') + ' mr-1"></i>' + escapeHtml(ev.file_name || '제출파일') + '</a>'
               : '<span class="text-xs font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + escapeHtml(ev.file_name || '답안 입력') + '</span>';
-            const commentPart = ev.comment ? '<div class="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 mt-0.5 whitespace-pre-wrap">' + escapeHtml(ev.comment) + '</div>' : '';
+            const commentPart = ev.comment ? formatNumberedCommentHtml(ev.comment) : '';
             return '<div class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 flex items-start justify-between gap-2">' +
               '<div class="min-w-0 flex-1">' + linkPart + commentPart + '</div>' +
               '<button type="button" onclick="deleteStudentEvidence(' + ev.id + ')" class="text-gray-400 hover:text-red-500 text-xs px-1" title="삭제"><i class="fas fa-trash-can"></i></button>' +
@@ -510,12 +686,15 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       if (titleInput && currentPlan && row) {
         titleInput.value = (currentPlan.subject_name || currentPlan.unit_name || '본평가') + ' - ' + row.name + ' (강사 대리입력)';
       }
+      const list = row && Array.isArray(row.evidence_list) ? row.evidence_list : [];
+      const latestWithComment = list.find(ev => ev && String(ev.comment || '').trim() !== '');
+      extraProxyQuestionCount = 0;
+      renderProxyQuestionInputs(latestWithComment ? latestWithComment.comment : '');
       if (!box) return;
       if (!row) {
         box.innerHTML = '<p class="text-xs text-gray-400">수강생을 선택하세요.</p>';
         return;
       }
-      const list = Array.isArray(row.evidence_list) ? row.evidence_list : [];
       box.innerHTML = '<p class="text-xs font-bold text-gray-600 mb-2">' + escapeHtml(row.name) + ' 수강생 제출 내역 (' + list.length + '건)</p>' +
         (list.length
           ? '<div class="space-y-1.5 max-h-60 overflow-y-auto">' + list.map(ev => {
@@ -525,7 +704,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
                   (hasUrl
                     ? '<a href="' + escapeHtml(ev.file_url) + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline break-all"><i class="fas fa-paperclip mr-1"></i>' + escapeHtml(ev.file_name || '제출파일') + '</a>'
                     : '<span class="font-bold text-indigo-700"><i class="fas fa-pen-nib mr-1"></i>' + escapeHtml(ev.file_name || '답안 입력') + '</span>') +
-                  (ev.comment ? '<div class="text-gray-700 mt-1 whitespace-pre-wrap bg-white p-1.5 rounded border border-gray-100">' + escapeHtml(ev.comment) + '</div>' : '') +
+                  (ev.comment ? formatNumberedCommentHtml(ev.comment) : '') +
                 '</div>' +
                 '<button type="button" onclick="deleteStudentEvidence(' + ev.id + ')" class="text-gray-400 hover:text-red-500 px-1" title="삭제"><i class="fas fa-trash-can"></i></button>' +
               '</div>';
@@ -556,12 +735,19 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       if (!studentId) { alert('대상 수강생을 선택하세요.'); return; }
       const title = (document.getElementById('proxyTitleInput')?.value || '').trim() || '강사 대리입력';
       const url = (document.getElementById('proxyUrlInput')?.value || '').trim();
-      const answer = (document.getElementById('proxyAnswerInput')?.value || '').trim();
+      const answer = collectProxyFormattedAnswers();
       const fileInput = document.getElementById('proxyFileInput');
       const files = fileInput && fileInput.files ? Array.from(fileInput.files) : [];
+      const perQFileInputs = Array.from(document.querySelectorAll('#proxyNumberedAnswersBox input[data-proxy-qfile]'));
+      const perQFiles = [];
+      perQFileInputs.forEach(inp => {
+        const qNo = inp.getAttribute('data-proxy-qfile');
+        const list = inp.files ? Array.from(inp.files) : [];
+        list.forEach(f => perQFiles.push({ qNo, file: f }));
+      });
 
-      if (!files.length && !url && !answer) {
-        alert('정답/답안 내용을 입력하거나 파일 또는 링크를 첨부해 주세요.');
+      if (!files.length && !perQFiles.length && !url && !answer) {
+        alert('문항별 정답/답안 내용을 입력하거나 파일 또는 링크를 첨부해 주세요.');
         return;
       }
 
@@ -569,14 +755,32 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
       try {
         const items = [];
+        for (const qf of perQFiles) {
+          const up = await uploadProxyFile(qf.file, currentPlan.id);
+          const fType = String(qf.file.type || '').startsWith('image/') ? 'image' : 'document';
+          items.push({ name: '[문항 ' + qf.qNo + '] ' + (up.originalName || qf.file.name), url: up.url, type: fType, comment: '' });
+        }
         for (const f of files) {
           const up = await uploadProxyFile(f, currentPlan.id);
           const fType = String(f.type || '').startsWith('image/') ? 'image' : 'document';
-          items.push({ name: title + ' · ' + (up.originalName || f.name), url: up.url, type: fType });
+          items.push({ name: title + ' · ' + (up.originalName || f.name), url: up.url, type: fType, comment: '' });
         }
-        if (url) items.push({ name: title, url, type: 'link' });
-        if (!items.length && answer) {
-          items.push({ name: title, url: '', type: 'answer' });
+        if (url) items.push({ name: title, url, type: 'link', comment: '' });
+        if (answer) {
+          // 기존 텍스트 전용 답안 행이 있으면 갱신을 위해 정리
+          const stuRow = studentResults.find(r => String(r.student_id) === String(studentId));
+          const prevEvs = (stuRow && Array.isArray(stuRow.evidence_list)) ? stuRow.evidence_list : [];
+          for (const pe of prevEvs) {
+            if (pe && (!pe.file_url || String(pe.file_url).trim() === '')) {
+              try {
+                await fetch('/api/ncs/evidence/' + pe.id, {
+                  method: 'DELETE',
+                  headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                });
+              } catch (_) {}
+            }
+          }
+          items.push({ name: title, url: '', type: 'answer', comment: answer });
         }
 
         for (const it of items) {
@@ -592,7 +796,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
               file_name: it.name,
               file_url: it.url,
               file_type: it.type,
-              comment: answer
+              comment: it.comment
             })
           });
           const j = await res.json();
@@ -660,7 +864,7 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         rows.forEach((r, idx) => {
           html += '<div class="rounded-xl border border-gray-100 bg-gray-50 p-4">' +
             '<div class="flex items-center justify-between mb-2"><span class="text-xs font-black text-gray-800">문항 ' + (r.no || idx + 1) + (r.type ? ' (' + escapeHtml(r.type) + ')' : '') + '</span><span class="text-xs font-black text-indigo-600">' + (r.score || 0) + '점</span></div>' +
-            '<div class="text-xs text-gray-700 whitespace-pre-wrap">' + (r.text || '') + '</div>' +
+            '<div class="text-xs text-gray-700">' + renderNcsQuestionRichHtml(r.text || '') + '</div>' +
             (r.answer ? '<div class="mt-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded">정답/채점기준: ' + escapeHtml(r.answer) + '</div>' : '') +
           '</div>';
         });
