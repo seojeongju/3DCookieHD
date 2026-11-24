@@ -7912,8 +7912,18 @@ app.get('/evaluations/:planId', authMiddleware, async (c) => {
                         }
                     } else if (d.doc_type === 'tools' && !examSpec.tools.criteria_groups.length) {
                         if (matchDoc(docCid, p.subject_name)) {
-                            const groups = Array.isArray(p.criteria_groups) ? p.criteria_groups : [];
-                            if (groups.length) {
+                            const rawGroups = Array.isArray(p.criteria_groups) ? p.criteria_groups : [];
+                            if (rawGroups.length) {
+                                const groups = rawGroups.map((g: any) => {
+                                    const validLines = (Array.isArray(g?.lines) ? g.lines : [])
+                                        .map((l: any) => ({ text: String(l?.text || '').trim() }))
+                                        .filter((l: any) => l.text)
+                                        .map((l: any, idx: number) => ({ label: `${idx + 1}.`, text: l.text }));
+                                    return {
+                                        ...g,
+                                        lines: validLines,
+                                    };
+                                });
                                 examSpec.tools = {
                                     criteria_groups: groups,
                                     eval_datetime: String(p.tools_eval_datetime || ''),
@@ -8006,21 +8016,60 @@ app.get('/my-results', async (c) => {
         const studentId = c.req.query('studentId');
         if (!studentId) return c.json({ success: false, error: 'Student ID is required' }, 400);
 
+        const courseIdRaw = c.req.query('courseId') || c.req.query('course_id');
+        const sessionIdRaw = c.req.query('session_id') || c.req.query('sessionId');
+        let filterCourseIds: number[] = [];
+        const sesOvr = await resolveExplicitSessionOverride(c.env.DB, sessionIdRaw);
+        if (sesOvr) {
+            filterCourseIds = [sesOvr.lmsCourseId, sesOvr.sessionId].filter((n) => Number.isFinite(n) && n > 0);
+        } else if (courseIdRaw) {
+            const parsedCid = parseInt(String(courseIdRaw), 10);
+            if (Number.isFinite(parsedCid) && parsedCid > 0) {
+                const cids = await resolveNcsPlanDocumentCourseIds(c.env.DB, parsedCid);
+                filterCourseIds = cids.length ? cids : [parsedCid];
+            }
+        }
+
+        const whereCourseSql = filterCourseIds.length
+            ? ` AND p.course_id IN (${filterCourseIds.map(() => '?').join(', ')})`
+            : '';
+
         const query = `
             SELECT 
                 er.id as result_id, er.score, er.is_passed, er.feedback, er.graded_at,
-                p.id as plan_id, p.method, p.target_score, p.planned_date,
+                p.id as plan_id, p.course_id, p.ncs_unit_id, p.method, p.target_score, p.planned_date, p.evaluation_round,
                 u.name as unit_name, u.code as unit_code,
-                co.title as course_title
+                COALESCE(co.title, ac.name, '') as course_title,
+                stu.name as student_name, stu.birthdate as student_birthdate
             FROM ncs_evaluation_results er
             JOIN ncs_evaluation_plans p ON er.plan_id = p.id
             JOIN ncs_units u ON p.ncs_unit_id = u.id
-            JOIN courses co ON p.course_id = co.id
-            WHERE er.student_id = ?
-            ORDER BY er.graded_at DESC
+            LEFT JOIN users stu ON stu.id = er.student_id
+            LEFT JOIN courses co ON p.course_id = co.id
+            LEFT JOIN course_sessions cs ON cs.lms_course_id = p.course_id OR cs.id = p.course_id
+            LEFT JOIN approved_courses ac ON ac.id = cs.approved_course_id
+            WHERE er.student_id = ?${whereCourseSql}
+            GROUP BY er.id
+            ORDER BY p.evaluation_round ASC, er.graded_at DESC, er.id DESC
         `;
-        const { results } = await c.env.DB.prepare(query).bind(studentId).all();
-        return c.json({ success: true, data: results });
+        const { results } = await c.env.DB.prepare(query).bind(studentId, ...filterCourseIds).all();
+        const rows = (results || []) as any[];
+        const courseMapCache = new Map<number, Map<number, { curriculum_id: number; subject_name: string }>>();
+        for (const r of rows) {
+            const cid = Number(r.course_id);
+            if (!courseMapCache.has(cid)) {
+                courseMapCache.set(cid, await resolveUnitToCurriculumSubjectMap(c.env.DB, cid, sesOvr ? sesOvr.sessionId : null));
+            }
+            const subj = courseMapCache.get(cid)?.get(Number(r.ncs_unit_id));
+            if (subj) {
+                r.subject_name = subj.subject_name;
+                r.curriculum_id = subj.curriculum_id;
+            }
+            if (String(r.unit_code || '').startsWith('CURR-')) {
+                r.unit_code = '-';
+            }
+        }
+        return c.json({ success: true, data: rows });
     } catch (e) {
         console.error('Failed to fetch student results:', e);
         return c.json({ success: false, error: 'Failed to fetch student results' }, 500);

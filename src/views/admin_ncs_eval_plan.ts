@@ -4338,19 +4338,23 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       });
     }
 
-    /** 수행준거 원본 일련번호는 유지. 수동 추가 행만 같은 요소 내 다음 숫자 번호 부여 */
+    function renumberToolsCriteriaGroupLines(grp) {
+      if (!grp || !Array.isArray(grp.lines)) return;
+      for (var i = 0; i < grp.lines.length; i++) {
+        if (grp.lines[i]) grp.lines[i].label = (i + 1) + '.';
+      }
+    }
+
+    function renumberAllToolsCriteriaGroups(groups) {
+      if (!Array.isArray(groups)) return;
+      for (var g = 0; g < groups.length; g++) {
+        renumberToolsCriteriaGroupLines(groups[g]);
+      }
+    }
+
     function nextToolsCriteriaLabelInGroup(grp) {
       var lines = grp && Array.isArray(grp.lines) ? grp.lines : [];
-      var maxNum = 0;
-      for (var i = 0; i < lines.length; i++) {
-        var lab = String((lines[i] && lines[i].label) || '').trim();
-        var m = lab.match(/^(\d+)/);
-        if (m) {
-          var n = parseInt(m[1], 10);
-          if (Number.isFinite(n) && n > maxNum) maxNum = n;
-        }
-      }
-      return maxNum + 1 + '.';
+      return (lines.length + 1) + '.';
     }
 
     function deleteToolsCriteriaLine(g, ln) {
@@ -4360,8 +4364,9 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       grp.lines.splice(ln, 1);
       if (grp.lines.length === 0) {
         toolsCriteriaGroupsState.splice(g, 1);
+      } else {
+        renumberToolsCriteriaGroupLines(grp);
       }
-      // 삭제 후 나머지 수행준거 번호는 재부여하지 않음
       markToolsCriteriaDirty();
       renderToolsCriteriaBody(toolsCriteriaGroupsState);
     }
@@ -4437,6 +4442,7 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
       wireToolsCriteriaEditDelegation();
       wireToolsCriteriaDeleteDelegation();
       toolsCriteriaGroupsState = Array.isArray(groups) ? JSON.parse(JSON.stringify(groups)) : [];
+      renumberAllToolsCriteriaGroups(toolsCriteriaGroupsState);
       var tbody = document.getElementById('toolsCriteriaBody');
       if (!tbody) return;
       if (!toolsCriteriaGroupsState.length) {
@@ -5011,13 +5017,14 @@ function ncsPlanTabScript(useFixedCourseId: boolean) {
         var grp = list[g] || {};
         var elTitle = String(grp.element_title || '').trim() || '능력단위 요소';
         var lines = Array.isArray(grp.lines) ? grp.lines : [];
+        var validIdx = 0;
         for (var ln = 0; ln < lines.length; ln++) {
           var line = lines[ln] || {};
-          var label = String(line.label || '').trim();
           var text = String(line.text || '').trim();
-          var lineDesc = (label ? label + ' ' : '') + text;
-          lineDesc = String(lineDesc || '').trim();
-          if (!lineDesc) continue;
+          if (!text) continue;
+          validIdx++;
+          var label = validIdx + '.';
+          var lineDesc = label + ' ' + text;
           rows.push({
             item: elTitle,
             criterion: lineDesc,

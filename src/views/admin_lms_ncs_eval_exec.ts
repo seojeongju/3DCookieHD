@@ -849,9 +849,9 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         html += '<div class="bg-white rounded-xl border border-gray-200 p-5"><h4 class="text-sm font-black text-gray-800 mb-3"><i class="fas fa-list-check text-indigo-600 mr-1.5"></i>평가내용 (평가도구 수행준거)</h4>';
         groups.forEach(g => {
           html += '<div class="mb-3"><p class="text-xs font-black text-gray-800">' + escapeHtml(g.element_title || g.element_name || '수행준거') + '</p><ul class="mt-1 space-y-1">';
-          (g.lines || []).forEach(l => {
-            if (!l || !String(l.text || '').trim()) return;
-            html += '<li class="text-xs text-gray-700 pl-3 border-l-2 border-indigo-200">' + (l.label ? '<span class="font-bold text-indigo-600 mr-1">' + escapeHtml(l.label) + '</span>' : '') + escapeHtml(l.text) + '</li>';
+          const validLines = (g.lines || []).filter(l => l && String(l.text || '').trim());
+          validLines.forEach((l, lIdx) => {
+            html += '<li class="text-xs text-gray-700 pl-3 border-l-2 border-indigo-200"><span class="font-bold text-indigo-600 mr-1">' + (lIdx + 1) + '.</span>' + escapeHtml(l.text) + '</li>';
           });
           html += '</ul></div>';
         });

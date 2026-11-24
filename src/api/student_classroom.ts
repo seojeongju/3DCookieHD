@@ -351,7 +351,8 @@ app.get('/:sessionId/ncs-plans/:planId/exam', async (c) => {
             element_title: String(g?.element_title || g?.element_name || g?.name || '').trim(),
             lines: (Array.isArray(g?.lines) ? g.lines : [])
                 .map((l: any) => ({ label: String(l?.label || '').trim(), text: String(l?.text || '').trim() }))
-                .filter((l: any) => l.text),
+                .filter((l: any) => l.text)
+                .map((l: any, idx: number) => ({ label: `${idx + 1}.`, text: l.text })),
         }));
         toolsMeta = {
             eval_datetime: String(p.tools_eval_datetime || ''),

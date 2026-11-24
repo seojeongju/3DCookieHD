@@ -1430,8 +1430,8 @@ export const studentClassroomHtml = (sessionId: string) => `
                     html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-6 mb-5"><h3 class="font-black mb-3"><i class="fas fa-list-check text-indigo-500 mr-2"></i>평가내용 (평가도구)</h3>';
                     groups.forEach(function(g) {
                         html += '<div class="mb-3"><p class="text-sm font-black text-slate-800">' + esc(g.element_title || '능력단위 요소') + '</p><ul class="mt-1.5 space-y-1">';
-                        (g.lines || []).forEach(function(l) {
-                            html += '<li class="text-sm text-slate-700 pl-3 border-l-2 border-indigo-100">' + (l.label ? '<span class="font-bold text-indigo-600 mr-1">' + esc(l.label) + '</span>' : '') + esc(l.text) + '</li>';
+                        (g.lines || []).forEach(function(l, lIdx) {
+                            html += '<li class="text-sm text-slate-700 pl-3 border-l-2 border-indigo-100"><span class="font-bold text-indigo-600 mr-1">' + (lIdx + 1) + '.</span>' + esc(l.text) + '</li>';
                         });
                         html += '</ul></div>';
                     });

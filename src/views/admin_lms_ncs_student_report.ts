@@ -116,15 +116,24 @@ export const adminLmsNcsStudentReportHtml = `
     <script>
         const pathParts = window.location.pathname.split('/');
         const studentId = pathParts[pathParts.length - 1];
-        const courseId = new URLSearchParams(window.location.search).get('session_id') || pathParts[3];
-        const _sid = new URLSearchParams(window.location.search).get('session_id') || '';
+        const urlParams = new URLSearchParams(window.location.search);
+        const _sid = urlParams.get('session_id') || '';
+        const rawCourseId = pathParts[3] || _sid;
+        const courseId = _sid || rawCourseId;
+
+        function escHtml(v) {
+            return String(v == null ? '' : v)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             const now = new Date();
             document.getElementById('todayDate').textContent = \`\${now.getFullYear()}년 \${now.getMonth() + 1}월 \${now.getDate()}일\`;
 
             try {
-                const urlParams = new URLSearchParams(window.location.search);
                 let qType = urlParams.get('type') || '';
                 if (!qType && window.location.pathname.includes('/lms')) qType = 'hrd';
                 if (qType && qType.startsWith('hrd')) qType = 'hrd';
@@ -136,49 +145,68 @@ export const adminLmsNcsStudentReportHtml = `
                     cRes = await fetch(courseUrl);
                 }
                 const cData = await cRes.json();
-                if (cData.success) {
-                    document.getElementById('courseTitle').textContent = cData.data.title;
-                    document.getElementById('coursePeriod').textContent = \`\${cData.data.start_date.split('T')[0]} ~ \${cData.data.end_date.split('T')[0]}\`;
+                if (cData.success && cData.data) {
+                    document.getElementById('courseTitle').textContent = cData.data.title || '-';
+                    const sDate = cData.data.start_date ? String(cData.data.start_date).split('T')[0] : '-';
+                    const eDate = cData.data.end_date ? String(cData.data.end_date).split('T')[0] : '-';
+                    document.getElementById('coursePeriod').textContent = \`\${sDate} ~ \${eDate}\`;
                 }
 
-                // 2. 학생 성적 정보
-                const res = await fetch(\`/api/ncs/my-results?studentId=\${studentId}\`);
+                // 2. 학생 성적 및 종합 평가 의견 조회 (courseId 및 session_id 기준)
+                const myResUrl = '/api/ncs/my-results?studentId=' + encodeURIComponent(studentId)
+                    + (rawCourseId ? '&courseId=' + encodeURIComponent(rawCourseId) : '')
+                    + (_sid ? '&session_id=' + encodeURIComponent(_sid) : '');
+                const res = await fetch(myResUrl, { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') } });
                 const result = await res.json();
-                
-                if (result.success && result.data.length > 0) {
-                    const data = result.data.filter(r => r.course_title === document.getElementById('courseTitle').textContent);
-                    if (data.length > 0) {
-                        document.getElementById('studentName').textContent = data[0].student_name || '진행'; // Placeholder logic as my-results was revised
-                        // Re-fetching student name if needed or using local storage isn't reliable for admin view
-                        
-                        const tbody = document.getElementById('resultTbody');
-                        let totalFeedback = "";
-                        
-                        tbody.innerHTML = data.map(r => {
-                            if (r.feedback) totalFeedback += \`[\${r.unit_name}] \${r.feedback}\\n\`;
-                            return \`
-                                <tr>
-                                    <td class="text-[12px] font-mono">\${r.unit_code}</td>
-                                    <td class="font-bold text-left px-4">\${r.unit_name}</td>
-                                    <td>\${r.method}</td>
-                                    <td class="font-bold">\${r.score}점</td>
-                                    <td class="\${r.is_passed ? 'text-blue-700 font-bold' : 'text-red-600 font-bold'}">
-                                        \${r.is_passed ? '이수(Pass)' : '미이수(Fail)'}
-                                    </td>
-                                </tr>
-                            \`;
-                        }).join('');
-                        
-                        document.getElementById('generalFeedback').textContent = totalFeedback || "특이사항 없음.";
+                const allRows = (result && result.success && Array.isArray(result.data)) ? result.data : [];
+
+                if (allRows.length > 0) {
+                    if (allRows[0].student_name) {
+                        document.getElementById('studentName').textContent = allRows[0].student_name;
                     }
+                    const tbody = document.getElementById('resultTbody');
+                    const feedbackLines = [];
+
+                    tbody.innerHTML = allRows.map(r => {
+                        const subjLabel = (r.subject_name && r.unit_name && r.subject_name !== r.unit_name)
+                            ? \`\${r.subject_name} (\${r.unit_name})\`
+                            : (r.subject_name || r.unit_name || '-');
+                        const fb = String(r.feedback || '').trim();
+                        if (fb) {
+                            feedbackLines.push(\`[\${r.subject_name || r.unit_name || '평가'}] \${fb}\`);
+                        }
+                        const hasScore = r.score != null && String(r.score).trim() !== '';
+                        return \`
+                            <tr>
+                                <td class="text-[12px] font-mono">\${escHtml(r.unit_code || '-')}</td>
+                                <td class="font-bold text-left px-4">\${escHtml(subjLabel)}</td>
+                                <td>\${escHtml(r.method || '-')}</td>
+                                <td class="font-bold">\${hasScore ? escHtml(r.score) + '점' : '-'}</td>
+                                <td class="\${!hasScore ? 'text-gray-500 font-bold' : (Number(r.is_passed) === 1 ? 'text-blue-700 font-bold' : 'text-red-600 font-bold')}">
+                                    \${!hasScore ? '미채점' : (Number(r.is_passed) === 1 ? '이수(Pass)' : '미이수(Fail)')}
+                                </td>
+                            </tr>
+                        \`;
+                    }).join('');
+
+                    document.getElementById('generalFeedback').textContent = feedbackLines.length > 0
+                        ? feedbackLines.join('\\n')
+                        : '특이사항 없음.';
+                } else {
+                    document.getElementById('resultTbody').innerHTML = '<tr><td colspan="5" class="py-6 text-gray-400">등록된 평가 결과가 없습니다.</td></tr>';
+                    document.getElementById('generalFeedback').textContent = '등록된 종합 평가 의견이 없습니다.';
                 }
-                
-                // 학생 이름 보정 (my-results에 student_name이 없을 수 있으므로 API에서 이름 따로 가져옴)
-                const uRes = await fetch('/api/hrd/students/' + studentId, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-                const uData = await uRes.json();
-                if (uData.success) {
-                    document.getElementById('studentName').textContent = uData.data.name;
-                }
+
+                // 3. 학생 이름 보정
+                try {
+                    const uRes = await fetch('/api/hrd/students/' + encodeURIComponent(studentId), {
+                        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || '') }
+                    });
+                    const uData = await uRes.json();
+                    if (uData && uData.success && uData.data && uData.data.name) {
+                        document.getElementById('studentName').textContent = uData.data.name;
+                    }
+                } catch (_) {}
 
             } catch (e) { console.error(e); }
         });
