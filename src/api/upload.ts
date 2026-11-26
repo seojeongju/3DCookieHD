@@ -6,7 +6,7 @@ import { verifyToken } from '../utils/jwt';
 const app = new Hono<{ Bindings: Bindings }>();
 
 // 허용된 파일 타입
-const ALLOWED_MIME_TYPES = {
+const ALLOWED_MIME_TYPES: Record<string, string[]> = {
   // 문서
   'application/pdf': ['.pdf'],
   'application/msword': ['.doc'],
@@ -15,19 +15,95 @@ const ALLOWED_MIME_TYPES = {
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
   'application/vnd.ms-powerpoint': ['.ppt'],
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  'application/haansofthwp': ['.hwp'],
+  'application/x-hwp': ['.hwp'],
+  'application/vnd.hancom.hwp': ['.hwp'],
+  'application/vnd.hancom.hwpx': ['.hwpx'],
   // 이미지
   'image/jpeg': ['.jpg', '.jpeg'],
   'image/png': ['.png'],
   'image/gif': ['.gif'],
   'image/webp': ['.webp'],
-  // 기타
-  'text/plain': ['.txt'],
-  'application/zip': ['.zip'],
+  'image/bmp': ['.bmp'],
+  'image/svg+xml': ['.svg'],
+  // 압축 및 기타
+  'text/plain': ['.txt', '.gcode', '.obj', '.step', '.stp', '.iges', '.igs', '.stl'],
+  'text/csv': ['.csv'],
+  'application/zip': ['.zip', '.3mf', '.f3d', '.hwpx'],
+  'application/x-zip-compressed': ['.zip', '.3mf', '.f3d'],
   'application/x-rar-compressed': ['.rar'],
+  'application/vnd.rar': ['.rar'],
+  'application/x-7z-compressed': ['.7z'],
+  // 3D 모델링 / CAD / 슬라이서 파일
+  'model/stl': ['.stl'],
+  'model/x.stl-binary': ['.stl'],
+  'model/x.stl-ascii': ['.stl'],
+  'application/sla': ['.stl'],
+  'application/vnd.ms-pki.stl': ['.stl'],
+  'application/x-navistyle': ['.stl'],
+  'model/obj': ['.obj'],
+  'model/step': ['.step', '.stp'],
+  'application/step': ['.step', '.stp'],
+  'model/iges': ['.iges', '.igs'],
+  'application/iges': ['.iges', '.igs'],
+  'model/3mf': ['.3mf'],
+  'application/vnd.ms-package.3dmanufacturing-3dmodel+xml': ['.3mf'],
+  'application/acad': ['.dwg'],
+  'image/vnd.dwg': ['.dwg'],
+  'application/dxf': ['.dxf'],
+  'image/vnd.dxf': ['.dxf'],
   // 동영상
   'video/mp4': ['.mp4'],
   'video/webm': ['.webm'],
   'video/ogg': ['.ogv'],
+};
+
+// 브라우저/OS마다 MIME이 비어 있거나 application/octet-stream 등으로 올라오는 확장자 허용 목록
+const EXTENSION_DEFAULT_MIME: Record<string, string> = {
+  '.stl': 'model/stl',
+  '.step': 'model/step',
+  '.stp': 'model/step',
+  '.iges': 'model/iges',
+  '.igs': 'model/iges',
+  '.obj': 'model/obj',
+  '.3mf': 'model/3mf',
+  '.f3d': 'application/octet-stream',
+  '.gcode': 'text/plain',
+  '.dwg': 'application/acad',
+  '.dxf': 'application/dxf',
+  '.blend': 'application/octet-stream',
+  '.skp': 'application/octet-stream',
+  '.3dm': 'application/octet-stream',
+  '.ipt': 'application/octet-stream',
+  '.iam': 'application/octet-stream',
+  '.sldprt': 'application/octet-stream',
+  '.sldasm': 'application/octet-stream',
+  '.x_t': 'application/octet-stream',
+  '.sat': 'application/octet-stream',
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.hwp': 'application/x-hwp',
+  '.hwpx': 'application/vnd.hancom.hwpx',
+  '.txt': 'text/plain',
+  '.csv': 'text/csv',
+  '.zip': 'application/zip',
+  '.rar': 'application/x-rar-compressed',
+  '.7z': 'application/x-7z-compressed',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.bmp': 'image/bmp',
+  '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.ogv': 'video/ogg',
 };
 
 // 최대 파일 크기 (50MB)
@@ -211,20 +287,25 @@ app.post('/', authMiddleware, async (c) => {
       return c.json({ success: false, error: `파일 크기는 ${MAX_FILE_SIZE / 1024 / 1024}MB를 초과할 수 없습니다` }, 400);
     }
 
-    // MIME 타입 검사
-    const mimeType = file.type;
-    if (!ALLOWED_MIME_TYPES[mimeType as keyof typeof ALLOWED_MIME_TYPES]) {
+    // 파일 확장자 및 MIME 타입 검사 (STL/STEP/CAD 등 OS마다 MIME이 비거나 다른 경우 확장자 기준 허용)
+    const fileName = file.name || '';
+    const dotIdx = fileName.lastIndexOf('.');
+    const fileExtension = dotIdx >= 0 ? fileName.substring(dotIdx).toLowerCase() : '';
+    const rawMimeType = (file.type || '').trim().toLowerCase();
+    const allowedExtensionsForMime = rawMimeType ? ALLOWED_MIME_TYPES[rawMimeType] : undefined;
+    const fallbackMimeForExt = fileExtension ? EXTENSION_DEFAULT_MIME[fileExtension] : undefined;
+
+    if (!allowedExtensionsForMime && !fallbackMimeForExt) {
       return c.json({ success: false, error: '허용되지 않은 파일 형식입니다' }, 400);
     }
 
-    // 파일 확장자 검사
-    const fileName = file.name;
-    const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
-    const allowedExtensions = ALLOWED_MIME_TYPES[mimeType as keyof typeof ALLOWED_MIME_TYPES];
-    
-    if (!allowedExtensions.includes(fileExtension)) {
+    if (allowedExtensionsForMime && !allowedExtensionsForMime.includes(fileExtension) && !fallbackMimeForExt) {
       return c.json({ success: false, error: '파일 확장자가 MIME 타입과 일치하지 않습니다' }, 400);
     }
+
+    const mimeType = (allowedExtensionsForMime && allowedExtensionsForMime.includes(fileExtension))
+      ? rawMimeType
+      : (fallbackMimeForExt || rawMimeType || 'application/octet-stream');
 
     // 파일명 생성 (타임스탬프 + 랜덤 문자열 + 원본 파일명)
     const timestamp = Date.now();
