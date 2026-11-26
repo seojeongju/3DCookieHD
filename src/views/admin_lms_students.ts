@@ -403,14 +403,24 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                     const qText = q ? stripHtmlToPlain(q.text) : '';
                     const cleanPrompt = qText.replace(new RegExp('^' + qNo + '\\s*[\\.\\)]\\s*'), '');
                     const val = parsed.map[qNo] != null ? parsed.map[qNo] : '';
-                    html += '<div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">' +
+                    html += '<div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">' +
                         '<div class="flex items-start gap-2.5">' +
-                            '<span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs font-black shrink-0 mt-0.5">' + qNo + '</span>' +
+                            '<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-lg bg-indigo-600 text-white text-xs font-black shrink-0 mt-0.5">1. 문항 ' + qNo + '</span>' +
                             '<div class="flex-1 min-w-0 space-y-1.5">' +
                                 (cleanPrompt
                                     ? '<p class="text-xs font-bold text-slate-800 break-keep">' + escHtml(cleanPrompt) + '</p>'
                                     : '<p class="text-xs font-bold text-slate-600">' + qNo + '번 문항 정답 / 답안</p>') +
                                 '<input type="text" data-modal-qno="' + qNo + '" value="' + escHtml(val) + '" placeholder="' + qNo + '번 문항 정답 또는 답안을 입력하세요" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-900 focus:ring-2 focus:ring-sky-500 outline-none" />' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">' +
+                            '<div class="rounded-lg border border-amber-200 bg-white p-2">' +
+                                '<label class="block text-[11px] font-black text-amber-800 mb-1"><span class="inline-block px-1.5 py-0.5 rounded bg-amber-100 mr-1">사진란</span>' + qNo + '번 사진/이미지 (멀티)</label>' +
+                                '<input type="file" data-modal-qphoto="' + qNo + '" multiple accept="image/*" class="block w-full text-xs text-slate-600 file:mr-2 file:px-2.5 file:py-1 file:rounded-lg file:border file:border-amber-200 file:bg-amber-50 file:text-amber-800 file:text-xs file:font-bold" />' +
+                            '</div>' +
+                            '<div class="rounded-lg border border-emerald-200 bg-white p-2">' +
+                                '<label class="block text-[11px] font-black text-emerald-800 mb-1"><span class="inline-block px-1.5 py-0.5 rounded bg-emerald-100 mr-1">첨부파일란</span>' + qNo + '번 설계·문서 파일 (멀티)</label>' +
+                                '<input type="file" data-modal-qfile="' + qNo + '" multiple accept=".stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.dwg,.dxf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.txt,.zip,.rar,.7z,.mp4,image/*" class="block w-full text-xs text-slate-600 file:mr-2 file:px-2.5 file:py-1 file:rounded-lg file:border file:border-emerald-200 file:bg-emerald-50 file:text-emerald-800 file:text-xs file:font-bold" />' +
                             '</div>' +
                         '</div>' +
                     '</div>';
@@ -515,14 +525,43 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                 const answer = collectModalFormattedAnswers();
                 const fi = document.getElementById('ncsProxyFiles');
                 const files = fi && fi.files ? Array.from(fi.files) : [];
-                if (!files.length && !url && !answer) {
-                    alert('문항별 정답/답안 내용을 입력하거나 파일 또는 링크를 첨부해 주세요.');
+                const perQPhotoInputs = Array.from(document.querySelectorAll('#ncsProxyNumberedBox input[data-modal-qphoto]'));
+                const perQFileInputs = Array.from(document.querySelectorAll('#ncsProxyNumberedBox input[data-modal-qfile]'));
+                const perQItems = [];
+                perQPhotoInputs.forEach(inp => {
+                    const qNo = inp.getAttribute('data-modal-qphoto');
+                    const list = inp.files ? Array.from(inp.files) : [];
+                    list.forEach(f => perQItems.push({ qNo, kind: 'photo', file: f }));
+                });
+                perQFileInputs.forEach(inp => {
+                    const qNo = inp.getAttribute('data-modal-qfile');
+                    const list = inp.files ? Array.from(inp.files) : [];
+                    list.forEach(f => perQItems.push({ qNo, kind: 'file', file: f }));
+                });
+                if (!files.length && !perQItems.length && !url && !answer) {
+                    alert('문항별 정답/답안 내용을 입력하거나 사진/파일 또는 링크를 첨부해 주세요.');
                     return;
                 }
                 const btn = document.getElementById('ncsProxySaveBtn');
                 if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
                 try {
                     const items = [];
+                    for (const qf of perQItems) {
+                        const fd = new FormData();
+                        fd.append('file', qf.file);
+                        fd.append('category', 'evidence');
+                        fd.append('folder', 'ncs-evidence/' + planId);
+                        const upRes = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + getToken() },
+                            body: fd
+                        });
+                        const upJson = await upRes.json();
+                        if (!upJson?.success || !upJson?.data?.url) throw new Error(upJson?.error || (qf.file.name + ' 업로드 실패'));
+                        const fType = qf.kind === 'photo' || String(qf.file.type || '').startsWith('image/') ? 'image' : 'document';
+                        const prefix = qf.kind === 'photo' ? ('[문항 ' + qf.qNo + '][사진] ') : ('[문항 ' + qf.qNo + '][첨부파일] ');
+                        items.push({ name: prefix + (upJson.data.originalName || qf.file.name), url: upJson.data.url, type: fType, comment: '' });
+                    }
                     for (const f of files) {
                         const fd = new FormData();
                         fd.append('file', f);
@@ -536,10 +575,10 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                         const upJson = await upRes.json();
                         if (!upJson?.success || !upJson?.data?.url) throw new Error(upJson?.error || (f.name + ' 업로드 실패'));
                         const fType = String(f.type || '').startsWith('image/') ? 'image' : 'document';
-                        items.push({ name: title + ' · ' + (upJson.data.originalName || f.name), url: upJson.data.url, type: fType });
+                        items.push({ name: title + ' · ' + (upJson.data.originalName || f.name), url: upJson.data.url, type: fType, comment: '' });
                     }
-                    if (url) items.push({ name: title, url, type: 'link' });
-                    if (!items.length && answer) items.push({ name: title, url: '', type: 'answer' });
+                    if (url) items.push({ name: title, url, type: 'link', comment: '' });
+                    if (answer) items.push({ name: title, url: '', type: 'answer', comment: answer });
 
                     for (const it of items) {
                         const res = await fetch('/api/ncs/evidence', {
@@ -554,7 +593,7 @@ export const adminLmsStudentsHtml = (sidebar: string = hrdSidebar('courses')) =>
                                 file_name: it.name,
                                 file_url: it.url,
                                 file_type: it.type,
-                                comment: answer
+                                comment: it.comment != null ? it.comment : ''
                             })
                         });
                         const j = await res.json();

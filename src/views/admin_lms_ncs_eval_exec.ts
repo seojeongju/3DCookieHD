@@ -555,6 +555,8 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         const cleanPrompt = qText.replace(new RegExp('^' + qNo + '\\s*[\\.\\)]\\s*'), '');
         const val = parsed.map[qNo] != null ? parsed.map[qNo] : '';
         const qFiles = stuEvList.filter(ev => ev && ev.file_url && new RegExp('\\[문항\\s*' + qNo + '\\]').test(String(ev.file_name || '')));
+        const qPhotos = qFiles.filter(f => f.file_type === 'image' || /\\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(f.file_url || '')) || /\\[사진\\]/.test(String(f.file_name || '')));
+        const qDocs = qFiles.filter(f => !qPhotos.includes(f));
         html += '<div class="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-2.5">' +
           '<div class="flex items-start gap-2.5">' +
             '<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-lg bg-indigo-600 text-white text-xs font-black shrink-0 mt-0.5">1. 문항 ' + qNo + '</span>' +
@@ -573,14 +575,66 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
             '<label class="block text-[11px] font-black text-sky-800 mb-1"><span class="inline-block px-1.5 py-0.5 rounded bg-sky-100 mr-1">2. 답변(메모)</span>' + qNo + '번 정답 / 답안</label>' +
             '<input type="text" data-proxy-qno="' + qNo + '" value="' + escapeHtml(val) + '" placeholder="' + qNo + '번 문항에 대한 학생의 정답 또는 답안을 입력하세요" class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-900 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none" />' +
           '</div>' +
-          '<div>' +
-            '<label class="block text-[11px] font-black text-emerald-800 mb-1"><span class="inline-block px-1.5 py-0.5 rounded bg-emerald-100 mr-1">3. 첨부파일 또는 이미지</span>' + qNo + '번 문항 파일/이미지 첨부 (선택)</label>' +
-            '<input type="file" data-proxy-qfile="' + qNo + '" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.mp4" class="block w-full text-xs text-gray-600 file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-gray-200 file:bg-white file:text-sky-700 file:text-xs file:font-bold hover:file:bg-sky-50" />' +
-            (qFiles.length ? '<div class="mt-1.5 flex flex-wrap gap-1.5">' + qFiles.map(f => '<a href="' + escapeHtml(f.file_url) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-emerald-200 text-[11px] font-bold text-sky-700"><i class="fas fa-paperclip text-emerald-600"></i>' + escapeHtml(f.file_name) + '</a>').join('') + '</div>' : '') +
+          '<div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">' +
+            '<div class="rounded-lg border border-amber-200 bg-white p-2.5">' +
+              '<label class="block text-[11px] font-black text-amber-800 mb-1"><span class="inline-block px-1.5 py-0.5 rounded bg-amber-100 mr-1">3-1. 사진란</span>' + qNo + '번 사진/이미지 (멀티 첨부)</label>' +
+              '<input type="file" data-proxy-qphoto="' + qNo + '" multiple accept="image/*" onchange="onProxyMultiFilePick(' + qNo + ', &#39;photo&#39;, this)" class="block w-full text-xs text-gray-600 file:mr-2 file:px-2.5 file:py-1.5 file:rounded-lg file:border file:border-amber-200 file:bg-amber-50 file:text-amber-800 file:text-xs file:font-bold hover:file:bg-amber-100 cursor-pointer" />' +
+              '<div id="proxyQueuedPhotos_' + qNo + '" class="mt-1.5 space-y-1"></div>' +
+              (qPhotos.length ? '<div class="mt-1.5 flex flex-wrap gap-1.5">' + qPhotos.map(f => '<a href="' + escapeHtml(f.file_url) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-50/60 border border-amber-200 text-[11px] font-bold text-amber-900"><i class="fas fa-image text-amber-600"></i>' + escapeHtml(f.file_name) + '</a>').join('') + '</div>' : '') +
+            '</div>' +
+            '<div class="rounded-lg border border-emerald-200 bg-white p-2.5">' +
+              '<label class="block text-[11px] font-black text-emerald-800 mb-1"><span class="inline-block px-1.5 py-0.5 rounded bg-emerald-100 mr-1">3-2. 첨부파일란</span>' + qNo + '번 설계·문서 파일 (멀티 첨부)</label>' +
+              '<input type="file" data-proxy-qfile="' + qNo + '" multiple accept=".stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.dwg,.dxf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.txt,.zip,.rar,.7z,.mp4,image/*" onchange="onProxyMultiFilePick(' + qNo + ', &#39;file&#39;, this)" class="block w-full text-xs text-gray-600 file:mr-2 file:px-2.5 file:py-1.5 file:rounded-lg file:border file:border-emerald-200 file:bg-emerald-50 file:text-emerald-800 file:text-xs file:font-bold hover:file:bg-emerald-100 cursor-pointer" />' +
+              '<div id="proxyQueuedFiles_' + qNo + '" class="mt-1.5 space-y-1"></div>' +
+              (qDocs.length ? '<div class="mt-1.5 flex flex-wrap gap-1.5">' + qDocs.map(f => '<a href="' + escapeHtml(f.file_url) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-50/60 border border-emerald-200 text-[11px] font-bold text-sky-700"><i class="fas fa-paperclip text-emerald-600"></i>' + escapeHtml(f.file_name) + '</a>').join('') + '</div>' : '') +
+            '</div>' +
           '</div>' +
         '</div>';
       }
       box.innerHTML = html;
+      for (let i = 0; i < totalCount; i++) {
+        const q = qRows[i] || null;
+        const qNo = q && q.no ? Number(q.no) : (i + 1);
+        renderProxyQueuedList(qNo, 'photo');
+        renderProxyQueuedList(qNo, 'file');
+      }
+    }
+
+    window._proxyQueuedPhotos = {};
+    window._proxyQueuedFiles = {};
+
+    function onProxyMultiFilePick(qNo, kind, inputEl) {
+      const store = kind === 'photo' ? window._proxyQueuedPhotos : window._proxyQueuedFiles;
+      if (!Array.isArray(store[qNo])) store[qNo] = [];
+      const picked = inputEl && inputEl.files ? Array.from(inputEl.files) : [];
+      picked.forEach(f => {
+        const exists = store[qNo].some(x => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified);
+        if (!exists) store[qNo].push(f);
+      });
+      if (inputEl) inputEl.value = '';
+      renderProxyQueuedList(qNo, kind);
+    }
+
+    function removeProxyQueuedFile(qNo, kind, idx) {
+      const store = kind === 'photo' ? window._proxyQueuedPhotos : window._proxyQueuedFiles;
+      if (Array.isArray(store[qNo])) store[qNo].splice(idx, 1);
+      renderProxyQueuedList(qNo, kind);
+    }
+
+    function renderProxyQueuedList(qNo, kind) {
+      const store = kind === 'photo' ? window._proxyQueuedPhotos : window._proxyQueuedFiles;
+      const list = Array.isArray(store[qNo]) ? store[qNo] : [];
+      const box = document.getElementById((kind === 'photo' ? 'proxyQueuedPhotos_' : 'proxyQueuedFiles_') + qNo);
+      if (!box) return;
+      if (!list.length) { box.innerHTML = ''; return; }
+      const cls = kind === 'photo' ? 'border-amber-200 bg-amber-50/70 text-amber-900' : 'border-sky-200 bg-sky-50/70 text-sky-900';
+      box.innerHTML = '<p class="text-[10px] font-bold text-gray-500">대기 중 (' + list.length + '개)</p>' +
+        list.map((f, idx) =>
+          '<div class="flex items-center justify-between gap-2 rounded border ' + cls + ' px-2 py-1 text-[11px]">' +
+            '<span class="truncate font-semibold">' + escapeHtml(f.name) + '</span>' +
+            '<button type="button" onclick="removeProxyQueuedFile(' + qNo + ', &#39;' + kind + '&#39;, ' + idx + ')" class="text-gray-400 hover:text-red-600 font-bold px-1"><i class="fas fa-xmark"></i></button>' +
+          '</div>'
+        ).join('');
     }
 
     function addExtraProxyQuestionInput() {
@@ -689,6 +743,8 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       const list = row && Array.isArray(row.evidence_list) ? row.evidence_list : [];
       const latestWithComment = list.find(ev => ev && String(ev.comment || '').trim() !== '');
       extraProxyQuestionCount = 0;
+      window._proxyQueuedPhotos = {};
+      window._proxyQueuedFiles = {};
       renderProxyQuestionInputs(latestWithComment ? latestWithComment.comment : '');
       if (!box) return;
       if (!row) {
@@ -738,16 +794,28 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
       const answer = collectProxyFormattedAnswers();
       const fileInput = document.getElementById('proxyFileInput');
       const files = fileInput && fileInput.files ? Array.from(fileInput.files) : [];
+      const perQPhotoInputs = Array.from(document.querySelectorAll('#proxyNumberedAnswersBox input[data-proxy-qphoto]'));
       const perQFileInputs = Array.from(document.querySelectorAll('#proxyNumberedAnswersBox input[data-proxy-qfile]'));
       const perQFiles = [];
+      Object.keys(window._proxyQueuedPhotos || {}).forEach(qNo => {
+        (window._proxyQueuedPhotos[qNo] || []).forEach(f => perQFiles.push({ qNo, kind: 'photo', file: f }));
+      });
+      perQPhotoInputs.forEach(inp => {
+        const qNo = inp.getAttribute('data-proxy-qphoto');
+        const list = inp.files ? Array.from(inp.files) : [];
+        list.forEach(f => perQFiles.push({ qNo, kind: 'photo', file: f }));
+      });
+      Object.keys(window._proxyQueuedFiles || {}).forEach(qNo => {
+        (window._proxyQueuedFiles[qNo] || []).forEach(f => perQFiles.push({ qNo, kind: 'file', file: f }));
+      });
       perQFileInputs.forEach(inp => {
         const qNo = inp.getAttribute('data-proxy-qfile');
         const list = inp.files ? Array.from(inp.files) : [];
-        list.forEach(f => perQFiles.push({ qNo, file: f }));
+        list.forEach(f => perQFiles.push({ qNo, kind: 'file', file: f }));
       });
 
       if (!files.length && !perQFiles.length && !url && !answer) {
-        alert('문항별 정답/답안 내용을 입력하거나 파일 또는 링크를 첨부해 주세요.');
+        alert('문항별 정답/답안 내용을 입력하거나 사진/파일 또는 링크를 첨부해 주세요.');
         return;
       }
 
@@ -757,8 +825,9 @@ export const adminLmsNcsEvalExecHtml = (sidebar: string = hrdSidebar('courses'))
         const items = [];
         for (const qf of perQFiles) {
           const up = await uploadProxyFile(qf.file, currentPlan.id);
-          const fType = String(qf.file.type || '').startsWith('image/') ? 'image' : 'document';
-          items.push({ name: '[문항 ' + qf.qNo + '] ' + (up.originalName || qf.file.name), url: up.url, type: fType, comment: '' });
+          const fType = qf.kind === 'photo' || String(qf.file.type || '').startsWith('image/') ? 'image' : 'document';
+          const prefix = qf.kind === 'photo' ? ('[문항 ' + qf.qNo + '][사진] ') : ('[문항 ' + qf.qNo + '][첨부파일] ');
+          items.push({ name: prefix + (up.originalName || qf.file.name), url: up.url, type: fType, comment: '' });
         }
         for (const f of files) {
           const up = await uploadProxyFile(f, currentPlan.id);

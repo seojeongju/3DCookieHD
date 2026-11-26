@@ -86,8 +86,8 @@ export const studentClassroomHtml = (sessionId: string) => `
                 <input type="file" id="evidenceFiles" multiple onchange="onEvidenceFilesChange()" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.txt,.zip,.rar,.stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.mp4,.webm,.ogv" class="block w-full text-sm text-slate-600 file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border-0 file:bg-sky-50 file:text-sky-700 file:text-xs file:font-black hover:file:bg-sky-100">
                 <ul id="evidenceFileList" class="mt-2 space-y-1"></ul>
             </label>
-            <input id="evidenceFileUrl" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-3" placeholder="링크로 제출할 경우 URL (선택)">
-            <textarea id="evidenceComment" rows="2" class="w-full rounded-2xl border border-slate-200 p-3 text-sm mb-4" placeholder="추가 메모 또는 서술 답안 (선택)"></textarea>
+            <input type="hidden" id="evidenceFileUrl" value="">
+            <input type="hidden" id="evidenceComment" value="">
             <div class="flex gap-2">
                 <button type="button" onclick="closeEvidenceModal()" class="flex-1 min-h-[44px] rounded-2xl border border-slate-200 font-black text-sm">취소</button>
                 <button type="button" id="evidenceSubmitBtn" onclick="submitEvidence()" class="flex-1 min-h-[44px] rounded-2xl bg-sky-600 text-white font-black text-sm disabled:opacity-60">제출</button>
@@ -1469,10 +1469,12 @@ export const studentClassroomHtml = (sessionId: string) => `
                     }
                 });
                 window._ncsCurrentEvidence = evidence;
+                window._inlineQueuedPhotos = {};
+                window._inlineQueuedFiles = {};
 
                 html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-6 mb-5">';
                 html += '<div class="flex flex-wrap items-center justify-between gap-2 mb-4">';
-                html += '<div><h3 class="font-black text-base"><i class="fas fa-pen-to-square text-amber-500 mr-2"></i>평가문항 및 답안 작성 <span class="text-xs text-slate-400 font-bold ml-1">' + rows.length + '문항</span></h3><p class="text-xs text-slate-500 mt-0.5">각 문항을 확인하고 바로 아래에 답변(메모)과 첨부파일(또는 이미지)을 입력한 뒤 하단의 저장 버튼을 눌러 제출하세요.</p></div>';
+                html += '<div><h3 class="font-black text-base"><i class="fas fa-pen-to-square text-amber-500 mr-2"></i>평가문항 및 답안 작성 <span class="text-xs text-slate-400 font-bold ml-1">' + rows.length + '문항</span></h3><p class="text-xs text-slate-500 mt-0.5">각 문항을 확인하고 바로 아래에 답변(메모), 사진(이미지), 첨부파일을 입력한 뒤 하단의 저장 버튼을 눌러 제출하세요. 사진과 첨부파일은 여러 개를 동시에 또는 여러 번 나누어 추가할 수 있습니다.</p></div>';
                 html += '</div>';
 
                 const atts = Array.isArray(q.attachments) ? q.attachments : [];
@@ -1486,6 +1488,13 @@ export const studentClassroomHtml = (sessionId: string) => `
                     var qNo = Number(r.no || (idx + 1));
                     var savedAns = existingAnswerMap[qNo] != null ? existingAnswerMap[qNo] : '';
                     var qFiles = existingFilesByQ[qNo] || [];
+                    var savedPhotos = [];
+                    var savedDocs = [];
+                    qFiles.forEach(function(f) {
+                        var isImg = f.file_type === 'image' || /\\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(f.file_url || '')) || /\\[사진\\]/.test(String(f.file_name || ''));
+                        if (isImg) savedPhotos.push(f);
+                        else savedDocs.push(f);
+                    });
                     html += '<div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 space-y-4">';
                     // 1. 문항
                     html += '<div><div class="flex items-center justify-between gap-2 mb-2.5">' +
@@ -1498,36 +1507,59 @@ export const studentClassroomHtml = (sessionId: string) => `
                     html += '<div><label class="block text-xs font-black text-slate-700 mb-1.5"><span class="inline-block px-2 py-0.5 rounded bg-sky-100 text-sky-800 mr-1.5">2. 답변(메모)</span>문항 ' + qNo + '번 정답 / 답안 입력</label>' +
                         '<textarea data-inline-qno="' + qNo + '" rows="2" placeholder="' + qNo + '번 문항의 정답이나 풀이 답변을 입력하세요..." class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none">' + esc(savedAns) + '</textarea></div>';
 
-                    // 3. 첨부파일 또는 이미지
-                    html += '<div><label class="block text-xs font-black text-slate-700 mb-1.5"><span class="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 mr-1.5">3. 첨부파일 또는 이미지</span>문항 ' + qNo + '번 증빙 파일 / 캡처 이미지 (선택)</label>' +
-                        '<input type="file" data-inline-qfile="' + qNo + '" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.mp4" class="block w-full text-xs text-slate-600 file:mr-3 file:px-3.5 file:py-2 file:rounded-xl file:border-0 file:bg-white file:border file:border-slate-200 file:text-sky-700 file:text-xs file:font-black hover:file:bg-sky-50" />';
-                    if (qFiles.length) {
-                        html += '<div class="mt-2 space-y-1.5">' + qFiles.map(function(f) {
-                            var isImg = f.file_type === 'image' || /\\.(png|jpe?g|gif|webp|bmp)$/i.test(String(f.file_url || ''));
-                            return '<div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs">' +
-                                '<div class="flex items-center gap-2 min-w-0">' +
-                                    (isImg ? '<img src="' + esc(f.file_url) + '" alt="첨부" class="w-10 h-10 object-cover rounded-lg border border-slate-200 shrink-0" />' : '<i class="fas fa-file-check text-emerald-600"></i>') +
-                                    '<a href="' + esc(f.file_url || '') + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline truncate">' + esc(f.file_name || '첨부파일') + '</a>' +
-                                '</div>' +
-                                '<button type="button" onclick="deleteMyInlineEvidence(' + f.id + ', ' + planId + ')" class="text-slate-400 hover:text-rose-600 text-xs font-bold px-2 py-1"><i class="fas fa-trash-can mr-1"></i>삭제</button>' +
-                            '</div>';
-                        }).join('') + '</div>';
-                    }
-                    html += '</div></div>';
+                    // 3. 사진란 (1. 사진란) + 4. 첨부파일란 (2. 첨부파일란) 분리 및 멀티 첨부 지원
+                    html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' +
+                        // 3-1. 사진란
+                        '<div class="rounded-xl border border-amber-200/80 bg-white p-3.5">' +
+                            '<div class="flex items-center justify-between gap-2 mb-1.5">' +
+                                '<label class="block text-xs font-black text-slate-700"><span class="inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-800 mr-1.5">3-1. 사진란</span>렌더링 / 캡처 이미지 (멀티 첨부)</label>' +
+                                '<span class="text-[10px] text-amber-700 font-bold">여러 장 추가 가능</span>' +
+                            '</div>' +
+                            '<input type="file" data-inline-qphoto="' + qNo + '" multiple accept="image/*" onchange="onInlineMultiFilePick(' + qNo + ', &#39;photo&#39;, this)" class="block w-full text-xs text-slate-600 file:mr-3 file:px-3.5 file:py-2 file:rounded-xl file:border file:border-amber-200 file:bg-amber-50/70 file:text-amber-800 file:text-xs file:font-black hover:file:bg-amber-100 cursor-pointer" />' +
+                            '<div id="inlineQueuedPhotos_' + qNo + '" class="mt-2 space-y-1"></div>' +
+                            (savedPhotos.length
+                                ? '<div class="mt-2 pt-2 border-t border-slate-100 space-y-1.5"><p class="text-[10px] font-black text-emerald-700">제출된 사진 (' + savedPhotos.length + '장)</p>' +
+                                  savedPhotos.map(function(f) {
+                                      return '<div class="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 px-2.5 py-1.5 text-xs">' +
+                                          '<div class="flex items-center gap-2 min-w-0">' +
+                                              '<img src="' + esc(f.file_url) + '" alt="첨부사진" class="w-9 h-9 object-cover rounded-lg border border-slate-200 shrink-0" />' +
+                                              '<a href="' + esc(f.file_url || '') + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline truncate">' + esc(f.file_name || '사진') + '</a>' +
+                                          '</div>' +
+                                          '<button type="button" onclick="deleteMyInlineEvidence(' + f.id + ', ' + planId + ')" class="text-slate-400 hover:text-rose-600 text-xs font-bold px-1.5 py-1 shrink-0"><i class="fas fa-trash-can"></i></button>' +
+                                      '</div>';
+                                  }).join('') + '</div>'
+                                : '') +
+                        '</div>' +
+                        // 3-2. 첨부파일란
+                        '<div class="rounded-xl border border-emerald-200/80 bg-white p-3.5">' +
+                            '<div class="flex items-center justify-between gap-2 mb-1.5">' +
+                                '<label class="block text-xs font-black text-slate-700"><span class="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 mr-1.5">3-2. 첨부파일란</span>설계·모델링·문서 파일 (멀티 첨부)</label>' +
+                                '<span class="text-[10px] text-emerald-700 font-bold">STEP/STL/ZIP/PDF 등 다중 추가</span>' +
+                            '</div>' +
+                            '<input type="file" data-inline-qfile="' + qNo + '" multiple accept=".stl,.step,.stp,.iges,.igs,.obj,.3mf,.f3d,.gcode,.dwg,.dxf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.txt,.zip,.rar,.7z,.mp4,image/*" onchange="onInlineMultiFilePick(' + qNo + ', &#39;file&#39;, this)" class="block w-full text-xs text-slate-600 file:mr-3 file:px-3.5 file:py-2 file:rounded-xl file:border file:border-emerald-200 file:bg-emerald-50/70 file:text-emerald-800 file:text-xs file:font-black hover:file:bg-emerald-100 cursor-pointer" />' +
+                            '<div id="inlineQueuedFiles_' + qNo + '" class="mt-2 space-y-1"></div>' +
+                            (savedDocs.length
+                                ? '<div class="mt-2 pt-2 border-t border-slate-100 space-y-1.5"><p class="text-[10px] font-black text-emerald-700">제출된 첨부파일 (' + savedDocs.length + '개)</p>' +
+                                  savedDocs.map(function(f) {
+                                      return '<div class="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 px-2.5 py-1.5 text-xs">' +
+                                          '<div class="flex items-center gap-2 min-w-0">' +
+                                              '<i class="fas fa-file-check text-emerald-600 shrink-0"></i>' +
+                                              '<a href="' + esc(f.file_url || '') + '" target="_blank" rel="noopener" class="font-bold text-sky-700 hover:underline truncate">' + esc(f.file_name || '첨부파일') + '</a>' +
+                                          '</div>' +
+                                          '<button type="button" onclick="deleteMyInlineEvidence(' + f.id + ', ' + planId + ')" class="text-slate-400 hover:text-rose-600 text-xs font-bold px-1.5 py-1 shrink-0"><i class="fas fa-trash-can"></i></button>' +
+                                      '</div>';
+                                  }).join('') + '</div>'
+                                : '') +
+                        '</div>' +
+                    '</div></div>';
                 });
                 html += '</div>';
 
                 if (q.notes) html += '<p class="text-xs text-slate-500 mt-4 whitespace-pre-wrap">' + esc(q.notes) + '</p>';
 
-                // 공통 링크 / 추가 메모 및 일괄 제출 버튼
-                html += '<div class="mt-6 pt-5 border-t border-slate-200 space-y-3">' +
-                    '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">' +
-                        '<div><label class="block text-xs font-bold text-slate-600 mb-1">외부 링크 제출 (선택 · 구글 드라이브 / 포트폴리오 URL)</label>' +
-                        '<input type="url" id="inlineExamLinkUrl" placeholder="https://..." class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm" /></div>' +
-                        '<div><label class="block text-xs font-bold text-slate-600 mb-1">전체 추가 메모 (선택)</label>' +
-                        '<input type="text" id="inlineExamExtraMemo" value="' + esc(existingExtraLines.join(' ')) + '" placeholder="전체 평가에 대한 추가 메모가 있으면 입력하세요" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm" /></div>' +
-                    '</div>' +
-                    '<div class="flex flex-wrap items-center justify-between gap-3 pt-2">' +
+                // 일괄 제출 버튼
+                html += '<div class="mt-6 pt-5 border-t border-slate-200">' +
+                    '<div class="flex flex-wrap items-center justify-between gap-3">' +
                         '<p class="text-xs text-slate-500">제출 후에도 다시 입력·저장하여 답안이나 첨부파일을 수정할 수 있습니다.</p>' +
                         '<button type="button" id="inlineExamSubmitBtn" onclick="submitInlineNcsExam(' + planId + ')" class="px-6 py-3.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-black shadow-lg shadow-sky-100 transition"><i class="fas fa-cloud-arrow-up mr-2"></i>답안 · 첨부파일 제출 저장</button>' +
                     '</div>' +
@@ -1601,9 +1633,55 @@ export const studentClassroomHtml = (sessionId: string) => `
             }
         };
 
+        window.onInlineMultiFilePick = function(qNo, kind, inputEl) {
+            if (!window._inlineQueuedPhotos) window._inlineQueuedPhotos = {};
+            if (!window._inlineQueuedFiles) window._inlineQueuedFiles = {};
+            const store = kind === 'photo' ? window._inlineQueuedPhotos : window._inlineQueuedFiles;
+            if (!Array.isArray(store[qNo])) store[qNo] = [];
+            const picked = inputEl && inputEl.files ? Array.prototype.slice.call(inputEl.files) : [];
+            picked.forEach(function(f) {
+                const exists = store[qNo].some(function(x) { return x.name === f.name && x.size === f.size && x.lastModified === f.lastModified; });
+                if (!exists) store[qNo].push(f);
+            });
+            if (inputEl) inputEl.value = '';
+            renderInlineQueuedList(qNo, kind);
+        };
+
+        window.removeInlineQueuedFile = function(qNo, kind, idx) {
+            const store = kind === 'photo' ? (window._inlineQueuedPhotos || {}) : (window._inlineQueuedFiles || {});
+            if (Array.isArray(store[qNo])) {
+                store[qNo].splice(idx, 1);
+            }
+            renderInlineQueuedList(qNo, kind);
+        };
+
+        function renderInlineQueuedList(qNo, kind) {
+            const store = kind === 'photo' ? (window._inlineQueuedPhotos || {}) : (window._inlineQueuedFiles || {});
+            const list = Array.isArray(store[qNo]) ? store[qNo] : [];
+            const boxId = (kind === 'photo' ? 'inlineQueuedPhotos_' : 'inlineQueuedFiles_') + qNo;
+            const box = document.getElementById(boxId);
+            if (!box) return;
+            if (!list.length) {
+                box.innerHTML = '';
+                return;
+            }
+            const badgeColor = kind === 'photo'
+                ? 'border-amber-200 bg-amber-50/70 text-amber-900'
+                : 'border-sky-200 bg-sky-50/70 text-sky-900';
+            box.innerHTML = '<p class="text-[10px] font-black text-slate-500">업로드 대기 (' + list.length + '개 · 저장 버튼을 누르면 제출됩니다)</p>' +
+                list.map(function(f, i) {
+                    const kb = Math.max(1, Math.round((f.size || 0) / 1024));
+                    return '<div class="flex items-center justify-between gap-2 rounded-lg border ' + badgeColor + ' px-2.5 py-1.5 text-xs">' +
+                        '<span class="truncate font-bold"><i class="fas ' + (kind === 'photo' ? 'fa-image text-amber-600' : 'fa-file-lines text-sky-600') + ' mr-1.5"></i>' + esc(f.name) + ' <span class="text-[10px] opacity-70">(' + kb + 'KB)</span></span>' +
+                        '<button type="button" onclick="removeInlineQueuedFile(' + qNo + ', &#39;' + kind + '&#39;, ' + i + ')" class="text-slate-400 hover:text-rose-600 font-black px-1 shrink-0" title="제외"><i class="fas fa-xmark"></i></button>' +
+                    '</div>';
+                }).join('');
+        }
+
         window.submitInlineNcsExam = async function(planId) {
             if (!currentUser || !currentUser.id) { alert('로그인 정보를 확인할 수 없습니다.'); return; }
             const ansInputs = Array.prototype.slice.call(document.querySelectorAll('textarea[data-inline-qno]'));
+            const photoInputs = Array.prototype.slice.call(document.querySelectorAll('input[data-inline-qphoto]'));
             const fileInputs = Array.prototype.slice.call(document.querySelectorAll('input[data-inline-qfile]'));
             const linkUrl = (document.getElementById('inlineExamLinkUrl')?.value || '').trim();
             const extraMemo = (document.getElementById('inlineExamExtraMemo')?.value || '').trim();
@@ -1622,16 +1700,35 @@ export const studentClassroomHtml = (sessionId: string) => `
             const combinedComment = commentParts.join('\\n').trim();
 
             const filesToUpload = [];
+            const qPhotoMap = window._inlineQueuedPhotos || {};
+            const qFileMap = window._inlineQueuedFiles || {};
+            Object.keys(qPhotoMap).forEach(function(qNo) {
+                (qPhotoMap[qNo] || []).forEach(function(f) {
+                    filesToUpload.push({ qNo: qNo, kind: 'photo', file: f });
+                });
+            });
+            photoInputs.forEach(function(pi) {
+                var qNo = pi.getAttribute('data-inline-qphoto');
+                var list = pi && pi.files ? Array.prototype.slice.call(pi.files) : [];
+                list.forEach(function(f) {
+                    filesToUpload.push({ qNo: qNo, kind: 'photo', file: f });
+                });
+            });
+            Object.keys(qFileMap).forEach(function(qNo) {
+                (qFileMap[qNo] || []).forEach(function(f) {
+                    filesToUpload.push({ qNo: qNo, kind: 'file', file: f });
+                });
+            });
             fileInputs.forEach(function(fi) {
                 var qNo = fi.getAttribute('data-inline-qfile');
                 var list = fi && fi.files ? Array.prototype.slice.call(fi.files) : [];
                 list.forEach(function(f) {
-                    filesToUpload.push({ qNo: qNo, file: f });
+                    filesToUpload.push({ qNo: qNo, kind: 'file', file: f });
                 });
             });
 
             if (!hasAnyAnswer && !extraMemo && !filesToUpload.length && !linkUrl) {
-                alert('문항별 답변(메모)을 입력하거나 첨부파일/이미지를 선택해 주세요.');
+                alert('문항별 답변(메모)을 입력하거나 사진/첨부파일을 선택해 주세요.');
                 return;
             }
 
@@ -1651,19 +1748,21 @@ export const studentClassroomHtml = (sessionId: string) => `
                     }
                 }
 
-                // 1) 문항별 첨부파일 업로드 및 저장
+                // 1) 문항별 사진 및 첨부파일 업로드 및 저장
                 for (let i = 0; i < filesToUpload.length; i++) {
                     const item = filesToUpload[i];
                     const up = await uploadEvidenceFile(item.file, planId);
+                    const tagPrefix = item.kind === 'photo' ? ('[문항 ' + item.qNo + '][사진] ') : ('[문항 ' + item.qNo + '][첨부파일] ');
+                    const resolvedType = item.kind === 'photo' ? 'image' : evidenceFileType(item.file);
                     await fetch('/api/ncs/evidence', {
                         method: 'POST',
                         headers: authHeaders(),
                         body: JSON.stringify({
                             plan_id: Number(planId),
                             student_id: currentUser.id,
-                            file_name: '[문항 ' + item.qNo + '] ' + (up.originalName || up.fileName || item.file.name),
+                            file_name: tagPrefix + (up.originalName || up.fileName || item.file.name),
                             file_url: up.url,
-                            file_type: evidenceFileType(item.file),
+                            file_type: resolvedType,
                             comment: ''
                         })
                     });
