@@ -379,6 +379,19 @@ app.get('/:sessionId/ncs-plans/:planId/exam', async (c) => {
         break;
     }
 
+    // 시험일 이전 응시 제한 (학생 역할일 때 시험 예정일 전이면 차단)
+    const userRole = String(c.get('user')?.role || '');
+    const examDateYmd = String((schedule && schedule.date) || plan.planned_date || '').trim().slice(0, 10);
+    const kstTodayYmd = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    if (userRole === 'student' && /^\d{4}-\d{2}-\d{2}$/.test(examDateYmd) && kstTodayYmd < examDateYmd) {
+        return c.json({
+            success: false,
+            error: `시험일(${examDateYmd}) 이전에는 시험에 응시할 수 없습니다.`,
+            before_exam_date: true,
+            planned_date: examDateYmd,
+        }, 403);
+    }
+
     let evidence: any[] = [];
     try {
         const { results } = await db.prepare(

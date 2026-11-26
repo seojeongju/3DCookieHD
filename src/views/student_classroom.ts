@@ -814,7 +814,9 @@ export const studentClassroomHtml = (sessionId: string) => `
                 html += '<div class="bento-card rounded-[2rem] border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div class="flex gap-4 items-start"><div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0"><i class="fas fa-certificate"></i></div><div><span class="text-[10px] font-black uppercase tracking-widest text-amber-600">NCS본평가</span><h3 class="font-black text-lg mt-1">과정 본평가</h3><p class="text-xs text-slate-500 mt-1">' + ncs.question_count + '문항</p></div></div>' + ncsBtn + '</div>';
             }
             if (plans.length) {
-                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 본평가 (능력단위별)</h3><p class="text-xs text-slate-500 mb-3">시험지·평가내용을 확인한 뒤 답안·증빙 파일을 제출하세요.</p><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">';
+                const today = todayYmd();
+                const isStaff = currentUser && (currentUser.role === 'admin' || currentUser.role === 'teacher');
+                html += '<h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-3">NCS 본평가 (능력단위별)</h3><p class="text-xs text-slate-500 mb-3">시험일 당일부터 [시험 응시] 버튼을 눌러 문제를 확인하고 답안·첨부파일을 제출할 수 있습니다.</p><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">';
                 plans.forEach(function(p) {
                     const done = !!p.has_evidence;
                     const hasRealCode = p.unit_code && String(p.unit_code).indexOf('CURR-') !== 0;
@@ -823,9 +825,14 @@ export const studentClassroomHtml = (sessionId: string) => `
                         ? (hasRealCode ? '[' + esc(p.unit_code) + '] ' : '') + esc(p.unit_name)
                         : (hasRealCode ? '[' + esc(p.unit_code) + ']' : '교과목 평가');
                     const codeTag = '<p class="text-[10px] font-black text-sky-600">' + unitSub + '</p>';
+                    const plannedYmd = String(p.planned_date || '').trim().slice(0, 10);
+                    const isBeforeExamDate = !isStaff && /^\\d{4}-\\d{2}-\\d{2}$/.test(plannedYmd) && today < plannedYmd;
+                    const examBtn = isBeforeExamDate
+                        ? '<button type="button" disabled title="시험일(' + esc(fmtDate(p.planned_date)) + ')부터 응시 가능합니다" class="px-4 py-2 bg-slate-200 text-slate-400 rounded-xl text-[10px] font-black cursor-not-allowed"><i class="fas fa-lock mr-1"></i>시험 응시 (' + esc(fmtDate(p.planned_date)) + ' 오픈)</button>'
+                        : '<button type="button" onclick="openNcsPlanExam(' + p.id + ')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black transition"><i class="fas fa-pen-to-square mr-1"></i>시험 응시</button>';
                     html += '<div class="bento-card rounded-[1.75rem] border border-slate-200/60 bg-white p-5 flex flex-col justify-between min-h-[150px]"><div>' + codeTag + '<h3 class="font-black mt-1">' + esc(displayTitle) + '</h3><p class="text-xs text-slate-500 mt-2">예정 ' + fmtDate(p.planned_date) + (p.method ? ' · ' + esc(p.method) : '') + '</p></div><div class="mt-4 flex flex-wrap items-center gap-2">' +
-                        '<button type="button" onclick="openNcsPlanExam(' + p.id + ')" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black"><i class="fas fa-file-lines mr-1"></i>시험지·평가내용 보기</button>' +
-                        (done ? '<span class="inline-flex px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black"><i class="fas fa-check mr-1"></i>제출완료</span>' : '<button type="button" onclick="openEvidenceModal(' + p.id + ')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-[10px] font-black">답안·증빙 제출</button>') +
+                        examBtn +
+                        (done ? '<span class="inline-flex px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black"><i class="fas fa-check mr-1"></i>제출완료</span>' : '') +
                         '</div></div>';
                 });
                 html += '</div>';
